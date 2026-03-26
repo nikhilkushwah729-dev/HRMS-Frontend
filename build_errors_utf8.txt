@@ -1,0 +1,149 @@
+﻿[33mΓ¥»[39m Building...
+[32mΓ£ö[39m Building...
+Application bundle generation failed. [9.735 seconds]
+
+node.exe : 
+[1m[31m[31mX [41;31
+m[[41;97mERROR[41;31m
+][0m [1mTS2300: 
+Duplicate identifier 
+'CommonModule'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\Nikhil\AppDat
+a\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: ([1m[31m[31   
+ mX...r-compiler][    
+0m:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+    src/app/features/le
+aves/leaves.component.t
+s:1:9:
+[37m      1 Γöé 
+import { 
+[32mCommonModule[37m 
+} from 
+'@angular/common';
+        Γò╡          
+[32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97
+mERROR[41;31m][0m 
+[1mTS2300: Duplicate 
+identifier 
+'CommonModule'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/features/le
+aves/leaves.component.t
+s:3:9:
+[37m      3 Γöé 
+import { 
+[32mCommonModule[37m 
+} from 
+'@angular/common';
+        Γò╡          
+[32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97
+mERROR[41;31m][0m 
+[1mTS2339: Property 
+'toastService' does 
+not exist on type 
+'LeavesComponent'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/features/le
+aves/leaves.component.t
+s:482:13:
+[37m      482 Γöé     
+    this.[32mtoastServ
+ice[37m.show('Unable 
+to load leave 
+requests. Pl...
+          Γò╡          
+    
+[32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97
+mERROR[41;31m][0m 
+[1mTS2339: Property 
+'toastService' does 
+not exist on type 
+'LeavesComponent'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/features/le
+aves/leaves.component.t
+s:526:15:
+[37m      526 Γöé     
+      this.[32mtoastSe
+rvice[37m.show(`Leave 
+request ${status} 
+success...
+          Γò╡          
+      
+[32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97
+mERROR[41;31m][0m 
+[1mTS2339: Property 
+'toastService' does 
+not exist on type 
+'LeavesComponent'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/features/le
+aves/leaves.component.t
+s:529:15:
+[37m      529 Γöé     
+      this.[32mtoastSe
+rvice[37m.show(`Failed
+ to ${status} leave 
+reque...
+          Γò╡          
+      
+[32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97
+mERROR[41;31m][0m 
+[1mTS2339: Property 
+'toastService' does 
+not exist on type 
+'LeavesComponent'.[0m 
+[1m[35m[plugin 
+angular-compiler][0m
+
+    src/app/features/le
+aves/leaves.component.t
+s:594:9:
+[37m      594 Γöé     
+this.[32mtoastService
+[37m.show(
+          Γò╡          
+[32m~~~~~~~~~~~~[0m
+
+[39m[22m

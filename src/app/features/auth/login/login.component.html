@@ -1,0 +1,313 @@
+<div class="flex flex-col lg:flex-row h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+
+  <!-- Left Banner - Hidden on mobile -->
+  <div class="hidden lg:flex w-[45%] xl:w-[42%] bg-gradient-to-br from-slate-900 via-primary-900/60 to-slate-900 p-10 xl:p-14 flex-col justify-center relative overflow-hidden text-white flex-shrink-0">
+    <div class="relative z-10 max-w-[440px]">
+      <div class="flex items-center gap-4 mb-10 group cursor-pointer">
+        <div class="relative rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(99,102,241,0.3)] transition-transform duration-500 group-hover:scale-105">
+          <img src="hrnexus-logo.png" alt="HRNexus" class="h-16 w-auto object-contain">
+        </div>
+        <div>
+          <h1 class="text-3xl xl:text-4xl font-black tracking-tight text-white leading-none">HRNexus</h1>
+          <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-[0.4em] mt-1 block">Technology</span>
+        </div>
+      </div>
+      <h2 class="text-3xl xl:text-4xl leading-tight mb-4 font-bold">
+        Welcome back to <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-teal-300">your workspace</span>
+      </h2>
+      <p class="text-sm xl:text-base text-slate-300 leading-relaxed mb-8">Sign in to manage HR operations, attendance, payroll, and approvals in one polished workspace.</p>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <span class="text-sm text-slate-200">Secure, encrypted authentication</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <span class="text-sm text-slate-200">Single sign-on via Google & Microsoft</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          </div>
+          <span class="text-sm text-slate-200">Real-time HR analytics dashboard</span>
+        </div>
+      </div>
+    </div>
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
+      <div class="absolute w-[400px] h-[400px] rounded-full bg-primary-600 blur-[120px] opacity-20 -top-20 -right-20"></div>
+      <div class="absolute w-[300px] h-[300px] rounded-full bg-amber-500 blur-[100px] opacity-20 -bottom-20 -left-20"></div>
+    </div>
+  </div>
+
+  <!-- Right Form Side -->
+  <div class="flex-1 overflow-y-auto bg-slate-900">
+    <div class="flex flex-col items-center justify-center p-4 sm:p-6 lg:p-10 min-h-full">
+
+      <!-- Mobile Logo -->
+      <div class="lg:hidden flex items-center justify-center mb-8">
+        <div class="rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(99,102,241,0.25)]">
+          <img src="hrnexus-logo.png" alt="HRNexus" class="h-14 w-auto object-contain">
+        </div>
+      </div>
+
+      <!-- Card -->
+      <div class="w-full max-w-[400px]">
+        <div class="bg-slate-800/80 backdrop-blur-xl rounded-md shadow-2xl shadow-black/50 border border-slate-700 overflow-hidden">
+
+          <!-- Card Header -->
+          <div class="px-6 pt-8 pb-6 text-center border-b border-white/[0.03]">
+            <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_24px_rgba(99,102,241,0.3)] mx-auto mb-4 border border-white/5">
+              <img src="hrnexus-logo.png" alt="HRNexus" class="w-full h-full object-cover">
+            </div>
+            <h2 class="text-lg font-black text-white tracking-tight">Access HRNexus Portal</h2>
+            <p class="text-[11px] text-slate-500 mt-1 uppercase font-bold tracking-wider">Enterprise Security Protocol</p>
+          </div>
+
+          <!-- Card Body -->
+          <div class="px-6 py-5">
+
+            <!-- Alert area — fixed height so it doesn't shift layout -->
+            <div class="min-h-[36px] mb-3">
+              @if (error()) {
+                <div class="flex items-start gap-2.5 p-2.5 rounded-lg text-xs bg-red-500/10 text-red-400 border border-red-500/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  <span>{{ error() }}</span>
+                </div>
+              }
+              @if (info()) {
+                <div class="flex items-start gap-2.5 p-2.5 rounded-lg text-xs bg-primary-500/10 text-primary-400 border border-primary-500/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                  <span>{{ info() }}</span>
+                </div>
+              }
+            </div>
+
+                    @if (stage() === 'credentials') {
+
+              <!-- OAuth Buttons -->
+              <div class="transition-all duration-300 overflow-hidden"
+                [style.max-height]="credentialsStep() === 'identify' && loginMethod() === 'email' ? '140px' : '0px'"
+                [style.opacity]="credentialsStep() === 'identify' && loginMethod() === 'email' ? '1' : '0'"
+                [style.margin-bottom]="credentialsStep() === 'identify' && loginMethod() === 'email' ? '16px' : '0px'">
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                  <button type="button"
+                    class="h-9 bg-white/5 border border-slate-600 rounded-md hover:bg-white/10 hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-xs font-medium text-slate-300 disabled:opacity-50"
+                    (click)="signInWithOAuth('google')" [disabled]="loading()">
+                    <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Google
+                  </button>
+                  <button type="button"
+                    class="h-9 bg-white/5 border border-slate-600 rounded-md hover:bg-white/10 hover:border-slate-500 transition-all flex items-center justify-center gap-2 text-xs font-medium text-slate-300 disabled:opacity-50"
+                    (click)="signInWithOAuth('microsoft')" [disabled]="loading()">
+                    <svg width="14" height="14" viewBox="0 0 24 24"><path fill="#F25022" d="M1 1h10v10H1z"/><path fill="#00A4EF" d="M1 13h10v10H1z"/><path fill="#7FBA00" d="M13 1h10v10H13z"/><path fill="#FFB900" d="M13 13h10v10H13z"/></svg>
+                    Microsoft
+                  </button>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="flex-1 h-px bg-slate-700"></div>
+                  <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-widest">or continue with email</span>
+                  <div class="flex-1 h-px bg-slate-700"></div>
+                </div>
+              </div>
+
+              <form (ngSubmit)="onSubmit()" #loginNgForm="ngForm">
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-semibold text-slate-300">
+                    {{ credentialsStep() === 'identify' ? (loginMethod() === 'email' ? 'Work Email' : 'Phone Number') : 'Password' }}
+                  </label>
+                  @if (credentialsStep() === 'password') {
+                    <a routerLink="/auth/forgot-password" class="text-[11px] text-primary-400 font-semibold hover:underline">Forgot password?</a>
+                  }
+                </div>
+
+                <div class="relative" style="height: 42px;">
+                  <!-- IDENTIFY input -->
+                  <div class="absolute inset-0 transition-all duration-300"
+                    [style.opacity]="credentialsStep() === 'identify' ? '1' : '0'"
+                    [style.pointer-events]="credentialsStep() === 'identify' ? 'auto' : 'none'">
+                    <div class="flex gap-2 h-full">
+                      @if (loginMethod() === 'phone') {
+                        <!-- Reusable Phone Input -->
+                        <div class="flex-1">
+                          <app-ui-phone-input 
+                            [(ngModel)]="phoneForm.fullNumber" 
+                            name="phoneFullNumber"
+                            variant="auth"
+                            placeholder="98765 43210"
+                            (ngModelChange)="onIdentifierChange($event)"
+                            (countryChange)="onCountryChange($event)"
+                          ></app-ui-phone-input>
+                        </div>
+                      } @else {
+                        <!-- Email Input -->
+                        <div class="relative flex-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                          <input type="text" id="emailIdentifier" name="identifier"
+                            autocomplete="email" inputmode="email"
+                            class="w-full h-full pl-9 pr-3 rounded-md border border-slate-700 bg-slate-900/60 text-slate-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 transition-all placeholder-slate-600"
+                            placeholder="name@company.com"
+                            [(ngModel)]="identifier"
+                            (ngModelChange)="onIdentifierChange($event)"
+                            required [disabled]="loading() || credentialsStep() !== 'identify'">
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- PASSWORD input -->
+                  <div class="absolute inset-0 transition-all duration-300"
+                    [style.opacity]="credentialsStep() === 'password' ? '1' : '0'"
+                    [style.pointer-events]="credentialsStep() === 'password' ? 'auto' : 'none'">
+                    <div class="relative h-full">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      <input [type]="showPassword() ? 'text' : 'password'" id="password" name="password" autocomplete="current-password"
+                        class="w-full h-full pl-9 pr-10 rounded-md border border-slate-700 bg-slate-900/60 text-slate-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 transition-all placeholder-slate-600"
+                        placeholder="Enter your account password"
+                        [(ngModel)]="loginForm.password" [required]="credentialsStep() === 'password'" [disabled]="loading() || credentialsStep() !== 'password'">
+                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors" (click)="togglePassword()" [disabled]="loading()">
+                        @if (showPassword()) {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 0 1-4.24-4.24"/><line x1="1" x2="23" y1="1" y2="23"/></svg>
+                        } @else {
+                          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              <div class="min-h-[20px] mt-1.5 mb-4">
+                @if (credentialsStep() === 'identify') {
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold"
+                        [ngClass]="loginMethod() === 'phone' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-primary-500/10 text-primary-400'">
+                        {{ identifierHint() }}
+                      </span>
+                    </div>
+                  }
+                  @if (credentialsStep() === 'password') {
+                    <div class="flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                      <span class="text-[11px] text-slate-400 truncate">{{ (identifier || '').trim().toLowerCase() }}</span>
+                      <button type="button" (click)="backToIdentifier()" [disabled]="loading()" class="text-[10px] text-primary-400 font-semibold hover:underline flex-shrink-0 disabled:opacity-50">Change</button>
+                    </div>
+                  }
+                </div>
+
+                <div class="min-h-[28px] mb-4 transition-all duration-300"
+                  [style.opacity]="credentialsStep() === 'password' ? '1' : '0'"
+                  [style.pointer-events]="credentialsStep() === 'password' ? 'auto' : 'none'">
+                  <label class="flex items-center gap-2.5 text-xs text-slate-400 select-none cursor-pointer">
+                    <input type="checkbox" class="w-3.5 h-3.5 rounded border-slate-600 bg-slate-800 text-primary-600 focus:ring-primary-500/30 focus:ring-offset-0" [(ngModel)]="loginForm.rememberMe" name="rememberMe" [disabled]="loading()">
+                    Keep me signed in for 30 days
+                  </label>
+                </div>
+
+                <button type="submit"
+                  class="w-full h-10 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-md hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  [disabled]="loading()">
+                  @if (loading()) {
+                    <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    {{ credentialsStep() === 'identify' ? 'Checking…' : 'Signing in…' }}
+                  } @else {
+                    {{ credentialsStep() === 'identify' ? 'Continue' : 'Sign In' }}
+                    @if (credentialsStep() === 'identify') {
+                      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    }
+                  }
+                </button>
+              </form>
+            } @else {
+              <!-- OTP Step -->
+              <form (ngSubmit)="onSubmit()" #otpNgForm="ngForm" class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <button type="button" class="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-60 flex items-center gap-1" (click)="goBackToCredentials()" [disabled]="loading()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    Change details
+                  </button>
+                  <button type="button" class="text-xs text-primary-400 font-semibold hover:underline disabled:opacity-60" (click)="resendOtp()" [disabled]="loading()">Resend OTP</button>
+                </div>
+                <div class="space-y-3">
+                  <label class="text-xs font-semibold text-slate-300 block text-center">Verification Code</label>
+                  
+                  <div class="flex justify-between gap-2 max-w-[320px] mx-auto">
+                    @for (digit of otpDigits(); track $index) {
+                      <input
+                        #otpDigitInput
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="1"
+                        [value]="digit"
+                        (input)="onDigitInput($index, $event)"
+                        (keydown)="onDigitKeyDown($index, $event)"
+                        (paste)="onDigitPaste($event)"
+                        class="w-10 h-12 sm:w-12 sm:h-14 rounded-md border border-slate-700 bg-slate-900/60 text-slate-200 text-xl font-bold text-center focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/40 transition-all placeholder-slate-800"
+                        placeholder="0"
+                        [disabled]="loading()"
+                      />
+                    }
+                  </div>
+                  
+                  <p class="text-[11px] text-slate-500 text-center pt-1 italic">Enter the 6-digit code sent to {{ otpTargetHint() }}.</p>
+                </div>
+                <button type="submit"
+                  class="w-full h-10 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-md hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-lg shadow-primary-500/20 flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  [disabled]="loading()">
+                  @if (loading()) {
+                    <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    Verifying…
+                  } @else {
+                    Verify & Sign In
+                  }
+                </button>
+              </form>
+            }
+
+          </div>
+
+          <!-- Card Footer -->
+          <div class="px-6 py-4 bg-slate-900/30 border-t border-slate-700/60 text-center">
+            <p class="text-xs text-slate-500">Don't have an account? <a routerLink="/auth/signup" class="text-primary-400 font-semibold hover:underline">Create one for free</a></p>
+          </div>
+
+        </div>
+
+        @if (showSignupPrompt()) {
+          <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+            <div class="w-full max-w-[360px] rounded-md bg-slate-800 shadow-2xl border border-slate-700 p-6">
+              <div class="text-sm font-bold text-white mb-1.5">Create a new account?</div>
+              <div class="text-xs text-slate-400 mb-5 leading-relaxed">{{ signupPromptText() }}</div>
+              <div class="flex gap-2.5 justify-end">
+                <button type="button" class="h-9 px-5 rounded-md border border-slate-600 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition-colors" (click)="closeSignupPrompt()">Cancel</button>
+                <button type="button" class="h-9 px-5 rounded-md bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700 transition-colors" (click)="goToSignup()">Sign Up</button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <div class="mt-4 text-center">
+          <div class="mt-8 flex flex-col items-center gap-3">
+          <p class="text-[10px] text-slate-500">
+            &copy; 2026 HRNexus Technology. All rights reserved.
+          </p>
+          <div class="flex items-center gap-4 text-[10px] text-slate-600">
+            <a routerLink="/terms" class="hover:text-primary-400 transition-colors">Terms of Service</a>
+            <span class="w-1 h-1 rounded-full bg-slate-800"></span>
+            <a routerLink="/privacy" class="hover:text-primary-400 transition-colors">Privacy Policy</a>
+          </div>
+        </div>
+</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Firebase invisible reCAPTCHA container -->
+<div id="recaptcha-container"></div>
+
+

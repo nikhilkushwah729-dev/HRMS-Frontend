@@ -1,0 +1,47 @@
+﻿[33mΓ¥»[39m Building...
+[32mΓ£ö[39m Building...
+[1mInitial chunk files[22m  [2m | [22m[1mNames[22m                      [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-34UUZZA6.js[39m    [2m | [22m[2m-[22m                          [2m | [22m[36m205.80 kB[39m[2m | [22m               [36m59.32 kB[39m
+[32mstyles-6RKYXMSH.css[39m  [2m | [22m[2mstyles[22m                     [2m | [22m[36m124.49 kB[39m[2m | [22m               [36m14.16 kB[39m
+[32mmain-JTYALD2B.js[39m     [2m | [22m[2mmain[22m                       [2m | [22m [36m96.88 kB[39m[2m | [22m               [36m21.75 kB[39m
+[32mchunk-GXIDNCGQ.js[39m    [2m | [22m[2m-[22m                          [2m | [22m [36m88.86 kB[39m[2m | [22m               [36m22.11 kB[39m
+[32mpolyfills-FFHMD2TL.js[39m[2m | [22m[2mpolyfills[22m                  [2m | [22m [36m34.52 kB[39m[2m | [22m               [36m11.28 kB[39m
+[32mchunk-IQ7KRQ4R.js[39m    [2m | [22m[2m-[22m                          [2m | [22m [36m18.99 kB[39m[2m | [22m                [36m5.53 kB[39m
+[32mchunk-XIP5NLWN.js[39m    [2m | [22m[2m-[22m                          [2m | [22m [36m12.97 kB[39m[2m | [22m                [36m4.13 kB[39m
+[32mchunk-2JNKTEYC.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m8.19 kB[39m[2m | [22m                [36m1.82 kB[39m
+[32mchunk-P4IOSO5J.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m5.32 kB[39m[2m | [22m                [36m1.35 kB[39m
+[32mchunk-MHEEWAKL.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m5.10 kB[39m[2m | [22m                [36m1.38 kB[39m
+[32mchunk-VZD4654E.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m4.40 kB[39m[2m | [22m                [36m1.05 kB[39m
+[32mchunk-RAQIVAWZ.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m3.03 kB[39m[2m | [22m                [36m1.20 kB[39m
+[32mchunk-NGWKEC5U.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m2.31 kB[39m[2m | [22m                [36m1.00 kB[39m
+[32mchunk-UH56SFKP.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m1.44 kB[39m[2m | [22m              [36m669 bytes[39m
+[32mchunk-U6362OC5.js[39m    [2m | [22m[2m-[22m                          [2m | [22m  [36m1.12 kB[39m[2m | [22m              [36m557 bytes[39m
+[32mchunk-UY5PKNA6.js[39m    [2m | [22m[2m-[22m                          [2m | [22m[36m726 bytes[39m[2m | [22m              [36m726 bytes[39m
+[32mchunk-7MPAZLFS.js[39m    [2m | [22m[2m-[22m                          [2m | [22m[36m712 bytes[39m[2m | [22m              [36m712 bytes[39m
+[32mchunk-LCLSB7NL.js[39m    [2m | [22m[2m-[22m                          [2m | [22m[36m679 bytes[39m[2m | [22m              [36m679 bytes[39m
+[32mchunk-PW6VQTKX.js[39m    [2m | [22m[2m-[22m                          [2m | [22m[36m333 bytes[39m[2m | [22m              [36m333 bytes[39m
+
+[1m [22m                    [2m | [22m[1mInitial total[22m              [2m | [22m[1m615.88 kB[22m[2m | [22m              [1m149.75 kB[22m
+
+[1mLazy chunk files[22m     [2m | [22m[1mNames[22m                      [2m | [22m [1mRaw size[22m[2m | [22m[1mEstimated transfer size[22m
+[32mchunk-3HQSXAHE.js[39m    [2m | [22m[2mleaves-component[22m           [2m | [22m[36m232.70 kB[39m[2m | [22m               [36m68.42 kB[39m
+[32mchunk-AAPVHWOV.js[39m    [2m | [22m[2mlogin-component[22m            [2m | [22m[36m149.52 kB[39m[2m | [22m               [36m37.70 kB[39m
+[32mchunk-MF4ASVD3.js[39m    [2m | [22m[2mattendance-component[22m       [2m | [22m [36m92.55 kB[39m[2m | [22m               [36m19.38 kB[39m
+[32mchunk-WFXPEPDN.js[39m    [2m | [22m[2m-[22m                          [2m | [22m [36m50.36 kB[39m[2m | [22m                [36m9.44 kB[39m
+[32mchunk-TWQGWL7L.js[39m    [2m | [22m[2maudit-logs-component[22m       [2m | [22m [36m49.03 kB[39m[2m | [22m               [36m11.38 kB[39m
+[32mchunk-4FHT6E3V.js[39m    [2m | [22m[2m-[22m                          [2m | [22m [36m29.74 kB[39m[2m | [22m                [36m6.66 kB[39m
+[32mchunk-3RBXMDZ6.js[39m    [2m | [22m[2mreports-component[22m          [2m | [22m [36m25.74 kB[39m[2m | [22m                [36m5.79 kB[39m
+[32mchunk-DRENXVUY.js[39m    [2m | [22m[2mdashboard-component[22m        [2m | [22m [36m21.81 kB[39m[2m | [22m                [36m5.43 kB[39m
+[32mchunk-QWISUWZU.js[39m    [2m | [22m[2mface-registration-component[22m[2m | [22m [36m21.75 kB[39m[2m | [22m                [36m5.33 kB[39m
+[32mchunk-NRZKAOEN.js[39m    [2m | [22m[2msignup-component[22m           [2m | [22m [36m21.31 kB[39m[2m | [22m                [36m5.34 kB[39m
+[32mchunk-S5FEBDYJ.js[39m    [2m | [22m[2mexpenses-component[22m         [2m | [22m [36m18.92 kB[39m[2m | [22m                [36m5.14 kB[39m
+[32mchunk-XEJISLHN.js[39m    [2m | [22m[2mdocuments-component[22m        [2m | [22m [36m18.52 kB[39m[2m | [22m                [36m5.04 kB[39m
+[32mchunk-EMDOAX66.js[39m    [2m | [22m[2mregularization-component[22m   [2m | [22m [36m17.25 kB[39m[2m | [22m                [36m4.39 kB[39m
+[32mchunk-GAPYS3U3.js[39m    [2m | [22m[2msettings-routes[22m            [2m | [22m [36m17.17 kB[39m[2m | [22m                [36m4.26 kB[39m
+[32mchunk-WMM7KK47.js[39m    [2m | [22m[2memployee-list-component[22m    [2m | [22m [36m16.26 kB[39m[2m | [22m                [36m4.67 kB[39m
+[2m...and 40 more lazy chunks files. Use "--verbose" to show all the files.[22m
+
+Application bundle generation complete. [15.790 seconds]
+
+Output location: D:\HRMS_FRONTEND\dist\hrms-frontend
+

@@ -1,0 +1,646 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, Subject, catchError, map, of } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+export interface AttendanceRecord {
+    id: number;
+    employee_id: number;
+    date: string;
+    check_in: string | null;
+    check_out: string | null;
+    work_hours: number | null;
+    status: 'present' | 'absent' | 'half_day' | 'late' | 'on_leave' | 'holiday' | 'weekend';
+    selfie_url: string | null;
+    is_late: boolean;
+    is_half_day: boolean;
+    shift_id?: number;
+    shift_name?: string;
+    latitude?: number;
+    longitude?: number;
+    location_address?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+    employee?: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+        avatar?: string;
+        department?: string;
+    };
+}
+
+export interface TodayAttendance {
+    id?: number;
+    is_clocked_in: boolean;
+    is_clocked_out: boolean;
+    check_in?: string | null;
+    check_out?: string | null;
+    current_status: 'working' | 'on_break' | 'offline';
+    break_time_minutes: number;
+    total_work_hours: number;
+    overtime_hours: number;
+    shift?: {
+        id: number;
+        name: string;
+        start_time: string;
+        end_time: string;
+    };
+    last_location?: {
+        lat: number;
+        lng: number;
+        address?: string;
+    };
+}
+
+export interface AttendanceStats {
+    total_present: number;
+    total_absent: number;
+    total_late: number;
+    total_half_day: number;
+    total_leave: number;
+    total_holiday: number;
+    total_weekend: number;
+    total_work_hours: number;
+    average_arrival_time: string;
+    punctuality_percentage: number;
+    overtime_hours: number;
+}
+
+export interface BreakRecord {
+    id: number;
+    attendance_id: number;
+    start_time: string;
+    end_time?: string;
+    duration_minutes: number;
+    type: 'break' | 'lunch' | 'short_break';
+}
+
+export interface ManualAttendanceRequest {
+    id?: number;
+    employee_id: number;
+    date: string;
+    check_in: string;
+    check_out?: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+    approved_by?: number;
+    approved_at?: string;
+    created_at: string;
+}
+
+export interface GeoFenceZone {
+    id: number;
+    name: string;
+    center_lat: number;
+    center_lng: number;
+    radius_meters: number;
+    is_active: boolean;
+}
+
+export interface AttendanceShift {
+    id: number;
+    name: string;
+    start_time: string;
+    end_time: string;
+    grace_time: number;
+    working_hours: number;
+    shift_type: string;
+    is_active: boolean;
+}
+
+export interface GeoFenceSettings {
+    geofence_enabled: boolean;
+    zones: GeoFenceZone[];
+    require_geofence_for_all: boolean;
+}
+
+export interface AttendanceFilter {
+    startDate?: string;
+    endDate?: string;
+    employeeId?: number;
+    departmentId?: number;
+    status?: string;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class AttendanceService {
+    private http = inject(HttpClient);
+    private readonly apiUrl = environment.apiUrl;
+    private readonly localShiftKey = 'hrms_attendance_shifts';
+    private readonly localZoneKey = 'hrms_attendance_zones';
+    private readonly localGeoFenceSettingsKey = 'hrms_attendance_geofence_settings';
+
+    private pollingSubject = new Subject<boolean>();
+    private statusUpdateSubject = new Subject<TodayAttendance>();
+
+    get statusUpdates$() {
+        return this.statusUpdateSubject.asObservable();
+    }
+
+    get pollingActive$() {
+        return this.pollingSubject.asObservable();
+    }
+
+    private normalizeShift(raw: any): AttendanceShift {
+        const start = raw?.start_time ?? raw?.startTime ?? raw?.timeIn ?? '09:00';
+        const end = raw?.end_time ?? raw?.endTime ?? raw?.timeOut ?? '18:00';
+        const workingHoursRaw = raw?.working_hours ?? raw?.workingHours;
+
+        return {
+            id: Number(raw?.id ?? Date.now()),
+            name: raw?.name ?? raw?.shiftName ?? 'General Shift',
+            start_time: String(start),
+            end_time: String(end),
+            grace_time: Number(raw?.grace_time ?? raw?.graceTime ?? 0),
+            working_hours: Number(
+                workingHoursRaw ?? this.calculateWorkingHours(String(start), String(end))
+            ),
+            shift_type: raw?.shift_type ?? raw?.shiftType ?? (String(start).toLowerCase() === 'flexible' ? 'Flexi' : 'Fixed'),
+            is_active: Boolean(raw?.is_active ?? raw?.isActive ?? true)
+        };
+    }
+
+    private normalizeZone(raw: any): GeoFenceZone {
+        return {
+            id: Number(raw?.id ?? Date.now()),
+            name: raw?.name ?? raw?.location_name ?? 'Attendance Zone',
+            center_lat: Number(raw?.center_lat ?? raw?.centerLat ?? raw?.latitude ?? 0),
+            center_lng: Number(raw?.center_lng ?? raw?.centerLng ?? raw?.longitude ?? 0),
+            radius_meters: Number(raw?.radius_meters ?? raw?.radiusMeters ?? 100),
+            is_active: Boolean(raw?.is_active ?? raw?.isActive ?? true)
+        };
+    }
+
+    private calculateWorkingHours(start: string, end: string): number {
+        const parseTime = (value: string) => {
+            const match = value.match(/^(\d{1,2}):(\d{2})/);
+            if (!match) return 0;
+            return Number(match[1]) * 60 + Number(match[2]);
+        };
+
+        const startMinutes = parseTime(start);
+        const endMinutes = parseTime(end);
+        const diff = endMinutes >= startMinutes ? endMinutes - startMinutes : (24 * 60 - startMinutes) + endMinutes;
+        return Math.max(1, Math.round((diff / 60) * 10) / 10);
+    }
+
+    private readLocalState<T>(key: string, fallback: T): T {
+        try {
+            const stored = localStorage.getItem(key);
+            return stored ? JSON.parse(stored) as T : fallback;
+        } catch {
+            return fallback;
+        }
+    }
+
+    private saveLocalState<T>(key: string, value: T): void {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch {
+            // Ignore storage quota issues and keep UI functional.
+        }
+    }
+
+    private getLocalShifts(): AttendanceShift[] {
+        const stored = this.readLocalState<any[]>(this.localShiftKey, []);
+        if (stored.length > 0) {
+            return stored.map((item) => this.normalizeShift(item));
+        }
+
+        return [
+            this.normalizeShift({ id: 9001, name: 'General Shift', start_time: '09:00', end_time: '18:00', grace_time: 15, working_hours: 9, shift_type: 'Fixed', is_active: true }),
+            this.normalizeShift({ id: 9002, name: 'Morning Shift', start_time: '06:00', end_time: '14:00', grace_time: 10, working_hours: 8, shift_type: 'Fixed', is_active: true }),
+            this.normalizeShift({ id: 9003, name: 'Night Shift', start_time: '20:00', end_time: '05:00', grace_time: 20, working_hours: 9, shift_type: 'Fixed', is_active: true })
+        ];
+    }
+
+    private getLocalZones(): GeoFenceZone[] {
+        const stored = this.readLocalState<any[]>(this.localZoneKey, []);
+        if (stored.length > 0) {
+            return stored.map((item) => this.normalizeZone(item));
+        }
+
+        return [
+            this.normalizeZone({ id: 9101, name: 'HQ Campus', latitude: 28.6139, longitude: 77.209, radius_meters: 150, is_active: true }),
+            this.normalizeZone({ id: 9102, name: 'Warehouse Yard', latitude: 28.5355, longitude: 77.391, radius_meters: 250, is_active: true })
+        ];
+    }
+
+    private getLocalGeoFenceSettings(): GeoFenceSettings {
+        return this.readLocalState<GeoFenceSettings>(this.localGeoFenceSettingsKey, {
+            geofence_enabled: true,
+            require_geofence_for_all: false,
+            zones: this.getLocalZones()
+        });
+    }
+
+    private mergeZones(serverZones: GeoFenceZone[], localZones: GeoFenceZone[]): GeoFenceZone[] {
+        const mapById = new Map<number, GeoFenceZone>();
+        [...serverZones, ...localZones].forEach((zone) => {
+            mapById.set(zone.id, this.normalizeZone(zone));
+        });
+        return Array.from(mapById.values());
+    }
+
+    getAttendanceHistory(filters?: AttendanceFilter): Observable<AttendanceRecord[]> {
+        let params = new HttpParams();
+
+        if (filters) {
+            if (filters.startDate) params = params.set('start_date', filters.startDate);
+            if (filters.endDate) params = params.set('end_date', filters.endDate);
+            if (filters.employeeId) params = params.set('employee_id', filters.employeeId.toString());
+            if (filters.departmentId) params = params.set('department_id', filters.departmentId.toString());
+            if (filters.status) params = params.set('status', filters.status);
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/history`, { params }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getTodayAttendance(): Observable<TodayAttendance> {
+        return this.http.get<any>(`${this.apiUrl}/attendance/today`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    checkIn(data: {
+        source?: string;
+        latitude?: number;
+        longitude?: number;
+        shiftId?: number;
+        deviceInfo?: string;
+        selfieUrl?: string;
+        notes?: string;
+    }): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/check-in`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    checkOut(data: {
+        source?: string;
+        latitude?: number;
+        longitude?: number;
+        selfieUrl?: string;
+        notes?: string;
+    }): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/check-out`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    startBreak(data: { type?: 'break' | 'lunch' | 'short_break' } = {}): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/break/start`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    endBreak(): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/break/end`, {}).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getTodayBreaks(): Observable<BreakRecord[]> {
+        return this.http.get<any>(`${this.apiUrl}/attendance/breaks/today`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getAttendanceStats(period: 'week' | 'month' | 'year' = 'month'): Observable<AttendanceStats> {
+        const params = new HttpParams().set('period', period);
+        return this.http.get<any>(`${this.apiUrl}/attendance/stats`, { params }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getMonthlyAttendance(year: number, month: number): Observable<AttendanceRecord[]> {
+        const params = new HttpParams()
+            .set('year', year.toString())
+            .set('month', month.toString());
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/monthly`, { params }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    requestManualAttendance(data: {
+        date: string;
+        check_in: string;
+        check_out?: string;
+        reason: string;
+    }): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/manual/request`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getManualAttendanceRequests(): Observable<ManualAttendanceRequest[]> {
+        return this.http.get<any>(`${this.apiUrl}/attendance/manual/requests`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    requestOvertime(data: {
+        date: string;
+        hours: number;
+        reason: string;
+    }): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/overtime/request`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getOvertimeRecords(): Observable<any[]> {
+        return this.http.get<any>(`${this.apiUrl}/attendance/overtime`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    validateLocation(lat: number, lng: number): Observable<{ valid: boolean; zone?: GeoFenceZone; distance?: number }> {
+        const params = new HttpParams()
+            .set('lat', lat.toString())
+            .set('lng', lng.toString());
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/validate-location`, { params }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getGeoFenceZones(): Observable<GeoFenceZone[]> {
+        const localZones = this.getLocalZones();
+        return this.http.get<any>(`${this.apiUrl}/attendance/zones`).pipe(
+            map((res) => {
+                const zones = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                const normalized = zones.map((zone: any) => this.normalizeZone(zone));
+                return this.mergeZones(normalized, localZones);
+            }),
+            catchError(() => of(localZones))
+        );
+    }
+
+    createGeoFenceZone(data: {
+        name: string;
+        latitude: number;
+        longitude: number;
+        radius_meters: number;
+    }): Observable<GeoFenceZone> {
+        const fallbackZone = this.normalizeZone({
+            id: Date.now(),
+            name: data.name,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            radius_meters: data.radius_meters,
+            is_active: true
+        });
+
+        return this.http.post<any>(`${this.apiUrl}/attendance/zones`, data).pipe(
+            map((res) => this.normalizeZone(res?.data || res)),
+            catchError(() => {
+                const nextZones = [fallbackZone, ...this.getLocalZones()];
+                this.saveLocalState(this.localZoneKey, nextZones);
+                return of(fallbackZone);
+            })
+        );
+    }
+
+    updateGeoFenceZone(id: number, data: {
+        name?: string;
+        latitude?: number;
+        longitude?: number;
+        radius_meters?: number;
+        is_active?: boolean;
+    }): Observable<GeoFenceZone> {
+        return this.http.put<any>(`${this.apiUrl}/attendance/zones/${id}`, data).pipe(
+            map((res) => this.normalizeZone(res?.data || res)),
+            catchError(() => {
+                const nextZones = this.getLocalZones().map((zone) => zone.id === id
+                    ? this.normalizeZone({ ...zone, ...data })
+                    : zone);
+                this.saveLocalState(this.localZoneKey, nextZones);
+                const updatedZone = nextZones.find((zone) => zone.id === id) ?? this.normalizeZone({ id, ...data });
+                return of(updatedZone);
+            })
+        );
+    }
+
+    deleteGeoFenceZone(id: number): Observable<any> {
+        return this.http.delete<any>(`${this.apiUrl}/attendance/zones/${id}`).pipe(
+            catchError(() => {
+                const nextZones = this.getLocalZones().filter((zone) => zone.id !== id);
+                this.saveLocalState(this.localZoneKey, nextZones);
+                return of({ success: true });
+            })
+        );
+    }
+
+    getGeoFenceSettings(): Observable<GeoFenceSettings> {
+        const fallback = this.getLocalGeoFenceSettings();
+        return this.http.get<any>(`${this.apiUrl}/attendance/geofence-settings`).pipe(
+            map((res) => {
+                const payload = res?.data || res || {};
+                return {
+                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? fallback.geofence_enabled),
+                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? fallback.require_geofence_for_all),
+                    zones: this.mergeZones(
+                        Array.isArray(payload.zones) ? payload.zones.map((zone: any) => this.normalizeZone(zone)) : [],
+                        this.getLocalZones()
+                    )
+                };
+            }),
+            catchError(() => of(fallback))
+        );
+    }
+
+    updateGeoFenceSettings(data: {
+        geofence_enabled?: boolean;
+        require_geofence_for_all?: boolean;
+    }): Observable<GeoFenceSettings> {
+        const fallback = {
+            ...this.getLocalGeoFenceSettings(),
+            ...data,
+            zones: this.getLocalZones()
+        };
+
+        return this.http.put<any>(`${this.apiUrl}/attendance/geofence-settings`, data).pipe(
+            map((res) => {
+                const payload = res?.data || res || fallback;
+                const settings: GeoFenceSettings = {
+                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? fallback.geofence_enabled),
+                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? fallback.require_geofence_for_all),
+                    zones: this.getLocalZones()
+                };
+                this.saveLocalState(this.localGeoFenceSettingsKey, settings);
+                return settings;
+            }),
+            catchError(() => {
+                this.saveLocalState(this.localGeoFenceSettingsKey, fallback);
+                return of(fallback);
+            })
+        );
+    }
+
+    getEmployeeGeofence(employeeId: number): Observable<{ geofence_zone_id: number | null; requires_geofence: boolean }> {
+        return this.http.get<any>(`${this.apiUrl}/employees/${employeeId}/geofence`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    setEmployeeGeofence(employeeId: number, data: {
+        geofence_zone_id: number | null;
+        requires_geofence: boolean;
+    }): Observable<any> {
+        return this.http.put<any>(`${this.apiUrl}/employees/${employeeId}/geofence`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getAllAttendance(filters?: AttendanceFilter): Observable<AttendanceRecord[]> {
+        let params = new HttpParams();
+
+        if (filters) {
+            if (filters.startDate) params = params.set('start_date', filters.startDate);
+            if (filters.endDate) params = params.set('end_date', filters.endDate);
+            if (filters.employeeId) params = params.set('employee_id', filters.employeeId.toString());
+            if (filters.departmentId) params = params.set('department_id', filters.departmentId.toString());
+            if (filters.status) params = params.set('status', filters.status);
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/all`, { params }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    getTodayAllAttendance(): Observable<AttendanceRecord[]> {
+        return this.http.get<any>(`${this.apiUrl}/attendance/all/today`).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    processManualAttendance(requestId: number, action: 'approved' | 'rejected', reason?: string): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/manual/process`, {
+            request_id: requestId,
+            action,
+            reason
+        }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    startPolling(): void {
+        this.pollingSubject.next(true);
+    }
+
+    stopPolling(): void {
+        this.pollingSubject.next(false);
+    }
+
+    refreshStatus(): void {
+        this.getTodayAttendance().subscribe({
+            next: (status) => {
+                this.statusUpdateSubject.next(status);
+            },
+            error: (err) => console.error('Failed to refresh attendance status', err)
+        });
+    }
+
+    getShifts(): Observable<AttendanceShift[]> {
+        const localShifts = this.getLocalShifts();
+        return this.http.get<any>(`${this.apiUrl}/attendance/shifts`).pipe(
+            map((res) => {
+                const shifts = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                const normalized = shifts.map((shift: any) => this.normalizeShift(shift));
+                const merged = new Map<number, AttendanceShift>();
+                [...normalized, ...localShifts].forEach((shift) => merged.set(shift.id, shift));
+                return Array.from(merged.values());
+            }),
+            catchError(() => of(localShifts))
+        );
+    }
+
+    createShift(data: Partial<AttendanceShift>): Observable<AttendanceShift> {
+        const fallbackShift = this.normalizeShift({ id: Date.now(), ...data });
+        return this.http.post<any>(`${this.apiUrl}/attendance/shifts`, data).pipe(
+            map((res) => this.normalizeShift(res?.data || res)),
+            catchError(() => {
+                const nextShifts = [fallbackShift, ...this.getLocalShifts()];
+                this.saveLocalState(this.localShiftKey, nextShifts);
+                return of(fallbackShift);
+            })
+        );
+    }
+
+    updateShift(id: number, data: Partial<AttendanceShift>): Observable<AttendanceShift> {
+        return this.http.put<any>(`${this.apiUrl}/attendance/shifts/${id}`, data).pipe(
+            map((res) => this.normalizeShift(res?.data || res)),
+            catchError(() => {
+                const nextShifts = this.getLocalShifts().map((shift) => shift.id === id
+                    ? this.normalizeShift({ ...shift, ...data })
+                    : shift);
+                this.saveLocalState(this.localShiftKey, nextShifts);
+                const updatedShift = nextShifts.find((shift) => shift.id === id) ?? this.normalizeShift({ id, ...data });
+                return of(updatedShift);
+            })
+        );
+    }
+
+    deleteShift(id: number): Observable<any> {
+        return this.http.delete<any>(`${this.apiUrl}/attendance/shifts/${id}`).pipe(
+            catchError(() => {
+                const nextShifts = this.getLocalShifts().filter((shift) => shift.id !== id);
+                this.saveLocalState(this.localShiftKey, nextShifts);
+                return of({ success: true });
+            })
+        );
+    }
+
+    getShiftPlannerHistory(params: {
+        start?: number;
+        end?: number;
+        search?: string;
+        fromDate?: string;
+        toDate?: string;
+    }): Observable<any> {
+        let httpParams = new HttpParams();
+        if (params.start !== undefined) httpParams = httpParams.set('start', params.start.toString());
+        if (params.end !== undefined) httpParams = httpParams.set('end', params.end.toString());
+        if (params.search) httpParams = httpParams.set('search', params.search);
+        if (params.fromDate) httpParams = httpParams.set('from_date', params.fromDate);
+        if (params.toDate) httpParams = httpParams.set('to_date', params.toDate);
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/shift-planner`, { params: httpParams }).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    createShiftAssignment(data: {
+        empList: number[];
+        shiftRotArray: Array<{
+            scheduledate: string;
+            scheduledateto: string;
+            shiftid: number;
+        }>;
+    }): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/attendance/shift-planner`, data).pipe(
+            map((res) => res.data || res)
+        );
+    }
+
+    deleteShiftAssignment(id: number): Observable<any> {
+        return this.http.delete<any>(`${this.apiUrl}/attendance/shift-planner/${id}`);
+    }
+
+    importShiftPlanner(file: File): Observable<any> {
+        const formData = new FormData();
+        formData.append('file', file);
+        return this.http.post<any>(`${this.apiUrl}/attendance/shift-planner/import`, formData).pipe(
+            map((res) => res.data || res)
+        );
+    }
+}
