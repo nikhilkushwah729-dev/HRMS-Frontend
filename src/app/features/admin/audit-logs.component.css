@@ -1,0 +1,199 @@
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+/* Table row hover effects */
+:host ::ng-deep .table-row-hover {
+  transition: all 0.15s ease;
+}
+
+:host ::ng-deep .table-row-hover:hover {
+  background-color: rgb(248 250 252);
+}
+
+/* Expanded row animation */
+:host ::ng-deep .expanded-details {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+:host ::ng-deep .animate-shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Modal backdrop blur */
+:host ::ng-deep .modal-backdrop {
+  backdrop-filter: blur(4px);
+}
+
+/* Action badge icons */
+:host ::ng-deep .action-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* Focus ring for accessibility */
+:host ::ng-deep button:focus-visible,
+:host ::ng-deep input:focus-visible,
+:host ::ng-deep select:focus-visible {
+  outline: 2px solid rgb(99 102 241);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+:host ::ng-deep * {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Pagination button hover */
+:host ::ng-deep .pagination-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Table header gradient */
+:host ::ng-deep thead th {
+  background-image: linear-gradient(to right, rgb(248 250 252), rgb(241 245 249));
+}
+
+/* Quick date button active state */
+:host ::ng-deep .quick-date-btn {
+  position: relative;
+}
+
+:host ::ng-deep .quick-date-btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background-color: rgb(99 102 241);
+  transition: width 0.2s ease;
+}
+
+:host ::ng-deep .quick-date-btn.active::after {
+  width: 60%;
+}
+
+/* Stats card hover effect */
+:host ::ng-deep .stats-card {
+  position: relative;
+  overflow: hidden;
+}
+
+:host ::ng-deep .stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Empty state illustration */
+:host ::ng-deep .empty-state-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Row selection highlight */
+:host ::ng-deep tr.selected {
+  background-color: rgb(224 231 255) !important;
+}
+
+/* Modal entrance animation */
+:host ::ng-deep .modal-panel {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Keyboard shortcut hints */
+:host ::ng-deep kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  :host ::ng-deep .hide-mobile {
+    display: none;
+  }
+  
+  :host ::ng-deep .mobile-full-width {
+    width: 100%;
+  }
+}
+
+/* Print styles */
+@media print {
+  :host ::ng-deep .no-print {
+    display: none !important;
+  }
+  
+  :host ::ng-deep .print-friendly {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+}
+

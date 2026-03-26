@@ -1,0 +1,782 @@
+<div class="flex flex-col gap-6">
+  <!-- Header -->
+  <div class="app-module-hero">
+    <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-md bg-gradient-to-br from-amber-500 to-teal-700 flex items-center justify-center shadow-lg shadow-teal-700/25">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="app-module-kicker">Audit Center</p>
+            <h1 class="app-module-title mt-2">System audit trail and activity intelligence</h1>
+            <p class="app-module-text mt-2">Track security activity, data mutations, and user actions with searchable audit visibility across the HRMS.</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <!-- Auto Refresh Toggle -->
+        <button
+          (click)="toggleAutoRefresh()"
+          class="px-4 py-2.5 rounded-md font-bold text-sm flex items-center gap-2 transition-all duration-200"
+          [ngClass]="autoRefreshEnabled()
+            ? 'bg-green-100 text-green-700 border-2 border-green-200 hover:bg-green-200'
+            : 'bg-slate-50 text-slate-600 border-2 border-slate-200 hover:bg-slate-100'">
+          <svg
+            [class.animate-spin]="autoRefreshEnabled()"
+            xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21v-5h5"/>
+          </svg>
+          {{ autoRefreshEnabled() ? 'Auto-Refresh On' : 'Auto-Refresh Off' }}
+        </button>
+
+        <!-- Export CSV -->
+        <button
+          (click)="exportCSV()"
+          [disabled]="logs().length === 0"
+          class="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-2 border-emerald-200 px-4 py-2.5 rounded-md font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+
+        <!-- Refresh -->
+        <button
+          (click)="refresh()"
+          [disabled]="loading()"
+          class="bg-primary-600 text-white hover:bg-primary-700 px-5 py-2.5 rounded-md font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25">
+          <svg
+            [class.animate-spin]="loading()"
+            xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+            <path d="M16 21v-5h5"/>
+          </svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
+      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-blue-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Logs</p>
+            <p class="text-xl font-bold text-slate-800">{{ totalItems() | number }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-emerald-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Today</p>
+            <p class="text-xl font-bold text-slate-800">{{ todayCount }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-amber-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 20V10"/>
+              <path d="M12 20V4"/>
+              <path d="M6 20v-6"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">This Week</p>
+            <p class="text-xl font-bold text-slate-800">{{ weekCount }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-purple-100 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Active Users</p>
+            <p class="text-xl font-bold text-slate-800">{{ uniqueUsers }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="bg-white p-5 rounded-md border border-slate-100 shadow-sm">
+    <div class="flex flex-col lg:flex-row gap-4">
+      <!-- Search -->
+      <div class="relative flex-1">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Search</label>
+        <div class="relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.3-4.3"/>
+          </svg>
+          <input
+            #searchInput
+            type="text"
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="applyFilters()"
+            (input)="onSearchInput($event)"
+            placeholder="Search by actor, action, entity..."
+            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+        </div>
+      </div>
+
+      <!-- Quick Date Filters -->
+      <div class="w-full lg:w-auto">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Quick Dates</label>
+        <div class="flex flex-wrap gap-2">
+          <button
+            *ngFor="let date of quickDateFilters"
+            (click)="applyQuickDate(date.value)"
+            class="px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200"
+            [ngClass]="selectedQuickDate === date.value
+              ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
+              : 'bg-slate-100 text-slate-600 border-2 border-transparent hover:bg-slate-200'">
+            {{ date.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Module Filter -->
+      <div class="w-full lg:w-44">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Module</label>
+        <select
+          [(ngModel)]="selectedModule"
+          (change)="applyFilters()"
+          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 cursor-pointer transition-all">
+          <option value="">All Modules</option>
+          <option value="auth">Authentication</option>
+          <option value="employees">Employees</option>
+          <option value="leaves">Leaves</option>
+          <option value="attendance">Attendance</option>
+          <option value="payroll">Payroll</option>
+          <option value="projects">Projects</option>
+          <option value="timesheets">Timesheets</option>
+          <option value="expenses">Expenses</option>
+          <option value="organization">Organization</option>
+          <option value="settings">Settings</option>
+        </select>
+      </div>
+
+      <!-- Action Filter -->
+      <div class="w-full lg:w-40">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Action</label>
+        <select
+          [(ngModel)]="selectedAction"
+          (change)="applyFilters()"
+          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 cursor-pointer transition-all">
+          <option value="">All Actions</option>
+          <option value="CREATE">Create</option>
+          <option value="UPDATE">Update</option>
+          <option value="DELETE">Delete</option>
+          <option value="LOGIN">Login</option>
+          <option value="LOGOUT">Logout</option>
+          <option value="APPROVE">Approve</option>
+          <option value="REJECT">Reject</option>
+          <option value="VIEW">View</option>
+          <option value="EXPORT">Export</option>
+        </select>
+      </div>
+
+      <!-- From Date -->
+      <div class="w-full lg:w-40">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">From Date</label>
+        <input
+          type="date"
+          [(ngModel)]="startDate"
+          (change)="applyFilters()"
+          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+      </div>
+
+      <!-- To Date -->
+      <div class="w-full lg:w-40">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">To Date</label>
+        <input
+          type="date"
+          [(ngModel)]="endDate"
+          (change)="applyFilters()"
+          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+      </div>
+    </div>
+
+    <!-- Active Filters Display -->
+    <div *ngIf="hasActiveFilters()" class="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+      <span class="text-xs text-slate-400 font-semibold">Active Filters:</span>
+
+      <span *ngIf="searchQuery" class="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-50 text-primary-700 text-xs rounded-lg font-semibold border border-primary-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        "{{ searchQuery }}"
+        <button (click)="clearSearchFilter()" class="ml-1 hover:text-primary-900">×</button>
+      </span>
+
+      <span *ngIf="selectedModule" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs rounded-lg font-semibold border border-blue-200">
+        {{ formatModule(selectedModule) }}
+        <button (click)="clearModuleFilter()" class="ml-1 hover:text-blue-900">×</button>
+      </span>
+
+      <span *ngIf="selectedAction" class="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-700 text-xs rounded-lg font-semibold border border-amber-200">
+        {{ selectedAction }}
+        <button (click)="clearActionFilter()" class="ml-1 hover:text-amber-900">×</button>
+      </span>
+
+      <span *ngIf="startDate || endDate" class="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 text-xs rounded-lg font-semibold border border-purple-200">
+        {{ startDate || '...' }} to {{ endDate || '...' }}
+        <button (click)="clearDateFilter()" class="ml-1 hover:text-purple-900">×</button>
+      </span>
+
+      <button (click)="clearAllFilters()" class="ml-auto text-xs text-red-500 hover:text-red-700 font-semibold underline underline-offset-2">
+        Clear all
+      </button>
+    </div>
+  </div>
+
+  <!-- Table Info & Pagination Controls -->
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-md border border-slate-100">
+    <div class="flex items-center gap-3">
+      <p class="text-sm text-slate-600">
+        <span class="font-bold text-slate-800">{{ logs().length }}</span> of
+        <span class="font-bold text-slate-800">{{ totalItems() | number }}</span> entries
+      </p>
+      <span class="text-slate-300">|</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-400">Show:</span>
+        <select
+          [(ngModel)]="itemsPerPage"
+          (change)="onItemsPerPageChange()"
+          class="px-3 py-1.5 bg-slate-50 border-2 border-slate-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-primary-500 cursor-pointer">
+          <option [value]="10">10</option>
+          <option [value]="25">25</option>
+          <option [value]="50">50</option>
+          <option [value]="100">100</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 text-xs text-slate-400">
+      <span class="hidden sm:inline">Keyboard:</span>
+      <kbd class="px-2 py-1 bg-slate-100 rounded text-xs font-mono">Ctrl+R</kbd>
+      <span>Refresh</span>
+      <kbd class="px-2 py-1 bg-slate-100 rounded text-xs font-mono ml-2">Ctrl+F</kbd>
+      <span>Search</span>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead class="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
+          <tr>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-10"></th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Timestamp</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Actor</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Action</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Module</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Location</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Target</th>
+            <th class="px-5 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap text-right">Details</th>
+          </tr>
+        </thead>
+
+        <!-- Loading Skeleton -->
+        <tbody *ngIf="loading()" class="divide-y divide-slate-100">
+          <tr *ngFor="let i of [1,2,3,4,5,6]" class="animate-pulse">
+            <td class="px-5 py-6"><div class="w-6 h-6 bg-slate-200 rounded"></div></td>
+            <td class="px-5 py-6"><div class="h-4 bg-slate-200 rounded w-32"></div></td>
+            <td class="px-5 py-6">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-200 rounded-full"></div>
+                <div class="h-4 bg-slate-200 rounded w-24"></div>
+              </div>
+            </td>
+            <td class="px-5 py-6"><div class="h-6 bg-slate-200 rounded w-20"></div></td>
+            <td class="px-5 py-6"><div class="h-4 bg-slate-200 rounded w-24"></div></td>
+            <td class="px-5 py-6"><div class="h-4 bg-slate-200 rounded w-20"></div></td>
+            <td class="px-5 py-6"><div class="h-8 bg-slate-200 rounded w-16 ml-auto"></div></td>
+          </tr>
+        </tbody>
+
+        <!-- Empty State -->
+        <tbody *ngIf="!loading() && logs().length === 0" class="divide-y divide-slate-100">
+          <tr>
+            <td colspan="7" class="px-6 py-20 text-center">
+              <div class="flex flex-col items-center">
+                <div class="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M8 11h8"/>
+                  </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-700 mb-1">No Audit Logs Found</h3>
+                <p class="text-slate-500 text-sm max-w-sm mb-4">
+                  {{ hasActiveFilters() ? 'No logs match your current filters. Try adjusting your search criteria.' : 'No system activity has been recorded yet.' }}
+                </p>
+                <button
+                  *ngIf="hasActiveFilters()"
+                  (click)="clearAllFilters()"
+                  class="px-4 py-2 bg-primary-600 text-white rounded-md font-bold text-sm hover:bg-primary-700 transition-colors">
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+
+        <!-- Data Rows -->
+        <tbody *ngIf="!loading() && logs().length > 0" class="divide-y divide-slate-100">
+          <ng-container *ngFor="let log of logs()">
+
+            <!-- ✅ FIX: tr split into multiple lines, [class.bg-primary-50\/50] replaced with [ngClass] -->
+            <tr
+              class="hover:bg-slate-50 transition-all duration-150 group cursor-pointer"
+              [ngClass]="{ 'bg-blue-50': expandedLogId() === log.id }"
+              (click)="toggleDetails(log.id)">
+
+              <!-- Expand arrow -->
+              <td class="px-5 py-4 w-10">
+                <div
+                  class="w-6 h-6 rounded-lg flex items-center justify-center transition-transform duration-200"
+                  [ngClass]="expandedLogId() === log.id
+                    ? 'bg-primary-100 rotate-90'
+                    : 'bg-slate-100 group-hover:bg-primary-100'">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-primary-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
+                </div>
+              </td>
+
+              <!-- Timestamp -->
+              <td class="px-5 py-4 whitespace-nowrap">
+                <span class="font-bold text-sm text-slate-800 block">{{ log.createdAt | date:'MMM dd, yyyy' }}</span>
+                <span class="text-xs text-slate-400">{{ log.createdAt | date:'hh:mm:ss a' }}</span>
+              </td>
+
+              <!-- Actor -->
+              <td class="px-5 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-md flex items-center justify-center text-sm font-black flex-shrink-0"
+                    [ngClass]="log.employee ? 'bg-primary-100 text-primary-700' : 'bg-amber-100 text-amber-700'">
+                    {{ log.employee
+                      ? (log.employee.firstName[0] + (log.employee.lastName ? log.employee.lastName[0] : ''))
+                      : 'SYS' }}
+                  </div>
+                  <div>
+                    <span class="font-bold text-sm text-slate-800 block">
+                      {{ log.employee?.firstName || 'System' }} {{ log.employee?.lastName || '' }}
+                    </span>
+                    <span *ngIf="!log.employee" class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-600 text-[10px] font-bold rounded border border-amber-200">
+                      SYSTEM
+                    </span>
+                    <span *ngIf="log.employee?.email" class="text-xs text-slate-400">
+                      {{ log.employee?.email }}
+                    </span>
+                  </div>
+                </div>
+              </td>
+
+              <!-- Action badge -->
+              <td class="px-5 py-4 whitespace-nowrap">
+                <span
+                  class="px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase border flex items-center gap-1.5 w-fit"
+                  [ngClass]="getActionClasses(log.action)">
+                  {{ getActionIcon(log.action) }} {{ log.action }}
+                </span>
+              </td>
+
+              <td class="px-5 py-4 whitespace-nowrap">
+                <span class="font-semibold text-sm text-slate-700">{{ formatModule(log.module) }}</span>
+              </td>
+
+              <!-- Location -->
+              <td class="px-5 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-2" *ngIf="log.countryCode" [title]="log.countryName || ''">
+                  <img [src]="'https://flagcdn.com/w20/' + log.countryCode.toLowerCase() + '.png'" 
+                       [alt]="log.countryCode" class="w-4 h-3 rounded-sm shadow-sm bg-slate-100">
+                  <span class="text-xs font-bold text-slate-600 tracking-tight">{{ log.countryCode }}</span>
+                </div>
+                <span class="text-[10px] text-slate-300 font-medium italic" *ngIf="!log.countryCode">Unknown</span>
+              </td>
+
+              <!-- Target -->
+              <td class="px-5 py-4 whitespace-nowrap">
+                <span class="text-sm text-slate-600">{{ log.entityName || '-' }}</span>
+              </td>
+
+              <!-- Details button -->
+              <td class="px-5 py-4 whitespace-nowrap text-right">
+                <button
+                  (click)="openDetailsModal($event, log)"
+                  class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all">
+                  View
+                </button>
+              </td>
+            </tr>
+
+            <!-- Expanded Detail Row -->
+            <tr *ngIf="expandedLogId() === log.id" class="bg-primary-50">
+              <td colspan="7" class="px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                  <!-- Connection Info -->
+                  <div class="bg-white rounded-md p-4 border border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Connection Info</h4>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">IP Address</span>
+                        <div class="flex flex-col items-end">
+                          <span class="text-sm font-mono font-bold text-slate-700">{{ log.ipAddress || 'N/A' }}</span>
+                          <div class="flex items-center gap-1.5 mt-0.5" *ngIf="log.countryCode">
+                            <img [src]="'https://flagcdn.com/w20/' + log.countryCode.toLowerCase() + '.png'" 
+                                 class="w-3.5 h-2.5 rounded-sm shadow-sm">
+                            <span class="text-[10px] font-bold text-slate-500">{{ log.countryName }} ({{ log.countryCode }})</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Browser</span>
+                        <span class="text-sm text-slate-700 truncate max-w-32" [title]="log.userAgent || 'Unknown'">
+                          {{ getBrowserInfo(log.userAgent) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Entity Details -->
+                  <div class="bg-white rounded-md p-4 border border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Entity Details</h4>
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Entity Name</span>
+                        <span class="text-sm font-semibold text-slate-700">{{ log.entityName || 'N/A' }}</span>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Entity ID</span>
+                        <span class="text-sm font-mono text-slate-700">{{ log.entityId || 'N/A' }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Data Changes -->
+                  <div class="bg-white rounded-md p-4 border border-slate-200">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Data Changes</h4>
+                    <div class="space-y-2">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs text-slate-500">Has Old Values</span>
+                        <span
+                          class="ml-auto text-xs font-bold"
+                          [ngClass]="log.oldValues ? 'text-emerald-600' : 'text-slate-300'">
+                          {{ log.oldValues ? 'Yes' : 'No' }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                        <span class="text-xs text-slate-500">Has New Values</span>
+                        <span
+                          class="ml-auto text-xs font-bold"
+                          [ngClass]="log.newValues ? 'text-blue-600' : 'text-slate-300'">
+                          {{ log.newValues ? 'Yes' : 'No' }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </td>
+            </tr>
+
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages() > 1" class="px-6 py-4 bg-slate-50 border-t border-slate-200">
+      <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-slate-600">
+          Showing page
+          <span class="font-bold text-slate-800">{{ currentPage() }}</span> of
+          <span class="font-bold text-slate-800">{{ totalPages() }}</span>
+          <span class="text-slate-400">({{ totalItems() | number }} total entries)</span>
+        </p>
+
+        <div class="flex items-center gap-1">
+          <!-- First Page -->
+          <button
+            (click)="goToPage(1)"
+            [disabled]="currentPage() === 1"
+            class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+            </svg>
+          </button>
+
+          <!-- Previous -->
+          <button
+            (click)="previousPage()"
+            [disabled]="currentPage() === 1"
+            class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+          </button>
+
+          <!-- Page Numbers -->
+          <ng-container *ngFor="let page of getVisiblePages()">
+            <button
+              *ngIf="page !== '...'"
+              (click)="goToPage(+page)"
+              class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-all"
+              [ngClass]="currentPage() === page
+                ? 'bg-primary-600 text-white shadow-md'
+                : 'hover:bg-white hover:shadow-sm text-slate-600'">
+              {{ page }}
+            </button>
+            <span *ngIf="page === '...'" class="w-9 h-9 flex items-center justify-center text-slate-400">...</span>
+          </ng-container>
+
+          <!-- Next -->
+          <button
+            (click)="nextPage()"
+            [disabled]="currentPage() === totalPages()"
+            class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
+
+          <!-- Last Page -->
+          <button
+            (click)="goToPage(totalPages())"
+            [disabled]="currentPage() === totalPages()"
+            class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold disabled:opacity-30 hover:bg-white hover:shadow-sm transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 17 11 12 6 7"/><polyline points="13 17 18 12 13 7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- Details Modal                                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div
+  *ngIf="showDetailsModal()"
+  class="fixed inset-0 z-50 overflow-y-auto"
+  aria-labelledby="modal-title"
+  role="dialog"
+  aria-modal="true">
+
+  <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
+      (click)="closeDetailsModal()">
+    </div>
+
+    <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+    <!-- Modal Panel -->
+    <div class="relative inline-block align-bottom bg-white rounded-md text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-md bg-white/20 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 16v-4"/><path d="M12 8h.01"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Audit Log Details</h3>
+            <p class="text-primary-100 text-xs">ID: #{{ selectedLog()?.id }}</p>
+          </div>
+        </div>
+        <button
+          (click)="closeDetailsModal()"
+          class="w-10 h-10 rounded-md bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+
+          <!-- Timestamp -->
+          <div class="bg-slate-50 rounded-md p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Timestamp</p>
+            <p class="font-bold text-slate-800">{{ selectedLog()?.createdAt | date:'MMM dd, yyyy hh:mm:ss a' }}</p>
+          </div>
+
+          <!-- Action -->
+          <div class="bg-slate-50 rounded-md p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Action</p>
+            <span
+              class="px-3 py-1 rounded-lg text-xs font-bold uppercase border"
+              [ngClass]="getActionClasses(selectedLog()?.action || '')">
+              {{ selectedLog()?.action }}
+            </span>
+          </div>
+
+          <!-- Module -->
+          <div class="bg-slate-50 rounded-md p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Module</p>
+            <p class="font-bold text-slate-800">{{ formatModule(selectedLog()?.module || '') }}</p>
+          </div>
+
+          <!-- Actor -->
+          <div class="bg-slate-50 rounded-md p-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Actor</p>
+            <p class="font-bold text-slate-800">
+              {{ selectedLog()?.employee?.firstName || 'System' }} {{ selectedLog()?.employee?.lastName || '' }}
+            </p>
+            <p class="text-xs text-slate-400">{{ selectedLog()?.employee?.email || 'System-generated' }}</p>
+          </div>
+        </div>
+
+        <!-- Connection Info -->
+        <div class="bg-slate-50 rounded-md p-4 mb-4">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Connection Information</h4>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-xs text-slate-400">IP Address</p>
+                <p class="font-mono text-sm font-bold text-slate-700">{{ selectedLog()?.ipAddress || 'N/A' }}</p>
+              </div>
+              <div class="text-right" *ngIf="selectedLog()?.countryCode">
+                <p class="text-xs text-slate-400">Location</p>
+                <div class="flex items-center justify-end gap-2 mt-0.5">
+                  <img [src]="'https://flagcdn.com/w40/' + selectedLog()?.countryCode?.toLowerCase() + '.png'" 
+                       class="h-4 rounded shadow-sm">
+                  <p class="text-sm font-bold text-slate-700">{{ selectedLog()?.countryName }}</p>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400">User Agent</p>
+              <p class="text-xs text-slate-700 truncate" [title]="selectedLog()?.userAgent || ''">
+                {{ selectedLog()?.userAgent || 'Unknown' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Map Visualization -->
+          <div class="mt-4 bg-slate-900 rounded-md overflow-hidden h-40 relative group border border-slate-800" *ngIf="selectedLog()?.countryCode && countriesGeoJson">
+            <svg class="w-full h-full opacity-60" viewBox="-180 -90 360 180" preserveAspectRatio="xMidYMid slice">
+              <path *ngFor="let country of countriesGeoJson?.features" 
+                    [attr.d]="getSvgPath(country)" 
+                    [attr.fill]="country.properties.ISO_A2 === selectedLog()?.countryCode ? '#3b82f6' : '#1e293b'"
+                    [attr.stroke]="country.properties.ISO_A2 === selectedLog()?.countryCode ? '#60a5fa' : '#334155'"
+                    stroke-width="0.5" />
+            </svg>
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent pointer-events-none"></div>
+            <div class="absolute bottom-3 left-4">
+               <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                 <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                 Origin: {{ selectedLog()?.countryName }}
+               </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Old Values -->
+        <div *ngIf="selectedLog()?.oldValues" class="bg-red-50 rounded-md p-4 mb-4 border border-red-100">
+          <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
+            Previous Values
+          </h4>
+          <pre class="text-xs font-mono text-slate-700 bg-white p-3 rounded-lg overflow-x-auto">{{ selectedLog()?.oldValues | json }}</pre>
+        </div>
+
+        <!-- New Values -->
+        <div *ngIf="selectedLog()?.newValues" class="bg-emerald-50 rounded-md p-4 mb-4 border border-emerald-100">
+          <h4 class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+            </svg>
+            New Values
+          </h4>
+          <pre class="text-xs font-mono text-slate-700 bg-white p-3 rounded-lg overflow-x-auto">{{ selectedLog()?.newValues | json }}</pre>
+        </div>
+
+        <!-- No Changes Message -->
+        <div *ngIf="!selectedLog()?.oldValues && !selectedLog()?.newValues" class="bg-slate-50 rounded-md p-6 text-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-slate-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <p class="text-sm text-slate-500">No data changes recorded for this action</p>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-50 px-6 py-4 flex justify-end gap-3">
+        <button
+          (click)="closeDetailsModal()"
+          class="px-4 py-2 border-2 border-slate-200 rounded-md font-bold text-sm text-slate-600 hover:bg-slate-100 transition-colors">
+          Close
+        </button>
+        <button
+          (click)="exportSingleLog()"
+          class="px-4 py-2 bg-primary-600 text-white rounded-md font-bold text-sm hover:bg-primary-700 transition-colors flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export This Log
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
