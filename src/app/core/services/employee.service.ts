@@ -25,6 +25,23 @@ export class EmployeeService {
     private http = inject(HttpClient);
     private auditLogService = inject(AuditLogService);
     private readonly apiUrl = environment.apiUrl;
+    private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
+
+    private resolveAssetUrl(value: any): string | null | undefined {
+        if (!value || typeof value !== 'string') {
+            return value;
+        }
+
+        if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:image')) {
+            return value;
+        }
+
+        if (value.startsWith('/')) {
+            return `${this.assetBaseUrl}${value}`;
+        }
+
+        return `${this.assetBaseUrl}/${value}`;
+    }
 
     private normalizeEmployee(raw: any): User {
         const role = raw?.role;
@@ -39,7 +56,7 @@ export class EmployeeService {
             phone: raw?.phone ?? '',
             role: typeof role === 'string' ? role : role?.name ?? raw?.roleName ?? raw?.role_name,
             roleId: Number(raw?.roleId ?? raw?.role_id ?? role?.id ?? 0) || undefined,
-            avatar: raw?.avatar ?? raw?.profileImage ?? raw?.profile_image,
+            avatar: this.resolveAssetUrl(raw?.avatar ?? raw?.profileImage ?? raw?.profile_image),
             organizationId: Number(raw?.organizationId ?? raw?.organization_id ?? 0) || undefined,
             orgId: Number(raw?.orgId ?? raw?.org_id ?? raw?.organizationId ?? raw?.organization_id ?? 0) || undefined,
             employeeCode: raw?.employeeCode ?? raw?.employee_code ?? '',
@@ -49,15 +66,27 @@ export class EmployeeService {
             countryCode: raw?.countryCode ?? raw?.country_code,
             countryName: raw?.countryName ?? raw?.country_name,
             joinDate: raw?.joinDate ?? raw?.join_date,
+            dateOfBirth: raw?.dateOfBirth ?? raw?.date_of_birth,
+            gender: raw?.gender,
+            address: raw?.address,
             emergencyContact: raw?.emergencyContact ?? raw?.emergency_contact,
             emergencyPhone: raw?.emergencyPhone ?? raw?.emergency_phone,
+            salary: raw?.salary,
+            bankAccount: raw?.bankAccount ?? raw?.bank_account,
+            bankName: raw?.bankName ?? raw?.bank_name,
+            ifscCode: raw?.ifscCode ?? raw?.ifsc_code,
+            panNumber: raw?.panNumber ?? raw?.pan_number,
             loginType: raw?.loginType ?? raw?.login_type,
             phoneAuthEnabled: Boolean(raw?.phoneAuthEnabled ?? raw?.phone_auth_enabled ?? false),
             phoneVerified: Boolean(raw?.phoneVerified ?? raw?.phone_verified ?? false),
             emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
             isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
             department: department ? { id: Number(department.id), name: department.name } : undefined,
-            designation: designation ? { id: Number(designation.id), name: designation.name } : undefined
+            designation: designation ? { id: Number(designation.id), name: designation.name } : undefined,
+            organizationName: raw?.organizationName || raw?.organization_name || raw?.companyName || raw?.company_name || raw?.organization?.name || '',
+            organizationLogo: this.resolveAssetUrl(raw?.organizationLogo || raw?.organization_logo || raw?.companyLogo || raw?.company_logo || raw?.logo || raw?.organization?.logo) || '',
+            companyName: raw?.companyName || raw?.company_name || raw?.organizationName || raw?.organization_name || raw?.organization?.name || '',
+            companyLogo: this.resolveAssetUrl(raw?.companyLogo || raw?.company_logo || raw?.organizationLogo || raw?.organization_logo || raw?.logo || raw?.organization?.logo) || ''
         };
     }
 
@@ -275,5 +304,59 @@ export class EmployeeService {
             })
         );
     }
-}
 
+    // ============ DOCUMENTS METHODS ============
+    getDocuments(): Observable<any[]> {
+        return this.http.get<any>(`${this.apiUrl}/documents`).pipe(
+            map(res => res.data || [])
+        );
+    }
+
+    uploadDocument(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/documents`, data).pipe(
+            map(res => res.data)
+        );
+    }
+
+    deleteDocument(id: number): Observable<void> {
+        return this.http.delete<any>(`${this.apiUrl}/documents/${id}`);
+    }
+
+    // ============ EXPERIENCE METHODS ============
+    getExperiences(): Observable<any[]> {
+        return this.http.get<any>(`${this.apiUrl}/experiences`).pipe(
+            map(res => res.data || [])
+        );
+    }
+
+    addExperience(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/experiences`, data);
+    }
+
+    updateExperience(id: number, data: any): Observable<any> {
+        return this.http.put<any>(`${this.apiUrl}/experiences/${id}`, data);
+    }
+
+    deleteExperience(id: number): Observable<void> {
+        return this.http.delete<any>(`${this.apiUrl}/experiences/${id}`);
+    }
+
+    // ============ EDUCATION METHODS ============
+    getEducation(): Observable<any[]> {
+        return this.http.get<any>(`${this.apiUrl}/education`).pipe(
+            map(res => res.data || [])
+        );
+    }
+
+    addEducation(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}/education`, data);
+    }
+
+    updateEducation(id: number, data: any): Observable<any> {
+        return this.http.put<any>(`${this.apiUrl}/education/${id}`, data);
+    }
+
+    deleteEducation(id: number): Observable<void> {
+        return this.http.delete<any>(`${this.apiUrl}/education/${id}`);
+    }
+}

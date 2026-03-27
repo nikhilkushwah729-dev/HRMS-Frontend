@@ -10,8 +10,15 @@ export interface AuthState {
 }
 
 export const initialState: AuthState = {
-    user: null,
-    token: null,
+    user: (() => {
+        try {
+            const stored = localStorage.getItem('hrms_user_data');
+            return stored ? JSON.parse(stored) : null;
+        } catch {
+            return null;
+        }
+    })(),
+    token: localStorage.getItem('hrms_auth_token'),
     loading: false,
     error: null
 };
@@ -40,5 +47,9 @@ export const authReducer = createReducer(
         ...state,
         user,
         token
+    })),
+    on(AuthActions.updateUser, (state, { user }) => ({
+        ...state,
+        user
     }))
 );

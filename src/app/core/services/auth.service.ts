@@ -15,8 +15,25 @@ export class AuthService {
     private http = inject(HttpClient);
     private auditLogService = inject(AuditLogService);
     private readonly apiUrl = environment.apiUrl;
+    private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly AUTH_KEY = 'hrms_auth_token';
     private readonly USER_KEY = 'hrms_user_data';
+
+    private resolveAssetUrl(value: any): string | null | undefined {
+        if (!value || typeof value !== 'string') {
+            return value;
+        }
+
+        if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:image')) {
+            return value;
+        }
+
+        if (value.startsWith('/')) {
+            return `${this.assetBaseUrl}${value}`;
+        }
+
+        return `${this.assetBaseUrl}/${value}`;
+    }
 
     register(payload: any): Observable<any> {
         return this.http.post(`${this.apiUrl}/auth/register`, payload).pipe(
@@ -88,14 +105,73 @@ export class AuthService {
     }
 
     private extractUser(raw: any): User | undefined {
-        return raw?.user ?? raw?.employee ?? raw?.account;
+        const candidate = raw?.user ?? raw?.employee ?? raw?.account;
+        if (!candidate) return undefined;
+
+        return this.normalizeUser({
+            ...raw?.organization,
+            ...raw?.company,
+            ...candidate,
+            organization: raw?.organization ?? candidate?.organization,
+            company: raw?.company ?? candidate?.company
+        });
+    }
+
+    private normalizeUser(raw: any): User {
+        return {
+            id: Number(raw?.id ?? 0) || undefined,
+            email: raw?.email ?? '',
+            firstName: raw?.firstName ?? raw?.first_name ?? '',
+            lastName: raw?.lastName ?? raw?.last_name ?? '',
+            companyName: raw?.companyName ?? raw?.company_name ?? raw?.organizationName ?? raw?.organization_name ?? raw?.organization?.name ?? raw?.organization?.companyName ?? '',
+            companyLogo: this.resolveAssetUrl(raw?.companyLogo ?? raw?.company_logo ?? raw?.organizationLogo ?? raw?.organization_logo ?? raw?.logo ?? raw?.organization?.logo) ?? '',
+            organizationName: raw?.organizationName ?? raw?.organization_name ?? raw?.companyName ?? raw?.company_name ?? raw?.organization?.name ?? raw?.organization?.companyName ?? '',
+            organizationLogo: this.resolveAssetUrl(raw?.organizationLogo ?? raw?.organization_logo ?? raw?.companyLogo ?? raw?.company_logo ?? raw?.logo ?? raw?.organization?.logo) ?? '',
+            phone: raw?.phone ?? '',
+            role: typeof raw?.role === 'string' ? raw.role : raw?.role?.name ?? raw?.roleName ?? raw?.role_name,
+            roleId: Number(raw?.roleId ?? raw?.role_id ?? raw?.role?.id ?? 0) || undefined,
+            avatar: this.resolveAssetUrl(raw?.avatar ?? raw?.profileImage ?? raw?.profile_image),
+            organizationId: Number(raw?.organizationId ?? raw?.organization_id ?? raw?.orgId ?? raw?.org_id ?? raw?.organization?.id ?? 0) || undefined,
+            orgId: Number(raw?.orgId ?? raw?.org_id ?? raw?.organizationId ?? raw?.organization_id ?? raw?.organization?.id ?? 0) || undefined,
+            employeeCode: raw?.employeeCode ?? raw?.employee_code ?? '',
+            status: raw?.status ?? 'active',
+            designationId: Number(raw?.designationId ?? raw?.designation_id ?? raw?.designation?.id ?? 0) || undefined,
+            departmentId: Number(raw?.departmentId ?? raw?.department_id ?? raw?.department?.id ?? 0) || undefined,
+            countryCode: raw?.countryCode ?? raw?.country_code,
+            countryName: raw?.countryName ?? raw?.country_name,
+            joinDate: raw?.joinDate ?? raw?.join_date,
+            dateOfBirth: raw?.dateOfBirth ?? raw?.date_of_birth,
+            gender: raw?.gender,
+            address: raw?.address,
+            emergencyContact: raw?.emergencyContact ?? raw?.emergency_contact,
+            emergencyPhone: raw?.emergencyPhone ?? raw?.emergency_phone,
+            salary: raw?.salary,
+            bankAccount: raw?.bankAccount ?? raw?.bank_account,
+            bankName: raw?.bankName ?? raw?.bank_name,
+            ifscCode: raw?.ifscCode ?? raw?.ifsc_code,
+            panNumber: raw?.panNumber ?? raw?.pan_number,
+            loginType: raw?.loginType ?? raw?.login_type,
+            phoneAuthEnabled: Boolean(raw?.phoneAuthEnabled ?? raw?.phone_auth_enabled ?? false),
+            phoneVerified: Boolean(raw?.phoneVerified ?? raw?.phone_verified ?? false),
+            emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
+            isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
+            department: raw?.department ? { id: Number(raw.department.id), name: raw.department.name } : undefined,
+            designation: raw?.designation ? { id: Number(raw.designation.id), name: raw.designation.name } : undefined
+        };
     }
 
     private normalizeAuthResponse(res: any): AuthResponse {
         const root = res ?? {};
         const data = root?.data ?? {};
         const token = this.extractToken(root) ?? this.extractToken(data);
-        const user = this.extractUser(root) ?? this.extractUser(data);
+        const user = this.extractUser({
+            ...data,
+            organization: data?.organization ?? root?.organization,
+            company: data?.company ?? root?.company,
+            user: data?.user ?? root?.user,
+            employee: data?.employee ?? root?.employee,
+            account: data?.account ?? root?.account
+        }) ?? this.extractUser(root) ?? this.extractUser(data);
 
         return {
             ...root,
@@ -492,7 +568,13 @@ export class AuthService {
     }
 
     getMe(): Observable<User> {
-        return this.http.get<User>(`${this.apiUrl}/auth/me`);
+        return this.http.get<any>(`${this.apiUrl}/auth/me`).pipe(
+            map((res) => this.normalizeUser({
+                ...(res?.data ?? res?.user ?? res),
+                organization: res?.data?.organization ?? res?.organization,
+                company: res?.data?.company ?? res?.company
+            }))
+        );
     }
 
     /**

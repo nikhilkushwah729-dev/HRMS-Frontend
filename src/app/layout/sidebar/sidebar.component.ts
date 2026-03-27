@@ -1,8 +1,10 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Store } from '@ngrx/store';
+import { selectUser } from '../../core/state/auth/auth.selectors';
 import { LayoutService } from '../../core/services/layout.service';
-import { OrganizationService } from '../../core/services/organization.service';
+import { Organization, OrganizationService } from '../../core/services/organization.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { User } from '../../core/models/auth.model';
@@ -38,8 +40,12 @@ import { User } from '../../core/models/auth.model';
             <div class="flex items-center gap-4">
               <div class="relative">
                 <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                 <div class="relative w-14 h-14 rounded-lg overflow-hidden shadow-2xl border border-white/10">
-                    <img src="hrnexus-logo.png" alt="Organization Logo" class="w-full h-full object-cover">
+                 <div class="relative w-14 h-14 rounded-lg overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                    @if (hasOrgLogo()) {
+                      <img [src]="orgLogo()" [alt]="orgName() || 'Organization Logo'" class="w-full h-full object-cover" (error)="onOrgLogoError()">
+                    } @else {
+                      <span class="text-xl font-black text-emerald-200">{{ orgInitial() }}</span>
+                    }
                 </div>
               </div>
               <div class="flex flex-col min-w-0">
@@ -66,8 +72,12 @@ import { User } from '../../core/models/auth.model';
         <div class="px-4 pb-6 border-b border-white/[0.03]">
           <div class="flex items-center gap-3.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.03] hover:bg-white/[0.04] transition-colors cursor-pointer group">
             <div class="relative">
-               <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-indigo-300 font-black text-xs shadow-inner">
-                {{ userInitials() }}
+               <div class="h-10 w-10 overflow-hidden rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center text-indigo-300 font-black text-xs shadow-inner">
+                @if (currentUser()?.avatar) {
+                   <img [src]="currentUser()?.avatar" class="w-full h-full object-cover">
+                } @else {
+                  {{ userInitials() }}
+                }
               </div>
               <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0B1120] rounded-full"></div>
             </div>
@@ -343,9 +353,11 @@ export class SidebarComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private authService = inject(AuthService);
   private permissionService = inject(PermissionService);
-  private currentUser = signal<User | null>(null);
+  currentUser = signal<User | null>(null);
   orgName = signal<string>('');
-private expandedSections = signal<Record<string, boolean>>({
+  orgLogo = signal<string>('');
+  hasOrgLogo = computed(() => Boolean(this.orgLogo().trim()));
+  private expandedSections = signal<Record<string, boolean>>({
     main: true,
     employees: false,
     attendance: true,
@@ -355,16 +367,29 @@ private expandedSections = signal<Record<string, boolean>>({
   });
   public isUserLoading = signal(true);
   public isOrgLoading = signal(true);
+  private store = inject(Store);
+  private user$ = this.store.select(selectUser);
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser());
     this.isUserLoading.set(false);
     
+    this.user$.subscribe(user => {
+      if (user) {
+        this.currentUser.set(user);
+      }
+    });
+    
     this.orgService.getOrganization().subscribe((org) => {
-      this.orgName.set(org.name);
+      this.setOrganizationBranding(org);
       this.isOrgLoading.set(false);
     });
     this.orgService.getAddons().subscribe();
+  }
+
+  private setOrganizationBranding(org: Organization | null | undefined) {
+    this.orgName.set((org?.name || '').trim());
+    this.orgLogo.set((org?.logo || '').trim());
   }
 
   toggleSection(section: string) {
@@ -416,6 +441,15 @@ private expandedSections = signal<Record<string, boolean>>({
     const first = user?.firstName?.charAt(0) || '';
     const last = user?.lastName?.charAt(0) || '';
     return (first + last || user?.email?.charAt(0) || 'U').toUpperCase();
+  }
+
+  orgInitial(): string {
+    const source = this.orgName().trim();
+    return (source.charAt(0) || 'E').toUpperCase();
+  }
+
+  onOrgLogoError() {
+    this.orgLogo.set('');
   }
 
   closeOnMobile() {

@@ -2,13 +2,19 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Observable, map, catchError, of, tap } from 'rxjs';
+import { AuthService } from './auth.service';
 
 export interface Organization {
     id: number;
     name: string;
+    logo?: string;
     email: string;
     phone?: string;
     address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
     industry?: string;
     timeZone?: string;
     orgStreet1?: string;
@@ -56,6 +62,7 @@ export interface OfficeLocation {
 })
 export class OrganizationService {
     private http = inject(HttpClient);
+    private authService = inject(AuthService);
     private apiUrl = `${environment.apiUrl}/organization`;
     private readonly orgDraftKey = 'hrms_org_profile_draft';
     private readonly locationsKey = 'hrms_org_locations';
@@ -96,16 +103,21 @@ export class OrganizationService {
     private normalizeOrganization(item: any): Organization {
         return {
             id: Number(item?.id ?? 1),
-            name: item?.name ?? item?.organizationName ?? item?.organization_name ?? '',
+            name: item?.name ?? item?.organizationName ?? item?.organization_name ?? item?.companyName ?? item?.company_name ?? '',
+            logo: item?.logo ?? item?.logoUrl ?? item?.logo_url ?? item?.organizationLogo ?? item?.organization_logo ?? item?.companyLogo ?? item?.company_logo ?? '',
             email: item?.email ?? '',
             phone: item?.phone ?? item?.orgContactNumber ?? item?.org_contact_number ?? '',
             address: item?.address ?? item?.orgStreet1 ?? '',
+            city: item?.city ?? item?.orgCity ?? item?.org_city ?? '',
+            state: item?.state ?? '',
+            country: item?.country ?? '',
+            postalCode: item?.postalCode ?? item?.postal_code ?? item?.orgPinCode ?? item?.org_pin_code ?? '',
             industry: item?.industry ?? '',
-            timeZone: item?.timeZone ?? item?.time_zone ?? '',
-            orgStreet1: item?.orgStreet1 ?? item?.org_street1 ?? '',
+            timeZone: item?.timeZone ?? item?.time_zone ?? item?.timezone ?? '',
+            orgStreet1: item?.orgStreet1 ?? item?.org_street1 ?? item?.address ?? '',
             orgStreet2: item?.orgStreet2 ?? item?.org_street2 ?? '',
-            orgCity: item?.orgCity ?? item?.org_city ?? '',
-            orgPinCode: item?.orgPinCode ?? item?.org_pin_code ?? '',
+            orgCity: item?.orgCity ?? item?.org_city ?? item?.city ?? '',
+            orgPinCode: item?.orgPinCode ?? item?.org_pin_code ?? item?.postalCode ?? item?.postal_code ?? '',
             orgContactNumber: item?.orgContactNumber ?? item?.org_contact_number ?? item?.phone ?? '',
             billStreet1: item?.billStreet1 ?? item?.bill_street1 ?? '',
             billStreet2: item?.billStreet2 ?? item?.bill_street2 ?? '',
@@ -130,8 +142,12 @@ export class OrganizationService {
     }
 
     private readLocalDraft(): Partial<Organization> {
+        const user = this.authService.getStoredUser();
+        const orgId = user?.orgId ?? user?.organizationId;
+        const scopedKey = orgId ? `${this.orgDraftKey}_${orgId}` : this.orgDraftKey;
+
         try {
-            const raw = localStorage.getItem(this.orgDraftKey);
+            const raw = localStorage.getItem(scopedKey);
             return raw ? JSON.parse(raw) : {};
         } catch {
             return {};
@@ -139,9 +155,34 @@ export class OrganizationService {
     }
 
     private saveLocalDraft(data: Partial<Organization>): void {
+        const user = this.authService.getStoredUser();
+        const orgId = user?.orgId ?? user?.organizationId ?? data?.id;
+        const scopedKey = orgId ? `${this.orgDraftKey}_${orgId}` : this.orgDraftKey;
+
         try {
-            localStorage.setItem(this.orgDraftKey, JSON.stringify(data));
+            localStorage.setItem(scopedKey, JSON.stringify(data));
         } catch {}
+    }
+
+    private getOrganizationFromUser(): Partial<Organization> {
+        const user = this.authService.getStoredUser();
+        return this.normalizeOrganization({
+            id: user?.orgId ?? user?.organizationId ?? 0,
+            name: user?.organizationName ?? user?.companyName ?? '',
+            logo: user?.organizationLogo ?? user?.companyLogo ?? ''
+        });
+    }
+
+    private mergeDefinedOrganization(base: Partial<Organization>, override: Partial<Organization>): Organization {
+        const result: Record<string, any> = { ...base };
+
+        Object.entries(override || {}).forEach(([key, value]) => {
+            if (value === undefined || value === null) return;
+            if (typeof value === 'string' && !value.trim()) return;
+            result[key] = value;
+        });
+
+        return this.normalizeOrganization(result);
     }
 
     private readLocalLocations(): OfficeLocation[] {
@@ -160,19 +201,50 @@ export class OrganizationService {
     }
 
     getOrganization(): Observable<Organization> {
+        const userOrg = this.getOrganizationFromUser();
         return this.http.get<any>(this.apiUrl).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
-            map((org) => ({ ...org, ...this.readLocalDraft() })),
-            catchError(() => of(this.normalizeOrganization(this.readLocalDraft())))
+            map((org) => this.mergeDefinedOrganization(userOrg, org)),
+            map((org) => this.mergeDefinedOrganization(org, this.readLocalDraft())),
+            catchError(() => of(this.mergeDefinedOrganization(userOrg, this.readLocalDraft())))
         );
     }
 
     updateOrganization(data: Partial<Organization>): Observable<Organization> {
-        return this.http.put<any>(this.apiUrl, data).pipe(
+        const payload = {
+            ...data,
+            name: data.name,
+            companyName: data.name,
+            company_name: data.name,
+            logo: data.logo,
+            email: data.email,
+            phone: data.phone ?? data.orgContactNumber,
+            address: data.address ?? data.orgStreet1,
+            city: data.city ?? data.orgCity,
+            postalCode: data.postalCode ?? data.orgPinCode,
+            postal_code: data.postalCode ?? data.orgPinCode,
+            state: data.state,
+            country: data.country,
+            timeZone: data.timeZone,
+            time_zone: data.timeZone,
+            timezone: data.timeZone,
+            orgStreet1: data.orgStreet1 ?? data.address,
+            orgStreet2: data.orgStreet2,
+            orgCity: data.orgCity ?? data.city,
+            orgPinCode: data.orgPinCode ?? data.postalCode,
+            orgContactNumber: data.orgContactNumber ?? data.phone,
+            billStreet1: data.billStreet1,
+            billStreet2: data.billStreet2,
+            billCity: data.billCity,
+            billPinCode: data.billPinCode,
+            billContactNumber: data.billContactNumber
+        };
+
+        return this.http.put<any>(this.apiUrl, payload).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
             tap((org) => this.saveLocalDraft(org)),
             catchError(() => {
-                const merged = this.normalizeOrganization({ ...this.readLocalDraft(), ...data });
+                const merged = this.normalizeOrganization({ ...this.readLocalDraft(), ...payload });
                 this.saveLocalDraft(merged);
                 return of(merged);
             })

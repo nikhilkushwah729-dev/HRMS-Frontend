@@ -22,3 +22,8 @@ export const restoreUser = createAction(
     '[Auth] Restore User',
     props<{ user: User; token: string }>()
 );
+
+export const updateUser = createAction(
+    '[Auth] Update User',
+    props<{ user: User }>()
+);

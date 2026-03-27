@@ -48,9 +48,14 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     const token = this.authService.getStoredToken();
     const user = this.authService.getStoredUser();
+    
+    // Immediate hydration from storage for instant UI
     if (token && user) {
       this.store.dispatch(AuthActions.restoreUser({ user, token }));
+    }
 
+    // Always fetch fresh truth from API if we have a session to ensure persistence
+    if (token) {
       this.authService.getMe().subscribe({
         next: (freshUser) => {
           this.authService.setStoredUser(freshUser);

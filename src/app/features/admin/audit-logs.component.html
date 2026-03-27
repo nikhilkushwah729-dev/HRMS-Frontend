@@ -4,45 +4,45 @@
     <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
       <div>
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-md bg-gradient-to-br from-amber-500 to-teal-700 flex items-center justify-center shadow-lg shadow-teal-700/25">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/25 ring-2 ring-white">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               <path d="m9 12 2 2 4-4"/>
             </svg>
           </div>
           <div>
             <p class="app-module-kicker">Audit Center</p>
-            <h1 class="app-module-title mt-2">System audit trail and activity intelligence</h1>
-            <p class="app-module-text mt-2">Track security activity, data mutations, and user actions with searchable audit visibility across the HRMS.</p>
+            <h1 class="app-module-title mt-1.5">System audit trail and activity</h1>
+            <p class="app-module-text mt-1.5 max-w-2xl">Track security activity, data mutations, and user actions with searchable audit visibility across the HRMS.</p>
           </div>
         </div>
       </div>
-      <div class="flex flex-wrap gap-3">
+      <div class="flex flex-wrap gap-2.5">
         <!-- Auto Refresh Toggle -->
         <button
           (click)="toggleAutoRefresh()"
-          class="px-4 py-2.5 rounded-md font-bold text-sm flex items-center gap-2 transition-all duration-200"
+          class="px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 transition-all duration-200"
           [ngClass]="autoRefreshEnabled()
-            ? 'bg-green-100 text-green-700 border-2 border-green-200 hover:bg-green-200'
-            : 'bg-slate-50 text-slate-600 border-2 border-slate-200 hover:bg-slate-100'">
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 shadow-sm'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 shadow-sm'">
           <svg
             [class.animate-spin]="autoRefreshEnabled()"
-            xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            xmlns="http://www.w3.org/2000/svg" width="14" height="14"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
             <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
             <path d="M16 21v-5h5"/>
           </svg>
-          {{ autoRefreshEnabled() ? 'Auto-Refresh On' : 'Auto-Refresh Off' }}
+          {{ autoRefreshEnabled() ? 'Live Sync' : 'Auto-Refresh Off' }}
         </button>
 
         <!-- Export CSV -->
         <button
           (click)="exportCSV()"
           [disabled]="logs().length === 0"
-          class="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border-2 border-emerald-200 px-4 py-2.5 rounded-md font-bold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          class="bg-white text-slate-700 hover:bg-slate-50 hover:text-indigo-600 border border-slate-200 px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
@@ -54,79 +54,64 @@
         <button
           (click)="refresh()"
           [disabled]="loading()"
-          class="bg-primary-600 text-white hover:bg-primary-700 px-5 py-2.5 rounded-md font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-lg hover:shadow-primary-500/25">
+          class="bg-indigo-600 text-white hover:bg-indigo-700 px-6 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-indigo-500/25">
           <svg
             [class.animate-spin]="loading()"
-            xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+            xmlns="http://www.w3.org/2000/svg" width="14" height="14"
             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
             <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
             <path d="M16 21v-5h5"/>
           </svg>
-          Refresh
+          Reload
         </button>
       </div>
     </div>
 
     <!-- Stats Summary -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100">
-      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+      <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:border-blue-200 transition-colors">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-md bg-blue-100 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
+          <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 ring-1 ring-blue-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
           <div>
-            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Logs</p>
-            <p class="text-xl font-bold text-slate-800">{{ totalItems() | number }}</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Total Logs</p>
+            <p class="text-xl font-black text-slate-800">{{ totalItems() | number }}</p>
           </div>
         </div>
       </div>
-      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+      <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:border-emerald-200 transition-colors">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-md bg-emerald-100 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 ring-1 ring-emerald-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           </div>
           <div>
-            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Today</p>
-            <p class="text-xl font-bold text-slate-800">{{ todayCount }}</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Today</p>
+            <p class="text-xl font-black text-slate-800">{{ todayCount }}</p>
           </div>
         </div>
       </div>
-      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+      <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:border-amber-200 transition-colors">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-md bg-amber-100 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 20V10"/>
-              <path d="M12 20V4"/>
-              <path d="M6 20v-6"/>
-            </svg>
+          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 ring-1 ring-amber-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
           </div>
           <div>
-            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">This Week</p>
-            <p class="text-xl font-bold text-slate-800">{{ weekCount }}</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">This Week</p>
+            <p class="text-xl font-black text-slate-800">{{ weekCount }}</p>
           </div>
         </div>
       </div>
-      <div class="bg-slate-50 rounded-md p-4 border border-slate-100">
+      <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:border-purple-200 transition-colors">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-md bg-purple-100 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
+          <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 ring-1 ring-purple-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           </div>
           <div>
-            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Active Users</p>
-            <p class="text-xl font-bold text-slate-800">{{ uniqueUsers }}</p>
+            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Users</p>
+            <p class="text-xl font-black text-slate-800">{{ uniqueUsers }}</p>
           </div>
         </div>
       </div>
@@ -134,13 +119,14 @@
   </div>
 
   <!-- Filters Section -->
-  <div class="bg-white p-5 rounded-md border border-slate-100 shadow-sm">
-    <div class="flex flex-col lg:flex-row gap-4">
-      <!-- Search -->
+  <div class="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm shadow-slate-200/50">
+    <!-- Top Row: Search and Quick Dates -->
+    <div class="flex flex-col lg:flex-row gap-6 mb-5">
+      <!-- Search Input -->
       <div class="relative flex-1">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Search</label>
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Search Audit Trail</label>
         <div class="relative">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.3-4.3"/>
           </svg>
@@ -150,34 +136,37 @@
             [(ngModel)]="searchQuery"
             (keyup.enter)="applyFilters()"
             (input)="onSearchInput($event)"
-            placeholder="Search by actor, action, entity..."
-            class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+            placeholder="Search by name, action, or entity ID..."
+            class="w-full pl-12 pr-4 py-3 bg-white border-2 border-slate-200 hover:border-indigo-300 rounded-2xl text-[15px] focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-semibold text-slate-800 shadow-sm placeholder:text-slate-400 placeholder:font-medium">
         </div>
       </div>
 
       <!-- Quick Date Filters -->
       <div class="w-full lg:w-auto">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Quick Dates</label>
+        <label class="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Quick Timeframes</label>
         <div class="flex flex-wrap gap-2">
           <button
             *ngFor="let date of quickDateFilters"
             (click)="applyQuickDate(date.value)"
-            class="px-3 py-2 rounded-lg text-xs font-bold transition-all duration-200"
+            class="px-5 py-3 rounded-2xl text-[13px] font-bold transition-all duration-200"
             [ngClass]="selectedQuickDate === date.value
-              ? 'bg-primary-100 text-primary-700 border-2 border-primary-300'
-              : 'bg-slate-100 text-slate-600 border-2 border-transparent hover:bg-slate-200'">
+              ? 'bg-indigo-50 text-indigo-700 border-2 border-indigo-200 shadow-sm'
+              : 'bg-slate-50 text-slate-500 border-2 border-slate-100 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-700'">
             {{ date.label }}
           </button>
         </div>
       </div>
+    </div>
 
+    <!-- Bottom Row: Other dropdown filters -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- Module Filter -->
-      <div class="w-full lg:w-44">
+      <div class="w-full">
         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Module</label>
         <select
           [(ngModel)]="selectedModule"
           (change)="applyFilters()"
-          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 cursor-pointer transition-all">
+          class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 cursor-pointer transition-all font-semibold text-slate-700">
           <option value="">All Modules</option>
           <option value="auth">Authentication</option>
           <option value="employees">Employees</option>
@@ -193,12 +182,12 @@
       </div>
 
       <!-- Action Filter -->
-      <div class="w-full lg:w-40">
-        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Action</label>
+      <div class="w-full">
+        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">Action Type</label>
         <select
           [(ngModel)]="selectedAction"
           (change)="applyFilters()"
-          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 cursor-pointer transition-all">
+          class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 cursor-pointer transition-all font-semibold text-slate-700">
           <option value="">All Actions</option>
           <option value="CREATE">Create</option>
           <option value="UPDATE">Update</option>
@@ -213,23 +202,23 @@
       </div>
 
       <!-- From Date -->
-      <div class="w-full lg:w-40">
+      <div class="w-full">
         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">From Date</label>
         <input
           type="date"
           [(ngModel)]="startDate"
           (change)="applyFilters()"
-          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+          class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-semibold text-slate-700">
       </div>
 
       <!-- To Date -->
-      <div class="w-full lg:w-40">
+      <div class="w-full">
         <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">To Date</label>
         <input
           type="date"
           [(ngModel)]="endDate"
           (change)="applyFilters()"
-          class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-md text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all">
+          class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-semibold text-slate-700">
       </div>
     </div>
 
@@ -267,7 +256,7 @@
   </div>
 
   <!-- Table Info & Pagination Controls -->
-  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-md border border-slate-100">
+  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm">
     <div class="flex items-center gap-3">
       <p class="text-sm text-slate-600">
         <span class="font-bold text-slate-800">{{ logs().length }}</span> of
@@ -298,7 +287,7 @@
   </div>
 
   <!-- Table Section -->
-  <div class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
+  <div class="overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-sm">
     <div class="overflow-x-auto">
       <table class="w-full text-left">
         <thead class="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
@@ -391,7 +380,7 @@
               <td class="px-5 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-3">
                   <div
-                    class="w-10 h-10 rounded-md flex items-center justify-center text-sm font-black flex-shrink-0"
+                    class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 shadow-sm ring-2 ring-white"
                     [ngClass]="log.employee ? 'bg-primary-100 text-primary-700' : 'bg-amber-100 text-amber-700'">
                     {{ log.employee
                       ? (log.employee.firstName[0] + (log.employee.lastName ? log.employee.lastName[0] : ''))
@@ -443,7 +432,7 @@
               <td class="px-5 py-4 whitespace-nowrap text-right">
                 <button
                   (click)="openDetailsModal($event, log)"
-                  class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 transition-all">
+                  class="px-4 py-1.5 bg-white border border-slate-200 rounded-full text-[11px] font-bold tracking-wide uppercase text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
                   View
                 </button>
               </td>
@@ -617,10 +606,10 @@
     <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
     <!-- Modal Panel -->
-    <div class="relative inline-block align-bottom bg-white rounded-md text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full">
+    <div class="relative inline-block align-bottom bg-white rounded-3xl text-left overflow-hidden shadow-2xl shadow-indigo-900/10 transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl sm:w-full border border-slate-100">
 
       <!-- Modal Header -->
-      <div class="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 flex items-center justify-between">
+      <div class="bg-slate-900 px-6 py-5 flex items-center justify-between border-b border-white/10">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-md bg-white/20 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -647,13 +636,13 @@
         <div class="grid grid-cols-2 gap-4 mb-6">
 
           <!-- Timestamp -->
-          <div class="bg-slate-50 rounded-md p-4">
+          <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100">
             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Timestamp</p>
             <p class="font-bold text-slate-800">{{ selectedLog()?.createdAt | date:'MMM dd, yyyy hh:mm:ss a' }}</p>
           </div>
 
           <!-- Action -->
-          <div class="bg-slate-50 rounded-md p-4">
+          <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100">
             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Action</p>
             <span
               class="px-3 py-1 rounded-lg text-xs font-bold uppercase border"
@@ -663,13 +652,13 @@
           </div>
 
           <!-- Module -->
-          <div class="bg-slate-50 rounded-md p-4">
+          <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100">
             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Module</p>
             <p class="font-bold text-slate-800">{{ formatModule(selectedLog()?.module || '') }}</p>
           </div>
 
           <!-- Actor -->
-          <div class="bg-slate-50 rounded-md p-4">
+          <div class="bg-slate-50/70 rounded-2xl p-4 border border-slate-100">
             <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Actor</p>
             <p class="font-bold text-slate-800">
               {{ selectedLog()?.employee?.firstName || 'System' }} {{ selectedLog()?.employee?.lastName || '' }}
@@ -679,7 +668,7 @@
         </div>
 
         <!-- Connection Info -->
-        <div class="bg-slate-50 rounded-md p-4 mb-4">
+        <div class="bg-slate-50/70 rounded-2xl p-5 mb-4 border border-slate-100">
           <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Connection Information</h4>
           <div class="grid grid-cols-2 gap-3">
             <div class="flex justify-between items-start">
@@ -705,7 +694,7 @@
           </div>
 
           <!-- Map Visualization -->
-          <div class="mt-4 bg-slate-900 rounded-md overflow-hidden h-40 relative group border border-slate-800" *ngIf="selectedLog()?.countryCode && countriesGeoJson">
+          <div class="mt-4 bg-slate-900 rounded-2xl overflow-hidden h-44 relative group border border-slate-800 shadow-inner" *ngIf="selectedLog()?.countryCode && countriesGeoJson">
             <svg class="w-full h-full opacity-60" viewBox="-180 -90 360 180" preserveAspectRatio="xMidYMid slice">
               <path *ngFor="let country of countriesGeoJson?.features" 
                     [attr.d]="getSvgPath(country)" 
@@ -724,7 +713,7 @@
         </div>
 
         <!-- Old Values -->
-        <div *ngIf="selectedLog()?.oldValues" class="bg-red-50 rounded-md p-4 mb-4 border border-red-100">
+        <div *ngIf="selectedLog()?.oldValues" class="bg-red-50/70 rounded-2xl p-5 mb-4 border border-red-100">
           <h4 class="text-xs font-bold text-red-400 uppercase tracking-wider mb-3 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -736,7 +725,7 @@
         </div>
 
         <!-- New Values -->
-        <div *ngIf="selectedLog()?.newValues" class="bg-emerald-50 rounded-md p-4 mb-4 border border-emerald-100">
+        <div *ngIf="selectedLog()?.newValues" class="bg-emerald-50/70 rounded-2xl p-5 mb-4 border border-emerald-100">
           <h4 class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
@@ -747,7 +736,7 @@
         </div>
 
         <!-- No Changes Message -->
-        <div *ngIf="!selectedLog()?.oldValues && !selectedLog()?.newValues" class="bg-slate-50 rounded-md p-6 text-center">
+        <div *ngIf="!selectedLog()?.oldValues && !selectedLog()?.newValues" class="bg-slate-50 rounded-2xl p-6 border border-slate-100 text-center">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-slate-300 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
