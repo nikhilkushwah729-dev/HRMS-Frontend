@@ -43,16 +43,16 @@ type SearchResult = {
 
         @if (canUseSearch()) {
         <div class="relative w-full max-w-[220px] md:max-w-[430px] hidden sm:block">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           <input
             type="text"
             [value]="searchQuery()"
             (focus)="openSearch()"
             (input)="onSearchInput(($any($event.target).value || '').toString())"
-            placeholder="Search anything... (Ctrl/Cmd + K)"
-            class="w-full pl-12 pr-24 py-3 rounded-md border border-stone-200/80 bg-white/80 text-sm shadow-sm focus:outline-none focus:bg-white focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 transition-all"
+            placeholder="Search anything..."
+            class="w-full pl-11 pr-16 py-2.5 rounded-full border border-slate-200/60 bg-slate-50/50 hover:bg-white text-sm shadow-sm focus:outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all text-slate-700 placeholder:text-slate-400 font-medium"
           >
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-400 bg-white border border-stone-200 rounded-md px-2 py-0.5 shadow-sm">Ctrl K</span>
+          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400 bg-white border border-slate-200/70 rounded-full px-2 py-0.5 shadow-sm">Ctrl K</span>
 
           @if (showSearchPanel()) {
             <div class="absolute left-0 right-0 mt-3 bg-white rounded-md shadow-2xl border border-stone-100 overflow-hidden z-[70]">
@@ -99,10 +99,10 @@ type SearchResult = {
         <!-- Notification Bell -->
         @if (canViewNotifications()) {
         <div class="relative">
-          <button (click)="toggleNotifications()" class="relative text-stone-500 p-2.5 rounded-md hover:bg-white hover:text-teal-700 transition-colors border border-transparent hover:border-stone-200/70 hover:shadow-sm">
+          <button (click)="toggleNotifications()" class="relative text-slate-500 p-2 rounded-full hover:bg-slate-100/80 hover:text-indigo-600 transition-colors border border-transparent hover:border-slate-200/50">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             @if (notifService.unreadCount() > 0) {
-              <span class="absolute top-1 right-1 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
+              <span class="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white shadow-sm">
                 {{ notifService.unreadCount() > 9 ? '9+' : notifService.unreadCount() }}
               </span>
             }
@@ -145,47 +145,63 @@ type SearchResult = {
 
         <!-- User Profile Dropdown -->
         <div class="relative">
-          <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-3 p-1.5 md:p-2 md:pr-4 rounded-md cursor-pointer bg-white/60 hover:bg-white border border-stone-200/70 transition-all group shadow-sm">
-            <div class="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-amber-500 to-teal-700 text-white rounded-md flex items-center justify-center font-bold text-sm md:text-lg shadow-lg shadow-teal-800/15 group-hover:scale-105 transition-transform">
-              {{ userInitial() }}
+          @if (currentUser(); as user) {
+            <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-2.5 p-1 md:pr-4 rounded-full cursor-pointer bg-slate-50/50 hover:bg-white border border-slate-200/60 hover:border-slate-300/80 hover:shadow-sm transition-all group">
+              <div class="w-8 h-8 md:w-9 md:h-9 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
+                @if (user.avatar) {
+                  <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
+                } @else {
+                  <span>{{ userInitial() }}</span>
+                }
+              </div>
+              <div class="hidden md:flex flex-col items-start justify-center leading-none">
+                <span class="text-[13px] font-bold text-slate-800">{{ user.firstName }} {{ user.lastName }}</span>
+                @if (userDesignation()) {
+                  <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{{ userDesignation() }}</span>
+                } @else {
+                  <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{{ userRoleLabel() }}</span>
+                }
+              </div>
             </div>
-            <div class="hidden md:flex flex-col items-start leading-tight">
-              <span class="text-sm font-semibold text-slate-900">{{ (user$ | async)?.firstName }} {{ (user$ | async)?.lastName }}</span>
-              @if (userDesignation()) {
-                <span class="text-[10px] font-bold text-primary-600 uppercase tracking-tight">{{ userDesignation() }}</span>
-              } @else {
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{{ userRoleLabel() }}</span>
-              }
-            </div>
-          </div>
+          }
 
           <!-- Profile Dropdown -->
-          @if (showDropdown) {
-            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-md shadow-2xl border border-stone-100 p-2 z-[60]">
-              <div class="px-4 py-3 border-b border-stone-100 mb-1">
-                <p class="text-sm font-semibold text-slate-900">{{ (user$ | async)?.firstName }} {{ (user$ | async)?.lastName }}</p>
-                <p class="text-xs text-slate-500 truncate">{{ (user$ | async)?.email }}</p>
+          @if (showDropdown && currentUser(); as user) {
+            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-xl shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
+              <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-lg">
+                <div class="w-10 h-10 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ring-2 ring-white">
+                  @if (user.avatar) {
+                    <img [src]="user.avatar" class="h-full w-full object-cover">
+                  } @else {
+                    <span>{{ userInitial() }}</span>
+                  }
+                </div>
+                <div class="min-w-0">
+                  <p class="text-[13px] font-bold text-slate-900 truncate">{{ user.firstName }} {{ user.lastName }}</p>
+                  <p class="text-[11px] font-medium text-slate-500 truncate mt-0.5">{{ user.email }}</p>
+                </div>
               </div>
-              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-stone-50 rounded-md transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>My Profile</span>
               </button>
               @if (canAccess('/settings')) {
-                <button (click)="goToSearchResult('/settings')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-stone-50 rounded-md transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <button (click)="goToSearchResult('/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group mt-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                   <span>Profile Settings</span>
                 </button>
               }
               @if (canAccess('/admin/settings')) {
-                <button (click)="goToSearchResult('/admin/settings')" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-stone-50 rounded-md transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                <div class="my-1.5 border-t border-slate-100"></div>
+                <button (click)="goToSearchResult('/admin/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
                   <span>Admin Settings</span>
                 </button>
-                <div class="my-1 border-t border-stone-100"></div>
               }
-              <button (click)="logout()" class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-                <span class="font-semibold">Sign Out</span>
+              <div class="my-1.5 border-t border-slate-100"></div>
+              <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-all group">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-0.5 transition-transform"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                <span>Sign Out</span>
               </button>
             </div>
           }
@@ -218,7 +234,7 @@ export class TopbarComponent implements OnInit {
   searchQuery = signal('');
   searchResults = signal<SearchResult[]>([]);
   loggingOut = signal(false);
-  private currentUser = signal<User | null>(null);
+  currentUser = signal<User | null>(null);
   private currentPath = signal('/');
   private employeeCache = signal<User[]>([]);
   private projectCache = signal<Project[]>([]);
@@ -241,41 +257,22 @@ export class TopbarComponent implements OnInit {
 
   ngOnInit() {
     this.currentPath.set(this.router.url || '/');
+    this.currentUser.set(this.authService.getStoredUser());
+    this.updateRoleLabel(this.currentUser()?.roleId);
+    
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       this.currentPath.set(event.urlAfterRedirects || event.url || '/');
       this.closeAll();
     });
 
-    // Subscribe to user$ observable to get the latest user data
+    // Subscribe to user$ observable to get the latest user data reactively from the store
     this.user$.subscribe(user => {
       if (user) {
         this.currentUser.set(user);
         this.updateRoleLabel(user.roleId);
       }
     });
-    
-    // Fetch fresh user data from API
-    this.authService.getMe().subscribe({
-      next: (user) => {
-        this.currentUser.set(user);
-        this.updateRoleLabel(user.roleId);
-        this.authService.setStoredUser(user);
-      },
-      error: (err) => {
-        if (err?.status === 401 || err?.status === 404) {
-          this.authService.clearAuthStorage();
-          this.store.dispatch(AuthActions.logout());
-          return;
-        }
 
-        const storedUser = this.authService.getStoredUser();
-        if (storedUser) {
-          this.currentUser.set(storedUser);
-          this.updateRoleLabel(storedUser.roleId);
-        }
-      }
-    });
-    
     this.notifService.getNotifications().subscribe();
     this.loadSearchData();
     this.searchResults.set(this.getVisibleQuickLinks().slice(0, 6));

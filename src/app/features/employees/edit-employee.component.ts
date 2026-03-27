@@ -14,23 +14,30 @@ import { UiPhoneInputComponent } from '../../core/components/ui';
   imports: [CommonModule, ReactiveFormsModule, UiPhoneInputComponent],
   template: `
     <div class="mx-auto max-w-6xl space-y-6 px-1 py-2">
-      <section class="app-module-hero">
-        <div>
-          <p class="app-module-kicker">People Operations</p>
-          <h1 class="app-module-title">Edit employee</h1>
-          <p class="app-module-text max-w-2xl">Update identity details, team placement, employment status, and geofence behavior from one polished employee management screen.</p>
-        </div>
+      <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef6ff_100%)] shadow-sm">
+        <div class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8">
+          <div class="space-y-5">
+            <div class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+              People Operations
+            </div>
+            <div>
+              <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Edit employee</h1>
+              <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Update identity details, team placement, employment status, and geofence behavior from one polished employee management screen.</p>
+            </div>
+          </div>
 
-        <div class="app-module-highlight">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Employee record</p>
-          <p class="mt-3 text-3xl font-black text-slate-900">{{ employeeForm.get('employeeCode')?.value || 'Loading' }}</p>
-          <p class="mt-2 text-sm text-slate-600">Geofence required: {{ employeeGeofence().requires_geofence ? 'Yes' : 'No' }}</p>
+          <div class="rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5">
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Employee record</p>
+            <p class="mt-2 break-words text-2xl font-black text-slate-900">{{ employeeForm.get('employeeCode')?.value || 'Loading' }}</p>
+            <p class="mt-2 text-sm text-slate-600">Geofence required: {{ employeeGeofence().requires_geofence ? 'Yes' : 'No' }}</p>
+          </div>
         </div>
       </section>
 
       <form [formGroup]="employeeForm" (ngSubmit)="onSubmit()" class="space-y-6">
-        <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <section class="app-surface-card">
+        <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Core Profile</p>
               <h2 class="mt-2 text-2xl font-black text-slate-900">Identity and assignment</h2>
@@ -95,7 +102,7 @@ import { UiPhoneInputComponent } from '../../core/components/ui';
           </section>
 
           <section class="space-y-6">
-            <div class="app-surface-card">
+            <div class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Employment Status</p>
                 <h2 class="mt-2 text-2xl font-black text-slate-900">Availability</h2>
@@ -111,14 +118,14 @@ import { UiPhoneInputComponent } from '../../core/components/ui';
                     <option value="terminated">Terminated</option>
                   </select>
                 </div>
-                <div class="rounded-md bg-slate-50 p-5">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-5">
                   <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Access note</p>
                   <p class="mt-3 text-sm leading-7 text-slate-600">Email stays read-only here to protect existing auth flows while other editable fields remain operational.</p>
                 </div>
               </div>
             </div>
 
-            <div class="app-surface-card">
+            <div class="app-surface-card p-5 sm:p-6">
               <div class="mb-6 flex items-center justify-between gap-4">
                 <div>
                   <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Geofence Settings</p>
@@ -154,7 +161,7 @@ import { UiPhoneInputComponent } from '../../core/components/ui';
           </section>
         </div>
 
-        <section class="app-surface-card">
+        <section class="app-surface-card p-5 sm:p-6">
           <div class="mb-6">
             <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Emergency Contact</p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">Support details</h2>
@@ -176,7 +183,7 @@ import { UiPhoneInputComponent } from '../../core/components/ui';
           </div>
         </section>
 
-        <div class="flex justify-end gap-4 border-t border-slate-100 pt-6">
+        <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
           <button type="button" (click)="goBack()" class="rounded-md border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Cancel</button>
           <button type="submit" [disabled]="employeeForm.invalid || loading" class="rounded-md bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
             {{ loading ? 'Saving...' : 'Save Changes' }}

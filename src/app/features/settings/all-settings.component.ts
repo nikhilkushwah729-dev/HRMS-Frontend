@@ -1,4 +1,4 @@
-import { Component, computed, signal, OnInit, inject } from '@angular/core';
+import { Component, signal, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -11,130 +11,175 @@ import { getSettingMenu, SettingCategory, SettingRoute } from './setting-menu';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="mx-auto pb-4 max-w-7xl h-full flex flex-col">
-      <!-- Search and Header Row -->
-      <div class="grid grid-cols-12 gap-3 pb-4 sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md pt-4">
-        <div class="col-span-12">
-          <div class="bg-white p-5 rounded-md shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <div class="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                System Settings
+    <div class="mx-auto flex h-full max-w-7xl flex-col gap-6 px-1 pb-8 pt-2">
+      <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef2ff_100%)] shadow-sm">
+        <div class="grid gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-8">
+          <div class="space-y-5">
+            <div class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+              Control Center
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3 text-slate-900">
+                <div class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-900 text-white shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+                <div>
+                  <h1 class="text-3xl font-black tracking-tight">System Settings</h1>
+                  <p class="mt-1 text-sm text-slate-500">Manage configurations, organizations, policies, and system-wide behavior from one clean admin surface.</p>
+                </div>
               </div>
-              <p class="text-sm text-slate-500 mt-1">Manage configurations, organizations, policies, and system-wide behavior.</p>
             </div>
 
-            <!-- Search Bar -->
-            <div class="relative w-full md:w-96">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Categories</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ totalCategories() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Visible admin groups</p>
+              </div>
+              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Settings</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ totalVisibleSettings() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Routes available now</p>
+              </div>
+              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Quick Access</p>
+                <p class="mt-2 text-lg font-black text-slate-900">Approval + Import</p>
+                <p class="mt-1 text-xs text-slate-500">Pinned admin actions</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex min-w-0 flex-col gap-4 rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Quick Search</p>
+                <p class="mt-1 text-sm text-slate-500">Jump directly to a policy, module, or configuration page.</p>
+              </div>
+              <button type="button" (click)="closeSettings()" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <div class="relative" data-settings-search>
               <input
                 type="text"
-                placeholder="Search settings..."
+                placeholder="Search settings, categories, modules..."
                 [ngModel]="searchQuery()"
                 (ngModelChange)="onSearchChange($event)"
-                class="w-full pl-10 pr-4 py-2.5 border border-slate-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 rounded-lg bg-slate-50 text-sm transition-all outline-none"
+                class="w-full rounded-md border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition-all focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-200/60"
               />
-              <div class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               </div>
 
-              <!-- Search Dropdown Results -->
               @if (isSearchOpen() && searchResults().length > 0) {
-                <div class="absolute top-full mt-2 left-0 right-0 bg-white border border-slate-100 rounded-md shadow-xl max-h-80 overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2">
-                  <div class="p-2 space-y-1">
-                    @for (result of searchResults(); track result.route) {
-                      <a [routerLink]="result.route" class="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg group transition-colors cursor-pointer">
-                        <div class="flex items-center gap-3">
-                          <div class="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                          </div>
-                          <div>
-                            <div class="text-sm font-semibold text-slate-900 group-hover:text-primary-600">{{ result.label }}</div>
-                            <div class="text-xs text-slate-500">{{ result.path }}</div>
-                          </div>
+                <div class="absolute left-0 right-0 top-full z-50 mt-3 max-h-80 overflow-y-auto rounded-md border border-slate-200 bg-white p-2 shadow-2xl">
+                  @for (result of searchResults(); track result.route) {
+                    <a [routerLink]="result.route" class="flex items-center justify-between gap-3 rounded-md px-3 py-3 transition hover:bg-slate-50">
+                      <div class="flex min-w-0 items-center gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                         </div>
-                      </a>
-                    }
-                  </div>
+                        <div class="min-w-0">
+                          <p class="truncate text-sm font-semibold text-slate-900">{{ result.label }}</p>
+                          <p class="truncate text-xs text-slate-500">{{ result.path }}</p>
+                        </div>
+                      </div>
+                    </a>
+                  }
                 </div>
               }
 
               @if (isSearchOpen() && searchResults().length === 0) {
-                <div class="absolute top-full mt-2 left-0 right-0 bg-white border border-slate-100 rounded-md shadow-xl p-4 text-center text-sm text-slate-500 z-50">
+                <div class="absolute left-0 right-0 top-full z-50 mt-3 rounded-md border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500 shadow-2xl">
                   No settings found matching "{{ searchQuery() }}"
                 </div>
               }
             </div>
 
-            <!-- Close Button -->
-            <button (click)="closeSettings()" class="w-10 h-10 rounded-lg flex items-center justify-center bg-slate-50 hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors border border-slate-100 hover:border-rose-100 flex-shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              @for (route of featuredSettings(); track route.route) {
+                <a [routerLink]="route.route" class="min-w-0 rounded-md border border-slate-200 bg-slate-50 px-4 py-4 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm">
+                  <p class="truncate text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ route.category }}</p>
+                  <p class="mt-2 break-words text-sm font-bold leading-6 text-slate-900">{{ formatLabel(route.label) }}</p>
+                </a>
+              }
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Settings Grid Layout -->
-      <div class="flex-1 overflow-y-auto custom-scrollbar pb-24">
-        <div class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-          
-          <!-- Iterate over Setting Categories -->
+      <div class="flex-1">
+        <div class="grid gap-6 md:grid-cols-2 2xl:grid-cols-3">
           @for (category of objectKeys(structuredSettings()); track category) {
             @if (structuredSettings()[category].per && structuredSettings()[category].routes.length > 0) {
-              <div class="bg-white rounded-md shadow-sm border border-slate-100 overflow-hidden break-inside-avoid animate-in fade-in slide-in-from-bottom-4">
-                
-                <!-- Category Header -->
-                <div class="p-5 border-b border-slate-50 flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-lg flex items-center justify-center \{{ structuredSettings()[category].bgClass }} \{{ structuredSettings()[category].colorClass }}">
-                    <img [src]="structuredSettings()[category].icon" class="w-5 h-5 opacity-80 mix-blend-multiply" alt="icon">
+              <section class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="flex items-center gap-4 border-b border-slate-100 px-5 py-5">
+                  <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md text-sm font-black uppercase" [ngClass]="[structuredSettings()[category].bgClass, structuredSettings()[category].colorClass]">
+                    {{ categoryBadge(structuredSettings()[category].label) }}
                   </div>
-                  <h2 class="text-lg font-bold text-slate-900">
-                    \{{ structuredSettings()[category].label }}
-                  </h2>
+                  <div class="min-w-0">
+                    <h2 class="break-words text-lg font-black text-slate-900">{{ structuredSettings()[category].label }}</h2>
+                    <p class="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{{ visibleRouteCount(structuredSettings()[category]) }} modules</p>
+                  </div>
                 </div>
 
-                <!-- Category Routes -->
-                <div class="p-3 bg-slate-50/50">
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    @for (route of structuredSettings()[category].routes; track route.route) {
-                      @if (route.per) {
-                        <a [routerLink]="route.route" class="px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-600 hover:bg-white hover:text-primary-600 hover:shadow-sm border border-transparent hover:border-slate-100 transition-all truncate flex items-center gap-2">
-                          <div class="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
-                          \{{ formatLabel(route.label) }}
-                        </a>
-                      }
+                <div class="grid gap-3 bg-slate-50/70 p-4 xl:grid-cols-2">
+                  @for (route of structuredSettings()[category].routes; track route.route) {
+                    @if (route.per) {
+                      <a [routerLink]="route.route" class="group min-w-0 rounded-md border border-transparent bg-white px-4 py-4 transition hover:border-slate-200 hover:shadow-sm">
+                        <div class="flex items-start gap-3">
+                          <div class="mt-1 h-2.5 w-2.5 rounded-full bg-slate-300 transition group-hover:bg-slate-900"></div>
+                          <div class="min-w-0">
+                            <p class="break-words text-sm font-bold leading-6 text-slate-900 group-hover:text-slate-950">{{ formatLabel(route.label) }}</p>
+                            <p class="mt-1 break-words text-xs leading-5 text-slate-500">{{ route.path }}</p>
+                          </div>
+                        </div>
+                      </a>
                     }
-                  </div>
+                  }
                 </div>
-              </div>
+              </section>
             }
           }
-
         </div>
       </div>
 
-      <!-- Bottom Action Bar (Approval Flow, Import Wizard, etc) -->
-      <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 z-30 sm:ml-64 shadow-[0_-4px_6px_-1px_rgb(0,0,0,0.02)]">
-        <div class="max-w-7xl mx-auto flex gap-4">
-          <a routerLink="approval-flow" class="flex-1 max-w-sm flex items-center gap-3 px-5 py-3 rounded-md border border-emerald-100 bg-emerald-50/30 hover:bg-emerald-50 hover:shadow-sm hover:-translate-y-0.5 transition-all text-emerald-800 font-bold group">
-            <div class="p-2 rounded bg-emerald-100/50 text-emerald-600 group-hover:scale-110 transition-transform">
+      <section class="rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Quick Actions</p>
+            <h2 class="mt-1 text-lg font-black text-slate-900">Shortcuts for admin work</h2>
+          </div>
+          <p class="text-sm text-slate-500">Fast access without covering the page on mobile.</p>
+        </div>
+        <div class="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row">
+          <a routerLink="approval-flow" class="flex min-w-0 flex-1 items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-5 py-4 font-bold text-emerald-800 transition hover:-translate-y-0.5 hover:bg-emerald-100/80 hover:shadow-sm">
+            <div class="rounded-md bg-emerald-100 p-2 text-emerald-600">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
             </div>
-            Approval Flow Center
+            <div class="min-w-0">
+              <p class="break-words leading-6">Approval Flow Center</p>
+              <p class="mt-1 break-words text-xs font-medium leading-5 text-emerald-700">Review rules and approval chains</p>
+            </div>
           </a>
 
-          <a routerLink="import-wizard" class="flex-1 max-w-sm flex items-center gap-3 px-5 py-3 rounded-md border border-slate-200 bg-white hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all text-slate-700 font-bold group">
-            <div class="p-2 rounded bg-slate-100 text-slate-500 group-hover:scale-110 transition-transform">
+          <a routerLink="import-wizard" class="flex min-w-0 flex-1 items-start gap-3 rounded-md border border-slate-200 bg-slate-50 px-5 py-4 font-bold text-slate-800 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm">
+            <div class="rounded-md bg-white p-2 text-slate-500 shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
             </div>
-            Import Wizard
+            <div class="min-w-0">
+              <p class="break-words leading-6">Import Wizard</p>
+              <p class="mt-1 break-words text-xs font-medium leading-5 text-slate-500">Bring policies and master data faster</p>
+            </div>
           </a>
         </div>
-      </div>
-      
+      </section>
     </div>
   `
 })
-export class AllSettingsComponent implements OnInit {
+export class AllSettingsComponent implements OnInit, OnDestroy {
   private router = inject(Router);
 
   structuredSettings = signal<Record<string, SettingCategory>>({});
@@ -143,6 +188,12 @@ export class AllSettingsComponent implements OnInit {
   isSearchOpen = signal(false);
   searchResults = signal<SettingRoute[]>([]);
   allFlatRoutes: SettingRoute[] = [];
+  private handleDocumentClick = (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('[data-settings-search]')) {
+      this.isSearchOpen.set(false);
+    }
+  };
   
   private permissionService = inject(PermissionService);
   private authService = inject(AuthService);
@@ -158,13 +209,11 @@ export class AllSettingsComponent implements OnInit {
     });
     this.allFlatRoutes = flat;
 
-    // Attach click outside listener manually for simplicity
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.md\\:w-96')) {
-        this.isSearchOpen.set(false);
-      }
-    });
+    document.addEventListener('click', this.handleDocumentClick);
+  }
+
+  ngOnDestroy() {
+    document.removeEventListener('click', this.handleDocumentClick);
   }
 
   objectKeys(obj: any) {
@@ -173,6 +222,32 @@ export class AllSettingsComponent implements OnInit {
 
   formatLabel(label: string): string {
     return label.replace(/-/g, ' ');
+  }
+
+  categoryBadge(label: string): string {
+    const parts = label.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return 'S';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+  }
+
+  visibleRouteCount(category: SettingCategory): number {
+    return category.routes.filter((route) => route.per).length;
+  }
+
+  totalVisibleSettings(): number {
+    return this.allFlatRoutes.length;
+  }
+
+  totalCategories(): number {
+    return Object.keys(this.structuredSettings()).filter((key) => {
+      const category = this.structuredSettings()[key];
+      return category.per && category.routes.some((route) => route.per);
+    }).length;
+  }
+
+  featuredSettings(): SettingRoute[] {
+    return this.allFlatRoutes.slice(0, 3);
   }
 
   onSearchChange(query: string) {

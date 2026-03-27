@@ -12,18 +12,25 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
     standalone: true,
     imports: [CommonModule, FormsModule],
     template: `
-        <div class="space-y-6 p-1">
-            <section class="app-module-hero">
-                <div>
-                    <p class="app-module-kicker">People Operations</p>
-                    <h1 class="app-module-title">Employee invitations</h1>
-                    <p class="app-module-text">Invite new team members, track onboarding progress, and keep pending access requests under control.</p>
-                </div>
+        <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+            <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm">
+                <div class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8 lg:py-8">
+                    <div class="space-y-5">
+                        <div class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                            People Operations
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Employee invitations</h1>
+                            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Invite new team members, track onboarding progress, and keep pending access requests under control from one clean workspace.</p>
+                        </div>
+                    </div>
 
-                <div class="app-module-highlight">
-                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Pending invites</p>
-                    <p class="mt-3 text-3xl font-black text-slate-900">{{ pendingInvitations.length }}</p>
-                    <p class="mt-2 text-sm text-slate-600">Accepted: {{ acceptedInvitations.length }} | Revoked/expired: {{ revokedInvitations.length }}</p>
+                    <div class="rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5">
+                        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending invites</p>
+                        <p class="mt-2 text-2xl font-black text-slate-900">{{ pendingInvitations.length }}</p>
+                        <p class="mt-2 text-sm leading-6 text-slate-500">Accepted: {{ acceptedInvitations.length }} | Revoked/expired: {{ revokedInvitations.length }}</p>
+                    </div>
                 </div>
             </section>
 
@@ -53,7 +60,60 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                 <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
             </div>
 
-            <div *ngIf="!loading" class="app-surface-card overflow-hidden p-0">
+            <div *ngIf="!loading" class="space-y-4">
+                <div class="grid gap-4 md:hidden">
+                    <div *ngFor="let invite of getFilteredInvitations()" class="app-surface-card space-y-4 p-5">
+                        <div class="flex min-w-0 items-start gap-3">
+                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-slate-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="break-words text-base font-semibold text-slate-900">{{ invite.email }}</p>
+                                <p class="mt-1 text-sm text-slate-500">{{ invite.roleName || getRoleName(invite.roleId) }}</p>
+                            </div>
+                            <span [class]="getStatusClass(invite.status)">
+                                {{ invite.status | titlecase }}
+                            </span>
+                        </div>
+
+                        <div class="grid gap-3 rounded-md bg-slate-50 p-4 text-sm text-slate-600">
+                            <div class="flex items-start justify-between gap-3">
+                                <span class="text-slate-500">Invited By</span>
+                                <span class="text-right font-medium text-slate-900">{{ invite.invitedByName || 'Admin' }}</span>
+                            </div>
+                            <div class="flex items-start justify-between gap-3">
+                                <span class="text-slate-500">Invited Date</span>
+                                <span class="text-right font-medium text-slate-900">{{ invite.invitedAt | date:'mediumDate' }}</span>
+                            </div>
+                            <div class="flex items-start justify-between gap-3">
+                                <span class="text-slate-500">Expires</span>
+                                <span class="text-right font-medium text-slate-900">{{ invite.expiresAt | date:'mediumDate' }}</span>
+                            </div>
+                        </div>
+
+                        <div *ngIf="invite.status === 'pending'" class="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                (click)="resendInvitation(invite)"
+                                class="rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100">
+                                Resend
+                            </button>
+                            <button
+                                (click)="revokeInvitation(invite)"
+                                class="rounded-md border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100">
+                                Revoke
+                            </button>
+                        </div>
+                    </div>
+
+                    <div *ngIf="getFilteredInvitations().length === 0" class="app-surface-card px-5 py-14 text-center text-slate-500 sm:px-6">
+                        No invitations found for this status yet.
+                    </div>
+                </div>
+
+                <div class="app-surface-card hidden overflow-hidden p-0 md:block">
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50/90">
@@ -118,11 +178,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
                         </tbody>
                     </table>
                 </div>
+                </div>
             </div>
         </div>
 
-        <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
-            <div class="w-full max-w-md overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
+            <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div class="w-full max-w-md overflow-hidden rounded-md border border-slate-200 bg-white shadow-2xl">
                 <div class="border-b border-slate-200 px-6 py-5">
                     <h3 class="text-lg font-semibold text-slate-900">Invite New Employee</h3>
                     <p class="mt-1 text-sm text-slate-500">Send a secure access link with the right role assignment.</p>

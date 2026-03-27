@@ -10,16 +10,21 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule],
   template: `
     <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
-      <section class="app-module-hero">
-        <div>
-          <p class="app-module-kicker">People Operations</p>
-          <h1 class="app-module-title">Employee profile view</h1>
-          <p class="app-module-text max-w-2xl">Review identity, employment details, verification state, and a quick people snapshot from one premium employee detail page.</p>
-        </div>
+      <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#f8fafc_100%)] shadow-sm">
+        <div class="flex flex-col gap-5 px-4 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8 lg:py-8">
+          <div>
+            <div class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              <span class="h-2 w-2 rounded-full bg-slate-700"></span>
+              People Operations
+            </div>
+            <h1 class="mt-4 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Employee profile view</h1>
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Review identity, employment details, verification state, and a quick people snapshot from one premium employee detail page.</p>
+          </div>
 
-        <div class="flex flex-wrap gap-3">
-          <button (click)="goBack()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Back to List</button>
-          <button (click)="editEmployee()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Edit Employee</button>
+          <div class="flex flex-col gap-3 sm:flex-row">
+            <button (click)="goBack()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Back to List</button>
+            <button (click)="editEmployee()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Edit Employee</button>
+          </div>
         </div>
       </section>
 
@@ -28,10 +33,10 @@ import { ToastService } from '../../core/services/toast.service';
           <div class="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-slate-900"></div>
         </div>
       } @else if (employee()) {
-        <div class="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <div class="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside class="space-y-6">
-            <section class="app-surface-card text-center">
-              <div class="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-slate-100 text-3xl font-black text-slate-700">
+            <section class="app-surface-card p-5 text-center sm:p-6">
+              <div class="mx-auto flex h-24 w-24 items-center justify-center rounded-md bg-slate-100 text-3xl font-black text-slate-700">
                 {{ initials() }}
               </div>
               <h2 class="mt-5 text-2xl font-black text-slate-900">{{ employee()!.firstName }} {{ employee()!.lastName }}</h2>
@@ -42,26 +47,26 @@ import { ToastService } from '../../core/services/toast.service';
               </span>
 
               <div class="mt-6 space-y-3 text-left">
-                <div class="flex items-center justify-between rounded-md bg-slate-50 px-4 py-3">
+                <div class="flex flex-col gap-1 rounded-md bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span class="text-sm text-slate-500">Employee ID</span>
                   <span class="text-sm font-semibold text-slate-900">{{ employee()!.employeeCode || 'N/A' }}</span>
                 </div>
-                <div class="flex items-center justify-between rounded-md bg-slate-50 px-4 py-3">
+                <div class="flex flex-col gap-1 rounded-md bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span class="text-sm text-slate-500">Role</span>
                   <span class="text-sm font-semibold text-slate-900">{{ getRoleLabel(employee()!.roleId) }}</span>
                 </div>
-                <div class="flex items-center justify-between rounded-md bg-slate-50 px-4 py-3">
+                <div class="flex flex-col gap-1 rounded-md bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span class="text-sm text-slate-500">Department</span>
                   <span class="text-sm font-semibold text-slate-900">{{ employee()!.department?.name || 'Not Assigned' }}</span>
                 </div>
-                <div class="flex items-center justify-between rounded-md bg-slate-50 px-4 py-3">
+                <div class="flex flex-col gap-1 rounded-md bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                   <span class="text-sm text-slate-500">Designation</span>
                   <span class="text-sm font-semibold text-slate-900">{{ employee()!.designation?.name || 'Not Assigned' }}</span>
                 </div>
               </div>
             </section>
 
-            <section class="app-surface-card">
+            <section class="app-surface-card p-5 sm:p-6">
               <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Verification Snapshot</p>
               <div class="mt-5 grid gap-3">
                 <div class="rounded-md bg-slate-50 px-4 py-4">
@@ -96,7 +101,7 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </div>
 
-            <section class="app-surface-card">
+            <section class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Personal Information</p>
                 <h3 class="mt-2 text-2xl font-black text-slate-900">Identity and contact details</h3>
@@ -109,7 +114,7 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </section>
 
-            <section class="app-surface-card">
+            <section class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Employment Information</p>
                 <h3 class="mt-2 text-2xl font-black text-slate-900">Assignment and payroll context</h3>
@@ -122,7 +127,7 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </section>
 
-            <section class="app-surface-card">
+            <section class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Emergency Contact</p>
                 <h3 class="mt-2 text-2xl font-black text-slate-900">Support details</h3>
@@ -141,7 +146,7 @@ import { ToastService } from '../../core/services/toast.service';
           </section>
         </div>
       } @else {
-        <div class="app-surface-card py-16 text-center">
+        <div class="app-surface-card px-5 py-16 text-center sm:px-6">
           <p class="text-slate-500">Employee not found.</p>
         </div>
       }
