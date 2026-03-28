@@ -5,11 +5,13 @@ import { ActivatedRoute } from '@angular/router';
 import { ReportService, DailyReport, MonthlyReport, AttendanceReport, LateArrivalReport, AbsentReport, ReportFilters } from '../../core/services/report.service';
 import { OrganizationService, Department } from '../../core/services/organization.service';
 import { ToastService } from '../../core/services/toast.service';
+import { UiSelectAdvancedComponent } from '../../core/components/ui/ui-select-advanced.component';
+import { computed } from '@angular/core';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, UiSelectAdvancedComponent],
   template: `
     <div class="flex flex-col gap-6 pb-10 max-w-7xl mx-auto">
       <!-- Header -->
@@ -64,14 +66,15 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
           
           <!-- Department Filter -->
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1 w-[220px]">
             <label class="text-xs font-bold text-slate-400 uppercase">Department</label>
-            <select [(ngModel)]="filters.departmentId" class="px-3 py-2 border border-slate-200 rounded-lg text-sm min-w-[150px]">
-              <option [ngValue]="undefined">All Departments</option>
-              @for (dept of departments(); track dept.id) {
-                <option [ngValue]="dept.id">{{ dept.name }}</option>
-              }
-            </select>
+            <app-ui-select-advanced
+              [(ngModel)]="filters.departmentId"
+              [options]="departmentOptions()"
+              placeholder="All Departments"
+              [searchable]="true"
+              size="sm"
+            ></app-ui-select-advanced>
           </div>
 
           <!-- Month/Year for Monthly -->
@@ -343,7 +346,7 @@ export class ReportsComponent implements OnInit {
   // State signals
   loading = signal<boolean>(false);
   currentReportType = signal<'daily' | 'monthly' | 'late' | 'absent'>('daily');
-  
+
   // Data
   dailyReport = signal<DailyReport | null>(null);
   monthlyReport = signal<MonthlyReport | null>(null);
@@ -351,13 +354,20 @@ export class ReportsComponent implements OnInit {
   absentReports = signal<AbsentReport[]>([]);
   departments = signal<Department[]>([]);
 
+  departmentOptions = computed(() => {
+    return [
+      { label: 'All Departments', value: undefined },
+      ...this.departments().map(d => ({ label: d.name, value: d.id }))
+    ];
+  });
+
   // Filters
   filters: ReportFilters = {
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     departmentId: undefined
   };
-  
+
   monthYear = this.getCurrentMonthYear();
 
   ngOnInit() {
@@ -592,4 +602,3 @@ export class ReportsComponent implements OnInit {
     return [year, month];
   }
 }
-

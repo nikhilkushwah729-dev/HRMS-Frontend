@@ -1,6 +1,18 @@
-import { Component, Input, Output, EventEmitter, forwardRef, signal, computed } from '@angular/core';
+import {
+  Component,
+  Input,
+  Output,
+  EventEmitter,
+  forwardRef,
+  signal,
+  computed,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormsModule } from '@angular/forms';
+import {
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  FormsModule,
+} from '@angular/forms';
 
 export interface SelectOption {
   label: string;
@@ -19,20 +31,20 @@ export interface SelectOption {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => UiSelectAdvancedComponent),
-      multi: true
-    }
+      multi: true,
+    },
   ],
   template: `
     <div class="relative w-full" #selectContainer>
       @if (label) {
-        <label class="block text-sm font-semibold text-slate-700 mb-1.5">
+        <label class="block text-sm font-medium text-slate-700 mb-1.5">
           {{ label }}
           @if (required) {
             <span class="text-red-500">*</span>
           }
         </label>
       }
-      
+
       <!-- Trigger Button -->
       <button
         type="button"
@@ -40,54 +52,69 @@ export interface SelectOption {
         (click)="toggleDropdown()"
         [class]="triggerClass()"
       >
-        @if (selectedOption()?.avatar) {
-          <img 
-            [src]="selectedOption()?.avatar" 
-            [alt]="selectedOption()?.label"
-            class="w-5 h-5 rounded-full bg-slate-100 object-cover"
-          />
-        } @else if (selectedOption()?.icon) {
-          <span class="text-slate-400" [innerHTML]="selectedOption()?.icon"></span>
-        }
-        
-        <span class="truncate flex-1 text-left" [class.text-slate-400]="!selectedOption()">
-          @if (selectedOption()) {
-            {{ selectedOption()?.label }}
-            @if (selectedOption()?.description) {
-              <span class="text-slate-400 text-xs ml-1">- {{ selectedOption()?.description }}</span>
-            }
-          } @else {
-            {{ placeholder }}
+        <span class="flex items-center gap-3 flex-1 truncate">
+          @if (selectedOption?.avatar) {
+            <img
+              [src]="selectedOption?.avatar"
+              [alt]="selectedOption?.label"
+              class="w-5 h-5 rounded-full bg-slate-100 object-cover"
+            />
+          } @else if (selectedOption?.icon) {
+            <span
+              class="text-slate-400 flex items-center"
+              [innerHTML]="selectedOption?.icon"
+            ></span>
           }
+
+          <span
+            class="truncate text-left"
+            [class.text-slate-400]="!selectedOption"
+          >
+            @if (selectedOption) {
+              {{ selectedOption?.label }}
+            } @else {
+              {{ placeholder }}
+            }
+          </span>
         </span>
-        
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="16" 
-          height="16" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          stroke-width="2" 
-          class="text-slate-400 transition-transform duration-200"
+
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+          class="text-slate-400 transition-transform duration-300"
           [class.rotate-180]="isOpen()"
         >
-          <path d="m6 9 6 6 6-6"/>
+          <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 
       <!-- Dropdown Panel -->
       @if (isOpen()) {
-        <div 
-          class="absolute z-50 w-full mt-2 bg-white rounded-md border border-slate-200 shadow-lg overflow-hidden"
-          [class.max-h-72]="!fullHeight"
+        <div
+          class="absolute z-50 w-full mt-2 bg-white rounded-md border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-hidden transform transition-all duration-200 origin-top animate-dropdown"
+          [class.max-h-80]="!fullHeight"
         >
           <!-- Search -->
           @if (searchable) {
-            <div class="p-2 border-b border-slate-100 bg-slate-50">
-              <div class="relative">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            <div class="p-3 border-b border-slate-100 bg-slate-50/50">
+              <div class="relative group">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-500 transition-colors"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
                 </svg>
                 <input
                   type="text"
@@ -95,20 +122,41 @@ export interface SelectOption {
                   [(ngModel)]="searchQuery"
                   (ngModelChange)="onSearch($event)"
                   (click)="$event.stopPropagation()"
-                  class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/10"
+                  class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10 transition-all placeholder:text-slate-400"
                 />
               </div>
             </div>
           }
 
           <!-- Options List -->
-          <div class="overflow-y-auto" [class.max-h-48]="!fullHeight" [class.p-1]="dense">
+          <div
+            class="overflow-y-auto py-1"
+            [class.max-h-56]="!fullHeight"
+            [class.p-1]="dense"
+          >
             @if (filteredOptions().length === 0) {
               <div class="px-4 py-8 text-center text-slate-400 text-sm">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="mx-auto mb-2 opacity-20"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
                 {{ noResultsText }}
               </div>
             } @else {
-              @for (option of filteredOptions(); track option.value; let i = $index) {
+              @for (
+                option of filteredOptions();
+                track option.value;
+                let i = $index
+              ) {
                 <button
                   type="button"
                   [disabled]="option.disabled"
@@ -117,36 +165,53 @@ export interface SelectOption {
                   (mouseleave)="hoveredIndex = -1"
                   [class]="getOptionClass(option, i)"
                 >
-                  @if (option.avatar) {
-                    <img 
-                      [src]="option.avatar" 
-                      [alt]="option.label"
-                      class="w-5 h-5 rounded-full bg-slate-100 object-cover"
-                    />
-                  } @else if (option.icon) {
-                    <span class="text-slate-400" [innerHTML]="option.icon"></span>
-                  } @else if (showRadio) {
-                    <div class="w-4 h-4 rounded-full border-2 flex items-center justify-center"
-                      [class.border-primary-600]="value === option.value"
-                      [class.border-slate-300]="value !== option.value"
-                    >
-                      @if (value === option.value) {
-                        <div class="w-2 h-2 rounded-full bg-primary-600"></div>
+                  <div class="flex items-center gap-3 flex-1 min-w-0">
+                    @if (option.avatar) {
+                      <img
+                        [src]="option.avatar"
+                        [alt]="option.label"
+                        class="w-6 h-6 rounded-full bg-slate-100 object-cover ring-1 ring-slate-100"
+                      />
+                    } @else if (option.icon) {
+                      <span
+                        class="text-slate-400"
+                        [innerHTML]="option.icon"
+                      ></span>
+                    }
+
+                    <div class="flex flex-col min-w-0">
+                      <span
+                        class="truncate font-medium transition-colors"
+                        [class.text-primary-700]="value === option.value"
+                      >
+                        {{ option.label }}
+                      </span>
+                      @if (option.description) {
+                        <span class="text-[11px] text-slate-400 truncate">{{
+                          option.description
+                        }}</span>
                       }
                     </div>
-                  }
-                  
-                  <div class="flex-1 text-left">
-                    <div class="font-medium">{{ option.label }}</div>
-                    @if (option.description) {
-                      <div class="text-xs text-slate-400">{{ option.description }}</div>
-                    }
                   </div>
 
-                  @if (value === option.value && !showRadio) {
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-primary-600">
-                      <path d="M20 6 9 17l-5-5"/>
-                    </svg>
+                  @if (value === option.value) {
+                    <div
+                      class="flex items-center justify-center w-5 h-5 rounded-full bg-primary-100 text-primary-600 animate-in zoom-in duration-200"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
                   }
                 </button>
               }
@@ -155,15 +220,22 @@ export interface SelectOption {
 
           <!-- Footer -->
           @if (showFooter) {
-            <div class="p-2 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 flex justify-between">
-              <span>{{ filteredOptions().length }} {{ filteredOptions().length === 1 ? 'option' : 'options' }}</span>
+            <div
+              class="px-3 py-2 border-t border-slate-100 bg-slate-50/50 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center"
+            >
+              <span
+                >{{ filteredOptions().length }}
+                {{
+                  filteredOptions().length === 1 ? 'option' : 'options'
+                }}</span
+              >
               @if (allowClear && value) {
-                <button 
+                <button
                   type="button"
                   (click)="clearValue(); $event.stopPropagation()"
-                  class="text-primary-600 hover:text-primary-700 font-medium"
+                  class="text-primary-600 hover:text-primary-700 hover:underline transition-all"
                 >
-                  Clear
+                  Reset selection
                 </button>
               }
             </div>
@@ -179,11 +251,26 @@ export interface SelectOption {
       }
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      @keyframes dropdown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-dropdown {
+        animation: dropdown 0.2s cubic-bezier(0, 0, 0.2, 1);
+      }
+    `,
+  ],
 })
 export class UiSelectAdvancedComponent implements ControlValueAccessor {
   @Input() label = '';
@@ -212,17 +299,22 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
   private onChange: (value: any) => void = () => {};
   onTouched: () => void = () => {};
 
-  selectedOption = computed(() => {
-    return this.options.find(o => o.value === this.value) || null;
-  });
+  selectedOption: SelectOption | null = null;
+
+  private updateSelectedOption() {
+    this.selectedOption =
+      this.options.find((o) => o.value === this.value) || null;
+  }
 
   ngOnInit() {
     this.filteredOptions.set(this.options);
+    this.updateSelectedOption();
     this.setupClickOutside();
   }
 
   ngOnChanges() {
     this.onSearch(this.searchQuery);
+    this.updateSelectedOption();
   }
 
   private setupClickOutside() {
@@ -242,6 +334,7 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
 
   writeValue(value: any): void {
     this.value = value;
+    this.updateSelectedOption();
   }
 
   registerOnChange(fn: (value: any) => void): void {
@@ -258,7 +351,7 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
 
   toggleDropdown() {
     if (this.disabled) return;
-    
+
     if (this.isOpen()) {
       this.close();
     } else {
@@ -280,10 +373,11 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
     } else {
       const lowerQuery = query.toLowerCase();
       this.filteredOptions.set(
-        this.options.filter(opt => 
-          opt.label.toLowerCase().includes(lowerQuery) ||
-          opt.description?.toLowerCase().includes(lowerQuery)
-        )
+        this.options.filter(
+          (opt) =>
+            opt.label.toLowerCase().includes(lowerQuery) ||
+            opt.description?.toLowerCase().includes(lowerQuery),
+        ),
       );
     }
   }
@@ -291,12 +385,14 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
   selectOption(option: SelectOption) {
     if (option.disabled) return;
     this.value = option.value;
+    this.updateSelectedOption();
     this.onChange(option.value);
     this.close();
   }
 
   clearValue() {
     this.value = null;
+    this.updateSelectedOption();
     this.onChange(null);
   }
 
@@ -304,37 +400,43 @@ export class UiSelectAdvancedComponent implements ControlValueAccessor {
     const sizes: Record<string, string> = {
       sm: 'px-3 py-2 text-sm',
       md: 'px-4 py-2.5 text-sm',
-      lg: 'px-4 py-3 text-base'
+      lg: 'px-4 py-3 text-base',
     };
-    
-    const base = 'w-full rounded-md transition-all duration-200 font-medium flex items-center gap-3 bg-white border';
-    const errorClass = this.error ? 'border-red-500 focus:border-red-500' : 'border-slate-200 focus:border-primary-500';
-    const disabledClass = this.disabled ? 'bg-slate-100 cursor-not-allowed opacity-60' : 'hover:border-slate-300 focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500';
-    
+
+    const base =
+      'w-full rounded-md transition-all duration-300 font-medium flex items-center justify-between gap-3 bg-white border shadow-sm hover:shadow-md active:scale-[0.99] outline-none';
+    const errorClass = this.error
+      ? 'border-red-500 ring-4 ring-red-500/10'
+      : 'border-slate-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-500/10';
+    const disabledClass = this.disabled
+      ? 'bg-slate-50 cursor-not-allowed opacity-60 grayscale shadow-none'
+      : 'cursor-pointer';
+
     return `${base} ${errorClass} ${disabledClass} ${sizes[this.size]}`.trim();
   }
 
   getOptionClass(option: SelectOption, index: number): string {
     const isSelected = this.value === option.value;
     const isHovered = this.hoveredIndex === index;
-    
-    let base = 'w-full text-left px-3 py-2.5 text-sm transition-colors flex items-center gap-3 rounded-md';
-    
+
+    let base =
+      'w-full text-left px-3 py-2.5 text-sm transition-all duration-200 flex items-center justify-between gap-3 rounded-lg mx-1 w-[calc(100%-8px)]';
+
     if (isSelected) {
-      base += ' bg-primary-50 text-primary-700';
+      base +=
+        ' bg-primary-50 text-primary-700 font-semibold ring-1 ring-primary-500/10 shadow-sm';
     } else if (isHovered) {
-      base += ' bg-slate-50 text-slate-900';
+      base += ' bg-slate-50 text-slate-900 translate-x-1';
     } else {
-      base += ' text-slate-700';
+      base += ' text-slate-600 hover:text-slate-900';
     }
-    
+
     if (option.disabled) {
-      base += ' opacity-50 cursor-not-allowed';
+      base += ' opacity-40 cursor-not-allowed grayscale';
     } else {
       base += ' cursor-pointer';
     }
-    
+
     return base;
   }
 }
-

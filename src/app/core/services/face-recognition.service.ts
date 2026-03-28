@@ -6,11 +6,11 @@ import { environment } from '../../../environments/environment';
 
 export interface FaceEmployee {
   id?: number;
-  employee_id: number;
+  employeeId: number;
   name: string;
   email: string;
   status?: string;
-  registered_at?: string;
+  registeredAt?: string;
 }
 
 export interface FaceVerificationResult {
@@ -50,23 +50,25 @@ export interface FaceDetectionResult {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class FaceRecognitionService {
   private http = inject(HttpClient);
-  
+
   // Face API base URL - defaults to local server
-  private readonly apiUrl = environment.apiUrl.replace('/api', '') + '/api/face';
-  
+  private readonly apiUrl =
+    environment.apiUrl.replace('/api', '') + '/api/face';
+
   // State
-  private speechSynthesis = typeof window !== 'undefined' ? window.speechSynthesis : null;
+  private speechSynthesis =
+    typeof window !== 'undefined' ? window.speechSynthesis : null;
   private recognition: any = null;
-  
+
   // Signals for UI state
   isProcessing = signal<boolean>(false);
   isCameraReady = signal<boolean>(false);
   detectedEmployees = signal<FaceDetectionResult['employees']>([]);
-  
+
   // Media stream for camera
   private mediaStream: MediaStream | null = null;
   private videoElement: HTMLVideoElement | null = null;
@@ -76,16 +78,20 @@ export class FaceRecognitionService {
   /**
    * Register employee's face
    */
-  registerFace(employeeId: number, orgId: number, imageData: string): Observable<any> {
+  registerFace(
+    employeeId: number,
+    orgId: number,
+    imageData: string,
+  ): Observable<any> {
     this.isProcessing.set(true);
-    
-    return this.http.post<any>(`${this.apiUrl}/register`, {
-      employee_id: employeeId,
-      org_id: orgId,
-      image: imageData
-    }).pipe(
-      finalize(() => this.isProcessing.set(false))
-    );
+
+    return this.http
+      .post<any>(`${this.apiUrl}/register`, {
+        employeeId,
+        orgId,
+        image: imageData,
+      })
+      .pipe(finalize(() => this.isProcessing.set(false)));
   }
 
   /**
@@ -93,14 +99,17 @@ export class FaceRecognitionService {
    */
   hasRegisteredFace(employeeId: number): Observable<boolean> {
     return this.http.get<any>(`${this.apiUrl}/employees`).pipe(
-      map(res => {
+      map((res) => {
         const employees = res?.employees || res?.data || [];
         if (employees) {
-          return employees.some((e: FaceEmployee) => e.employee_id === employeeId || e.id === employeeId);
+          return employees.some(
+            (e: FaceEmployee) =>
+              e.employeeId === employeeId || e.id === employeeId,
+          );
         }
         return false;
       }),
-      catchError(() => of(false))
+      catchError(() => of(false)),
     );
   }
 
@@ -110,60 +119,66 @@ export class FaceRecognitionService {
    * Verify face and mark attendance
    */
   verifyAndMarkAttendance(
-    employeeId: number, 
-    orgId: number, 
+    employeeId: number,
+    orgId: number,
     imageData: string,
-    action: 'check_in' | 'check_out' = 'check_in'
+    action: 'check_in' | 'check_out' = 'check_in',
   ): Observable<FaceVerificationResult> {
     this.isProcessing.set(true);
-    
-    return this.http.post<any>(`${this.apiUrl}/verify`, {
-      employee_id: employeeId,
-      org_id: orgId,
-      image: imageData,
-      action: action
-    }).pipe(
-      finalize(() => this.isProcessing.set(false)),
-      map(res => {
-        // Trigger TTS if successful
-        if (res.success && res.tts) {
-          this.speak(res.tts.message);
-        }
-        
-        return res;
-      }),
-      catchError((error) => {
-        const message = error?.error?.message || 'Face verification service is currently unavailable.';
-        return throwError(() => ({ ...error, friendlyMessage: message }));
+
+    return this.http
+      .post<any>(`${this.apiUrl}/verify`, {
+        employeeId,
+        orgId,
+        image: imageData,
+        action: action,
       })
-    );
+      .pipe(
+        finalize(() => this.isProcessing.set(false)),
+        map((res) => {
+          // Trigger TTS if successful
+          if (res.success && res.tts) {
+            this.speak(res.tts.message);
+          }
+
+          return res;
+        }),
+        catchError((error) => {
+          const message =
+            error?.error?.message ||
+            'Face verification service is currently unavailable.';
+          return throwError(() => ({ ...error, friendlyMessage: message }));
+        }),
+      );
   }
 
   /**
    * Detect faces in real-time without marking attendance
    */
   detectFaces(imageData: string): Observable<FaceDetectionResult> {
-    return this.http.post<any>(`${this.apiUrl}/detect`, {
-      image: imageData
-    }).pipe(
-      map(res => {
-        if (res.employees && res.employees.length > 0) {
-          this.detectedEmployees.set(res.employees);
-        } else {
-          this.detectedEmployees.set([]);
-        }
-        return res;
-      }),
-      catchError(() => {
-        this.detectedEmployees.set([]);
-        return of({
-          success: false,
-          detected: false,
-          message: 'Face detection is currently unavailable.',
-          employees: []
-        });
+    return this.http
+      .post<any>(`${this.apiUrl}/detect`, {
+        image: imageData,
       })
-    );
+      .pipe(
+        map((res) => {
+          if (res.employees && res.employees.length > 0) {
+            this.detectedEmployees.set(res.employees);
+          } else {
+            this.detectedEmployees.set([]);
+          }
+          return res;
+        }),
+        catchError(() => {
+          this.detectedEmployees.set([]);
+          return of({
+            success: false,
+            detected: false,
+            message: 'Face detection is currently unavailable.',
+            employees: [],
+          });
+        }),
+      );
   }
 
   // ==================== EMPLOYEE MANAGEMENT ====================
@@ -174,12 +189,12 @@ export class FaceRecognitionService {
   getEmployeesWithFaces(orgId?: number): Observable<FaceEmployee[]> {
     let url = `${this.apiUrl}/employees`;
     if (orgId) {
-      url += `?org_id=${orgId}`;
+      url += `?orgId=${orgId}`;
     }
-    
+
     return this.http.get<any>(url).pipe(
-      map(res => res?.employees || res?.data || []),
-      catchError(() => of([]))
+      map((res) => res?.employees || res?.data || []),
+      catchError(() => of([])),
     );
   }
 
@@ -196,23 +211,30 @@ export class FaceRecognitionService {
    * Get face attendance history
    */
   getFaceAttendanceHistory(params: {
-    employee_id?: number;
-    org_id?: number;
-    date_from?: string;
-    date_to?: string;
+    employeeId?: number;
+    orgId?: number;
+    dateFrom?: string;
+    dateTo?: string;
   }): Observable<any[]> {
     const queryParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        queryParams.set(key, value.toString());
+        // Convert camelCase to snake_case for API if needed
+        let apiKey = key;
+        if (key === 'employeeId') apiKey = 'employee_id';
+        else if (key === 'orgId') apiKey = 'org_id';
+        else if (key === 'dateFrom') apiKey = 'date_from';
+        else if (key === 'dateTo') apiKey = 'date_to';
+
+        queryParams.set(apiKey, value.toString());
       }
     });
-    
+
     const url = `${this.apiUrl}/attendance${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    
+
     return this.http.get<any>(url).pipe(
-      map(res => res?.records || res?.data || []),
-      catchError(() => of([]))
+      map((res) => res?.records || res?.data || []),
+      catchError(() => of([])),
     );
   }
 
@@ -238,10 +260,13 @@ export class FaceRecognitionService {
 
     // Try to get a good voice
     const voices = this.speechSynthesis.getVoices();
-    const englishVoice = voices.find(v => v.lang.startsWith('en-') && v.name.includes('Google')) 
-      || voices.find(v => v.lang.startsWith('en-'))
-      || voices[0];
-    
+    const englishVoice =
+      voices.find(
+        (v) => v.lang.startsWith('en-') && v.name.includes('Google'),
+      ) ||
+      voices.find((v) => v.lang.startsWith('en-')) ||
+      voices[0];
+
     if (englishVoice) {
       utterance.voice = englishVoice;
     }
@@ -253,7 +278,7 @@ export class FaceRecognitionService {
    * Speak attendance success message
    */
   speakAttendanceSuccess(employeeName: string): void {
-    const message = `${employeeName}, attendance marked successfully!`;
+    const message = `${employeeName}, your attendance has been marked successfully!`;
     this.speak(message);
   }
 
@@ -261,7 +286,7 @@ export class FaceRecognitionService {
    * Speak error message
    */
   speakError(message: string): void {
-    this.speak(message);
+    this.speak(`Error: ${message}`);
   }
 
   /**
@@ -276,22 +301,25 @@ export class FaceRecognitionService {
   /**
    * Start camera for face capture
    */
-  async startCamera(videoElement: HTMLVideoElement, facingMode: 'user' | 'environment' = 'user'): Promise<boolean> {
+  async startCamera(
+    videoElement: HTMLVideoElement,
+    facingMode: 'user' | 'environment' = 'user',
+  ): Promise<boolean> {
     try {
       this.stopCamera();
-      
+
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: facingMode,
           width: { ideal: 640 },
-          height: { ideal: 640 }
+          height: { ideal: 480 },
         },
-        audio: false
+        audio: false,
       });
 
       this.videoElement = videoElement;
       videoElement.srcObject = this.mediaStream;
-      
+
       await new Promise<void>((resolve) => {
         videoElement.onloadedmetadata = () => {
           videoElement.play();
@@ -313,22 +341,25 @@ export class FaceRecognitionService {
    */
   stopCamera(): void {
     if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;
     }
-    
+
     if (this.videoElement) {
       this.videoElement.srcObject = null;
       this.videoElement = null;
     }
-    
+
     this.isCameraReady.set(false);
   }
 
   /**
    * Capture frame from video element
    */
-  captureFrame(videoElement: HTMLVideoElement, canvas: HTMLCanvasElement): string | null {
+  captureFrame(
+    videoElement: HTMLVideoElement,
+    canvas: HTMLCanvasElement,
+  ): string | null {
     if (!videoElement || !canvas || !videoElement.videoWidth) {
       return null;
     }
@@ -338,9 +369,9 @@ export class FaceRecognitionService {
 
     canvas.width = videoElement.videoWidth;
     canvas.height = videoElement.videoHeight;
-    
+
     ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    
+
     return canvas.toDataURL('image/jpeg', 0.9);
   }
 
@@ -349,7 +380,7 @@ export class FaceRecognitionService {
    */
   captureCurrentFrame(): string | null {
     if (!this.videoElement) return null;
-    
+
     const canvas = document.createElement('canvas');
     return this.captureFrame(this.videoElement, canvas);
   }
@@ -372,4 +403,3 @@ export class FaceRecognitionService {
     }
   }
 }
-
