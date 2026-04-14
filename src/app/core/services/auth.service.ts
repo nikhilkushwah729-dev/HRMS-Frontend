@@ -137,6 +137,7 @@ export class AuthService {
             status: raw?.status ?? 'active',
             designationId: Number(raw?.designationId ?? raw?.designation_id ?? raw?.designation?.id ?? 0) || undefined,
             departmentId: Number(raw?.departmentId ?? raw?.department_id ?? raw?.department?.id ?? 0) || undefined,
+            managerId: Number(raw?.managerId ?? raw?.manager_id ?? raw?.manager?.id ?? 0) || undefined,
             countryCode: raw?.countryCode ?? raw?.country_code,
             countryName: raw?.countryName ?? raw?.country_name,
             joinDate: raw?.joinDate ?? raw?.join_date,
@@ -156,7 +157,9 @@ export class AuthService {
             emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
             isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
             department: raw?.department ? { id: Number(raw.department.id), name: raw.department.name } : undefined,
-            designation: raw?.designation ? { id: Number(raw.designation.id), name: raw.designation.name } : undefined
+            designation: raw?.designation ? { id: Number(raw.designation.id), name: raw.designation.name } : undefined,
+            permissions: Array.isArray(raw?.permissions) ? raw.permissions.map((item: any) => String(item)) : [],
+            accessScope: raw?.accessScope ?? raw?.access_scope
         };
     }
 

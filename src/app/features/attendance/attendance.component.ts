@@ -10,7 +10,8 @@ import {
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription, interval, forkJoin } from 'rxjs';
+import { Router, RouterLink } from '@angular/router';
+import { Subscription, interval, forkJoin, firstValueFrom } from 'rxjs';
 import {
   AttendanceService,
   AttendanceRecord,
@@ -37,6 +38,7 @@ import {
     CommonModule,
     FormsModule,
     DatePipe,
+    RouterLink,
     GeofenceManagementComponent,
     EmployeeTrackingComponent,
     ShiftPlannerComponent,
@@ -191,6 +193,312 @@ import {
             >
               {{ todayAttendance()?.is_clocked_in ? 'Live' : 'Standby' }}
             </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Attendance Suite Shortcuts -->
+      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <button
+          type="button"
+          (click)="setView('punch')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Core action
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Punch Clock</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Open the live check-in flow with camera, face, biometric, or web punch modes.
+              </p>
+            </div>
+            <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">
+              Live
+            </span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          (click)="setView('tracking')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-cyan-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Operations
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Employee Tracking</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Review live employee locations and see who is currently clocked in.
+              </p>
+            </div>
+            <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">
+              GPS
+            </span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          (click)="setView('geofence')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-purple-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Compliance
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Geofence Control</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Manage allowed zones and attendance boundaries in one place.
+              </p>
+            </div>
+            <span class="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
+              Zones
+            </span>
+          </div>
+        </button>
+
+        <button
+          type="button"
+          (click)="setView('shift-planner')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Scheduling
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Shift Planner</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Assign shifts and manage roster planning for the team.
+              </p>
+            </div>
+            <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+              Roster
+            </span>
+          </div>
+        </button>
+
+        <a
+          routerLink="/admin/team-attendance"
+          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Manager view
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Team Attendance</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Review late arrivals, absent users, and department-wise attendance.
+              </p>
+            </div>
+            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+              Team
+            </span>
+          </div>
+        </a>
+
+        <a
+          routerLink="/face-registration"
+          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Identity
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Face Registration</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Register biometric data for touchless attendance workflows.
+              </p>
+            </div>
+            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+              Face ID
+            </span>
+          </div>
+        </a>
+
+        <a
+          routerLink="/admin/regularization"
+          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-rose-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Corrections
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Regularization</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Approve or review attendance correction requests from employees.
+              </p>
+            </div>
+            <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+              Requests
+            </span>
+          </div>
+        </a>
+
+        <a
+          routerLink="/timesheets"
+          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Logs
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Timesheets</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Track work hours, break time, and daily logs in one timeline.
+              </p>
+            </div>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              Hours
+            </span>
+          </div>
+        </a>
+
+        <a
+          routerLink="/attendance/integrations"
+          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Setup hub
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Integrations Center</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Open the full attendance setup workspace for biometric, shift, zone, and review workflows.
+              </p>
+            </div>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+              Hub
+            </span>
+          </div>
+        </a>
+      </section>
+
+      <!-- Attendance Pulse -->
+      <section class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-4">
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                Attendance Pulse
+              </p>
+              <h3 class="mt-2 text-xl font-bold text-slate-900">
+                Quick view of today and the selected period
+              </h3>
+              <p class="mt-2 text-sm text-slate-500 max-w-2xl">
+                A compact operational summary based on your current attendance state, recent history, and approval queue.
+              </p>
+            </div>
+            <span
+              class="rounded-full px-3 py-1 text-xs font-bold self-start sm:self-auto"
+              [ngClass]="attendanceHealthTone()"
+            >
+              {{ attendanceHealthLabel() }}
+            </span>
+          </div>
+
+          <div class="mt-5 grid grid-cols-2 xl:grid-cols-4 gap-3">
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Work hours</p>
+              <p class="mt-2 text-2xl font-black text-slate-900">{{ formatHours(stats()?.total_work_hours || todayAttendance()?.total_work_hours || 0) }}</p>
+              <p class="mt-1 text-xs text-slate-500">Logged for the current period</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-emerald-50/70 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700/70">Punctuality</p>
+              <p class="mt-2 text-2xl font-black text-emerald-700">{{ stats()?.punctuality_percentage || 0 }}%</p>
+              <p class="mt-1 text-xs text-emerald-700/80">Selected period performance</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-amber-50/70 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700/70">Break time</p>
+              <p class="mt-2 text-2xl font-black text-amber-700">{{ todayAttendance()?.break_time_minutes || 0 }}m</p>
+              <p class="mt-1 text-xs text-amber-700/80">Consumed today</p>
+            </div>
+            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Pending</p>
+              <p class="mt-2 text-2xl font-black text-slate-900">{{ pendingManualRequestCount() }}</p>
+              <p class="mt-1 text-xs text-slate-500">Manual requests waiting for review</p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today progress</p>
+                <p class="mt-1 text-sm font-semibold text-slate-700">
+                  {{ todayAttendance()?.is_clocked_in ? 'You are active for today' : 'Ready to start your day' }}
+                </p>
+              </div>
+              <span class="text-sm font-bold text-slate-700">{{ attendanceProgress() }}%</span>
+            </div>
+            <div class="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div
+                class="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all duration-500"
+                [style.width.%]="attendanceProgress()"
+              ></div>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+              <span class="rounded-full bg-white px-3 py-1 border border-slate-200">Clock in {{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
+              <span class="rounded-full bg-white px-3 py-1 border border-slate-200">Clock out {{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
+              <span class="rounded-full bg-white px-3 py-1 border border-slate-200">Break {{ todayAttendance()?.break_time_minutes || 0 }}m</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Recent trail</p>
+              <h3 class="mt-2 text-xl font-bold text-slate-900">Latest attendance entries</h3>
+            </div>
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+              {{ recentHistoryPreview().length }} records
+            </span>
+          </div>
+
+          <div class="mt-4 space-y-3">
+            <div
+              *ngFor="let record of recentHistoryPreview()"
+              class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-bold text-slate-900">{{ record.date | date:'mediumDate' }}</p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    In {{ record.check_in ? (record.check_in | date:'shortTime') : '--:--' }}
+                    <span class="px-1.5">•</span>
+                    Out {{ record.check_out ? (record.check_out | date:'shortTime') : '--:--' }}
+                  </p>
+                </div>
+                <span
+                  class="rounded-full px-3 py-1 text-xs font-bold"
+                  [ngClass]="getStatusClass(record.status)"
+                >
+                  {{ getRecordStatusLabel(record.status) }}
+                </span>
+              </div>
+
+              <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
+                <span>Work hours</span>
+                <span class="font-bold text-slate-700">{{ formatHours(record.work_hours || 0) }}</span>
+              </div>
+
+              <div class="mt-3 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-slate-700 to-slate-500"
+                  [style.width.%]="recordProgress(record)"
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -508,6 +816,57 @@ import {
                       ></div>
                     </div>
                   </div>
+                </div>
+                <div class="mt-3 flex items-center justify-center gap-3">
+                  <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="rgba(148,163,184,0.22)"
+                      stroke-width="3"
+                    ></circle>
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="#4f46e5"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-dasharray="97.39"
+                      [attr.stroke-dashoffset]="97.39 - (97.39 * getFaceScanProgress() / 100)"
+                    ></circle>
+                  </svg>
+                  <div class="text-left">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Scan progress
+                    </p>
+                    <p class="text-sm font-bold text-slate-700">
+                      {{ getFaceScanProgress() }}%
+                    </p>
+                  </div>
+                </div>
+                <div
+                  *ngIf="attendanceSuccess()"
+                  class="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Attendance marked
+                </div>
+                <div class="mt-3 space-y-1 text-center">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Auto face scan
+                  </p>
+                  <p class="text-sm font-medium text-slate-600">
+                    {{ faceScanStatus() || 'Waiting for a clear face in the frame.' }}
+                  </p>
+                  <p class="text-xs text-slate-400">
+                    Attempts: {{ faceScanAttempts() }}/3
+                  </p>
                 </div>
               </div>
 
@@ -1480,6 +1839,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   private faceRecognitionService = inject(FaceRecognitionService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private router = inject(Router);
 
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('faceVideoElement')
@@ -1502,6 +1862,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   processing = signal<boolean>(false);
   isCameraReady = signal<boolean>(false);
   capturedPhotoData = signal<string | null>(null);
+  faceScanStatus = signal<string>('');
+  faceScanAttempts = signal<number>(0);
+  facePresenceStreak = signal<number>(0);
+  attendanceSuccess = signal<boolean>(false);
   showManualModal = signal<boolean>(false);
   submitting = signal<boolean>(false);
 
@@ -1553,6 +1917,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // Polling
   private pollingSubscription?: Subscription;
   private clockSubscription?: Subscription;
+  private faceScanSubscription?: Subscription;
+  private faceAutoTriggered = false;
+  private faceScanBusy = false;
+  private faceTurnAway = false;
 
   private cameraStream: MediaStream | null = null;
   private currentUser: User | null = null;
@@ -1658,6 +2026,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentUser = this.authService.getStoredUser();
+    void this.faceRecognitionService.primeFaceEngine();
     this.startClock();
     this.loadInitialData();
     this.startPolling();
@@ -1666,6 +2035,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopPolling();
     this.stopClock();
+    this.stopFaceAutoScan();
     this.stopCamera();
   }
 
@@ -1898,11 +2268,17 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     if (this.processing()) return;
     this.checkInMode.set(mode);
     this.capturedPhotoData.set(null);
+    this.faceScanStatus.set('');
+    this.faceScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.attendanceSuccess.set(false);
+    this.faceAutoTriggered = false;
 
     if (mode === 'camera' || mode === 'face') {
       this.startCamera(mode);
     } else {
       this.stopCamera();
+      this.stopFaceAutoScan();
     }
   }
 
@@ -1920,7 +2296,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   async startCamera(mode: 'camera' | 'face') {
     this.stopCamera();
+    this.stopFaceAutoScan();
     this.isCameraReady.set(false);
+    this.faceAutoTriggered = false;
 
     try {
       this.cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -1942,6 +2320,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           video.onloadedmetadata = () => {
             video.play();
             this.isCameraReady.set(true);
+            if (mode === 'face') {
+              this.startFaceAutoScan();
+            }
           };
         }
       }, 100);
@@ -1958,6 +2339,147 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.cameraStream = null;
     }
     this.isCameraReady.set(false);
+  }
+
+  stopFaceAutoScan() {
+    this.faceScanSubscription?.unsubscribe();
+    this.faceScanSubscription = undefined;
+    this.faceScanBusy = false;
+    this.faceTurnAway = false;
+  }
+
+  getFaceScanProgress(): number {
+    return Math.min(100, Math.round((this.faceScanAttempts() / 3) * 100));
+  }
+
+  private playSuccessTone(): void {
+    try {
+      const AudioContextCtor =
+        window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+
+      const context = new AudioContextCtor();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, context.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1170, context.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.15, context.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.28);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.3);
+      oscillator.onended = () => context.close().catch(() => undefined);
+    } catch {
+      // Silent fallback if audio is blocked.
+    }
+  }
+
+  startFaceAutoScan() {
+    this.stopFaceAutoScan();
+    if (this.checkInMode() !== 'face') return;
+
+    this.faceScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.faceTurnAway = false;
+    this.faceScanStatus.set(
+      'Scanning for a registered face. Turn your head slightly left or right to confirm.',
+    );
+
+    void this.runFaceAutoScanTick();
+    this.faceScanSubscription = interval(500).subscribe(() => {
+      void this.runFaceAutoScanTick();
+    });
+  }
+
+  private async runFaceAutoScanTick() {
+    if (
+      !this.isCameraReady() ||
+      this.processing() ||
+      this.faceAutoTriggered ||
+      this.faceScanBusy
+    ) {
+      return;
+    }
+
+    const video =
+      this.faceVideoElement?.nativeElement || this.videoElement?.nativeElement;
+    if (!video || !video.videoWidth) return;
+
+    this.faceScanBusy = true;
+    try {
+      const sample = await firstValueFrom(
+        this.faceRecognitionService.detectLivenessSampleFromVideo(video),
+      ).catch(() => null);
+
+      if (!sample?.detected) {
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        const attempts = this.faceScanAttempts() + 1;
+        this.faceScanAttempts.set(attempts);
+        this.faceScanStatus.set(
+          attempts >= 3
+            ? 'No face detected. Please face the camera clearly.'
+            : `No face detected yet. Retrying ${attempts}/3...`,
+        );
+
+        if (attempts >= 3) {
+          this.stopFaceAutoScan();
+        }
+        return;
+      }
+
+      const streak = this.facePresenceStreak() + 1;
+      this.facePresenceStreak.set(streak);
+      this.faceScanStatus.set(
+        streak >= 1
+          ? 'Face detected. Step 1: turn your head slightly left or right.'
+          : 'Face detected. Hold still for confirmation...',
+      );
+
+      if (streak < 1) {
+        return;
+      }
+
+      const turnThreshold = 0.04;
+      const centerThreshold = 0.055;
+
+      if (!this.faceTurnAway) {
+        if (Math.abs(sample.headTurnRatio) >= turnThreshold) {
+          this.faceTurnAway = true;
+          this.faceScanStatus.set(
+            'Turn detected. Step 2: return your head to center.',
+          );
+        } else {
+          this.faceScanStatus.set(
+            'Step 1: turn your head slightly left or right.',
+          );
+        }
+        return;
+      }
+
+      if (Math.abs(sample.headTurnRatio) <= centerThreshold) {
+        const frame = this.captureFrame();
+        if (frame) {
+          this.capturedPhotoData.set(frame);
+        }
+        this.faceAutoTriggered = true;
+        this.stopFaceAutoScan();
+        await this.handlePunch(
+          this.isClockedIn() && !this.isClockedOut() ? 'out' : 'in',
+        );
+      } else {
+        this.faceScanStatus.set(
+          'Step 2: return your head to center to confirm liveness.',
+        );
+      }
+    } finally {
+      this.faceScanBusy = false;
+    }
   }
 
   captureFrame(): string | null {
@@ -1988,6 +2510,43 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.processing.set(true);
 
     let payload: any = { source: this.checkInMode() };
+    const user = this.currentUser || this.authService.getStoredUser();
+
+    if (!user) {
+      this.toastService.error('Please sign in again to mark attendance.');
+      this.processing.set(false);
+      return;
+    }
+
+    if (this.checkInMode() === 'face') {
+      try {
+        const hasFace = await firstValueFrom(
+          this.faceRecognitionService.hasRegisteredFace(user.id!),
+        );
+
+        if (!hasFace) {
+          this.toastService.error(
+            'Face not registered yet. Please register your face first.',
+          );
+          void this.router.navigate(['/face-registration'], {
+            queryParams: { returnUrl: '/attendance' },
+          });
+          this.processing.set(false);
+          this.stopFaceAutoScan();
+          return;
+        }
+      } catch {
+        this.toastService.error(
+          'Unable to verify face registration. Please register your face first.',
+        );
+        void this.router.navigate(['/face-registration'], {
+          queryParams: { returnUrl: '/attendance' },
+        });
+        this.processing.set(false);
+        this.stopFaceAutoScan();
+        return;
+      }
+    }
 
     try {
       const position = await new Promise<GeolocationPosition>(
@@ -2009,11 +2568,77 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     }
 
     if (this.isCameraMode()) {
-      const frame = this.captureFrame();
-      if (frame) {
-        this.capturedPhotoData.set(frame);
-        payload.selfieUrl = frame;
-        await new Promise((r) => setTimeout(r, 1500));
+      if (this.checkInMode() === 'face') {
+        try {
+          const video =
+            this.faceVideoElement?.nativeElement ||
+            this.videoElement?.nativeElement;
+
+          const verification = video
+            ? await firstValueFrom(
+                this.faceRecognitionService.verifyAndMarkAttendanceFromVideo(
+                  user.id!,
+                  user.orgId!,
+                  video,
+                  action === 'in' ? 'check_in' : 'check_out',
+                ),
+              )
+            : null;
+
+          if (verification && !verification?.matched) {
+            const attempts = this.faceScanAttempts() + 1;
+            this.faceScanAttempts.set(attempts);
+            this.facePresenceStreak.set(0);
+            this.faceScanStatus.set(
+              attempts >= 3
+                ? 'Face mismatch. Redirecting to registration.'
+                : `Face did not match. Retrying ${attempts}/3...`,
+            );
+            this.toastService.error(
+              'Face did not match the registered profile.',
+            );
+            if (attempts >= 3) {
+              this.stopFaceAutoScan();
+              void this.router.navigate(['/face-registration'], {
+                queryParams: { returnUrl: '/attendance' },
+              });
+            } else {
+              this.faceAutoTriggered = false;
+              this.faceTurnAway = false;
+              this.startFaceAutoScan();
+            }
+            this.processing.set(false);
+            this.capturedPhotoData.set(null);
+            return;
+          }
+
+          const frame = this.captureFrame();
+          if (frame) {
+            this.capturedPhotoData.set(frame);
+            payload.selfieUrl = frame;
+          }
+          await new Promise((r) => setTimeout(r, 250));
+        } catch (err: any) {
+          const message =
+            err?.friendlyMessage ||
+            err?.error?.message ||
+            'Face verification failed';
+          this.toastService.error(message);
+          this.processing.set(false);
+          this.capturedPhotoData.set(null);
+          this.faceAutoTriggered = false;
+          this.facePresenceStreak.set(0);
+          this.faceTurnAway = false;
+          this.startFaceAutoScan();
+          return;
+        }
+      } else {
+        const frame = this.captureFrame();
+        if (frame) {
+          this.capturedPhotoData.set(frame);
+          payload.selfieUrl = frame;
+        }
+        await new Promise((r) => setTimeout(r, 800));
       }
     } else if (this.checkInMode() === 'biometric') {
       await new Promise((r) => setTimeout(r, 2000));
@@ -2030,14 +2655,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     obs$.subscribe({
       next: () => {
+        const displayName =
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there';
         this.toastService.success(
           action === 'in'
             ? 'Clocked in successfully!'
             : 'Clocked out successfully!',
         );
+        this.faceRecognitionService.speakAttendanceSuccess(displayName);
+        this.playSuccessTone();
+        this.stopFaceAutoScan();
+        this.stopCamera();
         this.refreshData();
         this.processing.set(false);
         this.capturedPhotoData.set(null);
+        this.faceScanStatus.set('Attendance captured successfully.');
+        this.attendanceSuccess.set(true);
+        setTimeout(() => this.attendanceSuccess.set(false), 1600);
       },
       error: (err) => {
         this.toastService.error(
@@ -2045,6 +2679,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         );
         this.processing.set(false);
         this.capturedPhotoData.set(null);
+        this.faceAutoTriggered = false;
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        if (this.checkInMode() === 'face') {
+          this.faceScanStatus.set('Retrying face capture...');
+          this.startFaceAutoScan();
+        }
       },
     });
   }
@@ -2265,6 +2906,56 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h}h ${m}m`;
+  }
+
+  attendanceProgress(): number {
+    const hours = this.todayAttendance()?.total_work_hours ?? 0;
+    const targetHours = 8;
+    return Math.max(0, Math.min(100, Math.round((hours / targetHours) * 100)));
+  }
+
+  attendanceHealthLabel(): string {
+    const score = this.attendanceProgress();
+    if (score >= 90) return 'Excellent';
+    if (score >= 70) return 'On Track';
+    if (score >= 40) return 'Needs Attention';
+    return 'Starting Out';
+  }
+
+  attendanceHealthTone(): string {
+    const score = this.attendanceProgress();
+    if (score >= 90) return 'bg-emerald-50 text-emerald-700';
+    if (score >= 70) return 'bg-teal-50 text-teal-700';
+    if (score >= 40) return 'bg-amber-50 text-amber-700';
+    return 'bg-slate-100 text-slate-700';
+  }
+
+  recentHistoryPreview(): AttendanceRecord[] {
+    return [...this.filteredHistory()]
+      .sort(
+        (a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime(),
+      )
+      .slice(0, 5);
+  }
+
+  getRecordStatusLabel(status: AttendanceRecord['status']): string {
+    const labels: Record<AttendanceRecord['status'], string> = {
+      present: 'Present',
+      absent: 'Absent',
+      late: 'Late',
+      half_day: 'Half Day',
+      on_leave: 'On Leave',
+      holiday: 'Holiday',
+      weekend: 'Weekend',
+    };
+    return labels[status] || status;
+  }
+
+  recordProgress(record: AttendanceRecord): number {
+    const targetHours = 8;
+    const hours = record.work_hours || 0;
+    return Math.max(0, Math.min(100, Math.round((hours / targetHours) * 100)));
   }
 
   getStatusClass(status: string): string {

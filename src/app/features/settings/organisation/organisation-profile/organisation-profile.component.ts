@@ -1,11 +1,15 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Store } from '@ngrx/store';
 import { UiInputComponent } from '../../../../core/components/ui/ui-input.component';
 import { UiPhoneInputComponent } from '../../../../core/components/ui/ui-phone-input.component';
 import { OrganizationService } from '../../../../core/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import * as AuthActions from '../../../../core/state/auth/auth.actions';
+import { User } from '../../../../core/models/auth.model';
+import { compressImageDataUrl } from '../../../../core/utils/image-compression.util';
 
 interface Step {
   id: number;
@@ -18,7 +22,7 @@ interface Step {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, UiInputComponent, UiPhoneInputComponent],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-7xl space-y-6">
       <section class="app-module-hero gap-6">
         <div class="min-w-0">
           <p class="app-module-kicker">Organisation Settings</p>
@@ -229,6 +233,7 @@ export class OrganisationProfileComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
+  private store = inject(Store);
 
   currentStep = signal(0);
   sameAddressChecked = signal(false);
@@ -357,7 +362,7 @@ export class OrganisationProfileComponent implements OnInit {
     return ((this.currentStep() + 1) / this.steps.length) * 100;
   }
 
-  onLogoSelected(event: Event) {
+  async onLogoSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     this.logoError.set('');
@@ -373,9 +378,9 @@ export class OrganisationProfileComponent implements OnInit {
       return;
     }
 
-    const maxSizeBytes = 2 * 1024 * 1024;
+    const maxSizeBytes = 8 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      this.logoError.set('Logo image must be 2 MB or smaller.');
+      this.logoError.set('Logo image must be 8 MB or smaller.');
       input.value = '';
       return;
     }
@@ -383,13 +388,24 @@ export class OrganisationProfileComponent implements OnInit {
     const reader = new FileReader();
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
-      this.profileForm.get('logo')?.setValue(result);
-      this.logoPreview.set(result);
+      void this.applyCompressedLogo(result);
     };
     reader.onerror = () => {
       this.logoError.set('Unable to read selected image. Please try another file.');
     };
     reader.readAsDataURL(file);
+  }
+
+  private async applyCompressedLogo(source: string) {
+    const compressed = await compressImageDataUrl(source, {
+      maxWidth: 1400,
+      maxHeight: 1400,
+      quality: 0.84,
+      mimeType: 'image/webp'
+    });
+
+    this.profileForm.get('logo')?.setValue(compressed);
+    this.logoPreview.set(compressed);
   }
 
   removeLogo() {
@@ -500,12 +516,47 @@ export class OrganisationProfileComponent implements OnInit {
       billPinCode: payload.billPinCode,
       billContactNumber: payload.billContactNumber
     }).subscribe({
-      next: () => {
-        this.initialData = payload;
-        this.logoPreview.set(payload.logo || '');
+      next: (savedOrganization) => {
+        const savedLogo = savedOrganization?.logo || payload.logo || '';
+        this.initialData = {
+          ...payload,
+          logo: savedLogo
+        };
+        this.profileForm.patchValue({ logo: savedLogo });
+        this.logoPreview.set(savedLogo);
+
+        const storedUser = this.authService.getStoredUser();
+        if (storedUser) {
+          const updatedUser: User = {
+            ...storedUser,
+            organizationLogo: savedLogo,
+            companyLogo: savedLogo,
+            organizationName: savedOrganization?.name || storedUser.organizationName,
+            companyName: savedOrganization?.name || storedUser.companyName
+          };
+          this.authService.setStoredUser(updatedUser);
+
+          const token = this.authService.getStoredToken();
+          if (token) {
+            this.store.dispatch(AuthActions.restoreUser({ user: updatedUser, token }));
+          }
+        }
+
         this.toastService.success('Organisation profile saved successfully');
         // Refresh global session to sync branding across all components
-        this.authService.getMe().subscribe(user => this.authService.setStoredUser(user));
+        this.authService.getMe().subscribe((meUser) => {
+          const existingUser = this.authService.getStoredUser();
+          if (existingUser) {
+            this.authService.setStoredUser({
+              ...existingUser,
+              ...meUser,
+              organizationLogo: existingUser.organizationLogo || existingUser.companyLogo || meUser.organizationLogo || meUser.companyLogo,
+              companyLogo: existingUser.companyLogo || existingUser.organizationLogo || meUser.companyLogo || meUser.organizationLogo
+            });
+          } else {
+            this.authService.setStoredUser(meUser);
+          }
+        });
       },
       error: () => this.toastService.error('Failed to save organisation profile'),
       complete: () => this.saving.set(false)

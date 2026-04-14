@@ -101,6 +101,21 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </div>
 
+            <section class="grid gap-4 md:grid-cols-3">
+              <div class="rounded-md border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Login Method</p>
+                <p class="mt-2 text-lg font-black text-slate-900">{{ employee()!.loginType || 'email' }}</p>
+              </div>
+              <div class="rounded-md border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Country</p>
+                <p class="mt-2 text-lg font-black text-slate-900">{{ employee()!.countryName || employee()!.countryCode || 'Not set' }}</p>
+              </div>
+              <div class="rounded-md border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Account Status</p>
+                <p class="mt-2 text-lg font-black text-slate-900">{{ employee()!.isLocked ? 'Locked' : 'Active access' }}</p>
+              </div>
+            </section>
+
             <section class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Personal Information</p>
@@ -249,10 +264,11 @@ export class ViewEmployeeComponent implements OnInit {
 
   getRoleLabel(roleId?: number): string {
     switch (roleId) {
-      case 1: return 'Admin';
-      case 2: return 'HR';
-      case 3: return 'Manager';
-      case 4: return 'Employee';
+      case 1: return 'Super Admin';
+      case 2: return 'Admin';
+      case 3: return 'HR Manager';
+      case 4: return 'Manager';
+      case 5: return 'Employee';
       default: return 'Employee';
     }
   }

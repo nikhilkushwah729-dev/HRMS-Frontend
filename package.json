@@ -26,6 +26,8 @@
     "@ngrx/router-store": "^18.0.0",
     "@ngrx/store": "^18.0.0",
     "@ngrx/store-devtools": "^18.0.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
     "chart.js": "^4.4.5",
     "face-api.js": "^0.22.2",
     "firebase": "^11.0.0",

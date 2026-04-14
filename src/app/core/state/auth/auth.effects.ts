@@ -43,7 +43,7 @@ export class AuthEffects {
         () =>
             this.actions$.pipe(
                 ofType(AuthActions.loginSuccess),
-                tap(() => this.router.navigateByUrl('/self-service', { replaceUrl: true }))
+                tap(() => this.router.navigateByUrl('/dashboard', { replaceUrl: true }))
             ),
         { dispatch: false }
     );

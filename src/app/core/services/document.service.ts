@@ -34,14 +34,15 @@ export class DocumentService {
     private readonly apiUrl = environment.apiUrl;
 
     private normalizeDocument(raw: any): Document {
+        const fileSizeValue = Number(raw.fileSize ?? raw.file_size ?? raw.fileSizeKb ?? raw.file_size_kb ?? 0);
         return {
             id: Number(raw.id),
             employeeId: raw.employeeId ?? raw.employee_id,
             orgId: Number(raw.orgId ?? raw.org_id ?? 0),
-            name: raw.name,
-            fileName: raw.fileName ?? raw.file_name,
-            filePath: raw.filePath ?? raw.file_path,
-            fileSize: Number(raw.fileSize ?? raw.file_size ?? 0),
+            name: raw.name ?? raw.title ?? raw.fileName ?? raw.file_name ?? 'Untitled',
+            fileName: raw.fileName ?? raw.file_name ?? raw.title ?? raw.name,
+            filePath: raw.filePath ?? raw.file_path ?? '',
+            fileSize: fileSizeValue > 0 ? fileSizeValue : 0,
             mimeType: raw.mimeType ?? raw.mime_type ?? 'application/octet-stream',
             category: raw.category ?? 'other',
             description: raw.description,

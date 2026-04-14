@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { User } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
@@ -63,6 +63,7 @@ export class EmployeeService {
             status: raw?.status ?? 'active',
             designationId: Number(raw?.designationId ?? raw?.designation_id ?? designation?.id ?? 0) || undefined,
             departmentId: Number(raw?.departmentId ?? raw?.department_id ?? department?.id ?? 0) || undefined,
+            managerId: Number(raw?.managerId ?? raw?.manager_id ?? raw?.manager?.id ?? 0) || undefined,
             countryCode: raw?.countryCode ?? raw?.country_code,
             countryName: raw?.countryName ?? raw?.country_name,
             joinDate: raw?.joinDate ?? raw?.join_date,
@@ -358,5 +359,15 @@ export class EmployeeService {
 
     deleteEducation(id: number): Observable<void> {
         return this.http.delete<any>(`${this.apiUrl}/education/${id}`);
+    }
+
+    /**
+     * Get birthdays and anniversaries for the organization
+     */
+    getOccasions(): Observable<any[]> {
+        return this.http.get<any>(`${this.apiUrl}/employees/occasions`).pipe(
+            map(res => res.data || []),
+            catchError(() => of([]))
+        );
     }
 }

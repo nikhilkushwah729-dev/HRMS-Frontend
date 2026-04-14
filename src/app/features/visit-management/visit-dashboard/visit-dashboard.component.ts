@@ -1,6 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { CommonModule, DatePipe, CurrencyPipe } from '@angular/common';
-import { VisitManagementService, Visitor } from '../../../core/services/visit-management.service';
+import { Component, signal } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-visit-dashboard',
@@ -129,8 +128,6 @@ import { VisitManagementService, Visitor } from '../../../core/services/visit-ma
   `]
 })
 export class VisitDashboardComponent {
-  visitService = inject(VisitManagementService);
-
   stats = signal({ today: 23, active: 5, pending: 12, total: 156 });
-  recentVisitors = signal<Visitor[]>([]);
+  recentVisitors = signal<Array<{ name: string; email?: string; company?: string; hostName?: string; status?: string; checkInTime?: string }>>([]);
 }

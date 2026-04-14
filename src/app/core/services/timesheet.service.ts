@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface Timesheet {
@@ -31,7 +31,8 @@ export class TimesheetService {
 
     getTimesheets(): Observable<Timesheet[]> {
         return this.http.get<any>(`${this.apiUrl}/timesheets`).pipe(
-            map(res => res.data)
+            map(res => Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []),
+            catchError(() => of([]))
         );
     }
 

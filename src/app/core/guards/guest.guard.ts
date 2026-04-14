@@ -16,7 +16,7 @@ export const guestGuard: CanActivateFn = () => {
 
     if (token && user) {
         // User is already authenticated, redirect to unified home
-        router.navigate(['/self-service']);
+        router.navigate(['/dashboard']);
         return false;
     }
 

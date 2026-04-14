@@ -1,9 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserLimitService {
+  private router = inject(Router);
   private _openModal = signal(false);
 
   get openModal() {
@@ -19,8 +21,7 @@ export class UserLimitService {
   }
 
   upgrade() {
-    console.log('Upgrading plan...');
-    // Implement upgrade logic here (e.g., navigate to billing)
+    this.router.navigateByUrl('/billing');
     this.closeModal();
   }
 }

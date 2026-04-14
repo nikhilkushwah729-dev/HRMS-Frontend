@@ -1,6 +1,8 @@
-import { Component, computed, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ToastService } from '../../../../core/services/toast.service';
+import { SettingsWorkspaceService } from '../../shared/settings-workspace.service';
 
 interface Grade {
   id: string;
@@ -15,12 +17,12 @@ interface Grade {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-7xl space-y-6">
       <section class="app-module-hero">
         <div>
           <p class="app-module-kicker">Organisation Settings</p>
           <h1 class="app-module-title">Grades</h1>
-          <p class="app-module-text max-w-2xl">Maintain grading bands for compensation and leveling, even while backend support for this master remains under expansion.</p>
+          <p class="app-module-text max-w-2xl">Maintain grading bands for compensation and leveling with a cleaner create-edit flow so the page feels aligned with the rest of the settings suite.</p>
         </div>
         <div class="app-module-highlight">
           <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Configured grades</p>
@@ -32,7 +34,7 @@ interface Grade {
       <div class="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <section class="app-surface-card">
           <div class="mb-6">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Create Grade</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ editingId() ? 'Update Grade' : 'Create Grade' }}</p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">Compensation band</h2>
           </div>
 
@@ -45,7 +47,12 @@ interface Grade {
               <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Description</label>
               <textarea formControlName="description" rows="4" class="app-field resize-none" placeholder="Entry level executive"></textarea>
             </div>
-            <button type="submit" [disabled]="gradeForm.invalid" class="w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">Save Grade</button>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <button type="submit" [disabled]="gradeForm.invalid" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+                {{ editingId() ? 'Update Grade' : 'Save Grade' }}
+              </button>
+              <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</button>
+            </div>
           </form>
         </section>
 
@@ -69,6 +76,7 @@ interface Grade {
                 </div>
                 <div class="flex items-center gap-3">
                   <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">{{ grade.noOfEmployees }} employees</span>
+                  <button (click)="editGrade(grade)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
                   <button (click)="deleteGrade(grade.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Delete</button>
                 </div>
               </div>
@@ -84,9 +92,12 @@ interface Grade {
 export class GradeComponent implements OnInit {
   private readonly storageKey = 'hrms_grade_master';
   private fb = new FormBuilder();
+  private toastService = inject(ToastService);
+  private workspace = inject(SettingsWorkspaceService);
 
   grades = signal<Grade[]>([]);
   searchQuery = signal('');
+  editingId = signal<string | null>(null);
 
   gradeForm = this.fb.group({
     name: ['', [Validators.required, Validators.minLength(1)]],
@@ -104,23 +115,20 @@ export class GradeComponent implements OnInit {
   }
 
   loadGrades() {
-    try {
-      const saved = localStorage.getItem(this.storageKey);
-      if (saved) {
-        this.grades.set(JSON.parse(saved));
-        return;
-      }
-    } catch {}
-
-    this.grades.set([
+    const seeds = [
       { id: '1', name: 'A1', description: 'Entry level executive', noOfEmployees: 112, isActive: true },
       { id: '2', name: 'A2', description: 'Senior executive', noOfEmployees: 85, isActive: true },
       { id: '3', name: 'M1', description: 'Manager', noOfEmployees: 34, isActive: true }
-    ]);
+    ];
+    this.workspace.getCollection<Grade>(this.storageKey, seeds).subscribe((items) => {
+      this.grades.set(items.length ? items : seeds);
+    });
   }
 
   persist() {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.grades()));
+    this.workspace
+      .saveCollection(this.storageKey, this.grades())
+      .subscribe((items) => this.grades.set(items));
   }
 
   updateSearch(event: Event) {
@@ -131,19 +139,44 @@ export class GradeComponent implements OnInit {
     if (this.gradeForm.invalid) return;
     const value = this.gradeForm.getRawValue();
     const grade: Grade = {
-      id: Date.now().toString(),
+      id: this.editingId() ?? Date.now().toString(),
       name: (value.name || '').trim(),
       description: (value.description || '').trim(),
-      noOfEmployees: 0,
+      noOfEmployees: this.grades().find((item) => item.id === this.editingId())?.noOfEmployees ?? 0,
       isActive: true
     };
-    this.grades.update((list) => [grade, ...list]);
+
+    if (this.editingId()) {
+      this.grades.update((list) => list.map((item) => item.id === grade.id ? grade : item));
+      this.toastService.success('Grade updated successfully.');
+    } else {
+      this.grades.update((list) => [grade, ...list]);
+      this.toastService.success('Grade saved successfully.');
+    }
+
     this.persist();
-    this.gradeForm.reset({ name: '', description: '' });
+    this.resetForm();
+  }
+
+  editGrade(grade: Grade) {
+    this.editingId.set(grade.id);
+    this.gradeForm.patchValue({
+      name: grade.name,
+      description: grade.description
+    });
   }
 
   deleteGrade(id: string) {
     this.grades.update((list) => list.filter((grade) => grade.id !== id));
     this.persist();
+    if (this.editingId() === id) {
+      this.resetForm();
+    }
+    this.toastService.success('Grade removed successfully.');
+  }
+
+  resetForm() {
+    this.editingId.set(null);
+    this.gradeForm.reset({ name: '', description: '' });
   }
 }

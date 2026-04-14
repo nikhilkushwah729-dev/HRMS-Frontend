@@ -25,29 +25,47 @@ interface FaceData {
   imports: [CommonModule],
   providers: [DatePipe],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
-      <section class="app-module-hero">
-        <div>
-          <p class="app-module-kicker">Attendance Settings</p>
-          <h1 class="app-module-title">Face Recognition Directory</h1>
-          <p class="app-module-text max-w-2xl">
-            Monitor enrollment coverage and take action quickly. The list now
-            syncs employee data with biometric registration status, and
-            gracefully falls back when face APIs are partially unavailable.
-          </p>
-        </div>
-        <div class="app-module-highlight">
-          <p
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          >
-            Registered employees
-          </p>
-          <p class="mt-3 text-3xl font-black text-slate-900">
-            {{ registeredCount() }}
-          </p>
-          <p class="mt-2 text-sm text-slate-600">
-            Coverage: {{ coverageLabel() }}
-          </p>
+    <div class="mx-auto max-w-7xl space-y-6">
+      <section class="app-module-hero overflow-hidden">
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div class="space-y-5">
+            <div>
+              <p class="app-module-kicker">Attendance Settings</p>
+              <h1 class="app-module-title">Face Recognition Directory</h1>
+              <p class="app-module-text max-w-2xl">
+                Monitor biometric enrollment coverage and act quickly. This
+                directory combines employee records with face registration
+                status, even when biometric APIs are partially unavailable.
+              </p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Registered</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ registeredCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Biometric ready</p>
+              </div>
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Pending</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ pendingCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Need enrollment</p>
+              </div>
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Coverage</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ coverageLabel() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Overall rollout</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-module-highlight">
+            <p class="app-module-highlight-label">Biometric status</p>
+            <p class="mt-3 app-module-highlight-value">Enrollment tracker</p>
+            <p class="mt-3 text-sm leading-6 text-white/80">
+              Review missing registrations quickly before enabling stricter
+              attendance controls for the whole organisation.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -65,6 +83,10 @@ interface FaceData {
               <h2 class="mt-2 text-2xl font-black text-slate-900">
                 Employee face registry
               </h2>
+              <p class="mt-2 text-sm leading-6 text-slate-500">
+                Search employees, review their current registration status, and
+                jump straight into enrollment when action is needed.
+              </p>
             </div>
             <div class="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
               <input
@@ -103,9 +125,12 @@ interface FaceData {
                     "
                     >{{ entry.status }}</span
                   >
+                  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    {{ entry.employeeId }}
+                  </span>
                 </div>
                 <p class="mt-2 text-sm text-slate-600">
-                  {{ entry.employeeId }} | {{ entry.email }}
+                  {{ entry.email }}
                 </p>
                 <p class="mt-1 text-xs text-slate-500">
                   Last sync: {{ entry.lastSync }}
@@ -132,8 +157,16 @@ interface FaceData {
               </div>
             </article>
           } @empty {
-            <div class="px-6 py-14 text-center text-slate-500">
-              No employees matched the current biometric search.
+            <div class="px-6 py-16 text-center">
+              <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 10a3 3 0 1 0 6 0" />
+                  <path d="M17 16.5c-.8-1.5-2.6-2.5-5-2.5s-4.2 1-5 2.5" />
+                  <path d="M3 7.5C3 5 5 3 7.5 3h9C19 3 21 5 21 7.5v9c0 2.5-2 4.5-4.5 4.5h-9C5 21 3 19 3 16.5z" />
+                </svg>
+              </div>
+              <p class="mt-4 text-base font-semibold text-slate-900">No biometric records matched</p>
+              <p class="mt-2 text-sm text-slate-500">Try another employee name, code, or email to review enrollment coverage.</p>
             </div>
           }
         </div>
@@ -165,6 +198,10 @@ export class FaceRecognitionComponent implements OnInit {
 
   registeredCount = computed(
     () => this.data().filter((entry) => entry.status === 'Registered').length,
+  );
+
+  pendingCount = computed(
+    () => this.data().filter((entry) => entry.status !== 'Registered').length,
   );
 
   coverageLabel = computed(() => {

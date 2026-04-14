@@ -24,6 +24,7 @@ export interface User {
   status?: string;
   designationId?: number;
   departmentId?: number;
+  managerId?: number;
   countryCode?: string;
   countryName?: string;
   joinDate?: string;
@@ -42,8 +43,13 @@ export interface User {
   phoneVerified?: boolean;
   emailVerified?: boolean;
   isLocked?: boolean;
+  paySlip?: number;
+  salarySlip?: number;
+  shiftChangePerm?: number;
   department?: { id: number; name: string };
   designation?: { id: number; name: string };
+  permissions?: string[];
+  accessScope?: 'all' | 'team' | 'self' | 'finance';
 }
 
 export interface AuthResponse {

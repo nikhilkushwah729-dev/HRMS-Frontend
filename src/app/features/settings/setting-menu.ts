@@ -25,9 +25,11 @@ export const getSettingMenu = (
 ): Record<string, SettingCategory> => {
   const user = authService.getStoredUser();
   
-  // Note: Replace with actual fine-grained permission checks as needed.
-  // Using basic dashboard.view for the initial port to ensure visibility.
-  const hasAccess = permissionService.hasPermission(user, 'dashboard.view');
+  const hasAccess =
+    permissionService.hasPermission(user, 'settings.view') ||
+    permissionService.getRoleName(user) === 'Super Admin' ||
+    permissionService.getRoleName(user) === 'Admin' ||
+    permissionService.getRoleName(user) === 'HR Manager';
 
   return {
     attendance: {
@@ -103,6 +105,17 @@ export const getSettingMenu = (
       bgClass: 'bg-rose-100',
       routes: [
         { route: '/settings/visit-management-settings', path: 'settings | visit-management | advance', per: hasAccess, label: 'Advance Setting', category: 'visitManagement' },
+      ],
+    },
+    system: {
+      per: hasAccess,
+      label: 'System',
+      icon: 'assets/icons/settings.svg',
+      colorClass: 'text-slate-700',
+      bgClass: 'bg-slate-100',
+      routes: [
+        { route: '/settings/approval-flow', path: 'settings | system | approval-flow', per: hasAccess, label: 'Approval Flow', category: 'system' },
+        { route: '/settings/import-wizard', path: 'settings | system | import-wizard', per: hasAccess, label: 'Import Wizard', category: 'system' },
       ],
     }
   };
