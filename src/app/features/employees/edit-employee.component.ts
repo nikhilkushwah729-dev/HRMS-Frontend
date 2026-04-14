@@ -412,7 +412,8 @@ export class EditEmployeeComponent implements OnInit {
     })),
   );
   roleOptions: SelectOption[] = [
-    { label: 'Employee', value: 4 },
+    { label: 'Employee', value: 5 },
+    { label: 'Manager', value: 4 },
     { label: 'HR Manager', value: 3 },
     { label: 'Administrator', value: 2 },
   ];

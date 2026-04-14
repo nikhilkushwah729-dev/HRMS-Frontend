@@ -1,0 +1,24 @@
+<button 
+  [id]="id"
+  [ngClass]="buttonClasses"
+  [disabled]="disabled || showLoader"
+  [type]="btnType"
+  (click)="onInternalClick($event)"
+  class="relative overflow-hidden transition-all duration-300"
+>
+  <span class="ripple absolute rounded-full bg-white/40 pointer-events-none scale-0"></span>
+
+  @if (!showLoader) {
+    <ng-content></ng-content>
+  } @else {
+    <div class="animate-spin inline-block h-4 w-4 border-2 border-current border-t-transparent text-white rounded-full" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+  }
+
+  @if (isDropDown) {
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="ml-1 transition-transform duration-300 group-hover:translate-y-0.5">
+      <path d="m6 9 6 6 6-6"/>
+    </svg>
+  }
+</button>

@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, catchError, finalize } from 'rxjs/operators';
+import { Observable, BehaviorSubject, of, throwError, from } from 'rxjs';
+import { map, catchError, finalize, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 export interface FaceEmployee {
@@ -31,6 +31,7 @@ export interface FaceVerificationResult {
     message: string;
   };
   alreadyCheckedIn?: boolean;
+  matched?: boolean;
   matchScore?: string;
 }
 
@@ -49,11 +50,22 @@ export interface FaceDetectionResult {
   }>;
 }
 
+export interface FaceLivenessSample {
+  detected: boolean;
+  leftEyeRatio: number;
+  rightEyeRatio: number;
+  averageEyeRatio: number;
+  mouthRatio: number;
+  headTurnRatio: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class FaceRecognitionService {
   private http = inject(HttpClient);
+  private readonly modelBaseUrl =
+    'https://justadudewhohacks.github.io/face-api.js/models';
 
   // Face API base URL - defaults to local server
   private readonly apiUrl =
@@ -72,6 +84,224 @@ export class FaceRecognitionService {
   // Media stream for camera
   private mediaStream: MediaStream | null = null;
   private videoElement: HTMLVideoElement | null = null;
+  private modelsReady: Promise<void> | null = null;
+  private faceApiReady: Promise<any> | null = null;
+
+  private async loadFaceApi(): Promise<any> {
+    const globalFaceApi = (globalThis as any).faceapi;
+    if (globalFaceApi) {
+      return globalFaceApi;
+    }
+
+    if (!this.faceApiReady) {
+      this.faceApiReady = new Promise((resolve, reject) => {
+        const existing = document.querySelector(
+          'script[data-face-api="true"]',
+        ) as HTMLScriptElement | null;
+
+        if (existing && (globalThis as any).faceapi) {
+          resolve((globalThis as any).faceapi);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src =
+          'https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js';
+        script.async = true;
+        script.dataset['faceApi'] = 'true';
+        script.onload = () => resolve((globalThis as any).faceapi);
+        script.onerror = () =>
+          reject(new Error('Face recognition library could not be loaded.'));
+        document.head.appendChild(script);
+      });
+    }
+
+    return this.faceApiReady;
+  }
+
+  private async ensureModelsLoaded(): Promise<void> {
+    if (!this.modelsReady) {
+      this.modelsReady = this.loadFaceApi().then((faceapi) =>
+        Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(this.modelBaseUrl),
+          faceapi.nets.faceLandmark68Net.loadFromUri(this.modelBaseUrl),
+          faceapi.nets.faceRecognitionNet.loadFromUri(this.modelBaseUrl),
+        ]).then(() => undefined),
+      );
+    }
+
+    return this.modelsReady;
+  }
+
+  /**
+   * Warm up the face stack early so the first live scan feels faster.
+   */
+  async primeFaceEngine(): Promise<void> {
+    await this.ensureModelsLoaded();
+  }
+
+  private createImageElement(imageData: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Unable to read captured face image.'));
+      image.src = imageData;
+    });
+  }
+
+  private averageDescriptors(descriptors: number[][]): number[] {
+    if (!descriptors.length) return [];
+
+    const length = descriptors[0].length;
+    const averaged = new Array<number>(length).fill(0);
+
+    for (const descriptor of descriptors) {
+      for (let i = 0; i < length; i += 1) {
+        averaged[i] += descriptor[i] ?? 0;
+      }
+    }
+
+    return averaged.map((value) => value / descriptors.length);
+  }
+
+  private async extractDescriptorFromImage(imageData: string): Promise<number[]> {
+    await this.ensureModelsLoaded();
+    const image = await this.createImageElement(imageData);
+    const faceapi = await this.loadFaceApi();
+    const detection = await faceapi
+      .detectSingleFace(
+        image,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 192,
+          scoreThreshold: 0.35,
+        }),
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      throw new Error(
+        'No face was detected. Please keep your face inside the camera frame.',
+      );
+    }
+
+    return Array.from(detection.descriptor);
+  }
+
+  private async extractDescriptorFromVideo(
+    video: HTMLVideoElement,
+  ): Promise<number[]> {
+    await this.ensureModelsLoaded();
+    const faceapi = await this.loadFaceApi();
+    const detection = await faceapi
+      .detectSingleFace(
+        video,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 192,
+          scoreThreshold: 0.35,
+        }),
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      throw new Error(
+        'No face was detected. Please keep your face inside the camera frame.',
+      );
+    }
+
+    return Array.from(detection.descriptor);
+  }
+
+  private pointDistance(
+    a: { x: number; y: number },
+    b: { x: number; y: number },
+  ): number {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  private eyeAspectRatio(points: Array<{ x: number; y: number }>): number {
+    if (points.length < 6) return 0;
+
+    const vertical1 = this.pointDistance(points[1], points[5]);
+    const vertical2 = this.pointDistance(points[2], points[4]);
+    const horizontal = this.pointDistance(points[0], points[3]);
+
+    if (!horizontal) return 0;
+    return (vertical1 + vertical2) / (2 * horizontal);
+  }
+
+  private mouthAspectRatio(points: Array<{ x: number; y: number }>): number {
+    if (points.length < 8) return 0;
+
+    const vertical1 = this.pointDistance(points[2], points[6]);
+    const vertical2 = this.pointDistance(points[3], points[5]);
+    const horizontal = this.pointDistance(points[0], points[4]);
+
+    if (!horizontal) return 0;
+    return (vertical1 + vertical2) / (2 * horizontal);
+  }
+
+  private centerOf(points: Array<{ x: number; y: number }>): { x: number; y: number } {
+    if (!points.length) return { x: 0, y: 0 };
+
+    const total = points.reduce(
+      (acc, point) => ({
+        x: acc.x + point.x,
+        y: acc.y + point.y,
+      }),
+      { x: 0, y: 0 },
+    );
+
+    return {
+      x: total.x / points.length,
+      y: total.y / points.length,
+    };
+  }
+
+  private async captureStableDescriptorFromVideo(
+    video: HTMLVideoElement,
+    sampleCount = 3,
+    sampleDelayMs = 90,
+  ): Promise<string> {
+    const samples: number[][] = [];
+
+    for (let i = 0; i < sampleCount; i += 1) {
+      const descriptor = await this.extractDescriptorFromVideo(video);
+      samples.push(descriptor);
+
+      if (i < sampleCount - 1) {
+        await new Promise((resolve) => setTimeout(resolve, sampleDelayMs));
+      }
+    }
+
+    return JSON.stringify(this.averageDescriptors(samples));
+  }
+
+  private async captureEnrollmentTemplatesFromVideo(
+    video: HTMLVideoElement,
+    templateCount = 3,
+  ): Promise<string[]> {
+    const templates: string[] = [];
+
+    for (let i = 0; i < templateCount; i += 1) {
+      const template = await this.captureStableDescriptorFromVideo(video, 2, 120);
+      templates.push(template);
+
+      if (i < templateCount - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 220));
+      }
+    }
+
+    return templates;
+  }
+
+  private async extractEmbedding(imageData: string): Promise<string> {
+    const descriptor = await this.extractDescriptorFromImage(imageData);
+    return JSON.stringify(descriptor);
+  }
 
   // ==================== FACE REGISTRATION ====================
 
@@ -85,30 +315,43 @@ export class FaceRecognitionService {
   ): Observable<any> {
     this.isProcessing.set(true);
 
-    return this.http
-      .post<any>(`${this.apiUrl}/register`, {
-        employeeId,
-        orgId,
-        image: imageData,
-      })
-      .pipe(finalize(() => this.isProcessing.set(false)));
+    return from(this.extractEmbedding(imageData)).pipe(
+      switchMap((embedding) =>
+        this.http.post<any>(`${this.apiUrl}/register`, {
+          employeeId,
+          orgId,
+          embedding,
+        }),
+      ),
+      finalize(() => this.isProcessing.set(false)),
+    );
+  }
+
+  registerFaceFromVideo(
+    employeeId: number,
+    orgId: number,
+    video: HTMLVideoElement,
+  ): Observable<any> {
+    this.isProcessing.set(true);
+
+    return from(this.captureEnrollmentTemplatesFromVideo(video)).pipe(
+      switchMap((embeddings) =>
+        this.http.post<any>(`${this.apiUrl}/register`, {
+          employeeId,
+          orgId,
+          embeddings,
+        }),
+      ),
+      finalize(() => this.isProcessing.set(false)),
+    );
   }
 
   /**
    * Check if employee has registered face
    */
   hasRegisteredFace(employeeId: number): Observable<boolean> {
-    return this.http.get<any>(`${this.apiUrl}/employees`).pipe(
-      map((res) => {
-        const employees = res?.employees || res?.data || [];
-        if (employees) {
-          return employees.some(
-            (e: FaceEmployee) =>
-              e.employeeId === employeeId || e.id === employeeId,
-          );
-        }
-        return false;
-      }),
+    return this.http.get<any>(`${this.apiUrl}/status/${employeeId}`).pipe(
+      map((res) => Boolean(res?.registered ?? res?.data?.registered)),
       catchError(() => of(false)),
     );
   }
@@ -126,30 +369,188 @@ export class FaceRecognitionService {
   ): Observable<FaceVerificationResult> {
     this.isProcessing.set(true);
 
-    return this.http
-      .post<any>(`${this.apiUrl}/verify`, {
-        employeeId,
-        orgId,
-        image: imageData,
-        action: action,
-      })
-      .pipe(
-        finalize(() => this.isProcessing.set(false)),
-        map((res) => {
-          // Trigger TTS if successful
-          if (res.success && res.tts) {
-            this.speak(res.tts.message);
-          }
+    return from(this.extractEmbedding(imageData)).pipe(
+      switchMap((embedding) =>
+        this.http.post<any>(`${this.apiUrl}/verify`, {
+          employeeId,
+          orgId,
+          embedding,
+          action,
+        }),
+      ),
+      finalize(() => this.isProcessing.set(false)),
+      map((res) => {
+        if (res.success && res.tts) {
+          this.speak(res.tts.message);
+        }
 
-          return res;
+        return res;
+      }),
+      catchError((error) => {
+        const message =
+          error?.error?.message ||
+          error?.message ||
+          'Face verification service is currently unavailable.';
+        return throwError(() => ({ ...error, friendlyMessage: message }));
+      }),
+    );
+  }
+
+  verifyAndMarkAttendanceFromVideo(
+    employeeId: number,
+    orgId: number,
+    video: HTMLVideoElement,
+    action: 'check_in' | 'check_out' = 'check_in',
+  ): Observable<FaceVerificationResult> {
+    this.isProcessing.set(true);
+
+    return from(this.captureStableDescriptorFromVideo(video)).pipe(
+      switchMap((embedding) =>
+        this.http.post<any>(`${this.apiUrl}/verify`, {
+          employeeId,
+          orgId,
+          embedding,
+          action,
         }),
-        catchError((error) => {
-          const message =
-            error?.error?.message ||
-            'Face verification service is currently unavailable.';
-          return throwError(() => ({ ...error, friendlyMessage: message }));
+      ),
+      finalize(() => this.isProcessing.set(false)),
+      map((res) => {
+        if (res.success && res.tts) {
+          this.speak(res.tts.message);
+        }
+
+        return res;
+      }),
+      catchError((error) => {
+        const message =
+          error?.error?.message ||
+          error?.message ||
+          'Face verification service is currently unavailable.';
+        return throwError(() => ({ ...error, friendlyMessage: message }));
+      }),
+    );
+  }
+
+  /**
+   * Check whether a face is visible in the current frame.
+   */
+  detectFacePresence(imageData: string): Observable<boolean> {
+    return from(this.detectFacePresenceOnImage(imageData)).pipe(
+      catchError(() => of(false)),
+    );
+  }
+
+  /**
+   * Check whether a face is visible directly from a live camera feed.
+   * This skips JPEG re-encoding and is used by the auto-scan loops.
+   */
+  detectFacePresenceFromVideo(video: HTMLVideoElement): Observable<boolean> {
+    return from(this.detectFacePresenceOnVideo(video)).pipe(
+      catchError(() => of(false)),
+    );
+  }
+
+  detectLivenessSampleFromVideo(
+    video: HTMLVideoElement,
+  ): Observable<FaceLivenessSample> {
+    return from(this.detectLivenessSampleOnVideo(video)).pipe(
+      catchError(() =>
+        of({
+          detected: false,
+          leftEyeRatio: 0,
+          rightEyeRatio: 0,
+          averageEyeRatio: 0,
+          mouthRatio: 0,
+          headTurnRatio: 0,
         }),
-      );
+      ),
+    );
+  }
+
+  private async detectFacePresenceOnImage(imageData: string): Promise<boolean> {
+    await this.ensureModelsLoaded();
+    const image = await this.createImageElement(imageData);
+    const faceapi = await this.loadFaceApi();
+    const detection = await faceapi.detectSingleFace(
+      image,
+      new faceapi.TinyFaceDetectorOptions({
+        inputSize: 160,
+        scoreThreshold: 0.3,
+      }),
+    );
+
+    return Boolean(detection);
+  }
+
+  private async detectFacePresenceOnVideo(
+    video: HTMLVideoElement,
+  ): Promise<boolean> {
+    await this.ensureModelsLoaded();
+    const faceapi = await this.loadFaceApi();
+    const detection = await faceapi.detectSingleFace(
+      video,
+      new faceapi.TinyFaceDetectorOptions({
+        inputSize: 160,
+        scoreThreshold: 0.3,
+      }),
+    );
+
+    return Boolean(detection);
+  }
+
+  private async detectLivenessSampleOnVideo(
+    video: HTMLVideoElement,
+  ): Promise<FaceLivenessSample> {
+    await this.ensureModelsLoaded();
+    const faceapi = await this.loadFaceApi();
+    const detection = await faceapi
+      .detectSingleFace(
+        video,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 160,
+          scoreThreshold: 0.3,
+        }),
+      )
+      .withFaceLandmarks();
+
+    if (!detection) {
+      return {
+        detected: false,
+        leftEyeRatio: 0,
+        rightEyeRatio: 0,
+        averageEyeRatio: 0,
+        mouthRatio: 0,
+        headTurnRatio: 0,
+      };
+    }
+
+    const landmarks = detection.landmarks;
+    const leftEyeRatio = this.eyeAspectRatio(landmarks.getLeftEye());
+    const rightEyeRatio = this.eyeAspectRatio(landmarks.getRightEye());
+    const averageEyeRatio = (leftEyeRatio + rightEyeRatio) / 2;
+    const mouthRatio = this.mouthAspectRatio(landmarks.getMouth());
+    const leftEyeCenter = this.centerOf(landmarks.getLeftEye());
+    const rightEyeCenter = this.centerOf(landmarks.getRightEye());
+    const eyeCenter = {
+      x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
+      y: (leftEyeCenter.y + rightEyeCenter.y) / 2,
+    };
+    const nosePoints = landmarks.getNose();
+    const noseTip = nosePoints[Math.min(3, nosePoints.length - 1)] || nosePoints[0] || eyeCenter;
+    const eyeDistance = Math.max(
+      this.pointDistance(leftEyeCenter, rightEyeCenter),
+      1,
+    );
+    const headTurnRatio = (noseTip.x - eyeCenter.x) / eyeDistance;
+
+    return {
+      detected: true,
+      leftEyeRatio,
+      rightEyeRatio,
+      averageEyeRatio,
+      mouthRatio,
+      headTurnRatio,
+    };
   }
 
   /**

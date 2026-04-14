@@ -6,6 +6,7 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../../../core/components/ui/ui-select-advanced.component';
+import { SettingsWorkspaceService } from '../../shared/settings-workspace.service';
 
 interface RemoteWorkPlan {
   id: string;
@@ -21,29 +22,50 @@ interface RemoteWorkPlan {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
-      <section class="app-module-hero">
-        <div>
-          <p class="app-module-kicker">Attendance Settings</p>
-          <h1 class="app-module-title">Remote Work Policies</h1>
-          <p class="app-module-text max-w-2xl">
-            Set clear WFH entitlements, approval cadence, and team-specific
-            allowances while keeping the module reliably usable even before
-            dedicated backend endpoints are finalized.
-          </p>
-        </div>
-        <div class="app-module-highlight">
-          <p
-            class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-          >
-            Configured plans
-          </p>
-          <p class="mt-3 text-3xl font-black text-slate-900">
-            {{ plans().length }}
-          </p>
-          <p class="mt-2 text-sm text-slate-600">
-            Active plans: {{ activeCount() }}
-          </p>
+    <div class="mx-auto max-w-7xl space-y-6">
+      <section class="app-module-hero overflow-hidden">
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <div class="space-y-5">
+            <div>
+              <p class="app-module-kicker">Attendance Settings</p>
+              <h1 class="app-module-title">Remote Work Policies</h1>
+              <p class="app-module-text max-w-2xl">
+                Set clear WFH entitlements, approval cadence, and team-specific
+                allowances while keeping remote policies easy to review, update,
+                and share across the organisation.
+              </p>
+            </div>
+
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Configured</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ plans().length }}</p>
+                <p class="mt-1 text-xs text-slate-500">Policy plans saved</p>
+              </div>
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Active</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ activeCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Live right now</p>
+              </div>
+              <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Coverage</p>
+                <p class="mt-2 text-2xl font-black text-slate-900">{{ uniqueAudienceCount() }}</p>
+                <p class="mt-1 text-xs text-slate-500">Audience groups mapped</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="app-module-highlight">
+            <p class="app-module-highlight-label">Policy status</p>
+            <p class="mt-3 app-module-highlight-value">Hybrid readiness</p>
+            <p class="mt-3 text-sm leading-6 text-white/80">
+              Keep WFH approvals structured and visible so managers can enforce
+              eligibility without hunting through separate master screens.
+            </p>
+            <div class="mt-4 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+              {{ editingId() ? 'Editing an existing plan' : 'Ready for a new remote policy' }}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -58,6 +80,18 @@ interface RemoteWorkPlan {
             <h2 class="mt-2 text-2xl font-black text-slate-900">
               Remote work allowance
             </h2>
+            <p class="mt-2 text-sm leading-6 text-slate-500">
+              Use this editor to define monthly limits, approval routing, and
+              the team scope for each remote work policy.
+            </p>
+          </div>
+
+          <div class="mb-5 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <p class="font-semibold">Shared settings note</p>
+            <p class="mt-1 leading-6">
+              These policies are saved at the organisation level, so admin and
+              HR teams will see the same remote-work setup.
+            </p>
           </div>
 
           <form
@@ -214,8 +248,18 @@ interface RemoteWorkPlan {
                 </div>
               </article>
             } @empty {
-              <div class="px-6 py-14 text-center text-slate-500">
-                No remote work plans found.
+              <div class="px-6 py-16 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19h16" />
+                    <path d="M5 15l4-4 4 3 6-7" />
+                  </svg>
+                </div>
+                <p class="mt-4 text-base font-semibold text-slate-900">No remote work plans yet</p>
+                <p class="mt-2 text-sm text-slate-500">
+                  Create the first plan to define who can work remotely and how
+                  approvals should flow.
+                </p>
               </div>
             }
           </div>
@@ -228,6 +272,7 @@ export class RemoteWorkComponent implements OnInit {
   private readonly storageKey = 'hrms_remote_work_plans';
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
+  private workspace = inject(SettingsWorkspaceService);
 
   plans = signal<RemoteWorkPlan[]>([]);
   searchQuery = signal('');
@@ -261,25 +306,22 @@ export class RemoteWorkComponent implements OnInit {
   activeCount = computed(
     () => this.plans().filter((plan) => plan.isActive).length,
   );
+  uniqueAudienceCount = computed(
+    () => new Set(this.plans().map((plan) => plan.appliesTo.trim()).filter(Boolean)).size,
+  );
 
   ngOnInit(): void {
     this.loadPlans();
   }
 
   private persist(): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.plans()));
+    this.workspace
+      .saveCollection(this.storageKey, this.plans())
+      .subscribe((items) => this.plans.set(items));
   }
 
   private loadPlans(): void {
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        this.plans.set(JSON.parse(stored));
-        return;
-      }
-    } catch {}
-
-    this.plans.set([
+    const seeds = [
       {
         id: 'remote-1',
         name: 'Standard WFH',
@@ -296,7 +338,10 @@ export class RemoteWorkComponent implements OnInit {
         appliesTo: 'Engineering',
         isActive: true,
       },
-    ]);
+    ];
+    this.workspace.getCollection<RemoteWorkPlan>(this.storageKey, seeds).subscribe((items) => {
+      this.plans.set(items.length ? items : seeds);
+    });
   }
 
   updateSearch(event: Event): void {

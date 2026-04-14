@@ -163,6 +163,12 @@ import {
                 class="absolute right-0 mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10"
               >
                 <button
+                  (click)="openDocument(doc)"
+                  class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
+                >
+                  Open
+                </button>
+                <button
                   (click)="downloadDocument(doc)"
                   class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100"
                 >
@@ -313,12 +319,18 @@ import {
             <!-- Progress Bar -->
             <div
               *ngIf="uploading && uploadProgress < 100"
-              class="w-full bg-gray-200 rounded-full h-2.5"
+              class="space-y-2"
             >
+              <div class="flex items-center justify-between text-xs font-semibold text-gray-600">
+                <span>Uploading to Cloudinary</span>
+                <span>{{ uploadProgress }}%</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2.5">
               <div
                 class="bg-blue-600 h-2.5 rounded-full"
                 [style.width.%]="uploadProgress"
               ></div>
+              </div>
             </div>
 
             <div>
@@ -518,6 +530,17 @@ export class DocumentsComponent implements OnInit {
           this.uploading = false;
         },
       });
+  }
+
+  openDocument(doc: Document) {
+    this.activeMenu = null;
+    const url = doc.filePath || '';
+    if (!url) {
+      this.toastService.error('Document file is unavailable');
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   downloadDocument(doc: Document) {

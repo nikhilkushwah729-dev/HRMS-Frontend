@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
 
@@ -162,6 +162,38 @@ export class LeaveService {
         );
     }
 
+    createLeaveType(payload: {
+        typeName: string;
+        daysAllowed: number;
+        carryForward?: boolean;
+        maxCarryDays?: number;
+        isPaid?: boolean;
+        requiresDoc?: boolean;
+    }): Observable<LeaveTypeBalance> {
+        return this.http.post<any>(`${this.apiUrl}/leaves/types`, payload).pipe(
+            map((res) => this.normalizeLeaveType(res?.data ?? res))
+        );
+    }
+
+    updateLeaveType(id: number, payload: {
+        typeName: string;
+        daysAllowed: number;
+        carryForward?: boolean;
+        maxCarryDays?: number;
+        isPaid?: boolean;
+        requiresDoc?: boolean;
+    }): Observable<LeaveTypeBalance> {
+        return this.http.put<any>(`${this.apiUrl}/leaves/types/${id}`, payload).pipe(
+            map((res) => this.normalizeLeaveType(res?.data ?? res))
+        );
+    }
+
+    deleteLeaveType(id: number): Observable<boolean> {
+        return this.http.delete<any>(`${this.apiUrl}/leaves/types/${id}`).pipe(
+            map(() => true)
+        );
+    }
+
     getLeaveHistory(): Observable<LeaveRequest[]> {
         return this.http.get<any>(`${this.apiUrl}/leaves`).pipe(
             map((res) => this.extractList<any>(res).map((item) => this.normalizeLeaveRequest(item)))
@@ -257,7 +289,8 @@ export class LeaveService {
             params = `?year=${year}`;
         }
         return this.http.get<any>(`${this.apiUrl}/leaves/balances${params}`).pipe(
-            map(res => (res.data || []).map((item: any) => this.normalizeLeaveType(item)))
+            map(res => (res.data || []).map((item: any) => this.normalizeLeaveType(item))),
+            catchError(() => of([]))
         );
     }
 
@@ -294,4 +327,3 @@ export class LeaveService {
         );
     }
 }
-

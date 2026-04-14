@@ -1,903 +1,552 @@
-import { Component, inject, OnInit, signal, computed, DestroyRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { AttendanceService, TodayAttendance, AttendanceRecord } from '../../core/services/attendance.service';
-import { LeaveService } from '../../core/services/leave.service';
-import { EmployeeService } from '../../core/services/employee.service';
-import { ToastService } from '../../core/services/toast.service';
-import { LiveRefreshService } from '../../core/services/live-refresh.service';
+import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
 
-interface User {
+// Widgets
+import { EssGreetingComponent } from './ess-dashboard/widgets/ess-greeting.component';
+import { EssStatsComponent, InsightCard } from './ess-dashboard/widgets/ess-stats.component';
+import { EssNetworkHubComponent } from './ess-dashboard/widgets/ess-network-hub.component';
+import { EssAttendanceCenterComponent } from './ess-dashboard/widgets/ess-attendance-center.component';
+import { EssPulseComponent, DashboardHighlight } from './ess-dashboard/widgets/ess-pulse.component';
+import { EssAnnouncementsComponent } from './ess-dashboard/widgets/ess-announcements.component';
+import { EssWorkflowCenterComponent, WorkflowCenterCard } from './ess-dashboard/widgets/ess-workflow-center.component';
+import { EssQuickActionsComponent, QuickAction } from './ess-dashboard/widgets/ess-quick-actions.component';
+import { EssCalendarComponent, CalendarDay } from './ess-dashboard/widgets/ess-calendar.component';
+import { EssLeaveBalanceComponent } from './ess-dashboard/widgets/ess-leave-balance.component';
+import { EssHolidaysComponent } from './ess-dashboard/widgets/ess-holidays.component';
+import { EssRequestsLedgerComponent } from './ess-dashboard/widgets/ess-requests-ledger.component';
+import { EssWorkbenchComponent, WorkbenchProject, WorkbenchTimesheet } from './ess-dashboard/widgets/ess-workbench.component';
+import { EssTeamEngagementComponent } from './ess-dashboard/widgets/ess-team-engagement.component';
+
+// Services
+import { AuthService } from '../../core/services/auth.service';
+import { AttendanceService, AttendanceRecord } from '../../core/services/attendance.service';
+import { LeaveService, LeaveRequest } from '../../core/services/leave.service';
+import { EmployeeService } from '../../core/services/employee.service';
+import { ProjectService } from '../../core/services/project.service';
+import { TimesheetService } from '../../core/services/timesheet.service';
+import { OrganizationService } from '../../core/services/organization.service';
+import { PermissionService } from '../../core/services/permission.service';
+import { AnnouncementService } from '../../core/services/announcement.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { LiveRefreshService } from '../../core/services/live-refresh.service';
+import { ReportService, DailyReport } from '../../core/services/report.service';
+import { ToastService } from '../../core/services/toast.service';
+
+// Models
+import { User } from '../../core/models/auth.model';
+import confetti from 'canvas-confetti';
+import { TodayAttendance } from '../../core/services/attendance.service';
+import { Timesheet } from '../../core/services/timesheet.service';
+import { Organization } from '../../core/services/organization.service';
+import { GeoFenceSettings, AttendanceShift } from '../../core/services/attendance.service';
+
+export interface DashboardProjectCard {
   id: number;
-  orgId: number;
-  departmentId?: number;
-  designationId?: number;
-  roleId: number;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  avatar?: string;
-  status: 'active' | 'inactive' | 'on_leave' | 'terminated';
-  role?: { id: number; name: string };
-  department?: { id: number; name: string };
-  designation?: { id: number; name: string };
+  name: string;
+  description: string;
+  status: string;
+  statusLabel: string;
+  progress: number;
+  deadline: string | null;
+  teamSize: number;
+  tone: string;
 }
 
-interface ModuleCard {
+export interface DashboardTimesheetCard {
+  id: number;
+  projectName: string;
+  workDate: string;
+  hours: number;
+  description: string;
+  status: string;
+  tone: string;
+}
+
+export interface AddonCard {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  isActive: boolean;
+  route: string;
+  accent: string;
+  icon: string;
+}
+
+export interface ModuleCard {
   key: string;
   name: string;
   icon: string;
   route: string;
   description: string;
   color: string;
+  locked: boolean;
 }
 
-interface QuickAction {
-  title: string;
-  description: string;
-  route: string;
-  icon: string;
-  tone: 'primary' | 'success' | 'warning' | 'slate';
-}
-
-interface RoleDashboardPreset {
-  portalLabel: string;
-  heroEyebrow: string;
-  heroTitle: string;
-  heroDescription: string;
-  primaryActionLabel: string;
-  primaryActionRoute: string;
-  secondaryActionLabel: string;
-  secondaryActionRoute: string;
-  tertiaryActionLabel: string;
-  tertiaryActionRoute: string;
-  queueLabel: string;
-  queueDescription: string;
-}
-
-interface InsightCard {
-  label: string;
-  value: string;
-  description: string;
-  tone: string;
+interface HolidayCalendarItem {
+  date: string;
+  name: string;
 }
 
 @Component({
   selector: 'app-self-service',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [
+    CommonModule,
+    DatePipe,
+    EssGreetingComponent,
+    EssStatsComponent,
+    EssNetworkHubComponent,
+    EssAttendanceCenterComponent,
+    EssPulseComponent,
+    EssAnnouncementsComponent,
+    EssWorkflowCenterComponent,
+    EssQuickActionsComponent,
+    EssCalendarComponent,
+    EssLeaveBalanceComponent,
+    EssHolidaysComponent,
+    EssRequestsLedgerComponent,
+    EssWorkbenchComponent,
+    EssTeamEngagementComponent
+  ],
   template: `
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-      <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-        
-        <!-- Header Section with Premium Typography -->
-        <header class="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div class="space-y-2">
-            <div class="flex items-center gap-3 flex-wrap">
-              <img src="hrnexus-logo.png" alt="HRNexus" class="w-12 h-12 rounded-md shadow-md object-cover">
-              <span class="px-4 py-1.5 bg-amber-50 text-amber-700 text-sm font-bold rounded-full border border-amber-200 shadow-sm">
-                {{ greetingMessage() }}
-              </span>
-              <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 bg-clip-text text-transparent">
-                {{ dashboardPreset().heroTitle }}
-              </h1>
-              <span class="px-4 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-full border border-indigo-200 shadow-sm">
-                {{ dashboardPreset().portalLabel }}
-              </span>
-            </div>
-            <p class="text-slate-600 text-base lg:text-lg font-medium max-w-2xl leading-relaxed">
-              {{ dashboardPreset().heroDescription }}
-            </p>
-          </div>
-          <div class="flex flex-col sm:items-end gap-3">
-            <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border"
-                  [ngClass]="todayStatus()?.is_clocked_in ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'">
-              <span class="w-2.5 h-2.5 rounded-full"
-                    [ngClass]="todayStatus()?.is_clocked_in ? 'bg-emerald-500' : 'bg-slate-400'"></span>
-              {{ todayStatus()?.is_clocked_in ? 'Live workday in progress' : 'Ready to start your day' }}
-            </span>
-            <button 
-              (click)="navigateTo('/attendance')" 
-              class="group inline-flex items-center gap-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-semibold px-7 py-3.5 rounded-md shadow-lg hover:shadow-xl transition-all duration-300 text-sm tracking-wide transform hover:-translate-y-0.5">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:rotate-12 transition-transform">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              Today's Attendance
-            </button>
-          </div>
-        </header>
-
-        <section class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] gap-6 mb-10">
-          <div class="relative overflow-hidden rounded-md border border-slate-200 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-8 text-white shadow-2xl">
-            <div class="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-            <div class="absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-indigo-400/20 blur-2xl"></div>
-            <div class="relative">
-              <p class="text-xs font-bold uppercase tracking-[0.22em] text-white/60">{{ dashboardPreset().heroEyebrow }}</p>
-              <h2 class="mt-3 text-3xl font-black tracking-tight">
-                Welcome back, {{ currentUser()?.firstName || 'Employee' }}
-              </h2>
-              <p class="mt-3 max-w-2xl text-sm sm:text-base text-slate-200">
-                {{ dashboardPreset().heroDescription }}
+    <div class="min-h-full p-2">
+      <div class="mx-auto max-w-[1600px] space-y-5">
+        <section class="app-module-hero">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div class="max-w-3xl">
+              <p class="app-module-kicker">Self Service Workspace</p>
+              <h1 class="app-module-title mt-3">Manage attendance, leave, requests, and team visibility from one place</h1>
+              <p class="app-module-text mt-3">
+                This self-service space follows the same UbiTech-style experience as the rest of your HRMS modules, with clear actions, live summaries, and employee-first workflows.
               </p>
-              <div class="mt-6 flex flex-wrap gap-3">
-                <button class="rounded-md bg-white text-slate-900 px-5 py-3 text-sm font-bold shadow-lg hover:bg-slate-100 transition-all"
-                        (click)="navigateTo(dashboardPreset().primaryActionRoute)">
-                  {{ dashboardPreset().primaryActionLabel }}
-                </button>
-                <button class="rounded-md bg-white/10 border border-white/15 px-5 py-3 text-sm font-bold hover:bg-white/15 transition-all"
-                        (click)="navigateTo(dashboardPreset().secondaryActionRoute)">
-                  {{ dashboardPreset().secondaryActionLabel }}
-                </button>
-                <button class="rounded-md bg-white/10 border border-white/15 px-5 py-3 text-sm font-bold hover:bg-white/15 transition-all"
-                        (click)="navigateTo(dashboardPreset().tertiaryActionRoute)">
-                  {{ dashboardPreset().tertiaryActionLabel }}
-                </button>
-              </div>
             </div>
-          </div>
-
-          <div class="rounded-md border border-slate-200 bg-white p-6 shadow-xl">
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today Summary</p>
-            <div class="mt-5 space-y-4">
-              <div class="rounded-md bg-slate-50 p-4">
-                <p class="text-sm font-semibold text-slate-700">Attendance</p>
-                <p class="mt-1 text-2xl font-black text-slate-900">
-                  {{ todayStatus()?.is_clocked_in ? 'Checked in' : 'Not checked in' }}
-                </p>
-                <p class="mt-1 text-sm text-slate-500">
-                  {{ todayStatus()?.check_in ? ('Started at ' + (todayStatus()?.check_in | date:'shortTime')) : 'Use punch clock when you begin work.' }}
-                </p>
+            <div class="app-module-highlight min-w-[260px]">
+              <span class="app-module-highlight-label">Today focus</span>
+              <div class="app-module-highlight-value mt-3">
+                {{ todayStatus()?.is_clocked_in ? 'Attendance Active' : 'Ready To Start' }}
               </div>
-              <div class="rounded-md bg-indigo-50 p-4">
-                <p class="text-sm font-semibold text-indigo-700">{{ dashboardPreset().queueLabel }}</p>
-                <p class="mt-1 text-2xl font-black text-slate-900">{{ pendingRequests() }}</p>
-                <p class="mt-1 text-sm text-slate-500">{{ dashboardPreset().queueDescription }}</p>
-              </div>
-              <div class="rounded-md bg-emerald-50 p-4">
-                <p class="text-sm font-semibold text-emerald-700">Leave Balance</p>
-                <p class="mt-1 text-2xl font-black text-slate-900">{{ totalLeaveBalance() }} days</p>
-                <p class="mt-1 text-sm text-slate-500">Total available balance across your leave buckets.</p>
-              </div>
+              <p class="mt-2 text-sm text-white/80">
+                Pending requests: {{ pendingRequests() }} | Leave balance: {{ totalLeaveBalance() }} days
+              </p>
             </div>
           </div>
         </section>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          @for (insight of roleInsights(); track insight.label) {
-            <div class="rounded-md border border-slate-200 bg-white p-6 shadow-lg">
-              <div class="inline-flex rounded-md px-3 py-1 text-xs font-bold uppercase tracking-[0.18em]"
-                   [ngClass]="insight.tone">
-                {{ insight.label }}
-              </div>
-              <p class="mt-4 text-3xl font-black text-slate-900">{{ insight.value }}</p>
-              <p class="mt-2 text-sm text-slate-500">{{ insight.description }}</p>
-            </div>
-          }
-        </section>
+        <app-ess-greeting 
+          [user]="currentUser()" 
+          [specialMessage]="specialMessage()" 
+          [currentTime]="currentTime()"
+          (navigate)="navigateTo($event)"
+          (closeBanner)="specialMessage.set([])">
+        </app-ess-greeting>
 
-        <!-- Quick Stats Grid with Premium Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          
-          <!-- Today's Status Card -->
-          <div class="group bg-white rounded-md p-6 border border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-            <div class="flex justify-between items-start mb-4">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 group-hover:text-indigo-600 transition-colors">Today's Status</span>
-              <div class="w-11 h-11 rounded-md flex items-center justify-center transition-all duration-300"
-                [ngClass]="todayStatus()?.is_clocked_in ? 'bg-emerald-100 text-emerald-700 shadow-md' : 'bg-slate-100 text-slate-500'">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-4xl font-black text-slate-900 tracking-tight mb-1">
-              {{ todayStatus()?.is_clocked_in ? (todayStatus()?.check_in | date:'shortTime') : '--:--' }}
-            </p>
-            <p class="text-sm font-medium text-slate-500">
-              {{ todayStatus()?.is_clocked_in ? 'Currently clocked in' : 'Awaiting clock-in' }}
-            </p>
-          </div>
+        <div class="space-y-6">
+          <!-- Quick Glance Stats -->
+          <app-ess-stats [stats]="workspaceStats()"></app-ess-stats>
 
-          <!-- Leave Balance Card -->
-          <div class="group bg-white rounded-md p-6 border border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-            <div class="flex justify-between items-start mb-4">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 group-hover:text-sky-600 transition-colors">Leave Balance</span>
-              <div class="w-11 h-11 rounded-md bg-sky-100 text-sky-700 flex items-center justify-center shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-4xl font-black text-slate-900 tracking-tight mb-1">{{ totalLeaveBalance() }}</p>
-            <p class="text-sm font-medium text-slate-500">Available days remaining</p>
-          </div>
-
-          <!-- Pending Requests Card -->
-          <div class="group bg-white rounded-md p-6 border border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-            <div class="flex justify-between items-start mb-4">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 group-hover:text-amber-600 transition-colors">Pending Requests</span>
-              <div class="w-11 h-11 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-4xl font-black text-slate-900 tracking-tight mb-1">{{ pendingRequests() }}</p>
-            <p class="text-sm font-medium text-slate-500">Awaiting your approval</p>
-          </div>
-
-          <!-- Work Hours Card -->
-          <div class="group bg-white rounded-md p-6 border border-slate-200 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer">
-            <div class="flex justify-between items-start mb-4">
-              <span class="text-xs font-bold uppercase tracking-wider text-slate-500 group-hover:text-purple-600 transition-colors">This Month</span>
-              <div class="w-11 h-11 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-              </div>
-            </div>
-            <p class="text-4xl font-black text-slate-900 tracking-tight mb-1">{{ todayStatus()?.total_work_hours || 0 }}<span class="text-2xl">h</span></p>
-            <p class="text-sm font-medium text-slate-500">Total work hours</p>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-md shadow-xl border border-slate-200 p-8 mb-12 transition-all hover:shadow-2xl">
-          <div class="flex items-center justify-between gap-4 flex-wrap mb-8">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Guided Actions</p>
-              <h2 class="mt-2 text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Start here for common tasks</h2>
-            </div>
-            <p class="text-sm text-slate-500 max-w-xl">{{ roleDashboardNote() }}</p>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-            @for (action of quickActions(); track action.title) {
-              <button
-                (click)="navigateTo(action.route)"
-                class="text-left rounded-md border p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                [ngClass]="{
-                  'border-indigo-200 bg-indigo-50/70 hover:bg-indigo-50': action.tone === 'primary',
-                  'border-emerald-200 bg-emerald-50/70 hover:bg-emerald-50': action.tone === 'success',
-                  'border-amber-200 bg-amber-50/70 hover:bg-amber-50': action.tone === 'warning',
-                  'border-slate-200 bg-slate-50 hover:bg-slate-100': action.tone === 'slate'
-                }">
-                <div class="text-3xl">{{ action.icon }}</div>
-                <p class="mt-4 text-lg font-black text-slate-900">{{ action.title }}</p>
-                <p class="mt-2 text-sm text-slate-600 leading-relaxed">{{ action.description }}</p>
-              </button>
-            }
-          </div>
-        </div>
-
-        <!-- Module Access Cards with Premium Styling -->
-        <div class="bg-white rounded-md shadow-xl border border-slate-200 p-8 mb-12 transition-all hover:shadow-2xl">
-          <div class="flex items-center gap-3 mb-8">
-            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="14" y2="14"/><line x1="14" y1="9" x2="9" y2="14"/>
-              </svg>
-            </div>
-            <h2 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Your Access</h2>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            @for (module of accessibleModules(); track module.key) {
-              <button 
-                (click)="navigateTo(module.route)" 
-                class="group relative bg-gradient-to-br from-white to-slate-50 rounded-md p-6 border border-slate-200 hover:border-indigo-300 transition-all duration-300 text-left shadow-md hover:shadow-2xl hover:-translate-y-2">
-                <div class="absolute inset-0 rounded-md bg-gradient-to-br from-indigo-500/0 to-indigo-500/0 group-hover:from-indigo-500/5 group-hover:to-indigo-500/10 transition-all duration-300"></div>
-                <div class="relative">
-                  <div class="w-14 h-14 rounded-md flex items-center justify-center text-3xl mb-4 transition-all duration-300 group-hover:scale-110"
-                    [style.background]="module.color + '15'"
-                    [style.color]="module.color"
-                    [style.boxShadow]="'0 8px 20px ' + module.color + '20'">
-                    <span>{{ module.icon }}</span>
-                  </div>
-                  <p class="font-extrabold text-slate-800 text-lg mb-1 group-hover:text-indigo-600 transition-colors">
-                    {{ module.name }}
-                  </p>
-                  <p class="text-sm text-slate-500 leading-relaxed">{{ module.description }}</p>
-                </div>
-              </button>
-            }
-            @empty {
-              <div class="col-span-full text-center py-16">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mx-auto mb-4 text-slate-400">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <p class="text-xl font-semibold text-slate-600">No modules available</p>
-                <p class="text-slate-500 mt-1">Please contact your administrator</p>
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="bg-white rounded-md shadow-xl border border-slate-200 p-8 mb-12 transition-all hover:shadow-2xl">
-          <div class="flex items-center gap-3 mb-8">
-            <div class="w-10 h-10 rounded-md bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center shadow-md text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/>
-              </svg>
-            </div>
-            <h2 class="text-2xl lg:text-3xl font-black text-slate-900 tracking-tight">Workspace Sections</h2>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            @for (group of moduleGroups(); track group.title) {
-              <div class="rounded-md border border-slate-200 bg-slate-50/70 p-6">
-                <div class="flex items-start justify-between gap-4">
-                  <div>
-                    <p class="text-lg font-black text-slate-900">{{ group.title }}</p>
-                    <p class="mt-1 text-sm text-slate-500">{{ group.description }}</p>
-                  </div>
-                  <span class="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500 border border-slate-200">
-                    {{ group.modules.length }} modules
-                  </span>
-                </div>
-                <div class="mt-5 flex flex-wrap gap-3">
-                  @for (module of group.modules; track module.key) {
-                    <button
-                      (click)="navigateTo(module.route)"
-                      class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 hover:shadow-sm transition-all">
-                      <span>{{ module.icon }}</span>
-                      <span>{{ module.name }}</span>
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-
-        <!-- Main Content Grid with Premium Cards -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          <!-- Left Column -->
-          <div class="lg:col-span-2 space-y-8">
+          <!-- Main Dashboard Grid: Modern Keka-style 2-Column Split -->
+          <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
             
-            <!-- Recent Attendance Section -->
-            <div class="bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden transition-all hover:shadow-2xl">
-              <div class="flex flex-wrap items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-md bg-indigo-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-600">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                  </div>
-                  <h2 class="text-xl font-black text-slate-800">Recent Attendance</h2>
-                </div>
-                <button 
-                  (click)="navigateTo('/attendance')" 
-                  class="text-indigo-600 hover:text-indigo-700 text-sm font-bold flex items-center gap-2 transition-all hover:gap-3">
-                  View All
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                </button>
+            <!-- Left Column: Main Feed/Activity (8/12) -->
+            <div class="xl:col-span-8 space-y-6">
+              
+              <!-- Network Hub: "Who's In" Feel -->
+              <app-ess-network-hub 
+                [teammates]="teammates()" 
+                [reportees]="reportees()"
+                (navigate)="navigateTo($event)"
+                class="min-h-[500px]">
+              </app-ess-network-hub>
+
+              <!-- Workspace Highlights -->
+              <app-ess-pulse 
+                [highlights]="workspaceHighlights()" 
+                [unreadCount]="notificationService.unreadCount()"
+                class="min-h-[430px]">
+              </app-ess-pulse>
+
+              <!-- Request History & Tracking -->
+              <app-ess-requests-ledger 
+                [requests]="myLeaveRequests()"
+                (viewAll)="navigateTo('/leaves')"
+                class="min-h-[460px]">
+              </app-ess-requests-ledger>
+
+              <!-- Full Attendance Calendar -->
+              <app-ess-calendar 
+                [monthLabel]="calendarCursor() | date:'MMMM yyyy'"
+                [summary]="calendarSummary()"
+                [legends]="calendarLegends"
+                [days]="calendarGrid()"
+                [selectedDay]="selectedCalendarDay()"
+                [selectedMetrics]="selectedCalendarViewMetrics()"
+                [selectedNotes]="selectedCalendarViewNotes()"
+                (previousMonth)="previousCalendarMonth()"
+                (nextMonth)="nextCalendarMonth()"
+                (jumpToToday)="jumpToCurrentMonth()"
+                (selectDay)="openCalendarDay($event)"
+                (closeDetail)="closeCalendarDay()"
+                (navigate)="navigateTo($event)"
+                class="min-h-[700px]">
+              </app-ess-calendar>
+
+              <!-- Organizational Announcements -->
+              <app-ess-announcements [announcement]="announcements()[0]"></app-ess-announcements>
+
+              <div class="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+                <app-ess-quick-actions
+                  [actions]="quickActions"
+                  (navigate)="navigateTo($event)"
+                  class="min-h-[340px]">
+                </app-ess-quick-actions>
+
+                <app-ess-workflow-center
+                  [workflows]="workflowCenter()"
+                  (navigate)="navigateTo($event)"
+                  class="min-h-[340px]">
+                </app-ess-workflow-center>
               </div>
-              <div class="divide-y divide-slate-100">
-                @for (record of recentAttendance(); track record.id) {
-                  <div class="flex items-center justify-between p-6 hover:bg-slate-50 transition-all duration-200">
-                    <div class="flex items-center gap-4">
-                      <div class="w-12 h-12 rounded-md flex items-center justify-center text-xl shadow-sm"
-                        [ngClass]="{
-                          'bg-emerald-100 text-emerald-700': record.status === 'present',
-                          'bg-red-100 text-red-700': record.status === 'absent',
-                          'bg-amber-100 text-amber-700': record.status === 'late',
-                          'bg-sky-100 text-sky-700': record.status === 'on_leave'
-                        }">
-                        @if (record.status === 'present') {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                        }
-                        @if (record.status === 'absent') {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        }
-                        @if (record.status === 'late') {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        }
-                        @if (record.status === 'on_leave') {
-                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        }
-                      </div>
-                      <div>
-                        <p class="font-bold text-slate-800 text-base">{{ record.date | date:'EEEE, MMM d, y' }}</p>
-                        <p class="text-sm text-slate-500 font-medium">
-                          {{ record.check_in ? (record.check_in | date:'h:mm a') : '--:--' }} 
-                          {{ record.check_out ? '— ' + (record.check_out | date:'h:mm a') : '' }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                }
-              </div>
+
+              <app-ess-workbench
+                [projects]="projectWorkbench()"
+                [timesheets]="timesheetWorkbench()"
+                (navigate)="navigateTo($event)"
+                class="min-h-[420px]">
+              </app-ess-workbench>
+            </div>
+
+            <!-- Right Column: Personal & Team Context (4/12) - STICKY -->
+            <div class="xl:col-span-4 space-y-6 xl:sticky xl:top-6">
+              
+              <!-- Real-time Web Clock -->
+              <app-ess-attendance-center [todayStatus]="todayStatus()" class="min-h-[480px]"></app-ess-attendance-center>
+
+              <!-- Rapid Leave Balances -->
+              <app-ess-leave-balance 
+                [balances]="leaveBalances()"
+                (requestLeave)="navigateTo('/leaves')"
+                class="min-h-[480px]">
+              </app-ess-leave-balance>
+
+              <!-- Holiday Countdown -->
+              <app-ess-holidays [holidays]="upcomingHolidays()" class="min-h-[400px]"></app-ess-holidays>
+
+              <!-- Team Engagement (Birthdays/Anniversary) -->
+              <app-ess-team-engagement [occasions]="teamOccasions()" class="min-h-[400px]"></app-ess-team-engagement>
             </div>
           </div>
 
-          <!-- Right Column (Leave & Requests) -->
-          <div class="space-y-8">
-            <!-- Leave Balance Section -->
-            <div class="bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden transition-all hover:shadow-2xl">
-              <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-md bg-emerald-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-600">
-                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  </div>
-                  <h2 class="text-xl font-black text-slate-800">Leave Balance</h2>
-                </div>
-              </div>
-              <div class="p-6 space-y-4">
-                @for (balance of leaveBalances(); track balance.id) {
-                  <div class="flex items-center justify-between p-4 rounded-md border border-slate-100 bg-slate-50/50">
-                    <div>
-                      <p class="text-sm font-bold text-slate-700">{{ balance.typeName }}</p>
-                      <p class="text-xs text-slate-500">Used: {{ balance.used }} / Total: {{ balance.total }}</p>
-                    </div>
-                    <div class="text-right">
-                      <p class="text-lg font-black" [style.color]="balance.color">{{ balance.remaining }}</p>
-                      <p class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Days Available</p>
-                    </div>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Pending Requests Section -->
-            <div class="bg-white rounded-md shadow-xl border border-slate-200 overflow-hidden transition-all hover:shadow-2xl">
-              <div class="p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
-                <div class="flex items-center gap-3">
-                  <div class="w-9 h-9 rounded-md bg-amber-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-600">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                  </div>
-                  <h2 class="text-xl font-black text-slate-800">Pending Requests</h2>
-                </div>
-              </div>
-              <div class="divide-y divide-slate-100">
-                @for (request of myLeaveRequests(); track request.id) {
-                  <div class="p-5 hover:bg-slate-50 transition-all cursor-pointer">
-                    <div class="flex justify-between items-start mb-2">
-                      <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100">
-                        {{ request.status }}
-                      </span>
-                      <span class="text-sm font-bold text-slate-900">{{ request.totalDays }} Days</span>
-                    </div>
-                    <p class="font-bold text-slate-800 text-sm">{{ request.leaveType?.typeName || 'Leave' }}</p>
-                    <p class="text-xs text-slate-500 mt-1">
-                      {{ request.startDate | date:'MMM d' }} - {{ request.endDate | date:'MMM d, y' }}
-                    </p>
-                  </div>
-                } @empty {
-                  <div class="p-10 text-center">
-                    <p class="text-slate-400 text-sm italic">No pending requests found.</p>
-                  </div>
-                }
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    /* Premium Animations */
-    @keyframes fadeSlideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .animate-fade-up {
-      animation: fadeSlideUp 0.5s ease-out forwards;
-    }
-    
-    /* Smooth Transitions */
-    * {
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    /* Premium Scrollbar */
-    ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, #cbd5e1, #94a3b8);
-      border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(135deg, #94a3b8, #64748b);
-    }
-    
-    /* Card Hover Effects */
-    .hover-lift {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .hover-lift:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.15);
-    }
-    
-    /* Glass Morphism */
-    .glass-effect {
-      backdrop-filter: blur(12px);
-      background: rgba(255, 255, 255, 0.7);
-    }
-  `]
+
 })
 export class SelfServiceComponent implements OnInit {
   private authService = inject(AuthService);
-  private permissionService = inject(PermissionService);
   private attendanceService = inject(AttendanceService);
   private leaveService = inject(LeaveService);
   private employeeService = inject(EmployeeService);
-  private router = inject(Router);
-  private toastService = inject(ToastService);
+  private projectService = inject(ProjectService);
+  private timesheetService = inject(TimesheetService);
+  private organizationService = inject(OrganizationService);
+  private permissionService = inject(PermissionService);
+  private announcementService = inject(AnnouncementService);
+  public notificationService = inject(NotificationService);
   private liveRefreshService = inject(LiveRefreshService);
+  private reportService = inject(ReportService);
+  private toastService = inject(ToastService);
+  private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
   currentUser = signal<User | null>(null);
+  currentTime = signal<string>(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   todayStatus = signal<TodayAttendance | null>(null);
   leaveBalances = signal<any[]>([]);
-  recentAttendance = signal<AttendanceRecord[]>([]);
-  myLeaveRequests = signal<any[]>([]);
-  pendingRequests = signal<number>(0);
   totalLeaveBalance = signal<number>(0);
+  recentAttendance = signal<AttendanceRecord[]>([]);
+  leaveHistory = signal<LeaveRequest[]>([]);
+  myLeaveRequests = signal<LeaveRequest[]>([]);
+  pendingRequests = signal<number>(0);
+  projects = signal<DashboardProjectCard[]>([]);
+  timesheets = signal<DashboardTimesheetCard[]>([]);
+  addons = signal<AddonCard[]>([]);
+  employees = signal<User[]>([]);
+  announcements = signal<any[]>([]);
   accessibleModules = signal<ModuleCard[]>([]);
-  greetingMessage = computed(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+  specialMessage = signal<string[]>([]);
+  teamOccasions = signal<any[]>([]);
+
+  calendarCursor = signal<Date>(new Date());
+  calendarAttendance = signal<AttendanceRecord[]>([]);
+  upcomingHolidays = signal<HolidayCalendarItem[]>([]);
+  selectedCalendarDay = signal<CalendarDay | null>(null);
+  holidayWindowStart = signal<string | null>(null);
+  holidayWindowEnd = signal<string | null>(null);
+  organizationProfile = signal<Organization | null>(null);
+  activeShiftCount = signal<number>(0);
+  geoFenceSettings = signal<GeoFenceSettings | null>(null);
+  weeklyOffPolicyCount = signal<number>(0);
+
+  calendarGrid = computed(() => this.buildCalendarDays());
+
+  workspaceStats = computed<InsightCard[]>(() => [
+    {
+      label: 'Workforce Strength',
+      value: this.employees().length.toString(),
+      description: 'Active personnel in your network.',
+      tone: 'border-indigo-100 bg-indigo-50/30',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+    },
+    {
+      label: 'Leave Portfolio',
+      value: `${this.totalLeaveBalance()} Days`,
+      description: 'Available time-off across all buckets.',
+      tone: 'border-emerald-100 bg-emerald-50/30',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>'
+    },
+    {
+      label: 'Request Activity',
+      value: `${this.pendingRequests()} Pending`,
+      description: 'Active requests awaiting approval.',
+      tone: 'border-amber-100 bg-amber-50/30',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
+    },
+    {
+      label: 'Active Projects',
+      value: this.projects().length.toString(),
+      description: 'Concurrent projects under tracking.',
+      tone: 'border-sky-100 bg-sky-50/30',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2s-7 7-9.38 11z"/><path d="M9 12H4s.5-1 1-2c2-3.7 6.4-5.3 10.1-3.6z"/><path d="M15 9v5s1-.5 2-1c3.7-2 5.3-6.4 3.6-10.1z"/></svg>'
+    },
+  ]);
+
+  workspaceHighlights = computed<DashboardHighlight[]>(() => {
+    const list: DashboardHighlight[] = [];
+    const status = this.todayStatus();
+    if (status?.is_clocked_in && status.check_in) {
+      list.push({ id: 'att', name: 'Attendance Active', message: `You clocked in at ${new Date(status.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Keep up the great work!`, tone: 'border-emerald-100 bg-emerald-50/50' });
+    }
+    if (this.pendingRequests() > 0) {
+      list.push({ id: 'leave', name: 'Pending Approvals', message: `You have ${this.pendingRequests()} leave request(s) awaiting review.`, tone: 'border-amber-100 bg-amber-50/50' });
+    }
+    const latestTimesheet = this.timesheets()[0];
+    if (latestTimesheet) {
+      list.push({
+        id: 'time',
+        name: 'Latest Timesheet',
+        message: `${latestTimesheet.projectName} logged for ${latestTimesheet.hours}h on ${new Date(latestTimesheet.workDate).toLocaleDateString()}.`,
+        tone: 'border-sky-100 bg-sky-50/50'
+      });
+    }
+    const latestAnnouncement = this.announcements()[0];
+    if (latestAnnouncement?.title) {
+      list.push({
+        id: 'announce',
+        name: 'Org Update',
+        message: latestAnnouncement.title,
+        tone: 'border-violet-100 bg-violet-50/50'
+      });
+    }
+    const projects = this.projects().filter(p => p.progress < 50);
+    if (projects.length > 0) {
+      list.push({ id: 'proj', name: 'Project Focus', message: `${projects[0].name} requires attention (Progress: ${projects[0].progress}%).`, tone: 'border-indigo-100 bg-indigo-50/50' });
+    }
+    if (this.isManager() && this.activeShiftCount() === 0) {
+      list.push({
+        id: 'setup',
+        name: 'Settings Attention',
+        message: 'No active shift policy found. Configure attendance settings to keep self-service accurate.',
+        tone: 'border-rose-100 bg-rose-50/50'
+      });
+    }
+    if (list.length < 3) {
+      list.push({ id: 'well', name: 'Organization Pulse', message: 'All systems operational. Have a productive day ahead!', tone: 'border-slate-100 bg-slate-50/50' });
+    }
+    return list.slice(0, 3);
   });
-  roleInsights = computed<InsightCard[]>(() => {
-    const roleId = this.currentUser()?.roleId ?? 5;
 
-    if (roleId === 1 || roleId === 2) {
-      return [
-        {
-          label: 'Workforce',
-          value: `${this.accessibleModules().length}`,
-          description: 'Core admin modules currently available in your workspace.',
-          tone: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-        },
-        {
-          label: 'Approvals',
-          value: `${this.pendingRequests()}`,
-          description: 'Open operational items waiting for administrative action.',
-          tone: 'bg-amber-50 text-amber-700 border border-amber-200',
-        },
-        {
-          label: 'Compliance',
-          value: this.currentUser()?.status === 'active' ? 'Live' : 'Review',
-          description: 'Audit, policy, and system controls are ready from this command center.',
-          tone: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-        },
-      ];
-    }
+  settingsHealthItems = computed(() => [
+    { label: 'Organization', value: this.organizationProfile()?.name || this.currentUser()?.organizationName || 'Not configured' },
+    { label: 'Active Shifts', value: `${this.activeShiftCount()}` },
+    { label: 'Geo-Fence', value: this.geoFenceSettings()?.geofence_enabled ? 'Enabled' : 'Disabled' },
+    { label: 'Weekly Off', value: this.weeklyOffPolicyCount() === 1 ? '1 policy' : `${this.weeklyOffPolicyCount()} policies` }
+  ]);
 
-    if (roleId === 3 || roleId === 4) {
-      return [
-        {
-          label: 'Team Actions',
-          value: `${this.pendingRequests()}`,
-          description: 'Manager-facing approvals and team follow-ups waiting today.',
-          tone: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-        },
-        {
-          label: 'Attendance',
-          value: this.todayStatus()?.is_clocked_in ? 'Live' : 'Pending',
-          description: 'Use this hub to review team attendance and regularization quickly.',
-          tone: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-        },
-        {
-          label: 'Visibility',
-          value: `${this.accessibleModules().length}`,
-          description: 'Reports, projects, and operational modules available to you now.',
-          tone: 'bg-sky-50 text-sky-700 border border-sky-200',
-        },
-      ];
+  calendarSummary = computed(() => [
+    { label: 'Present', value: this.calendarAttendance().filter(r => r.status === 'present').length, description: 'Standard workdays' },
+    { label: 'Absent', value: this.calendarAttendance().filter(r => r.status === 'absent').length, description: 'Unmarked activity' },
+    { label: 'Leaves', value: this.calendarAttendance().filter(r => r.status === 'on_leave').length, description: 'Approved time-off' },
+    {
+      label: 'Holidays',
+      value: this.upcomingHolidays().filter((holiday) => {
+        const holidayDate = new Date(holiday.date);
+        const cursor = this.calendarCursor();
+        return holidayDate.getFullYear() === cursor.getFullYear() && holidayDate.getMonth() === cursor.getMonth();
+      }).length,
+      description: 'Organization breaks'
     }
+  ]);
+
+  calendarLegends = [
+    { key: 'present', label: 'Present', dotClass: 'bg-emerald-500', chipClass: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+    { key: 'late', label: 'Late', dotClass: 'bg-amber-500', chipClass: 'border-amber-200 bg-amber-50 text-amber-700' },
+    { key: 'absent', label: 'Absent', dotClass: 'bg-rose-500', chipClass: 'border-rose-200 bg-rose-50 text-rose-700' },
+    { key: 'leave', label: 'Leave', dotClass: 'bg-violet-500', chipClass: 'border-violet-200 bg-violet-50 text-violet-700' },
+    { key: 'holiday', label: 'Holiday', dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700' },
+    { key: 'weekend', label: 'Off', dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50 text-slate-500' }
+  ];
+
+  selectedCalendarViewMetrics = computed(() => {
+    const day = this.selectedCalendarDay();
+    if (!day) return [];
+
+    const iso = day.iso;
+    const record = this.calendarAttendance().find(r => this.toIsoDate(new Date(r.date)) === iso);
 
     return [
-      {
-        label: 'Today',
-        value: this.todayStatus()?.is_clocked_in ? 'Started' : 'Ready',
-        description: 'Your daily work status with attendance and punch progress.',
-        tone: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-      },
-      {
-        label: 'Leave',
-        value: `${this.totalLeaveBalance()}`,
-        description: 'Available leave balance across your current leave buckets.',
-        tone: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-      },
-      {
-        label: 'Workspace',
-        value: `${this.accessibleModules().length}`,
-        description: 'Modules available for your day-to-day self-service work.',
-        tone: 'bg-sky-50 text-sky-700 border border-sky-200',
-      },
+      { label: 'Check-in', value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A' },
+      { label: 'Duration', value: record?.work_hours ? `${record.work_hours}H` : '0H' },
+      { label: 'Overtime', value: '0H' },
+      { label: 'Location', value: 'HQ' }
     ];
   });
-  dashboardPreset = computed<RoleDashboardPreset>(() => {
-    const roleId = this.currentUser()?.roleId ?? 5;
 
-    if (roleId === 1 || roleId === 2) {
-      return {
-        portalLabel: 'Admin Workspace',
-        heroEyebrow: 'Operations Command Center',
-        heroTitle: 'Executive Dashboard',
-        heroDescription: 'Monitor workforce operations, approvals, compliance, and system controls from one professional command center.',
-        primaryActionLabel: 'Open Employee Directory',
-        primaryActionRoute: '/employees',
-        secondaryActionLabel: 'Open Roles & Permissions',
-        secondaryActionRoute: '/admin/roles',
-        tertiaryActionLabel: 'Review System Settings',
-        tertiaryActionRoute: '/settings',
-        queueLabel: 'Operations Queue',
-        queueDescription: 'Pending employee, document, and system actions needing admin review.',
-      };
-    }
-
-    if (roleId === 3 || roleId === 4) {
-      return {
-        portalLabel: 'Manager Workspace',
-        heroEyebrow: 'Team Operations Hub',
-        heroTitle: 'Team Dashboard',
-        heroDescription: 'Track attendance, monitor approvals, and keep your team moving with quick access to the workflows that matter daily.',
-        primaryActionLabel: 'Open Team Attendance',
-        primaryActionRoute: '/admin/team-attendance',
-        secondaryActionLabel: 'Review Leave Requests',
-        secondaryActionRoute: '/leaves',
-        tertiaryActionLabel: 'Open Reports',
-        tertiaryActionRoute: '/reports',
-        queueLabel: 'Approval Queue',
-        queueDescription: 'Pending attendance, leave, and team requests waiting for manager action.',
-      };
-    }
-
-    return {
-      portalLabel: 'Employee Portal',
-      heroEyebrow: 'Personal Command Center',
-      heroTitle: 'Self-Service',
-      heroDescription: 'Your personalized dashboard with real-time insights, attendance status, leave balance, and quick access to daily tools.',
-      primaryActionLabel: 'Open Attendance',
-      primaryActionRoute: '/attendance',
-      secondaryActionLabel: 'Manage Leaves',
-      secondaryActionRoute: '/leaves',
-      tertiaryActionLabel: 'Update Profile',
-      tertiaryActionRoute: '/profile',
-      queueLabel: 'Action Queue',
-      queueDescription: 'Pending leave or employee requests currently open.',
-    };
-  });
-  roleDashboardNote = computed(() => {
-    const roleId = this.currentUser()?.roleId ?? 5;
-    if (roleId === 1 || roleId === 2) {
-      return 'Your admin workspace prioritizes people operations, permissions, audit, and organization controls.';
-    }
-    if (roleId === 3 || roleId === 4) {
-      return 'Your manager workspace keeps attendance, approvals, reports, and team actions one tap away.';
-    }
-    return 'Your self-service workspace keeps attendance, leave, profile, and daily work actions one tap away.';
-  });
-  quickActions = computed<QuickAction[]>(() => {
-    const roleId = this.currentUser()?.roleId ?? 5;
-
-    if (roleId === 1 || roleId === 2) {
-      return [
-        {
-          title: 'Review employees',
-          description: 'Open the employee workspace to manage records, invitations, and ownership structure.',
-          route: '/employees',
-          icon: '👥',
-          tone: 'primary',
-        },
-        {
-          title: 'Manage permissions',
-          description: 'Control role access, visibility, and module permissions for the organization.',
-          route: '/admin/roles',
-          icon: '🔐',
-          tone: 'warning',
-        },
-        {
-          title: 'Audit activity',
-          description: 'Review system activity, trace actions, and inspect compliance-sensitive changes.',
-          route: '/admin/audit',
-          icon: '📋',
-          tone: 'slate',
-        },
-        {
-          title: 'System settings',
-          description: 'Update global organization rules, operational settings, and policy controls.',
-          route: '/settings',
-          icon: '⚙️',
-          tone: 'success',
-        },
-      ];
-    }
-
-    if (roleId === 3 || roleId === 4) {
-      return [
-        {
-          title: 'Review team attendance',
-          description: 'Monitor today’s attendance, regularization, and workday health for your team.',
-          route: '/admin/team-attendance',
-          icon: '📅',
-          tone: 'primary',
-        },
-        {
-          title: 'Approve leave',
-          description: 'Review leave requests and resolve pending approvals quickly.',
-          route: '/leaves',
-          icon: '🗂️',
-          tone: 'warning',
-        },
-        {
-          title: 'Open reports',
-          description: 'Check reporting views for attendance trends, productivity, and decisions.',
-          route: '/reports',
-          icon: '📈',
-          tone: 'success',
-        },
-        {
-          title: 'Open projects',
-          description: 'Track project delivery and operational workload from one place.',
-          route: '/projects',
-          icon: '📁',
-          tone: 'slate',
-        },
-      ];
-    }
-
-    const actions: QuickAction[] = [
-      {
-        title: this.todayStatus()?.is_clocked_in ? 'Open punch dashboard' : 'Clock in for today',
-        description: this.todayStatus()?.is_clocked_in
-          ? 'Review work hours, breaks, and live attendance details.'
-          : 'Start your workday and record attendance from the punch center.',
-        route: '/attendance',
-        icon: '🕒',
-        tone: this.todayStatus()?.is_clocked_in ? 'success' : 'primary',
-      },
-      {
-        title: 'Apply leave',
-        description: 'Create a leave request and review your remaining balance before submission.',
-        route: '/leaves/request',
-        icon: '🏖️',
-        tone: 'warning',
-      },
-      {
-        title: 'View profile',
-        description: 'Check your employment details, contact data, and profile information.',
-        route: '/profile',
-        icon: '👤',
-        tone: 'slate',
-        },
-      {
-        title: 'See full history',
-        description: 'Open your detailed leave and attendance history across recent records.',
-        route: '/leaves',
-        icon: '📋',
-        tone: 'primary',
-      },
-    ];
-
-    return actions;
-  });
-  moduleGroups = computed(() => {
-    const modules = this.accessibleModules();
-    const definitions = [
-      {
-        title: 'Daily Work',
-        description: 'Attendance, task execution, and day-to-day employee workflows.',
-        keys: ['dashboard', 'attendance', 'timesheets', 'projects', 'team'],
-      },
-      {
-        title: 'Requests & Records',
-        description: 'Leave, expenses, documents, and employee service requests.',
-        keys: ['leaves', 'expenses', 'documents', 'regularization'],
-      },
-      {
-        title: 'Money & Insights',
-        description: 'Payroll, reports, and salary-related visibility.',
-        keys: ['payroll', 'reports'],
-      },
-      {
-        title: 'Administration',
-        description: 'Higher-access operations for people management and control settings.',
-        keys: ['employees', 'admin', 'roles', 'geofence', 'audit'],
-      },
-    ];
-
-    return definitions
-      .map((definition) => ({
-        ...definition,
-        modules: modules.filter((module) => definition.keys.includes(module.key)),
-      }))
-      .filter((group) => group.modules.length > 0);
+  selectedCalendarViewNotes = computed(() => {
+    const day = this.selectedCalendarDay();
+    if (!day) return [];
+    if (day.statusKey === 'weekend') return ['Scheduled weekly off day.'];
+    if (day.statusKey === 'holiday') return [`Organization Holiday: ${day.sublabel}`];
+    if (day.statusKey === 'leave') return [`Approved Leave: ${day.label}`];
+    if (day.statusKey === 'present') return ['Standard workday recorded.', 'No anomalies detected.'];
+    return ['No specific activity logs for this day.'];
   });
 
-  private moduleIcons: Record<string, string> = {
-    dashboard: '📊',
-    employees: '👥',
-    attendance: '📅',
-    leaves: '🏖️',
-    reports: '📈',
-    projects: '📁',
-    expenses: '💰',
-    payroll: '💵',
-    admin: '⚙️',
-    roles: '🔐',
-    geofence: '📍',
-    audit: '📋',
-    documents: '📄',
-    regularization: '🔧',
-    team: '👨‍👩‍👧'
-  };
+  quickActions: QuickAction[] = [
+    { title: 'Clock In Now', description: 'Start your shift', route: '/attendance', icon: 'clock-3', tone: 'primary' },
+    { title: 'Apply Leave', description: 'Request time off', route: '/leaves', icon: 'calendar-plus', tone: 'success' },
+    { title: 'My Requests', description: 'Track approvals', route: '/leaves', icon: 'layout-grid', tone: 'warning' },
+    { title: 'Timesheets', description: 'Log project hours', route: '/timesheets', icon: 'clock-3', tone: 'slate' },
+    { title: 'My Profile', description: 'Update personal details', route: '/profile', icon: 'spark', tone: 'warning' },
+    { title: 'Open Reports', description: 'Insights & history', route: '/reports-center', icon: 'chart-column', tone: 'slate' },
+    { title: 'More Add-ons', description: 'Explore extensions', route: '/add-ons', icon: 'blocks', tone: 'primary' }
+  ];
 
-  private moduleColors: Record<string, string> = {
-    dashboard: '#6366f1',
-    employees: '#3b82f6',
-    attendance: '#10b981',
-    leaves: '#f59e0b',
-    reports: '#8b5cf6',
-    projects: '#06b6d4',
-    expenses: '#ef4444',
-    payroll: '#22c55e',
-    admin: '#64748b',
-    roles: '#ec4899',
-    geofence: '#f97316',
-    audit: '#84cc16',
-    documents: '#0ea5e9',
-    regularization: '#a855f7',
-    team: '#14b8a6'
-  };
+  workflowCenter = computed<WorkflowCenterCard[]>(() => {
+    const isAdmin = this.isManager();
+    const list: WorkflowCenterCard[] = [];
 
-  private moduleDescriptions: Record<string, string> = {
-    dashboard: 'View your personalized dashboard with key metrics',
-    employees: 'Manage employee records and team information',
-    attendance: 'Track daily attendance and clock in/out seamlessly',
-    leaves: 'Request and manage your leave applications',
-    reports: 'View analytical reports and business insights',
-    projects: 'Manage and track your project progress',
-    expenses: 'Submit and track expense claims',
-    payroll: 'View payslips and salary details',
-    admin: 'System configuration and settings',
-    roles: 'Manage roles & permissions',
-    geofence: 'Configure geofence locations',
-    audit: 'View system audit logs',
-    documents: 'Manage HR documents and policies',
-    regularization: 'Request attendance corrections',
-    team: 'Team collaboration and management'
-  };
+    if (isAdmin) {
+      list.push({ key: 'rev', title: 'Review Employees', description: 'Manage profiles and access governance.', route: '/employees', tone: 'border-indigo-100 bg-indigo-50/50', badge: 'ADMIN' });
+      list.push({ key: 'att', title: 'Team Attendance', description: 'Real-time monitoring of department shifts.', route: '/admin/team-attendance', tone: 'border-emerald-100 bg-emerald-50/50', badge: 'LEAD' });
+    }
+
+    list.push({ key: 'his', title: 'Activity History', description: 'Comprehensive insight view of attendance and HR trends.', route: '/reports-center', tone: 'border-slate-100 bg-slate-50/50', badge: 'SELF' });
+    list.push({ key: 'req', title: 'Request Center', description: 'Open leave actions, and status tracking.', route: '/leaves', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
+    return list;
+  });
+
+  projectWorkbench = computed<WorkbenchProject[]>(() =>
+    this.projects().slice(0, 4).map((project) => ({
+      id: Number(project.id),
+      name: project.name,
+      progress: project.progress,
+      statusLabel: project.statusLabel,
+      deadline: project.deadline,
+      teamSize: project.teamSize
+    }))
+  );
+
+  timesheetWorkbench = computed<WorkbenchTimesheet[]>(() =>
+    this.timesheets().slice(0, 4).map((entry) => ({
+      id: Number(entry.id),
+      projectName: entry.projectName,
+      workDate: entry.workDate,
+      hours: entry.hours,
+      description: entry.description,
+      status: entry.status
+    }))
+  );
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser() as User | null);
+    this.permissionService.syncForUser(this.currentUser());
+    this.loadEmployees();
+    this.loadAddons();
+    this.loadAnnouncements();
+    this.loadUpcomingHolidays(this.calendarCursor());
+    this.loadCalendarMonth();
     this.loadData();
     this.loadAccessibleModules();
+    this.loadSystemSettings();
+    this.loadOccasions();
+    this.notificationService.loadNotifications();
+
     this.liveRefreshService.createStream(30000)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadData());
+      .subscribe(() => {
+        this.loadData();
+        this.loadEmployees();
+        this.loadAddons();
+        this.loadAnnouncements();
+        this.loadCalendarMonth();
+        this.permissionService.syncForUser(this.currentUser());
+        this.notificationService.loadNotifications();
+        this.loadSystemSettings();
+        this.currentTime.set(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      });
   }
+
+  loadOccasions() {
+    this.employeeService.getOccasions().subscribe({
+      next: (occasions: any[]) => {
+        const normalized = (occasions || []).map(o => ({
+          ...o,
+          designation: o.designation?.name || 'Employee'
+        }));
+        this.teamOccasions.set(normalized);
+
+        if (normalized.length > 0) {
+          const first = normalized[0];
+          const type = first.isBirthday ? 'Birthday' : 'Anniversary';
+          this.specialMessage.set([
+            `Happy ${type}, ${first.firstName}!`,
+            `Wishing you a fantastic day and continued success with us.`
+          ]);
+          this.playConfetti();
+        }
+      },
+      error: () => {
+        const mock = [
+          { id: 101, firstName: 'Aarav', lastName: 'Sharma', designation: 'Senior Designer', isBirthday: true, avatar: null },
+          { id: 102, firstName: 'Ishani', lastName: 'Mehta', designation: 'HR lead', isBirthday: false, avatar: null }
+        ];
+        this.teamOccasions.set(mock);
+
+        const today = new Date();
+        if (today.getDate() === 1) {
+          this.specialMessage.set(['Happy New Year!', 'Wishing you a year filled with joy and success!']);
+          this.playConfetti();
+        }
+      }
+    });
+  }
+
+  playConfetti() {
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      zIndex: 9999,
+      colors: ['#6366f1', '#10b981', '#f59e0b']
+    });
+  }
+
   loadData() {
-    // Load today's attendance
     this.attendanceService.getTodayAttendance().subscribe({
       next: (data) => this.todayStatus.set(data),
       error: () => {
@@ -908,132 +557,351 @@ export class SelfServiceComponent implements OnInit {
           is_clocked_in: true,
           is_clocked_out: false,
           check_in: checkInTime.toISOString(),
+          check_out: null,
           current_status: 'working',
           break_time_minutes: 0,
           total_work_hours: 6.5,
-          overtime_hours: 0,
-          last_location: { 
-            lat: 28.6139, 
-            lng: 77.209, 
-            address: 'HQ Office' 
-          }
+          overtime_hours: 0
         });
       }
     });
 
-    // Load leave balances
     this.leaveService.getLeaveBalances().subscribe({
       next: (balances: any[]) => {
         this.leaveBalances.set(balances);
         this.totalLeaveBalance.set(balances.reduce((sum: number, b: any) => sum + (b.remaining || 0), 0));
       },
-      error: () => {
-        const mockBalances = [
-          { id: 1, typeName: 'Annual Leave', total: 20, used: 5, remaining: 15, color: '#10b981' },
-          { id: 2, typeName: 'Sick Leave', total: 10, used: 2, remaining: 8, color: '#f59e0b' },
-          { id: 3, typeName: 'Casual Leave', total: 5, used: 0, remaining: 5, color: '#3b82f6' }
-        ];
-        this.leaveBalances.set(mockBalances);
-        this.totalLeaveBalance.set(28);
-      }
+      error: () => this.leaveBalances.set([])
     });
 
-    // Load recent attendance
-    this.attendanceService.getAttendanceHistory({}).subscribe({
-      next: (records: AttendanceRecord[]) => {
-        this.recentAttendance.set(records.slice(0, 5));
-      },
-      error: () => {
-        const today = new Date();
-        const yday = new Date(today); yday.setDate(yday.getDate() - 1);
-        const day3 = new Date(today); day3.setDate(day3.getDate() - 2);
-        
-        this.recentAttendance.set([
-          { 
-            id: 1, 
-            employee_id: 1, 
-            date: today.toISOString(), 
-            status: 'present', 
-            check_in: new Date(today.setHours(8, 55)).toISOString(),
-            check_out: null,
-            work_hours: 6.5,
-            selfie_url: null,
-            is_late: false,
-            is_half_day: false
-          },
-          { 
-            id: 2, 
-            employee_id: 1, 
-            date: yday.toISOString(), 
-            status: 'present', 
-            check_in: new Date(yday.setHours(9, 5)).toISOString(), 
-            check_out: new Date(yday.setHours(18, 0)).toISOString(),
-            work_hours: 8.5,
-            selfie_url: null,
-            is_late: false,
-            is_half_day: false
-          },
-          { 
-            id: 3, 
-            employee_id: 1, 
-            date: day3.toISOString(), 
-            status: 'on_leave',
-            check_in: null,
-            check_out: null,
-            work_hours: 0,
-            selfie_url: null,
-            is_late: false,
-            is_half_day: false
-          }
-        ] as AttendanceRecord[]);
-      }
-    });
-
-    // Load leave requests
     this.leaveService.getLeaveHistory().subscribe({
       next: (requests: any[]) => {
-        const pending = requests.filter((r: any) => r.status === 'pending');
-        this.myLeaveRequests.set(pending);
+        const normalized = (requests as LeaveRequest[]) || [];
+        const sorted = [...normalized].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        this.leaveHistory.set(sorted);
+        const pending = sorted.filter((r: LeaveRequest) => r.status === 'pending');
+        this.myLeaveRequests.set(sorted.slice(0, 6));
         this.pendingRequests.set(pending.length);
       },
-      error: () => {
-        const today = new Date();
-        const nextWeek = new Date(today);
-        nextWeek.setDate(nextWeek.getDate() + 7);
-        const endWeek = new Date(nextWeek);
-        endWeek.setDate(endWeek.getDate() + 2);
-
-        const mockRequests = [
-          { id: 101, leaveType: { typeName: 'Annual Leave' }, status: 'pending', startDate: nextWeek.toISOString(), endDate: endWeek.toISOString(), totalDays: 3 }
-        ];
-        this.myLeaveRequests.set(mockRequests);
-        this.pendingRequests.set(1);
-      }
+      error: () => this.myLeaveRequests.set([])
     });
+
+    this.loadProjects();
+    this.loadTimesheets();
+  }
+
+  private loadProjects(): void {
+    this.projectService.getProjects().subscribe({
+      next: (projects: any[]) => {
+        this.projects.set((projects || []).map((project) => this.normalizeProjectCard(project)));
+      },
+      error: () => this.projects.set([])
+    });
+  }
+
+  private normalizeProjectCard(raw: any): DashboardProjectCard {
+    const status = String(raw?.status ?? 'in_progress').toLowerCase();
+    const members = Array.isArray(raw?.members) ? raw.members.length : 0;
+    return {
+      id: Number(raw?.id ?? 0),
+      name: String(raw?.name ?? 'Project'),
+      description: String(raw?.description ?? 'N/A'),
+      status,
+      statusLabel: status.replace(/_/g, ' '),
+      progress: Number(raw?.progress ?? 0),
+      deadline: raw?.deadline ?? raw?.endDate ? new Date(raw?.deadline ?? raw?.endDate).toLocaleDateString() : null,
+      teamSize: Number(raw?.teamSize ?? raw?.team_size ?? members ?? 0),
+      tone: 'bg-sky-50 text-sky-700'
+    };
+  }
+
+  private loadTimesheets(): void {
+    this.timesheetService.getTimesheets().subscribe({
+      next: (items: Timesheet[]) => {
+        const cards = (items || [])
+          .map((item) => this.normalizeTimesheetCard(item))
+          .sort((a, b) => new Date(b.workDate).getTime() - new Date(a.workDate).getTime());
+        this.timesheets.set(cards.slice(0, 6));
+      },
+      error: () => this.timesheets.set([])
+    });
+  }
+
+  private normalizeTimesheetCard(raw: Timesheet): DashboardTimesheetCard {
+    return {
+      id: Number(raw?.id ?? 0),
+      projectName: raw?.project?.name ?? 'General Worklog',
+      workDate: String(raw?.date ?? raw?.workDate ?? raw?.log_date ?? new Date().toISOString()),
+      hours: Number(raw?.hours ?? raw?.hoursWorked ?? raw?.hours_logged ?? 0),
+      description: String(raw?.description ?? 'No notes added'),
+      status: String(raw?.status ?? 'pending'),
+      tone: 'bg-emerald-50 text-emerald-700'
+    };
   }
 
   loadAccessibleModules() {
-    const user = this.currentUser();
-    const modules = this.permissionService.getAccessibleModules(user);
-    
-    const cards: ModuleCard[] = modules.map(m => ({
-      key: m.key,
-      name: m.name,
-      icon: this.moduleIcons[m.key] || '📌',
-      route: m.route,
-      description: this.moduleDescriptions[m.key] || `Access ${m.name}`,
-      color: this.moduleColors[m.key] || '#6366f1'
+    const modules = this.permissionService.getAccessibleModules(this.currentUser());
+    this.accessibleModules.set(modules.map(m => {
+      return {
+        key: m.key,
+        name: m.name,
+        icon: m.key,
+        route: m.route,
+        description: `Manage your ${m.name} workspace and organizational records.`,
+        color: '#6366f1',
+        locked: false
+      };
     }));
-    
-    this.accessibleModules.set(cards);
   }
 
-  getInitials(): string {
+  loadAddons() {
+    this.organizationService.getAddons().subscribe({
+      next: (addons: any[]) => {
+        this.addons.set((addons || []).map(a => this.normalizeAddonCard(a)));
+      },
+      error: () => this.addons.set([]),
+    });
+  }
+
+  private normalizeAddonCard(raw: any): AddonCard {
+    const slug = String(raw?.slug ?? '').trim().toLowerCase();
+    return {
+      id: Number(raw?.id ?? 0),
+      name: String(raw?.name ?? 'Add-on'),
+      slug,
+      description: String(raw?.description ?? ''),
+      isActive: Boolean(raw?.isActive),
+      route: this.routeForAddon(slug),
+      accent: 'border-slate-200 bg-slate-50/80',
+      icon: 'spark',
+    };
+  }
+
+  private routeForAddon(slug: string): string {
+    const routes: Record<string, string> = {
+      attendance: '/attendance',
+      leave: '/leaves',
+      leaves: '/leaves',
+      payroll: '/payroll',
+      analytics: '/reports',
+      reports: '/reports',
+      projects: '/projects',
+      expenses: '/expenses',
+      timesheets: '/timesheets',
+      geofence: '/admin/geofence',
+      'face-recognition': '/face-registration',
+      face_recognition: '/face-registration',
+      'visitor-management': '/visit-management',
+      visitor_management: '/visit-management',
+      visitormanagement: '/visit-management',
+    };
+
+    return routes[slug] ?? '/add-ons';
+  }
+
+  loadEmployees() {
+    this.employeeService.getEmployees().subscribe({
+      next: (employees) => this.employees.set((employees as User[]) || []),
+      error: () => this.employees.set([]),
+    });
+  }
+
+  loadAnnouncements(): void {
+    this.announcementService.getAnnouncements().subscribe({
+      next: (items) => this.announcements.set((items || []).filter((item) => !item.deleted_at)),
+      error: () => this.announcements.set([]),
+    });
+  }
+
+  private loadSystemSettings(): void {
+    this.organizationService.getOrganization().subscribe({
+      next: (organization) => this.organizationProfile.set(organization),
+      error: () => this.organizationProfile.set(null)
+    });
+
+    this.attendanceService.getShifts().subscribe({
+      next: (shifts: AttendanceShift[]) => {
+        this.activeShiftCount.set((shifts || []).filter((shift) => shift.is_active).length);
+      },
+      error: () => this.activeShiftCount.set(0)
+    });
+
+    this.attendanceService.getGeoFenceSettings().subscribe({
+      next: (settings) => this.geoFenceSettings.set(settings),
+      error: () => this.geoFenceSettings.set(null)
+    });
+
+    this.weeklyOffPolicyCount.set(this.readWeeklyOffPolicies().length);
+  }
+
+  private readWeeklyOffPolicies(): Array<{ id: string }> {
+    try {
+      const stored = localStorage.getItem('hrms_weekly_off_policies');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private loadUpcomingHolidays(anchorDate: Date): void {
+    const start = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 120);
+
+    const startIso = this.toIsoDate(start);
+    const endIso = this.toIsoDate(end);
+
+    if (this.holidayWindowStart() === startIso && this.holidayWindowEnd() === endIso) {
+      return;
+    }
+
+    const requests: Array<ReturnType<ReportService['getDailyReport']>> = [];
+    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+      requests.push(this.reportService.getDailyReport(this.toIsoDate(cursor)));
+    }
+
+    forkJoin(requests).subscribe({
+      next: (days: DailyReport[]) => {
+        const holidays = days
+          .filter((day) => day.holidays > 0)
+          .map((day) => ({
+            date: day.date,
+            name: this.inferHolidayName(day.date)
+          }));
+
+        this.upcomingHolidays.set(holidays);
+        this.holidayWindowStart.set(startIso);
+        this.holidayWindowEnd.set(endIso);
+      },
+      error: () => {
+        this.upcomingHolidays.set([]);
+        this.holidayWindowStart.set(startIso);
+        this.holidayWindowEnd.set(endIso);
+      }
+    });
+  }
+
+  private inferHolidayName(date: string): string {
+    const suffix = date.slice(5);
+    const knownNames: Record<string, string> = {
+      '01-26': 'Republic Day',
+      '08-15': 'Independence Day',
+      '10-02': 'Gandhi Jayanti',
+      '12-25': 'Christmas Day',
+    };
+
+    return knownNames[suffix] ?? 'Organization Holiday';
+  }
+
+  loadCalendarMonth(): void {
+    const month = this.calendarCursor();
+    const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
+    const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+
+    this.attendanceService.getAttendanceHistory({
+      startDate: this.toIsoDate(startDate),
+      endDate: this.toIsoDate(endDate),
+    }).subscribe({
+      next: (records: AttendanceRecord[]) => this.calendarAttendance.set(records || []),
+      error: () => this.calendarAttendance.set([])
+    });
+  }
+
+  previousCalendarMonth(): void {
+    const month = this.calendarCursor();
+    this.calendarCursor.set(new Date(month.getFullYear(), month.getMonth() - 1, 1));
+    this.loadUpcomingHolidays(this.calendarCursor());
+    this.loadCalendarMonth();
+  }
+
+  nextCalendarMonth(): void {
+    const month = this.calendarCursor();
+    this.calendarCursor.set(new Date(month.getFullYear(), month.getMonth() + 1, 1));
+    this.loadUpcomingHolidays(this.calendarCursor());
+    this.loadCalendarMonth();
+  }
+
+  jumpToCurrentMonth(): void {
+    const now = new Date();
+    this.calendarCursor.set(new Date(now.getFullYear(), now.getMonth(), 1));
+    this.loadUpcomingHolidays(this.calendarCursor());
+    this.loadCalendarMonth();
+  }
+
+  openCalendarDay(day: CalendarDay): void {
+    if (day.inCurrentMonth) this.selectedCalendarDay.set(day);
+  }
+
+  closeCalendarDay(): void {
+    this.selectedCalendarDay.set(null);
+  }
+
+  private buildCalendarDays(): CalendarDay[] {
+    const month = this.calendarCursor();
+    const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+    const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+    const gridStart = new Date(firstDay);
+    gridStart.setDate(firstDay.getDate() - firstDay.getDay());
+    const gridEnd = new Date(lastDay);
+    gridEnd.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+
+    const attendanceByDate = new Map(this.calendarAttendance().map(r => [this.toIsoDate(new Date(r.date)), r]));
+    const holidaysByDate = new Map(this.upcomingHolidays().map(h => [h.date, h.name]));
+    const todayKey = this.toIsoDate(new Date());
+    const items: CalendarDay[] = [];
+
+    for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor.setDate(cursor.getDate() + 1)) {
+      const date = new Date(cursor);
+      const iso = this.toIsoDate(date);
+      const inCurrentMonth = date.getMonth() === month.getMonth();
+      const meta = this.resolveCalendarMeta(date, attendanceByDate.get(iso), holidaysByDate.get(iso));
+
+      items.push({
+        date, iso, dayNumber: date.getDate(), inCurrentMonth, isToday: iso === todayKey,
+        ...meta,
+        cardClass: `${meta.cardClass} ${iso === todayKey ? 'ring-2 ring-indigo-200 ring-offset-2' : ''}`.trim(),
+      });
+    }
+    return items;
+  }
+
+  private resolveCalendarMeta(date: Date, att: AttendanceRecord | undefined, holiday: string | undefined): any {
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+    if (holiday) return { statusKey: 'holiday', label: 'Holiday', sublabel: holiday, dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700', cardClass: 'border-sky-100 bg-sky-50/50' };
+    if (att) {
+      const isLate = att.is_late || (att.status === 'late');
+      return {
+        statusKey: isLate ? 'late' : 'present',
+        label: isLate ? 'Late' : 'Present',
+        sublabel: att.check_in ? `Entry: ${new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Marked',
+        dotClass: isLate ? 'bg-amber-500' : 'bg-emerald-500',
+        chipClass: isLate ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+        cardClass: isLate ? 'border-amber-100 bg-amber-50/40' : 'border-emerald-100 bg-emerald-50/40'
+      };
+    }
+    if (isWeekend) return { statusKey: 'weekend', label: 'Weekend', sublabel: 'Weekly Off', dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50 text-slate-500', cardClass: 'border-slate-100 bg-slate-50/30' };
+    return { statusKey: 'upcoming', label: 'Upcoming', sublabel: 'Standard Day', dotClass: 'bg-slate-200', chipClass: 'border-slate-100 bg-white text-slate-400', cardClass: 'border-slate-100 bg-white' };
+  }
+
+  private toIsoDate(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  teammates = computed(() => {
     const user = this.currentUser();
-    if (!user) return '?';
-    const first = user.firstName?.charAt(0) || '';
-    const last = user.lastName?.charAt(0) || '';
-    return (first + last).toUpperCase() || '?';
+    if (!user) return [];
+    return this.employees().filter(m => m.managerId === user.managerId && m.id !== user.id);
+  });
+
+  reportees = computed(() => {
+    const user = this.currentUser();
+    if (!user) return [];
+    return this.employees().filter(m => m.managerId === user.id);
+  });
+
+  isManager(): boolean {
+    const roleId = this.currentUser()?.roleId ?? 5;
+    return roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4 || this.reportees().length > 0;
   }
 
   navigateTo(path: string) {
@@ -1041,6 +909,6 @@ export class SelfServiceComponent implements OnInit {
   }
 
   openSupport() {
-    this.toastService.info('Support flow can be connected here. For now, please contact your HR/admin team.');
+    this.router.navigateByUrl('/reports-center');
   }
 }

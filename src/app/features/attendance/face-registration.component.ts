@@ -9,7 +9,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription, firstValueFrom, interval } from 'rxjs';
 import {
   FaceRecognitionService,
   FaceEmployee,
@@ -83,15 +84,16 @@ import { User } from '../../core/models/auth.model';
             <span class="font-bold">2.</span> Ensure good lighting on your face
           </li>
           <li class="flex items-start gap-2">
-            <span class="font-bold">3.</span> Remove glasses, hats, or anything
-            covering your face
+            <span class="font-bold">3.</span> Glasses are okay, but avoid hats
+            or anything that covers your face
           </li>
           <li class="flex items-start gap-2">
-            <span class="font-bold">4.</span> Look directly at the camera
+            <span class="font-bold">4.</span> Turn your head slightly left or
+            right when the camera asks
           </li>
           <li class="flex items-start gap-2">
-            <span class="font-bold">5.</span> Click "Capture and Register" to
-            complete registration
+            <span class="font-bold">5.</span> Return to center and the camera
+            will auto-capture
           </li>
         </ul>
       </div>
@@ -196,6 +198,41 @@ import { User } from '../../core/models/auth.model';
                 </div>
               </div>
 
+              <div
+                *ngIf="isCameraReady() && !capturedImage()"
+                class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 rounded-full bg-slate-950/70 px-4 py-2 text-white backdrop-blur-sm"
+              >
+                <svg class="h-10 w-10 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.18)"
+                    stroke-width="3"
+                  ></circle>
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="#22c55e"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-dasharray="97.39"
+                    [attr.stroke-dashoffset]="97.39 - (97.39 * getAutoScanProgress() / 100)"
+                  ></circle>
+                </svg>
+                <div>
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/55">
+                    Auto capture
+                  </p>
+                  <p class="text-sm font-bold">
+                    {{ autoScanStatus() || 'Center your face and hold still' }}
+                  </p>
+                </div>
+              </div>
+
               <!-- Processing Overlay -->
               <div
                 *ngIf="isProcessing()"
@@ -224,6 +261,17 @@ import { User } from '../../core/models/auth.model';
                 <span class="text-white font-medium"
                   >Processing your face...</span
                 >
+              </div>
+
+              <div
+                *ngIf="registrationSuccess()"
+                class="absolute inset-0 flex items-center justify-center bg-emerald-500/10 backdrop-blur-[1px]"
+              >
+                <div class="rounded-full bg-emerald-500/90 p-5 shadow-2xl shadow-emerald-500/30 animate-pulse">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                </div>
               </div>
             </div>
 
@@ -640,6 +688,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   // State signals
   isProcessing = signal<boolean>(false);
@@ -647,17 +696,30 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   capturedImage = signal<string | null>(null);
   registeredEmployees = signal<FaceEmployee[]>([]);
   faceRegistered = signal<boolean>(false);
+  returnUrl = signal<string | null>(null);
+  autoScanStatus = signal<string>('Starting camera...');
+  autoScanAttempts = signal<number>(0);
+  facePresenceStreak = signal<number>(0);
+  registrationSuccess = signal<boolean>(false);
 
   currentUser: User | null = null;
   private mediaStream: MediaStream | null = null;
+  private autoScanSub?: Subscription;
+  private autoRegisterTriggered = false;
+  private autoScanBusy = false;
+  private faceTurnAway = false;
 
   ngOnInit() {
     this.currentUser = this.authService.getStoredUser();
+    this.returnUrl.set(this.route.snapshot.queryParamMap.get('returnUrl'));
     this.loadRegisteredEmployees();
     this.checkFaceRegistration();
+    void this.faceRecognitionService.primeFaceEngine();
+    void this.startCamera();
   }
 
   ngOnDestroy() {
+    this.stopAutoScan();
     this.stopCamera();
   }
 
@@ -694,6 +756,9 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   async startCamera() {
     try {
       this.stopCamera();
+      this.stopAutoScan();
+      this.autoRegisterTriggered = false;
+      this.registrationSuccess.set(false);
 
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -715,6 +780,8 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       });
 
       this.isCameraReady.set(true);
+      await this.faceRecognitionService.primeFaceEngine();
+      this.startAutoScan();
     } catch (error) {
       console.error('Camera error:', error);
       this.toastService.error(
@@ -729,6 +796,195 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       this.mediaStream = null;
     }
     this.isCameraReady.set(false);
+  }
+
+  stopAutoScan() {
+    this.autoScanSub?.unsubscribe();
+    this.autoScanSub = undefined;
+    this.autoScanBusy = false;
+    this.faceTurnAway = false;
+  }
+
+  getAutoScanProgress(): number {
+    return Math.min(100, Math.round((this.autoScanAttempts() / 3) * 100));
+  }
+
+  startAutoScan() {
+    this.stopAutoScan();
+    this.autoScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.faceTurnAway = false;
+    this.autoScanStatus.set(
+      'Looking for your face. Turn your head slightly left or right to register.',
+    );
+
+    void this.runAutoScanTick();
+    this.autoScanSub = interval(500).subscribe(() => {
+      void this.runAutoScanTick();
+    });
+  }
+
+  private async runAutoScanTick() {
+    if (
+      !this.isCameraReady() ||
+      this.isProcessing() ||
+      this.autoRegisterTriggered ||
+      this.autoScanBusy
+    ) {
+      return;
+    }
+
+    const video = this.videoElement?.nativeElement;
+    if (!video || !video.videoWidth) {
+      return;
+    }
+
+    this.autoScanBusy = true;
+    try {
+      const sample = await firstValueFrom(
+        this.faceRecognitionService.detectLivenessSampleFromVideo(video),
+      ).catch(() => null);
+
+      if (!sample?.detected) {
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        const attempts = this.autoScanAttempts() + 1;
+        this.autoScanAttempts.set(attempts);
+        this.autoScanStatus.set(
+          attempts >= 3
+            ? 'No face detected. Please face the camera clearly.'
+            : `No face detected yet. Retrying ${attempts}/3...`,
+        );
+        if (attempts >= 3) {
+          this.stopAutoScan();
+        }
+        return;
+      }
+
+      const streak = this.facePresenceStreak() + 1;
+      this.facePresenceStreak.set(streak);
+      this.autoScanStatus.set(
+        streak >= 1
+          ? 'Face detected. Step 1: turn your head slightly left or right.'
+          : 'Face detected. Hold still for confirmation...',
+      );
+
+      if (streak < 1) {
+        return;
+      }
+
+      const turnThreshold = 0.04;
+      const centerThreshold = 0.055;
+
+      if (!this.faceTurnAway) {
+        if (Math.abs(sample.headTurnRatio) >= turnThreshold) {
+          this.faceTurnAway = true;
+          this.autoScanStatus.set(
+            'Turn detected. Step 2: return your head to center.',
+          );
+        } else {
+          this.autoScanStatus.set(
+            'Step 1: turn your head slightly left or right.',
+          );
+        }
+        return;
+      }
+
+      if (Math.abs(sample.headTurnRatio) <= centerThreshold) {
+        this.autoRegisterTriggered = true;
+        this.stopAutoScan();
+        const frame = this.captureFrame();
+        if (frame) {
+          this.capturedImage.set(frame);
+        }
+        void this.registerFaceFromLiveVideo(video);
+      } else {
+        this.autoScanStatus.set(
+          'Step 2: return your head to center to finish registration.',
+        );
+      }
+    } finally {
+      this.autoScanBusy = false;
+    }
+  }
+
+  private async registerFaceFromLiveVideo(video: HTMLVideoElement) {
+    if (!this.currentUser) return;
+
+    this.isProcessing.set(true);
+    this.registrationSuccess.set(false);
+    this.faceRecognitionService.speak('Registering your face. Please wait.');
+
+    try {
+      const res = await firstValueFrom(
+        this.faceRecognitionService.registerFaceFromVideo(
+          this.currentUser.id!,
+          this.currentUser.orgId!,
+          video,
+        ),
+      );
+
+      this.isProcessing.set(false);
+
+      if (res.success) {
+        this.toastService.success('Face registered successfully!');
+        this.faceRecognitionService.speak(
+          'Face registered successfully. You can now mark attendance using face recognition.',
+        );
+        this.faceRegistered.set(true);
+        this.registrationSuccess.set(true);
+        this.loadRegisteredEmployees();
+
+        this.stopAutoScan();
+        setTimeout(() => {
+          this.registrationSuccess.set(false);
+          this.retakeImage();
+        }, 1400);
+
+        if (this.returnUrl()) {
+          setTimeout(() => {
+            void this.router.navigateByUrl(this.returnUrl()!);
+          }, 1600);
+        }
+        return;
+      }
+
+      this.toastService.error(res.message || 'Failed to register face');
+      this.faceRecognitionService.speakError(
+        'Failed to register face. ' + res.message,
+      );
+      this.autoRegisterTriggered = false;
+      this.faceTurnAway = false;
+      this.startAutoScan();
+    } catch (err: any) {
+      this.isProcessing.set(false);
+      const message =
+        err?.error?.message ||
+        err?.friendlyMessage ||
+        'Failed to register face. Please try again.';
+      this.toastService.error(message);
+      this.faceRecognitionService.speakError(message);
+      console.error('Registration error:', err);
+      this.autoRegisterTriggered = false;
+      this.faceTurnAway = false;
+      this.startAutoScan();
+    }
+  }
+
+  captureFrame(): string | null {
+    const video = this.videoElement?.nativeElement;
+    const canvas = this.canvasElement?.nativeElement;
+
+    if (!video || !canvas || !video.videoWidth) return null;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    return canvas.toDataURL('image/jpeg', 0.9);
   }
 
   captureImage() {
@@ -746,6 +1002,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
     const imageData = canvas.toDataURL('image/jpeg', 0.9);
     this.capturedImage.set(imageData);
+    this.stopAutoScan();
 
     // Pause camera while captured
     this.stopCamera();
@@ -762,6 +1019,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     if (!this.capturedImage() || !this.currentUser) return;
 
     this.isProcessing.set(true);
+    this.registrationSuccess.set(false);
 
     // Speak instructions
     this.faceRecognitionService.speak('Registering your face. Please wait.');
@@ -784,12 +1042,23 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
             // Update local state
             this.faceRegistered.set(true);
+            this.registrationSuccess.set(true);
 
             // Reload list
             this.loadRegisteredEmployees();
 
             // Retake photo
-            this.retakeImage();
+            this.stopAutoScan();
+            setTimeout(() => {
+              this.registrationSuccess.set(false);
+              this.retakeImage();
+            }, 1400);
+
+            if (this.returnUrl()) {
+              setTimeout(() => {
+                void this.router.navigateByUrl(this.returnUrl()!);
+              }, 1600);
+            }
           } else {
             this.toastService.error(res.message || 'Failed to register face');
             this.faceRecognitionService.speakError(
@@ -806,6 +1075,8 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
           this.toastService.error(message);
           this.faceRecognitionService.speakError(message);
           console.error('Registration error:', err);
+          this.autoRegisterTriggered = false;
+          this.startAutoScan();
         },
       });
   }

@@ -1,4 +1,15 @@
-import { Component, OnInit, signal, computed, inject, ViewChild, ViewChildren, QueryList, ElementRef, effect } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  ViewChild,
+  ViewChildren,
+  QueryList,
+  ElementRef,
+  effect,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -6,24 +17,31 @@ import { Store } from '@ngrx/store';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
 import * as AuthActions from '../../../core/state/auth/auth.actions';
-import { COUNTRIES as countryCodes, type CountryCodeData } from '../../../core/constants/countries';
+import {
+  COUNTRIES as countryCodes,
+  type CountryCodeData,
+} from '../../../core/constants/countries';
 
 import { UiPhoneInputComponent } from '../../../core/components/ui';
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from 'firebase/auth';
 
 @Component({
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent],
   templateUrl: './login.component.html',
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
 })
 export class LoginComponent implements OnInit {
   loginMethod = signal<'email' | 'phone'>('email');
   stage = signal<'credentials' | 'otp'>('credentials');
   credentialsStep = signal<'identify' | 'password'>('identify');
-  
+
   private el = inject(ElementRef);
   private authService = inject(AuthService);
   private store = inject(Store);
@@ -48,13 +66,13 @@ export class LoginComponent implements OnInit {
   loginForm = {
     email: '',
     password: '',
-    rememberMe: false
+    rememberMe: false,
   };
   otpCode = '';
   selectedCountryCode = '+91'; // Default, will be updated by countryChange event
 
   phoneForm = {
-    fullNumber: ''
+    fullNumber: '',
   };
 
   otpReference = '';
@@ -76,9 +94,11 @@ export class LoginComponent implements OnInit {
 
   private firebaseApp: any;
   private auth: any;
-  
-  @ViewChildren('otpDigitInput') otpDigitInputs!: QueryList<ElementRef<HTMLInputElement>>;
-  
+
+  @ViewChildren('otpDigitInput') otpDigitInputs!: QueryList<
+    ElementRef<HTMLInputElement>
+  >;
+
   otpDigits = signal<string[]>(['', '', '', '', '', '']);
 
   constructor() {
@@ -95,7 +115,7 @@ export class LoginComponent implements OnInit {
   ngOnInit() {
     this.initializeFirebase();
   }
-  
+
   private initializeFirebase() {
     try {
       if (getApps().length === 0) {
@@ -104,7 +124,7 @@ export class LoginComponent implements OnInit {
         this.firebaseApp = getApp();
       }
       this.auth = getAuth(this.firebaseApp);
-      
+
       this.setupRecaptchaVerifier();
     } catch (err) {
       console.error('Firebase init error:', err);
@@ -115,17 +135,21 @@ export class LoginComponent implements OnInit {
   private setupRecaptchaVerifier() {
     // Only create if it doesn't exist or was cleared
     if (!this.recaptchaVerifier) {
-      this.recaptchaVerifier = new RecaptchaVerifier(this.auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (response: any) => {
-          // reCAPTCHA solved
+      this.recaptchaVerifier = new RecaptchaVerifier(
+        this.auth,
+        'recaptcha-container',
+        {
+          size: 'invisible',
+          callback: (response: any) => {
+            // reCAPTCHA solved
+          },
+          'expired-callback': () => {
+            // Response expired. Ask user to solve reCAPTCHA again.
+            this.setupRecaptchaVerifier();
+          },
         },
-        'expired-callback': () => {
-          // Response expired. Ask user to solve reCAPTCHA again.
-          this.setupRecaptchaVerifier();
-        }
-      });
-      
+      );
+
       this.recaptchaVerifier.render().catch((err: any) => {
         console.error('Recaptcha render error:', err);
       });
@@ -142,14 +166,22 @@ export class LoginComponent implements OnInit {
     const digits = (e164Digits || '').replace(/\D/g, '');
     if (!digits) return null;
 
-    const uniqueCodes = Array.from(new Set(this.countryCodes.map(c => String(c.code || '').trim()).filter(Boolean)));
+    const uniqueCodes = Array.from(
+      new Set(
+        this.countryCodes
+          .map((c) => String(c.code || '').trim())
+          .filter(Boolean),
+      ),
+    );
     uniqueCodes.sort((a, b) => b.length - a.length);
 
-    return uniqueCodes.find(code => digits.startsWith(code)) ?? null;
+    return uniqueCodes.find((code) => digits.startsWith(code)) ?? null;
   }
 
   private buildE164Phone(rawValue?: string): string {
-    const rawInput = String(rawValue ?? this.phoneForm.fullNumber ?? this.identifier ?? '').trim();
+    const rawInput = String(
+      rawValue ?? this.phoneForm.fullNumber ?? this.identifier ?? '',
+    ).trim();
     if (!rawInput) return '';
 
     if (rawInput.startsWith('+')) {
@@ -179,7 +211,10 @@ export class LoginComponent implements OnInit {
       return this.buildE164Phone() || 'your phone number';
     }
 
-    return (this.identifier || this.loginForm.email || '').trim().toLowerCase() || 'your email';
+    return (
+      (this.identifier || this.loginForm.email || '').trim().toLowerCase() ||
+      'your email'
+    );
   });
 
   onIdentifierChange(value: string) {
@@ -191,10 +226,11 @@ export class LoginComponent implements OnInit {
     // Check if the input looks like email vs phone
     const hasAt = trimmed.includes('@');
     const hasLetters = /[a-zA-Z]/.test(trimmed);
-    const digitCount = (trimmed.replace(/\D/g, '')).length;
+    const digitCount = trimmed.replace(/\D/g, '').length;
 
     // Default back to email if input is completely empty (blank)
-    const nextMethod: 'email' | 'phone' = hasAt || hasLetters ? 'email' : (digitCount > 0 ? 'phone' : 'email');
+    const nextMethod: 'email' | 'phone' =
+      hasAt || hasLetters ? 'email' : digitCount > 0 ? 'phone' : 'email';
 
     if (nextMethod !== this.loginMethod()) {
       this.loginMethod.set(nextMethod);
@@ -204,14 +240,17 @@ export class LoginComponent implements OnInit {
       this.otpCode = '';
       this.error.set('');
       this.info.set('');
-      
+
       // Auto-focus the newly created input after DOM updates
       setTimeout(() => {
         if (nextMethod === 'phone') {
-          const phoneInput = this.el.nativeElement.querySelector('app-ui-phone-input input');
+          const phoneInput = this.el.nativeElement.querySelector(
+            'app-ui-phone-input input',
+          );
           if (phoneInput) phoneInput.focus();
         } else {
-          const emailInput = this.el.nativeElement.querySelector('#emailIdentifier');
+          const emailInput =
+            this.el.nativeElement.querySelector('#emailIdentifier');
           if (emailInput) emailInput.focus();
         }
       }, 0);
@@ -235,7 +274,9 @@ export class LoginComponent implements OnInit {
 
   onCountryChange(country: any) {
     if (country && country.code) {
-      this.selectedCountryCode = country.code.startsWith('+') ? country.code : `+${country.code}`;
+      this.selectedCountryCode = country.code.startsWith('+')
+        ? country.code
+        : `+${country.code}`;
     }
   }
 
@@ -250,12 +291,16 @@ export class LoginComponent implements OnInit {
   }
 
   goToSignup() {
-    const identifier = (this.loginMethod() === 'phone'
-      ? this.buildE164Phone()
-      : (this.identifier || this.loginForm.email || '').trim()).trim();
+    const identifier = (
+      this.loginMethod() === 'phone'
+        ? this.buildE164Phone()
+        : (this.identifier || this.loginForm.email || '').trim()
+    ).trim();
     this.closeSignupPrompt();
     this.router.navigate(['/auth/signup'], {
-      queryParams: identifier ? { identifier, type: this.loginMethod() } : undefined
+      queryParams: identifier
+        ? { identifier, type: this.loginMethod() }
+        : undefined,
     });
   }
 
@@ -290,14 +335,16 @@ export class LoginComponent implements OnInit {
             this.credentialsStep.set('password');
             return;
           }
-          this.openSignupPrompt('No account found with this email. Do you want to sign up?');
+          this.openSignupPrompt(
+            'No account found with this email. Do you want to sign up?',
+          );
         },
         error: () => {
           this.loading.set(false);
           this.info.set('');
           // If backend doesn't support the check endpoint, fall back to old behavior
           this.credentialsStep.set('password');
-        }
+        },
       });
 
       return;
@@ -305,7 +352,9 @@ export class LoginComponent implements OnInit {
 
     const phoneNumber = this.buildE164Phone();
     if (!phoneNumber || !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-      this.error.set('Please enter a valid phone number (for example 9876543210).');
+      this.error.set(
+        'Please enter a valid phone number (for example 9876543210).',
+      );
       return;
     }
 
@@ -319,13 +368,15 @@ export class LoginComponent implements OnInit {
           this.requestPhoneOtp(phoneNumber);
           return;
         }
-        this.openSignupPrompt('No account found with this phone number. Do you want to sign up?');
+        this.openSignupPrompt(
+          'No account found with this phone number. Do you want to sign up?',
+        );
       },
       error: () => {
         this.loading.set(false);
         this.info.set('');
         this.requestPhoneOtp(phoneNumber);
-      }
+      },
     });
   }
 
@@ -369,7 +420,7 @@ export class LoginComponent implements OnInit {
   }
 
   togglePassword() {
-    this.showPassword.update(v => !v);
+    this.showPassword.update((v) => !v);
   }
 
   onSubmit() {
@@ -391,7 +442,9 @@ export class LoginComponent implements OnInit {
   }
 
   private submitEmailPassword() {
-    const email = (this.identifier || this.loginForm.email || '').trim().toLowerCase();
+    const email = (this.identifier || this.loginForm.email || '')
+      .trim()
+      .toLowerCase();
     const password = this.loginForm.password || '';
 
     const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -417,16 +470,22 @@ export class LoginComponent implements OnInit {
 
         if (res?.token) {
           if (res?.user) {
-            this.store.dispatch(AuthActions.loginSuccess({ user: res.user, token: res.token }));
+            this.store.dispatch(
+              AuthActions.loginSuccess({ user: res.user, token: res.token }),
+            );
           }
-          this.router.navigateByUrl('/self-service', { replaceUrl: true });
+          this.fetchFreshUser();
+          this.router.navigateByUrl('/dashboard', { replaceUrl: true });
           return;
         }
 
         if (res?.requiresOtp || res?.requires2fa) {
           const ref = res?.otpReference ?? '';
           if (!ref) {
-            this.error.set(res?.message || 'OTP verification is required, but no OTP reference was returned.');
+            this.error.set(
+              res?.message ||
+                'OTP verification is required, but no OTP reference was returned.',
+            );
             return;
           }
           this.otpReference = String(ref);
@@ -440,12 +499,15 @@ export class LoginComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        const message = err?.error?.message || 'Login failed. Please try again.';
+        const message =
+          err?.error?.message || 'Login failed. Please try again.';
         this.error.set(message);
         if (err?.status === 401 || err?.status === 404) {
-          this.openSignupPrompt('Invalid credentials or account not found. Do you want to sign up?');
+          this.openSignupPrompt(
+            'Invalid credentials or account not found. Do you want to sign up?',
+          );
         }
-      }
+      },
     });
   }
 
@@ -453,7 +515,7 @@ export class LoginComponent implements OnInit {
     const value = event.target.value;
     // Only allow numbers
     const cleanValue = value.replace(/\D/g, '').substring(0, 1);
-    
+
     const newDigits = [...this.otpDigits()];
     newDigits[index] = cleanValue;
     this.otpDigits.set(newDigits);
@@ -476,15 +538,15 @@ export class LoginComponent implements OnInit {
     event.preventDefault();
     const pastedData = event.clipboardData?.getData('text') || '';
     const digits = pastedData.replace(/\D/g, '').substring(0, 6).split('');
-    
+
     const newDigits = [...this.otpDigits()];
     digits.forEach((digit, i) => {
       if (i < 6) newDigits[i] = digit;
     });
-    
+
     this.otpDigits.set(newDigits);
     this.otpCode = newDigits.join('');
-    
+
     // Focus the last filled input or the first empty one
     const focusIndex = Math.min(digits.length, 5);
     this.otpDigitInputs.toArray()[focusIndex].nativeElement.focus();
@@ -496,16 +558,18 @@ export class LoginComponent implements OnInit {
     // Double check E.164 format for Firebase: +[country code][number]
     const e164Regex = /^\+[1-9]\d{1,14}$/;
     if (!phoneNumber || !e164Regex.test(phoneNumber)) {
-      this.error.set('Please enter a valid phone number (e.g., 9876543210 or +919876543210)');
+      this.error.set(
+        'Please enter a valid phone number (e.g., 9876543210 or +919876543210)',
+      );
       this.loading.set(false);
       return;
     }
-    
+
     // Ensure reCAPTCHA is ready
     if (!this.recaptchaVerifier) {
       this.setupRecaptchaVerifier();
     }
-    
+
     if (!this.auth || !this.recaptchaVerifier) {
       this.error.set('Firebase not ready. Please refresh the page.');
       this.loading.set(false);
@@ -529,7 +593,7 @@ export class LoginComponent implements OnInit {
         .catch((error: any) => {
           this.loading.set(false);
           console.error('Firebase Phone Auth Error:', error);
-          
+
           let errorMsg = 'Failed to send OTP';
           if (error.code === 'auth/invalid-phone-number') {
             errorMsg = 'Invalid phone number. Please check and try again.';
@@ -538,14 +602,16 @@ export class LoginComponent implements OnInit {
           } else if (error.code === 'auth/quota-exceeded') {
             errorMsg = 'SMS quota exceeded. Please try again later.';
           } else if (error.code === 'auth/internal-error') {
-            errorMsg = 'Internal Firebase error. Please try again or use another number.';
+            errorMsg =
+              'Internal Firebase error. Please try again or use another number.';
             // Try to reset the verifier on internal error
             if (this.recaptchaVerifier) {
               this.recaptchaVerifier.clear();
               this.recaptchaVerifier = null;
             }
           } else if (error.code === 'auth/billing-not-enabled') {
-            errorMsg = 'Firebase billing is not enabled for SMS. Please use a Test Phone Number (configured in Firebase Console) or enable Blaze plan.';
+            errorMsg =
+              'Firebase billing is not enabled for SMS. Please use a Test Phone Number (configured in Firebase Console) or enable Blaze plan.';
           } else {
             errorMsg += ': ' + (error.message || 'Unknown error');
           }
@@ -566,7 +632,9 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    const email = (this.identifier || this.loginForm.email || '').trim().toLowerCase();
+    const email = (this.identifier || this.loginForm.email || '')
+      .trim()
+      .toLowerCase();
     if (!email) {
       this.error.set('Missing email. Please go back and enter your email.');
       this.stage.set('credentials');
@@ -584,7 +652,7 @@ export class LoginComponent implements OnInit {
       error: (err) => {
         this.loading.set(false);
         this.error.set(err?.error?.message || 'Failed to resend OTP.');
-      }
+      },
     });
   }
 
@@ -602,39 +670,55 @@ export class LoginComponent implements OnInit {
     if (this.loginMethod() === 'phone') {
       if (!this.confirmationResult) {
         this.loading.set(false);
-        this.error.set('Session expired or OTP not requested. Please try again.');
+        this.error.set(
+          'Session expired or OTP not requested. Please try again.',
+        );
         this.stage.set('credentials');
         return;
       }
 
       const phone = this.phoneForm.fullNumber || this.identifier;
 
-      this.confirmationResult.confirm(otp).then((result: any) => {
-        return result.user.getIdToken();
-      }).then((idToken: string) => {
-        // Send to backend
-        this.authService.verifyPhoneOtp(phone, otp, idToken).subscribe({
-          next: (res: any) => {
-            this.loading.set(false);
-            if (res?.token) {
-              if (res?.user) {
-                this.store.dispatch(AuthActions.loginSuccess({ user: res.user, token: res.token }));
+      this.confirmationResult
+        .confirm(otp)
+        .then((result: any) => {
+          return result.user.getIdToken();
+        })
+        .then((idToken: string) => {
+          // Send to backend
+          this.authService.verifyPhoneOtp(phone, otp, idToken).subscribe({
+            next: (res: any) => {
+              this.loading.set(false);
+              if (res?.token) {
+                if (res?.user) {
+                  this.store.dispatch(
+                    AuthActions.loginSuccess({
+                      user: res.user,
+                      token: res.token,
+                    }),
+                  );
+                }
+                this.fetchFreshUser();
+                this.router.navigateByUrl('/dashboard', { replaceUrl: true });
+                return;
               }
-              this.router.navigateByUrl('/self-service', { replaceUrl: true });
-              return;
-            }
-            this.error.set(res?.message || 'Login failed after OTP verification.');
-          },
-          error: (err: any) => {
-            this.loading.set(false);
-            this.error.set(err?.error?.message || 'Login failed after OTP verification.');
-          }
+              this.error.set(
+                res?.message || 'Login failed after OTP verification.',
+              );
+            },
+            error: (err: any) => {
+              this.loading.set(false);
+              this.error.set(
+                err?.error?.message || 'Login failed after OTP verification.',
+              );
+            },
+          });
+        })
+        .catch((err: any) => {
+          this.loading.set(false);
+          this.error.set('Invalid OTP code. Please try again.');
+          console.error(err);
         });
-      }).catch((err: any) => {
-        this.loading.set(false);
-        this.error.set('Invalid OTP code. Please try again.');
-        console.error(err);
-      });
       return;
     }
 
@@ -646,22 +730,39 @@ export class LoginComponent implements OnInit {
       return;
     }
 
-    this.authService.verifyOtp({ otpReference: otpRefNumber, code: otp }).subscribe({
-      next: (res: any) => {
-        this.loading.set(false);
-        if (res?.token) {
-          if (res?.user) {
-            this.store.dispatch(AuthActions.loginSuccess({ user: res.user, token: res.token }));
+    this.authService
+      .verifyOtp({ otpReference: otpRefNumber, code: otp })
+      .subscribe({
+        next: (res: any) => {
+          this.loading.set(false);
+          if (res?.token) {
+            if (res?.user) {
+              this.store.dispatch(
+                AuthActions.loginSuccess({ user: res.user, token: res.token }),
+              );
+            }
+            this.fetchFreshUser();
+            this.router.navigateByUrl('/dashboard', { replaceUrl: true });
+            return;
           }
-          this.router.navigateByUrl('/self-service', { replaceUrl: true });
-          return;
-        }
-        this.error.set(res?.message || 'OTP verification failed.');
+          this.error.set(res?.message || 'OTP verification failed.');
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.error.set(err?.error?.message || 'OTP verification failed.');
+        },
+      });
+  }
+
+  private fetchFreshUser() {
+    const token = this.authService.getStoredToken();
+    if (!token) return;
+    this.authService.getMe().subscribe({
+      next: (freshUser) => {
+        this.authService.setStoredUser(freshUser);
+        this.store.dispatch(AuthActions.updateUser({ user: freshUser }));
       },
-      error: (err) => {
-        this.loading.set(false);
-        this.error.set(err?.error?.message || 'OTP verification failed.');
-      }
+      error: () => {},
     });
   }
 }

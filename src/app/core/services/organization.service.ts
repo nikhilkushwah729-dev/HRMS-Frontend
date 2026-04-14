@@ -57,6 +57,13 @@ export interface OfficeLocation {
     isActive?: boolean;
 }
 
+export interface OrganizationHoliday {
+    id: number;
+    name: string;
+    holidayDate: string;
+    type: 'national' | 'company' | 'optional';
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -64,8 +71,9 @@ export class OrganizationService {
     private http = inject(HttpClient);
     private authService = inject(AuthService);
     private apiUrl = `${environment.apiUrl}/organization`;
+    private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly orgDraftKey = 'hrms_org_profile_draft';
-    private readonly locationsKey = 'hrms_org_locations';
+    private readonly locationsKey = 'locations';
 
     private _activeModules = signal<string[]>([]);
     /**
@@ -77,7 +85,34 @@ export class OrganizationService {
      * Check if a module is active (Helper)
      */
     isModuleEnabled(slug: string): boolean {
-        return this._activeModules().includes(slug);
+        const normalized = (slug || '').trim().toLowerCase();
+        const aliases: Record<string, string[]> = {
+            leave: ['leave', 'leaves'],
+            leaves: ['leave', 'leaves'],
+            visitormanagement: ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
+            'visitor-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
+            'visit-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
+            face_recognition: ['face_recognition', 'face-recognition'],
+            'face-recognition': ['face_recognition', 'face-recognition']
+        };
+        const accepted = aliases[normalized] ?? [normalized];
+        return this._activeModules().some((item) => accepted.includes(item));
+    }
+
+    private resolveAssetUrl(value: any): string | null | undefined {
+        if (!value || typeof value !== 'string') {
+            return value;
+        }
+
+        if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:image')) {
+            return value;
+        }
+
+        if (value.startsWith('/')) {
+            return `${this.assetBaseUrl}${value}`;
+        }
+
+        return `${this.assetBaseUrl}/${value}`;
     }
 
     private normalizeDepartment(item: any): Department {
@@ -104,7 +139,7 @@ export class OrganizationService {
         return {
             id: Number(item?.id ?? 1),
             name: item?.name ?? item?.organizationName ?? item?.organization_name ?? item?.companyName ?? item?.company_name ?? '',
-            logo: item?.logo ?? item?.logoUrl ?? item?.logo_url ?? item?.organizationLogo ?? item?.organization_logo ?? item?.companyLogo ?? item?.company_logo ?? '',
+            logo: this.resolveAssetUrl(item?.logo ?? item?.logoUrl ?? item?.logo_url ?? item?.organizationLogo ?? item?.organization_logo ?? item?.companyLogo ?? item?.company_logo ?? '') ?? '',
             email: item?.email ?? '',
             phone: item?.phone ?? item?.orgContactNumber ?? item?.org_contact_number ?? '',
             address: item?.address ?? item?.orgStreet1 ?? '',
@@ -138,6 +173,15 @@ export class OrganizationService {
             contactNumber: item?.contactNumber ?? item?.contact_number ?? '',
             noOfEmployees: Number(item?.noOfEmployees ?? item?.employeeCount ?? item?.employee_count ?? 0),
             isActive: Boolean(item?.isActive ?? item?.is_active ?? true)
+        };
+    }
+
+    private normalizeHoliday(item: any): OrganizationHoliday {
+        return {
+            id: Number(item?.id ?? 0),
+            name: item?.name ?? 'Holiday',
+            holidayDate: item?.holidayDate ?? item?.holiday_date ?? item?.date ?? '',
+            type: item?.type ?? 'company'
         };
     }
 
@@ -274,6 +318,19 @@ export class OrganizationService {
         );
     }
 
+    updateDepartment(departmentId: number, payload: { name: string; parentId?: number | null; description?: string | null; isActive?: boolean }): Observable<Department> {
+        return this.http.put<any>(`${this.apiUrl}/departments/${departmentId}`, payload).pipe(
+            map(res => this.normalizeDepartment(res?.data ?? res))
+        );
+    }
+
+    deleteDepartment(departmentId: number): Observable<boolean> {
+        return this.http.delete<any>(`${this.apiUrl}/departments/${departmentId}`).pipe(
+            map(() => true),
+            catchError(() => of(false))
+        );
+    }
+
     getDesignations(): Observable<Designation[]> {
         return this.http.get<any>(`${this.apiUrl}/designations`).pipe(
             map(res => (res?.data ?? []).map((d: any) => this.normalizeDesignation(d))),
@@ -297,43 +354,120 @@ export class OrganizationService {
         );
     }
 
+    updateDesignation(designationId: number, payload: { name: string; departmentId?: number | null }): Observable<Designation> {
+        return this.http.put<any>(`${this.apiUrl}/designations/${designationId}`, payload).pipe(
+            map(res => this.normalizeDesignation(res?.data ?? res)),
+            catchError(() =>
+                this.http.put<any>(`${environment.apiUrl}/designations/${designationId}`, payload).pipe(
+                    map(res => this.normalizeDesignation(res?.data ?? res))
+                )
+            )
+        );
+    }
+
+    deleteDesignation(designationId: number): Observable<boolean> {
+        return this.http.delete<any>(`${this.apiUrl}/designations/${designationId}`).pipe(
+            map(() => true),
+            catchError(() => of(false))
+        );
+    }
+
+    private getSettingsCollection<T>(storageKey: string, fallback: T[] = []): Observable<T[]> {
+        return this.http.get<any>(`${this.apiUrl}/settings/${storageKey}`).pipe(
+            map((res) => Array.isArray(res?.data) ? (res.data as T[]) : fallback),
+            catchError(() => of(fallback))
+        );
+    }
+
+    private saveSettingsCollection<T>(storageKey: string, items: T[]): Observable<T[]> {
+        return this.http.put<any>(`${this.apiUrl}/settings/${storageKey}`, { items }).pipe(
+            map((res) => Array.isArray(res?.data) ? (res.data as T[]) : items),
+            catchError(() => of(items))
+        );
+    }
+
     getLocations(): Observable<OfficeLocation[]> {
-        return this.http.get<any>(`${this.apiUrl}/locations`).pipe(
-            map(res => {
-                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-                const normalized = records.map((item: any) => this.normalizeLocation(item));
-                if (normalized.length) {
-                    this.saveLocalLocations(normalized);
-                }
-                return normalized;
-            }),
+        return this.getSettingsCollection<any>(this.locationsKey, this.readLocalLocations()).pipe(
+            map((items) => items.map((item: any) => this.normalizeLocation(item))),
+            tap((locations) => this.saveLocalLocations(locations)),
             catchError(() => of(this.readLocalLocations()))
         );
     }
 
     createLocation(payload: Partial<OfficeLocation>): Observable<OfficeLocation> {
-        return this.http.post<any>(`${this.apiUrl}/locations`, payload).pipe(
-            map(res => this.normalizeLocation(res?.data ?? res)),
-            tap((location) => this.saveLocalLocations([location, ...this.readLocalLocations().filter(item => item.id !== location.id)])),
+        const current = this.readLocalLocations();
+        const location = this.normalizeLocation({
+            ...payload,
+            id: Date.now(),
+            isActive: payload.isActive ?? true
+        });
+        const next = [location, ...current.filter(item => item.id !== location.id)];
+        return this.saveSettingsCollection(this.locationsKey, next).pipe(
+            map((items) => items.map((item: any) => this.normalizeLocation(item))[0] ?? location),
+            tap(() => this.saveLocalLocations(next)),
             catchError(() => {
-                const localLocation = this.normalizeLocation({
-                    ...payload,
-                    id: Date.now()
-                });
-                this.saveLocalLocations([localLocation, ...this.readLocalLocations()]);
-                return of(localLocation);
+                this.saveLocalLocations(next);
+                return of(location);
+            })
+        );
+    }
+
+    updateLocation(locationId: number, payload: Partial<OfficeLocation>): Observable<OfficeLocation> {
+        const current = this.readLocalLocations();
+        const next = current.map((item) =>
+            item.id === locationId ? this.normalizeLocation({ ...item, ...payload, id: locationId }) : item
+        );
+        const updated = next.find((item) => item.id === locationId) ?? this.normalizeLocation({ ...payload, id: locationId });
+        return this.saveSettingsCollection(this.locationsKey, next).pipe(
+            map((items) =>
+                items.map((item: any) => this.normalizeLocation(item)).find((item) => item.id === locationId) ?? updated
+            ),
+            tap(() => this.saveLocalLocations(next)),
+            catchError(() => {
+                this.saveLocalLocations(next);
+                return of(updated);
             })
         );
     }
 
     deleteLocation(locationId: number): Observable<boolean> {
-        return this.http.delete<any>(`${this.apiUrl}/locations/${locationId}`).pipe(
+        const next = this.readLocalLocations().filter(item => item.id !== locationId);
+        return this.saveSettingsCollection(this.locationsKey, next).pipe(
             map(() => true),
-            tap(() => this.saveLocalLocations(this.readLocalLocations().filter(item => item.id !== locationId))),
+            tap(() => this.saveLocalLocations(next)),
             catchError(() => {
-                this.saveLocalLocations(this.readLocalLocations().filter(item => item.id !== locationId));
+                this.saveLocalLocations(next);
                 return of(true);
             })
+        );
+    }
+
+    getHolidays(): Observable<OrganizationHoliday[]> {
+        return this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
+            map((res) => {
+                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                return records.map((item: any) => this.normalizeHoliday(item));
+            }),
+            catchError(() => of([]))
+        );
+    }
+
+    createHoliday(payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
+        return this.http.post<any>(`${this.apiUrl}/holidays`, payload).pipe(
+            map((res) => this.normalizeHoliday(res?.data ?? res))
+        );
+    }
+
+    updateHoliday(holidayId: number, payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
+        return this.http.put<any>(`${this.apiUrl}/holidays/${holidayId}`, payload).pipe(
+            map((res) => this.normalizeHoliday(res?.data ?? res))
+        );
+    }
+
+    deleteHoliday(holidayId: number): Observable<boolean> {
+        return this.http.delete<any>(`${this.apiUrl}/holidays/${holidayId}`).pipe(
+            map(() => true),
+            catchError(() => of(false))
         );
     }
 
@@ -341,7 +475,9 @@ export class OrganizationService {
         return this.http.get<any>(`${this.apiUrl}/addons`).pipe(
             map(res => {
                 const addons = res.data;
-                const activeSlugs = addons.filter((a: any) => a.isActive).map((a: any) => a.slug);
+                const activeSlugs = addons
+                    .filter((a: any) => a.isActive)
+                    .map((a: any) => String(a.slug ?? '').trim().toLowerCase());
                 this._activeModules.set(activeSlugs);
                 return addons;
             })

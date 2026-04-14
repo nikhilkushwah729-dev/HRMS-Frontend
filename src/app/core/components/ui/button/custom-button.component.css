@@ -1,0 +1,37 @@
+:host {
+  display: inline-block;
+}
+
+button {
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 9999px;
+  transform: scale(0);
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.animate-ripple {
+  animation: ripple 0.6s linear;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.btn-primary-solid { @apply bg-indigo-600 text-white hover:bg-indigo-700; }
+.btn-secondary-solid { @apply bg-slate-100 text-slate-700 hover:bg-slate-200; }
+.btn-red-solid { @apply bg-rose-500 text-white hover:bg-rose-600; }
+.btn-amber-solid { @apply bg-amber-500 text-white hover:bg-amber-600; }

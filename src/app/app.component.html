@@ -14,6 +14,20 @@
 <!-- Top Progress Bar (Existing) -->
 <app-top-loader />
 
+@if (subscriptionService.bannerVisible() && trialBannerMessage()) {
+  <div class="sticky top-0 z-[60] border-b border-amber-200 bg-amber-50/95 px-4 py-3 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Subscription Notice</p>
+        <p class="mt-1 text-sm font-medium text-amber-900">{{ trialBannerMessage() }}</p>
+      </div>
+      <button (click)="upgrade()" class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+        Upgrade Plan
+      </button>
+    </div>
+  </div>
+}
+
 <!-- Main Pulsating Loader -->
 @if (loading$ | async) {
   <app-main-loader />

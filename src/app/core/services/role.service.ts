@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
 
@@ -19,6 +19,7 @@ export interface Permission {
     id: number;
     name: string;
     slug: string;
+    permissionKey?: string;
     module: string;
     description?: string;
 }
@@ -53,11 +54,13 @@ export class RoleService {
     }
 
     private normalizePermission(raw: any): Permission {
+        const permissionKey = raw.permissionKey || raw.permission_key || raw.slug || raw.key || '';
         return {
             id: Number(raw.id),
-            name: raw.name,
-            slug: raw.slug,
-            module: raw.module,
+            name: raw.name || permissionKey,
+            slug: raw.slug || permissionKey,
+            permissionKey,
+            module: raw.module || 'general',
             description: raw.description
         };
     }
@@ -76,7 +79,8 @@ export class RoleService {
      */
     getRoleById(id: number): Observable<Role> {
         return this.http.get<any>(`${this.apiUrl}/roles/${id}`).pipe(
-            map(res => this.normalizeRole(res.data))
+            map(res => this.normalizeRole(res.data)),
+            catchError((error) => throwError(() => error))
         );
     }
 
@@ -157,7 +161,8 @@ export class RoleService {
      */
     getPermissions(): Observable<Permission[]> {
         return this.http.get<any>(`${this.apiUrl}/roles/permissions`).pipe(
-            map(res => (res.data || []).map((item: any) => this.normalizePermission(item)))
+            map(res => (res.data || []).map((item: any) => this.normalizePermission(item))),
+            catchError(() => of([]))
         );
     }
 

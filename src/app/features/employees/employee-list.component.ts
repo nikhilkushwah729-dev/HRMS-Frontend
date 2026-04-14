@@ -357,13 +357,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                       Role
                     </p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                      {{
-                        emp.roleId === 1
-                          ? 'Admin'
-                          : emp.roleId === 2
-                            ? 'HR'
-                            : 'Employee'
-                      }}
+                      {{ getRoleLabel(emp.roleId) }}
                     </p>
                   </div>
                   <div class="rounded-md bg-slate-50 px-4 py-3 sm:col-span-2">
@@ -514,13 +508,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                       >
                     </td>
                     <td class="px-6 py-4 text-slate-600 font-medium text-sm">
-                      {{
-                        emp.roleId === 1
-                          ? 'Admin'
-                          : emp.roleId === 2
-                            ? 'HR'
-                            : 'Employee'
-                      }}
+                      {{ getRoleLabel(emp.roleId) }}
                     </td>
                     <td class="px-6 py-4">
                       <span
@@ -619,23 +607,13 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             Showing {{ filteredEmployees().length }} of
             {{ rawEmployees().length }} entries
           </span>
-          <div class="flex gap-2">
-            <button
-              class="px-4 py-2 border border-slate-200 rounded text-sm font-medium text-slate-400 disabled:opacity-50 cursor-not-allowed"
-              disabled
-            >
-              Previous
-            </button>
-            <button
-              class="px-4 py-2 bg-primary-600 text-white rounded-md text-sm font-bold border border-primary-600"
-            >
-              1
-            </button>
-            <button
-              class="px-4 py-2 bg-white border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
-            >
-              Next
-            </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              {{ currentTab().replace('_', ' ') }} roster
+            </span>
+            <span class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
+              {{ employeeStats().active }} active / {{ employeeStats().total }} total
+            </span>
           </div>
         </div>
       </div>
@@ -873,6 +851,23 @@ export class EmployeeListComponent implements OnInit {
 
   addEmployee() {
     this.router.navigate(['/employees/add']);
+  }
+
+  getRoleLabel(roleId?: number | null): string {
+    switch (Number(roleId ?? 0)) {
+      case 1:
+        return 'Super Admin';
+      case 2:
+        return 'Admin';
+      case 3:
+        return 'HR Manager';
+      case 4:
+        return 'Manager';
+      case 5:
+        return 'Employee';
+      default:
+        return 'Employee';
+    }
   }
 
   editEmployee(emp: any) {

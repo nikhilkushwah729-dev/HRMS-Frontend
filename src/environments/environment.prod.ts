@@ -1,6 +1,12 @@
+const runtimeConfig = globalThis as typeof globalThis & {
+    __HRMS_CONFIG__?: {
+        apiUrl?: string;
+    };
+};
+
 export const environment = {
     production: true,
-    apiUrl: 'http://localhost:3333/api',
+    apiUrl: runtimeConfig.__HRMS_CONFIG__?.apiUrl || '/api',
     firebase: {
         apiKey: "AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8",
         authDomain: "hrnexus-8eb7e.firebaseapp.com",

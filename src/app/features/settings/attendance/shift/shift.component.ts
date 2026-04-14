@@ -16,7 +16,7 @@ import {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-7xl space-y-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef2ff_100%)] shadow-sm"
       >
@@ -305,6 +305,11 @@ import {
             </div>
           </div>
 
+          <div class="border-b border-slate-100 bg-slate-50/70 px-6 py-4 text-sm text-slate-600">
+            Shift masters saved here support scheduling, attendance check-in
+            logic, and broader roster planning across the organization.
+          </div>
+
           <div class="divide-y divide-slate-100">
             @for (shift of filteredShifts(); track shift.id) {
               <article
@@ -353,8 +358,18 @@ import {
                 </div>
               </article>
             } @empty {
-              <div class="px-6 py-14 text-center text-slate-500">
-                No shifts found for the current search.
+              <div class="px-6 py-16 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 6v6l4 2" />
+                    <circle cx="12" cy="12" r="9" />
+                  </svg>
+                </div>
+                <p class="mt-4 text-base font-semibold text-slate-900">No shifts found</p>
+                <p class="mt-2 text-sm text-slate-500">
+                  Create the first operational shift to start building your
+                  roster and attendance schedule matrix.
+                </p>
               </div>
             }
           </div>

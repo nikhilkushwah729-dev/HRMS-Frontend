@@ -125,6 +125,69 @@ export interface AttendanceFilter {
     status?: string;
 }
 
+export interface AttendanceDashboardSummary {
+    totalRecords: number;
+    present: number;
+    absent: number;
+    late: number;
+    halfDay: number;
+    onLeave: number;
+    holiday: number;
+    weekend: number;
+    totalWorkHours: number;
+    averageWorkHours: number;
+    attendancePercentage: number;
+}
+
+export interface AttendanceDashboardStatusBreakdown {
+    status: AttendanceRecord['status'];
+    label: string;
+    count: number;
+    percent: number;
+}
+
+export interface AttendanceDashboardDepartmentBreakdown {
+    departmentId: number | null;
+    departmentName: string;
+    count: number;
+    totalWorkHours: number;
+    present: number;
+    late: number;
+    halfDay: number;
+    onLeave: number;
+    averageWorkHours: number;
+    percent: number;
+}
+
+export interface AttendanceDashboardLeaderboardItem {
+    employeeId: number;
+    employeeName: string;
+    employeeCode: string;
+    department: string;
+    avatar: string | null;
+    records: number;
+    present: number;
+    late: number;
+    halfDay: number;
+    onLeave: number;
+    totalWorkHours: number;
+    averageWorkHours: number;
+    latestDate: string;
+}
+
+export interface AttendanceDashboardResponse {
+    range: {
+        startDate: string | null;
+        endDate: string | null;
+    };
+    summary: AttendanceDashboardSummary;
+    records: AttendanceRecord[];
+    leaderboard: AttendanceDashboardLeaderboardItem[];
+    statusBreakdown: AttendanceDashboardStatusBreakdown[];
+    departmentBreakdown: AttendanceDashboardDepartmentBreakdown[];
+    recentRecords: AttendanceRecord[];
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -247,6 +310,108 @@ export class AttendanceService {
         return Array.from(mapById.values());
     }
 
+    private normalizeAttendanceRecord(raw: any): AttendanceRecord {
+        const employeeName = String(raw?.employeeName ?? '').trim();
+        const [firstName, ...rest] = employeeName ? employeeName.split(' ') : ['Employee'];
+        const lastName = rest.join(' ') || String(raw?.employeeCode ?? '').trim() || '';
+        const employeeDepartment = String(raw?.department ?? '').trim();
+
+        return {
+            id: Number(raw?.id ?? Date.now()),
+            employee_id: Number(raw?.employeeId ?? raw?.employee_id ?? 0),
+            date: String(raw?.date ?? new Date().toISOString().slice(0, 10)),
+            check_in: raw?.checkInTime ?? raw?.check_in ?? null,
+            check_out: raw?.checkOutTime ?? raw?.check_out ?? null,
+            work_hours: raw?.workHours ?? raw?.work_hours ?? null,
+            status: raw?.status ?? 'present',
+            selfie_url: raw?.selfieUrl ?? raw?.selfie_url ?? null,
+            is_late: Boolean(raw?.lateMinutes ?? raw?.isLate ?? raw?.status === 'late'),
+            is_half_day: Boolean(raw?.isHalfDay ?? raw?.status === 'half_day'),
+            shift_id: raw?.shiftId ?? raw?.shift_id,
+            shift_name: raw?.shiftName ?? raw?.shift_name,
+            latitude: raw?.latitude,
+            longitude: raw?.longitude,
+            location_address: raw?.locationAddress ?? raw?.location_address,
+            notes: raw?.notes ?? undefined,
+            created_at: raw?.createdAt ?? raw?.created_at,
+            updated_at: raw?.updatedAt ?? raw?.updated_at,
+            employee: {
+                id: Number(raw?.employeeId ?? raw?.employee_id ?? 0),
+                firstName: firstName || 'Employee',
+                lastName,
+                email: raw?.email ?? '',
+                avatar: raw?.avatar ?? null,
+                department: employeeDepartment || undefined,
+            },
+        };
+    }
+
+    private normalizeDashboardResponse(raw: any): AttendanceDashboardResponse {
+        const payload = raw?.data || raw || {};
+        return {
+            range: {
+                startDate: payload?.range?.startDate ?? payload?.range?.start_date ?? null,
+                endDate: payload?.range?.endDate ?? payload?.range?.end_date ?? null,
+            },
+            summary: {
+                totalRecords: Number(payload?.summary?.totalRecords ?? payload?.summary?.total_records ?? 0),
+                present: Number(payload?.summary?.present ?? 0),
+                absent: Number(payload?.summary?.absent ?? 0),
+                late: Number(payload?.summary?.late ?? 0),
+                halfDay: Number(payload?.summary?.halfDay ?? payload?.summary?.half_day ?? 0),
+                onLeave: Number(payload?.summary?.onLeave ?? payload?.summary?.on_leave ?? 0),
+                holiday: Number(payload?.summary?.holiday ?? 0),
+                weekend: Number(payload?.summary?.weekend ?? 0),
+                totalWorkHours: Number(payload?.summary?.totalWorkHours ?? payload?.summary?.total_work_hours ?? 0),
+                averageWorkHours: Number(payload?.summary?.averageWorkHours ?? payload?.summary?.average_work_hours ?? 0),
+                attendancePercentage: Number(payload?.summary?.attendancePercentage ?? payload?.summary?.attendance_percentage ?? 0),
+            },
+            records: Array.isArray(payload?.records) ? payload.records.map((record: any) => this.normalizeAttendanceRecord(record)) : [],
+            leaderboard: Array.isArray(payload?.leaderboard)
+                ? payload.leaderboard.map((item: any) => ({
+                    employeeId: Number(item?.employeeId ?? item?.employee_id ?? 0),
+                    employeeName: String(item?.employeeName ?? item?.employee_name ?? 'Employee'),
+                    employeeCode: String(item?.employeeCode ?? item?.employee_code ?? 'N/A'),
+                    department: String(item?.department ?? 'General'),
+                    avatar: item?.avatar ?? null,
+                    records: Number(item?.records ?? 0),
+                    present: Number(item?.present ?? 0),
+                    late: Number(item?.late ?? 0),
+                    halfDay: Number(item?.halfDay ?? item?.half_day ?? 0),
+                    onLeave: Number(item?.onLeave ?? item?.on_leave ?? 0),
+                    totalWorkHours: Number(item?.totalWorkHours ?? item?.total_work_hours ?? 0),
+                    averageWorkHours: Number(item?.averageWorkHours ?? item?.average_work_hours ?? 0),
+                    latestDate: String(item?.latestDate ?? item?.latest_date ?? ''),
+                }))
+                : [],
+            statusBreakdown: Array.isArray(payload?.statusBreakdown)
+                ? payload.statusBreakdown.map((item: any) => ({
+                    status: item?.status,
+                    label: String(item?.label ?? ''),
+                    count: Number(item?.count ?? 0),
+                    percent: Number(item?.percent ?? 0),
+                }))
+                : [],
+            departmentBreakdown: Array.isArray(payload?.departmentBreakdown)
+                ? payload.departmentBreakdown.map((item: any) => ({
+                    departmentId: item?.departmentId ?? item?.department_id ?? null,
+                    departmentName: String(item?.departmentName ?? item?.department_name ?? 'General'),
+                    count: Number(item?.count ?? 0),
+                    totalWorkHours: Number(item?.totalWorkHours ?? item?.total_work_hours ?? 0),
+                    present: Number(item?.present ?? 0),
+                    late: Number(item?.late ?? 0),
+                    halfDay: Number(item?.halfDay ?? item?.half_day ?? 0),
+                    onLeave: Number(item?.onLeave ?? item?.on_leave ?? 0),
+                    averageWorkHours: Number(item?.averageWorkHours ?? item?.average_work_hours ?? 0),
+                    percent: Number(item?.percent ?? 0),
+                }))
+                : [],
+            recentRecords: Array.isArray(payload?.recentRecords)
+                ? payload.recentRecords.map((record: any) => this.normalizeAttendanceRecord(record))
+                : [],
+        };
+    }
+
     getAttendanceHistory(filters?: AttendanceFilter): Observable<AttendanceRecord[]> {
         let params = new HttpParams();
 
@@ -260,6 +425,22 @@ export class AttendanceService {
 
         return this.http.get<any>(`${this.apiUrl}/attendance/history`, { params }).pipe(
             map((res) => res.data || res)
+        );
+    }
+
+    getAttendanceDashboard(filters?: AttendanceFilter): Observable<AttendanceDashboardResponse> {
+        let params = new HttpParams();
+
+        if (filters) {
+            if (filters.startDate) params = params.set('startDate', filters.startDate);
+            if (filters.endDate) params = params.set('endDate', filters.endDate);
+            if (filters.employeeId) params = params.set('employeeId', filters.employeeId.toString());
+            if (filters.departmentId) params = params.set('departmentId', filters.departmentId.toString());
+            if (filters.status) params = params.set('status', filters.status);
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/reports/attendance-dashboard`, { params }).pipe(
+            map((res) => this.normalizeDashboardResponse(res))
         );
     }
 

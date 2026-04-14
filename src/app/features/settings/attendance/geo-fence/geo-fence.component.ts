@@ -9,7 +9,7 @@ import { ToastService } from '../../../../core/services/toast.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-7xl space-y-6">
       <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#ecfeff_100%)] shadow-sm">
         <div class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8 lg:py-8">
           <div class="space-y-5">
@@ -145,6 +145,11 @@ import { ToastService } from '../../../../core/services/toast.service';
             </div>
           </div>
 
+          <div class="border-b border-slate-100 bg-slate-50/70 px-6 py-4 text-sm text-slate-600">
+            Geo-fence zones created here are reused for attendance validation and
+            employee geo assignment across the organization.
+          </div>
+
           <div class="divide-y divide-slate-100">
             @for (zone of filteredZones(); track zone.id) {
               <article class="flex flex-col gap-4 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
@@ -161,7 +166,19 @@ import { ToastService } from '../../../../core/services/toast.service';
                 </div>
               </article>
             } @empty {
-              <div class="px-6 py-14 text-center text-slate-500">No geo-fence zones found.</div>
+              <div class="px-6 py-16 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 21s7-4.35 7-11a7 7 0 1 0-14 0c0 6.65 7 11 7 11z" />
+                    <circle cx="12" cy="10" r="2.5" />
+                  </svg>
+                </div>
+                <p class="mt-4 text-base font-semibold text-slate-900">No geo-fence zones found</p>
+                <p class="mt-2 text-sm text-slate-500">
+                  Add the first approved site to start validating attendance
+                  punches against real location boundaries.
+                </p>
+              </div>
             }
           </div>
         </section>

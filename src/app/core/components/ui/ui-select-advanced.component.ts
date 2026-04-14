@@ -71,7 +71,7 @@ export interface SelectOption {
             [class.text-slate-400]="!selectedOption"
           >
             @if (selectedOption) {
-              {{ selectedOption?.label }}
+              {{ selectedOption.label }}
             } @else {
               {{ placeholder }}
             }

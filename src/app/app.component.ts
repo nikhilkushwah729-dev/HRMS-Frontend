@@ -8,6 +8,7 @@ import { ConfirmModalComponent } from './core/components/modal/confirm-modal.com
 import { TopLoaderComponent } from './core/components/top-loader/top-loader.component';
 import { TopLoaderService } from './core/services/top-loader.service';
 import { UserLimitService } from './core/services/user-limit.service';
+import { SubscriptionService } from './core/services/subscription.service';
 import { filter } from 'rxjs/operators';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { CommonModule, AsyncPipe } from '@angular/common';
@@ -35,12 +36,14 @@ import { CustomButtonComponent } from './core/components/button/custom-button.co
 export class AppComponent implements OnInit {
   public topLoaderService = inject(TopLoaderService);
   public userLimitService = inject(UserLimitService);
+  public subscriptionService = inject(SubscriptionService);
   private authService = inject(AuthService);
   private store = inject(Store);
   private router = inject(Router);
   
   title = 'HRNexus';
   showRefreshStrip = signal(false);
+  trialBannerMessage = signal('');
   loading$ = toObservable(this.topLoaderService.loadingSignal);
   
   isOnline = true;
@@ -60,6 +63,18 @@ export class AppComponent implements OnInit {
         next: (freshUser) => {
           this.authService.setStoredUser(freshUser);
           this.store.dispatch(AuthActions.restoreUser({ user: freshUser, token }));
+          this.subscriptionService.getStatus().subscribe({
+            next: (status) => {
+              if (status.organization.isTrialActive) {
+                this.trialBannerMessage.set(`Free trial active. ${status.trialDaysRemaining ?? 0} day(s) remaining.`);
+              } else if (status.organization.readOnlyMode) {
+                this.trialBannerMessage.set('Subscription expired. Workspace is currently in read-only mode until you upgrade.');
+              } else {
+                this.trialBannerMessage.set('');
+              }
+            },
+            error: () => this.trialBannerMessage.set(''),
+          });
         },
         error: (err) => {
           if (err?.status === 401 || err?.status === 404) {
@@ -103,6 +118,6 @@ export class AppComponent implements OnInit {
   }
 
   upgrade() {
-    this.userLimitService.upgrade();
+    this.router.navigateByUrl('/billing');
   }
 }

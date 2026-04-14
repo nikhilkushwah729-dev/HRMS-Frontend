@@ -9,14 +9,17 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import * as AuthActions from '../../core/state/auth/auth.actions';
 import { AuthService } from '../../core/services/auth.service';
 import { EmployeeService } from '../../core/services/employee.service';
+import { DocumentService } from '../../core/services/document.service';
 import { ToastService } from '../../core/services/toast.service';
 import { OrganizationService } from '../../core/services/organization.service';
 import { UiSelectAdvancedComponent } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
+import { compressImageDataUrl } from '../../core/utils/image-compression.util';
 
 @Component({
   selector: 'app-profile',
@@ -668,6 +671,13 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 </button>
                 <button
                   type="button"
+                  (click)="router.navigateByUrl('/self-service')"
+                  class="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Open ESS Center
+                </button>
+                <button
+                  type="button"
                   (click)="downloadIdCard()"
                   class="rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
@@ -756,7 +766,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               >
                 {{ tab.short }}
               </span>
-              <span class="flex-1">{{ tab.label }}</span>
+              <span class="flex-1 min-w-0">
+                <span class="block">{{ tab.label }}</span>
+                <span class="mt-0.5 block text-[11px] font-medium" [ngClass]="currentTab() === tab.id ? 'text-white/75' : 'text-slate-400'">{{ tab.description }}</span>
+              </span>
             </button>
           </div>
         </aside>
@@ -1455,10 +1468,12 @@ export class ProfileComponent implements OnInit {
 
   private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
+  private documentService = inject(DocumentService);
   private store = inject(Store);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
   private orgService = inject(OrganizationService);
+  protected router = inject(Router);
 
   user = signal<any>(null);
   loading = signal(true);
@@ -1535,13 +1550,13 @@ export class ProfileComponent implements OnInit {
   });
 
   tabs = [
-    { id: 'personal', label: 'Personal Information', short: 'PI' },
-    { id: 'employment', label: 'Employment Details', short: 'ED' },
-    { id: 'contact', label: 'Emergency Contact', short: 'EC' },
-    { id: 'security', label: 'Account & Security', short: 'AS' },
-    { id: 'bank', label: 'Bank & Payment', short: 'BP' },
-    { id: 'documents', label: 'Documents', short: 'DO' },
-    { id: 'experience', label: 'Experience & Education', short: 'EE' },
+    { id: 'personal', label: 'Personal Information', short: 'PI', description: 'Identity, contact, and basic personal data.' },
+    { id: 'employment', label: 'Employment Details', short: 'ED', description: 'Employee code, department, role, and org details.' },
+    { id: 'contact', label: 'Emergency Contact', short: 'EC', description: 'Primary emergency reach-out information.' },
+    { id: 'security', label: 'Account & Security', short: 'AS', description: 'Password, account status, and protected fields.' },
+    { id: 'bank', label: 'Bank & Payment', short: 'BP', description: 'Salary account, bank details, and payout data.' },
+    { id: 'documents', label: 'Documents', short: 'DO', description: 'Personal proofs, uploads, and stored records.' },
+    { id: 'experience', label: 'Experience & Education', short: 'EE', description: 'Career history, qualifications, and learning records.' },
   ];
 
   genderOptions: SelectOption[] = [
@@ -1823,16 +1838,11 @@ export class ProfileComponent implements OnInit {
     }
 
     this.saving.set(true);
-    // Note: In a real scenario, this would be a FormData upload.
-    // I'll simulate storing the metadata for now as per the API developed.
-    const payload = {
-      title: this.documentForm.get('title')?.value,
-      fileUuid: 'temp-uuid-' + Math.random().toString(36).substring(7), // Simulate upload storage
-      fileSizeKb: Math.round(this.selectedFile.size / 1024),
-      mimeType: this.selectedFile.type,
-    };
-
-    this.employeeService.uploadDocument(payload).subscribe({
+    this.documentService.uploadDocument(this.selectedFile, {
+      name: this.documentForm.get('title')?.value || this.selectedFile.name,
+      category: 'other',
+      description: '',
+    }).subscribe({
       next: () => {
         this.loadDynamicData();
         this.closeModals();
@@ -1979,9 +1989,9 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    const maxSizeBytes = 2 * 1024 * 1024;
+    const maxSizeBytes = 8 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      this.avatarError.set('Please upload an image smaller than 2 MB.');
+      this.avatarError.set('Please upload an image smaller than 8 MB.');
       input.value = '';
       return;
     }
@@ -2069,13 +2079,24 @@ export class ProfileComponent implements OnInit {
 
   applyCrop() {
     this.renderCropPreview(() => {
-      const finalImage = this.croppedPreview() || this.cropSource();
-      this.persistAvatarChange(
-        finalImage,
-        'Profile image updated successfully',
-        true,
-      );
+      void this.finalizeCroppedAvatar();
     });
+  }
+
+  private async finalizeCroppedAvatar() {
+    const finalImage = this.croppedPreview() || this.cropSource();
+    const compressed = await compressImageDataUrl(finalImage, {
+      maxWidth: 1024,
+      maxHeight: 1024,
+      quality: 0.82,
+      mimeType: 'image/webp',
+    });
+
+    this.persistAvatarChange(
+      compressed,
+      'Profile image updated successfully',
+      true,
+    );
   }
 
   private openCropModal(imageSource: string) {
