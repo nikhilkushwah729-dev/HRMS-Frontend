@@ -2,7 +2,10 @@
   "outputDirectory": "dist/hrms-frontend",
   "routes": [
     {
-      "src": "/(.*)",
+      "handle": "filesystem"
+    },
+    {
+      "src": "/.*",
       "dest": "/index.html"
     }
   ]
