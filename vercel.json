@@ -1,9 +1,9 @@
 {
-  "outputDirectory": "dist/hrms-frontend"
-}
-
-{
+  "outputDirectory": "dist/hrms-frontend",
   "routes": [
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
