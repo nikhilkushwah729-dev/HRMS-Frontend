@@ -10,6 +10,32 @@ const mysql = require('mysql2/promise');
 const path = require('path');
 const fs = require('fs');
 
+const envFilePath = path.join(__dirname, '.env');
+
+if (fs.existsSync(envFilePath)) {
+    const envLines = fs.readFileSync(envFilePath, 'utf8').split(/\r?\n/);
+
+    envLines.forEach((line) => {
+        const trimmedLine = line.trim();
+
+        if (!trimmedLine || trimmedLine.startsWith('#')) {
+            return;
+        }
+
+        const separatorIndex = trimmedLine.indexOf('=');
+        if (separatorIndex === -1) {
+            return;
+        }
+
+        const key = trimmedLine.slice(0, separatorIndex).trim();
+        const value = trimmedLine.slice(separatorIndex + 1).trim();
+
+        if (key && process.env[key] === undefined) {
+            process.env[key] = value;
+        }
+    });
+}
+
 // Face recognition imports
 let faceapi;
 let canvas;
@@ -22,6 +48,7 @@ try {
 
 const app = express();
 const PORT = process.env.PORT || 3334;
+const HOST = process.env.HOST || '127.0.0.1';
 
 // Middleware
 app.use(cors());
@@ -593,7 +620,7 @@ async function startServer() {
     await initDatabase();
     await loadModels();
     
-    app.listen(PORT, () => {
+    app.listen(PORT, HOST, () => {
         console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║     HRMS Face Recognition Server Running                   ║
