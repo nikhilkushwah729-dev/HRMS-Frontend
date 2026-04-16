@@ -1,4 +1,4 @@
-<div class="flex flex-col lg:flex-row min-h-[100dvh] lg:h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900">
+<div class="flex min-h-[100dvh] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.16),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(135deg,#0f172a_0%,#111827_55%,#0f172a_100%)] lg:flex-row">
   <!-- Left Banner Side - Hidden on mobile -->
   <div class="hidden lg:flex w-[45%] xl:w-[42%] bg-gradient-to-br from-slate-900 via-primary-900/60 to-slate-900 p-10 xl:p-14 flex-col justify-center relative overflow-hidden text-white flex-shrink-0">
     <div class="relative z-10 max-w-[440px]">
@@ -43,18 +43,37 @@
   </div>
 
   <!-- Right Form Side -->
-  <div class="flex-1 overflow-y-auto bg-slate-900">
-    <div class="flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 min-h-full">
+  <div class="flex-1 overflow-y-auto bg-transparent">
+    <div class="mx-auto flex min-h-full w-full max-w-[980px] flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
 
       <!-- Mobile Logo -->
-      <div class="lg:hidden flex items-center justify-center mb-8">
+      <div class="lg:hidden flex items-center justify-center mb-5">
         <div class="rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(99,102,241,0.25)]">
           <img src="hrnexus-logo.png" alt="HRNexus" class="h-14 w-auto object-contain">
         </div>
       </div>
 
-      <div class="w-full max-w-[460px]">
-        <div class="bg-slate-800/80 backdrop-blur-xl rounded-md shadow-2xl shadow-black/50 border border-slate-700 p-5 sm:p-6">
+      <div class="lg:hidden mb-5 w-full max-w-[560px] rounded-[28px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">Launch Workspace</p>
+        <h2 class="mt-2 text-2xl font-black tracking-tight">Create your organization from mobile, tablet, or desktop with the same polished flow</h2>
+        <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
+            <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Setup</p>
+            <p class="mt-1 text-xs font-semibold text-white">Organization</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
+            <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Access</p>
+            <p class="mt-1 text-xs font-semibold text-white">OAuth ready</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 px-2 py-3">
+            <p class="text-[9px] font-black uppercase tracking-[0.18em] text-slate-300">Trial</p>
+            <p class="mt-1 text-xs font-semibold text-white">Instant start</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-full max-w-[580px]">
+        <div class="rounded-[30px] border border-white/10 bg-slate-800/80 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-6">
           <div class="text-center mb-6">
             <div class="w-20 h-20 rounded-2xl overflow-hidden shadow-[0_0_24px_rgba(99,102,241,0.3)] mx-auto mb-4 border border-white/5">
               <img src="hrnexus-logo.png" alt="HRNexus" class="w-full h-full object-cover">
