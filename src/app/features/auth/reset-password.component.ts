@@ -9,7 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-<div class="flex min-h-[100dvh] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.16),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(135deg,#0f172a_0%,#111827_55%,#0f172a_100%)] lg:flex-row">
+<div class="flex h-[100dvh] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.16),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(135deg,#0f172a_0%,#111827_55%,#0f172a_100%)] lg:flex-row">
   <!-- Left Banner -->
   <div class="hidden lg:flex w-[45%] xl:w-[42%] bg-gradient-to-br from-slate-900 via-primary-900/60 to-slate-900 p-10 xl:p-14 flex-col justify-center relative overflow-hidden text-white flex-shrink-0">
     <div class="relative z-10 max-w-[440px]">
@@ -40,21 +40,18 @@ import { AuthService } from '../../core/services/auth.service';
 
   <!-- Right Form Side -->
   <div class="flex-1 overflow-y-auto bg-transparent">
-    <div class="mx-auto flex min-h-full w-full max-w-[860px] flex-col items-center justify-center p-4 sm:p-6 lg:p-10">
-
-      <!-- Mobile Logo -->
-      <div class="lg:hidden flex items-center justify-center gap-2 mb-5">
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 w-9 h-9 rounded-md flex items-center justify-center shadow-lg shadow-primary-500/30">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
-        </div>
-        <div class="leading-tight">
-          <div class="text-lg font-black text-white">HRNexus</div>
-          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">Technology</div>
-        </div>
-      </div>
+    <div class="mx-auto flex min-h-[100dvh] w-full max-w-[860px] flex-col items-center justify-center p-4 sm:p-6 lg:min-h-full lg:p-10">
 
       <div class="lg:hidden mb-5 w-full max-w-[480px] rounded-[28px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl">
-        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">Password Update</p>
+        <div class="flex items-center gap-3">
+          <div class="bg-gradient-to-br from-primary-500 to-primary-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
+            <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">Password Update</p>
+            <p class="mt-1 text-sm font-black tracking-tight text-white">HRNexus Security</p>
+          </div>
+        </div>
         <h2 class="mt-2 text-2xl font-black tracking-tight">Set a strong new password with the same premium experience on every screen size</h2>
       </div>
 

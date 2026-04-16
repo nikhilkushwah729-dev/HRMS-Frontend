@@ -11,9 +11,9 @@ import * as AuthActions from '../../../core/state/auth/auth.actions';
   imports: [CommonModule],
   template: `
     <div
-      class="min-h-[100dvh] w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.18),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(145deg,_#0f172a,_#111827_50%,_#082f49)] px-4 py-8"
+      class="h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.18),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(145deg,_#0f172a,_#111827_50%,_#082f49)] px-4 py-8"
     >
-      <div class="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[980px] items-center justify-center">
+      <div class="mx-auto flex min-h-full w-full max-w-[980px] items-center justify-center">
       <div
         class="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/10 p-6 text-center text-white shadow-[0_28px_90px_rgba(15,23,42,0.34)] backdrop-blur-xl sm:p-8"
       >
