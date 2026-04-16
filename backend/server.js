@@ -69,6 +69,100 @@ const dbConfig = {
 
 let pool;
 
+function normalizeDescriptorInput(value) {
+    if (!value) {
+        return null;
+    }
+
+    if (Array.isArray(value)) {
+        return value.map(Number);
+    }
+
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed.map(Number) : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    return null;
+}
+
+function averageDescriptors(descriptors) {
+    if (!Array.isArray(descriptors) || descriptors.length === 0) {
+        return null;
+    }
+
+    const parsedDescriptors = descriptors
+        .map(normalizeDescriptorInput)
+        .filter((descriptor) => Array.isArray(descriptor) && descriptor.length > 0);
+
+    if (parsedDescriptors.length === 0) {
+        return null;
+    }
+
+    const length = parsedDescriptors[0].length;
+    const sums = new Array(length).fill(0);
+
+    parsedDescriptors.forEach((descriptor) => {
+        for (let i = 0; i < length; i += 1) {
+            sums[i] += descriptor[i] || 0;
+        }
+    });
+
+    return sums.map((sum) => sum / parsedDescriptors.length);
+}
+
+function euclideanDistance(first, second) {
+    if (!Array.isArray(first) || !Array.isArray(second) || first.length !== second.length) {
+        return Number.POSITIVE_INFINITY;
+    }
+
+    let total = 0;
+    for (let i = 0; i < first.length; i += 1) {
+        const delta = (first[i] || 0) - (second[i] || 0);
+        total += delta * delta;
+    }
+
+    return Math.sqrt(total);
+}
+
+function ensureCanvasAvailable() {
+    return canvas && typeof canvas.loadImage === 'function' && typeof canvas.createCanvas === 'function';
+}
+
+async function descriptorFromImage(image) {
+    if (!image) {
+        throw new Error('Image is required');
+    }
+
+    if (!ensureCanvasAvailable()) {
+        throw new Error('Canvas dependency is not available on the server.');
+    }
+
+    const imageBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+    const img = await canvas.loadImage(imageBuffer);
+    const c = canvas.createCanvas(img.width, img.height);
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    if (faceApiLoaded && faceapi) {
+        const detections = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+        if (!detections) {
+            throw new Error('No face detected in the image. Please try again with a clear photo.');
+        }
+
+        return Array.from(detections.descriptor);
+    }
+
+    return [Math.random(), Math.random(), Math.random(), Math.random()];
+}
+
 // Initialize database connection
 async function initDatabase() {
     try {
@@ -130,7 +224,8 @@ async function loadModels() {
         }
 
         // Load face-api.js
-        const { faceapi } = await import('face-api.js');
+        const faceApiModule = await import('face-api.js');
+        faceapi = faceApiModule.faceapi || faceApiModule.default || faceApiModule;
         
         await faceapi.nets.tinyFaceDetector.loadFromDisk(MODELS_PATH);
         await faceapi.nets.faceLandmark68.loadFromDisk(MODELS_PATH);
@@ -155,47 +250,62 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+app.get('/api/face/status/:employeeId', async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        const [rows] = await pool.execute(
+            `SELECT employee_id FROM face_embeddings WHERE employee_id = ? AND is_active = 1 LIMIT 1`,
+            [employeeId]
+        );
+
+        res.json({
+            success: true,
+            registered: rows.length > 0,
+            data: {
+                registered: rows.length > 0
+            }
+        });
+    } catch (error) {
+        console.error('Face status error:', error);
+        res.status(500).json({
+            success: false,
+            registered: false,
+            message: 'Failed to get face registration status: ' + error.message
+        });
+    }
+});
+
 // Register face for an employee
 app.post('/api/face/register', async (req, res) => {
     try {
-        const { employee_id, org_id, image } = req.body;
+        const employeeId = req.body.employee_id || req.body.employeeId;
+        const orgId = req.body.org_id || req.body.orgId;
+        const image = req.body.image;
+        const embedding = req.body.embedding;
+        const embeddings = req.body.embeddings;
         
-        if (!employee_id || !image) {
+        if (!employeeId || (!image && !embedding && !embeddings)) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Employee ID and image are required' 
+                message: 'Employee ID and face data are required' 
             });
         }
 
-        // Convert base64 to buffer
-        const imageBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        
-        // Create canvas from buffer
-        const cv = canvas;
-        const img = await canvas.loadImage(imageBuffer);
-        const c = canvas.createCanvas(img.width, img.height);
-        const ctx = c.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        // Detect face and get descriptor
         let faceDescriptor;
-        
-        if (faceApiLoaded && faceapi) {
-            const detections = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-            
-            if (!detections) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'No face detected in the image. Please try again with a clear photo.' 
-                });
-            }
-            
-            faceDescriptor = Array.from(detections.descriptor);
+
+        if (embeddings) {
+            faceDescriptor = averageDescriptors(embeddings);
+        } else if (embedding) {
+            faceDescriptor = normalizeDescriptorInput(embedding);
         } else {
-            // Mock mode - store placeholder
-            faceDescriptor = [Math.random(), Math.random(), Math.random(), Math.random()];
+            faceDescriptor = await descriptorFromImage(image);
+        }
+
+        if (!Array.isArray(faceDescriptor) || faceDescriptor.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid face embedding could not be prepared'
+            });
         }
 
         // Store in database
@@ -208,16 +318,16 @@ app.post('/api/face/register', async (req, res) => {
                 face_descriptor = VALUES(face_descriptor),
                 updated_at = CURRENT_TIMESTAMP,
                 is_active = 1`,
-            [employee_id, org_id, descriptorJson]
+            [employeeId, orgId, descriptorJson]
         );
 
-        console.log(`✅ Face registered for employee ${employee_id}`);
+        console.log(`✅ Face registered for employee ${employeeId}`);
 
         res.json({
             success: true,
             message: 'Face registered successfully',
             data: {
-                employee_id,
+                employee_id: employeeId,
                 registered_at: new Date().toISOString()
             }
         });
@@ -234,19 +344,23 @@ app.post('/api/face/register', async (req, res) => {
 // Verify face and mark attendance
 app.post('/api/face/verify', async (req, res) => {
     try {
-        const { employee_id, org_id, image, action = 'check_in' } = req.body;
+        const employeeId = req.body.employee_id || req.body.employeeId;
+        const orgId = req.body.org_id || req.body.orgId;
+        const image = req.body.image;
+        const embedding = req.body.embedding;
+        const action = req.body.action || 'check_in';
         
-        if (!employee_id || !image) {
+        if (!employeeId || (!image && !embedding)) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Employee ID and image are required' 
+                message: 'Employee ID and face data are required' 
             });
         }
 
         // Get stored face descriptor
         const [rows] = await pool.execute(
             `SELECT * FROM face_embeddings WHERE employee_id = ? AND is_active = 1`,
-            [employee_id]
+            [employeeId]
         );
 
         if (rows.length === 0) {
@@ -257,55 +371,38 @@ app.post('/api/face/verify', async (req, res) => {
         }
 
         const storedDescriptor = JSON.parse(rows[0].face_descriptor);
-        
-        // Convert base64 to buffer
-        const imageBuffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-        
-        // Create canvas from buffer
-        const img = await canvas.loadImage(imageBuffer);
-        const c = canvas.createCanvas(img.width, img.height);
-        const ctx = c.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+        const incomingDescriptor = embedding
+            ? normalizeDescriptorInput(embedding)
+            : await descriptorFromImage(image);
 
         let matchScore = 0;
         let detected = false;
 
-        if (faceApiLoaded && faceapi) {
-            const detections = await faceapi.detectSingleFace(c, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks()
-                .withFaceDescriptor();
-            
-            if (!detections) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'No face detected in the image' 
-                });
-            }
+        if (!Array.isArray(incomingDescriptor) || incomingDescriptor.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid face embedding could not be prepared'
+            });
+        }
 
-            detected = true;
-            
-            // Calculate Euclidean distance
-            const distance = faceapi.euclideanDistance(detections.descriptor, storedDescriptor);
-            matchScore = Math.max(0, (1 - distance) * 100); // Convert to percentage
-            
-            // Threshold for matching (0.6 is typical threshold)
-            if (distance > 0.6) {
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'Face does not match registered face',
-                    matchScore: matchScore.toFixed(2)
-                });
-            }
-        } else {
-            // Mock mode - accept with random score
-            matchScore = 85 + Math.random() * 15;
-            detected = true;
+        detected = true;
+
+        const distance = euclideanDistance(incomingDescriptor, storedDescriptor);
+        matchScore = Math.max(0, (1 - distance) * 100);
+
+        if (distance > 0.6) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Face does not match registered face',
+                matchScore: matchScore.toFixed(2),
+                detected
+            });
         }
 
         // Get employee details
         const [employees] = await pool.execute(
             `SELECT id, first_name, last_name, email FROM employees WHERE id = ?`,
-            [employee_id]
+            [employeeId]
         );
 
         if (employees.length === 0) {
@@ -324,8 +421,8 @@ app.post('/api/face/verify', async (req, res) => {
         if (action === 'check_in') {
             // Check if already checked in
             const [existing] = await pool.execute(
-                `SELECT id FROM attendances WHERE employee_id = ? AND attendance_date = ? AND check_in IS NOT NULL`,
-                [employee_id, today]
+                `SELECT id, check_in FROM attendances WHERE employee_id = ? AND attendance_date = ? AND check_in IS NOT NULL`,
+                [employeeId, today]
             );
 
             if (existing.length > 0) {
@@ -341,14 +438,14 @@ app.post('/api/face/verify', async (req, res) => {
             await pool.execute(
                 `INSERT INTO attendances (employee_id, org_id, attendance_date, check_in, status, source, face_match_score, face_verified)
                  VALUES (?, ?, ?, NOW(), 'present', 'face', ?, 1)`,
-                [employee_id, org_id, today, matchScore / 100]
+                [employeeId, orgId, today, matchScore / 100]
             );
 
         } else if (action === 'check_out') {
             await pool.execute(
                 `UPDATE attendances SET check_out = NOW(), face_match_score = ? 
                  WHERE employee_id = ? AND attendance_date = ? AND check_out IS NULL`,
-                [matchScore / 100, employee_id, today]
+                [matchScore / 100, employeeId, today]
             );
         }
 
@@ -495,7 +592,7 @@ app.post('/api/face/detect', async (req, res) => {
 // Get all employees with registered faces
 app.get('/api/face/employees', async (req, res) => {
     try {
-        const { org_id } = req.query;
+        const orgId = req.query.org_id || req.query.orgId;
         
         let query = `
             SELECT fe.id, fe.employee_id, fe.org_id, fe.registered_at, fe.is_active,
@@ -506,9 +603,9 @@ app.get('/api/face/employees', async (req, res) => {
         `;
         
         const params = [];
-        if (org_id) {
+        if (orgId) {
             query += ' AND fe.org_id = ?';
-            params.push(org_id);
+            params.push(orgId);
         }
         
         query += ' ORDER BY fe.registered_at DESC';

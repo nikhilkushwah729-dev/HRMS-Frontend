@@ -1,9 +1,0 @@
-{
-  "outputDirectory": "dist/hrms-frontend",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
-}

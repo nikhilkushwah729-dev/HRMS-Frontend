@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hrms-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist/hrms-frontend/browser
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.1
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
