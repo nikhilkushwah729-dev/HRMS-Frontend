@@ -1,7 +1,8 @@
 declare global {
   interface Window {
     __HRMS_CONFIG__?: {
-apiUrl: 'https://hrms-backend-r5ed.onrender.com'    };
+      apiUrl: string;
+    };
   }
 }
 
@@ -11,7 +12,7 @@ export const environment = {
   production: true,
 
   // Runtime config (priority) → fallback to Render backend
-  apiUrl: runtimeApiUrl || 'https://hrms-backend-r5ed.onrender.com',
+  apiUrl: runtimeApiUrl || 'https://hrms-backend-r5ed.onrender.com/api',
 
   firebase: {
     apiKey: 'AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8',
