@@ -142,7 +142,10 @@ export class OAuthCallbackComponent implements OnInit {
         phone: employee.phone || '',
         avatar: employee.avatar,
         status: 'active' as const,
-        loginType: 'google' as const,
+        loginType:
+          employee.loginType === 'microsoft'
+            ? ('microsoft' as const)
+            : ('google' as const),
       };
 
       localStorage.setItem('hrms_auth_token', token);
@@ -154,8 +157,8 @@ export class OAuthCallbackComponent implements OnInit {
 
       this.message.set(
         isNew
-          ? 'Your account has been created successfully!'
-          : 'You have been logged in successfully!',
+          ? `Your ${user.loginType} account has been connected successfully!`
+          : `You have been logged in with ${user.loginType} successfully!`,
       );
 
       this.loading.set(false);
