@@ -1,8 +1,7 @@
 declare global {
   interface Window {
     __HRMS_CONFIG__?: {
-      apiUrl?: string;
-    };
+apiUrl: 'https://hrms-backend-r5ed.onrender.com'    };
   }
 }
 
