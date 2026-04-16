@@ -480,6 +480,13 @@ export class LoginComponent implements OnInit {
         }
 
         if (res?.requiresOtp || res?.requires2fa) {
+          if (res?.emailDelivered === false) {
+            this.error.set(
+              res?.message ||
+                'We could not deliver the OTP email. Please try again later or use Google/Microsoft login.',
+            );
+            return;
+          }
           const ref = res?.otpReference ?? '';
           if (!ref) {
             this.error.set(
@@ -645,6 +652,13 @@ export class LoginComponent implements OnInit {
     this.authService.requestEmailOtp(email).subscribe({
       next: (res: any) => {
         this.loading.set(false);
+        if (res?.emailDelivered === false) {
+          this.error.set(
+            res?.message ||
+              'We could not deliver the OTP email. Please try again later or use Google/Microsoft login.',
+          );
+          return;
+        }
         const ref = res?.otpReference ?? '';
         if (ref) this.otpReference = String(ref);
         this.info.set(res?.message || 'OTP resent.');
