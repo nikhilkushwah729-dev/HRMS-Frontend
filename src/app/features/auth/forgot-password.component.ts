@@ -9,7 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-<div class="flex flex-col lg:flex-row min-h-[100dvh] lg:h-[100dvh] w-full overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+<div class="flex min-h-[100dvh] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.16),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(135deg,#0f172a_0%,#111827_55%,#0f172a_100%)] lg:flex-row">
   <!-- Left Banner -->
   <div class="hidden lg:flex w-[45%] xl:w-[42%] bg-gradient-to-br from-slate-900 via-primary-900/60 to-slate-900 p-10 xl:p-14 flex-col justify-center relative overflow-hidden text-white flex-shrink-0">
     <div class="relative z-10 max-w-[440px]">
@@ -39,8 +39,8 @@ import { AuthService } from '../../core/services/auth.service';
   </div>
 
   <!-- Right Form Side -->
-  <div class="flex-1 overflow-y-auto bg-slate-900">
-    <div class="flex flex-col items-center justify-center p-4 sm:p-6 lg:p-10 min-h-full">
+  <div class="flex-1 overflow-y-auto bg-transparent">
+    <div class="mx-auto flex min-h-full w-full max-w-[860px] flex-col items-center justify-center p-4 sm:p-6 lg:p-10">
 
       <!-- Mobile Logo -->
       <div class="lg:hidden flex items-center justify-center gap-2 mb-5">
@@ -53,8 +53,13 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
       </div>
 
-      <div class="w-full max-w-[400px]">
-        <div class="bg-slate-800/80 backdrop-blur-xl rounded-md shadow-2xl shadow-black/50 border border-slate-700 p-6 sm:p-7">
+      <div class="lg:hidden mb-5 w-full max-w-[480px] rounded-[28px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">Recovery Flow</p>
+        <h2 class="mt-2 text-2xl font-black tracking-tight">Recover access with a clean, device-friendly reset experience</h2>
+      </div>
+
+      <div class="w-full max-w-[480px]">
+        <div class="rounded-[30px] border border-white/10 bg-slate-800/80 p-6 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-7">
           <div class="text-center mb-5">
             <div class="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center mx-auto mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

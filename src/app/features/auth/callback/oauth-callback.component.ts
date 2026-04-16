@@ -11,10 +11,11 @@ import * as AuthActions from '../../../core/state/auth/auth.actions';
   imports: [CommonModule],
   template: `
     <div
-      class="min-h-[100dvh] w-full overflow-x-hidden flex items-center justify-center bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.18),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(145deg,_#0f172a,_#111827_50%,_#082f49)] px-4"
+      class="min-h-[100dvh] w-full overflow-x-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.18),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(145deg,_#0f172a,_#111827_50%,_#082f49)] px-4 py-8"
     >
+      <div class="mx-auto flex min-h-[calc(100dvh-4rem)] w-full max-w-[980px] items-center justify-center">
       <div
-        class="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/10 p-8 text-center text-white shadow-[0_28px_90px_rgba(15,23,42,0.34)] backdrop-blur-xl"
+        class="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/10 p-6 text-center text-white shadow-[0_28px_90px_rgba(15,23,42,0.34)] backdrop-blur-xl sm:p-8"
       >
         <p
           class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-teal-100/80"
@@ -80,6 +81,7 @@ import * as AuthActions from '../../../core/state/auth/auth.actions';
           <h2 class="mb-2 text-3xl font-black text-white">Welcome back</h2>
           <p class="text-sm leading-7 text-slate-200">{{ message() }}</p>
         }
+      </div>
       </div>
     </div>
   `,
