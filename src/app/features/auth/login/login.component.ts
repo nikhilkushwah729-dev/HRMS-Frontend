@@ -480,14 +480,14 @@ export class LoginComponent implements OnInit {
         }
 
         if (res?.requiresOtp || res?.requires2fa) {
-          if (res?.emailDelivered === false) {
+          const ref = res?.otpReference ?? '';
+          if (res?.emailDelivered === false && !ref) {
             this.error.set(
               res?.message ||
                 'We could not deliver the OTP email. Please try again later or use Google/Microsoft login.',
             );
             return;
           }
-          const ref = res?.otpReference ?? '';
           if (!ref) {
             this.error.set(
               res?.message ||
@@ -498,7 +498,12 @@ export class LoginComponent implements OnInit {
           this.otpReference = String(ref);
           this.stage.set('otp');
           this.otpCode = '';
-          this.info.set(`Enter the OTP sent to ${email}.`);
+          this.info.set(
+            res?.emailDelivered === false
+              ? res?.message ||
+                  `OTP was generated for ${email}. Please check inbox and spam before trying again.`
+              : `Enter the OTP sent to ${email}.`,
+          );
           return;
         }
 
@@ -652,16 +657,21 @@ export class LoginComponent implements OnInit {
     this.authService.requestEmailOtp(email).subscribe({
       next: (res: any) => {
         this.loading.set(false);
-        if (res?.emailDelivered === false) {
+        const ref = res?.otpReference ?? '';
+        if (res?.emailDelivered === false && !ref) {
           this.error.set(
             res?.message ||
               'We could not deliver the OTP email. Please try again later or use Google/Microsoft login.',
           );
           return;
         }
-        const ref = res?.otpReference ?? '';
         if (ref) this.otpReference = String(ref);
-        this.info.set(res?.message || 'OTP resent.');
+        this.info.set(
+          res?.emailDelivered === false
+            ? res?.message ||
+                'A fresh OTP was generated. Please check inbox and spam folders.'
+            : res?.message || 'OTP resent.',
+        );
       },
       error: (err) => {
         this.loading.set(false);
