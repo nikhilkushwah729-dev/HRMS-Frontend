@@ -175,15 +175,54 @@ export class AuthService {
             employee: data?.employee ?? root?.employee,
             account: data?.account ?? root?.account
         }) ?? this.extractUser(root) ?? this.extractUser(data);
+        const normalizeBoolean = (value: any): boolean | undefined => {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value !== 0;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes', 'sent', 'delivered'].includes(normalized)) return true;
+                if (['false', '0', 'no', 'failed', 'not_sent', 'undelivered'].includes(normalized)) return false;
+            }
+            return undefined;
+        };
+        const otpReference =
+            root?.otpReference ??
+            data?.otpReference ??
+            root?.otp_reference ??
+            data?.otp_reference ??
+            root?.reference ??
+            data?.reference ??
+            root?.otpId ??
+            data?.otpId;
+        const emailDelivered = normalizeBoolean(
+            root?.emailDelivered ??
+            data?.emailDelivered ??
+            root?.email_delivered ??
+            data?.email_delivered ??
+            root?.delivered ??
+            data?.delivered
+        );
+        const requiresOtp = normalizeBoolean(
+            root?.requiresOtp ??
+            data?.requiresOtp ??
+            root?.requires_otp ??
+            data?.requires_otp
+        );
+        const requires2fa = normalizeBoolean(
+            root?.requires2fa ??
+            data?.requires2fa ??
+            root?.requires_2fa ??
+            data?.requires_2fa
+        );
 
         return {
             ...root,
             token,
             user,
-            requiresOtp: Boolean(root?.requiresOtp ?? data?.requiresOtp),
-            requires2fa: Boolean(root?.requires2fa ?? data?.requires2fa),
-            otpReference: root?.otpReference ?? data?.otpReference,
-            emailDelivered: root?.emailDelivered ?? data?.emailDelivered,
+            requiresOtp: requiresOtp ?? false,
+            requires2fa: requires2fa ?? false,
+            otpReference,
+            emailDelivered,
             message: root?.message ?? data?.message
         };
     }
@@ -404,6 +443,7 @@ export class AuthService {
      */
     requestEmailOtp(email: string): Observable<{ otpReference: string; message: string }> {
         return this.http.post<any>(`${this.apiUrl}/auth/request-email-otp`, { email }).pipe(
+            map(res => this.normalizeAuthResponse(res) as any),
             tap(() => {
                 this.auditLogService.logAction(
                     AuditAction.OTP_REQUESTED,
@@ -422,6 +462,7 @@ export class AuthService {
      */
     requestEmailVerificationOtp(email: string): Observable<{ otpReference: number; emailDelivered: boolean; message: string }> {
         return this.http.post<any>(`${this.apiUrl}/auth/request-email-otp`, { email }).pipe(
+            map(res => this.normalizeAuthResponse(res) as any),
             tap(() => {
                 this.auditLogService.logAction(
                     AuditAction.OTP_REQUESTED,
