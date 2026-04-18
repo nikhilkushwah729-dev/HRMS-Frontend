@@ -3,35 +3,40 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { AuthService } from '../../../core/services/auth.service';
+import { LanguageService } from '../../../core/services/language.service';
 import * as AuthActions from '../../../core/state/auth/auth.actions';
+import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.component';
 
 @Component({
   selector: 'app-oauth-callback',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AuthLanguageSwitcherComponent],
   template: `
     <div
       class="h-[100dvh] w-full overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.18),_transparent_24%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_26%),linear-gradient(145deg,_#0f172a,_#111827_50%,_#082f49)] px-4 py-8"
     >
       <div class="mx-auto flex min-h-full w-full max-w-[980px] items-center justify-center">
+      <div class="w-full max-w-xl">
+      <div class="mb-4">
+        <app-auth-language-switcher />
+      </div>
       <div
         class="w-full max-w-xl rounded-[2rem] border border-white/10 bg-white/10 p-6 text-center text-white shadow-[0_28px_90px_rgba(15,23,42,0.34)] backdrop-blur-xl sm:p-8"
       >
         <p
           class="mb-4 text-xs font-bold uppercase tracking-[0.28em] text-teal-100/80"
         >
-          OAuth Sign In
+          {{ t('auth.oauth.kicker') }}
         </p>
         @if (loading()) {
           <div
             class="mx-auto mb-5 h-14 w-14 animate-spin rounded-full border-4 border-white/20 border-t-amber-200"
           ></div>
           <h2 class="mb-2 text-3xl font-black text-white">
-            Completing authentication
+            {{ t('auth.oauth.loadingTitle') }}
           </h2>
           <p class="text-sm leading-7 text-slate-200">
-            We are validating your provider response, restoring your account
-            session, and preparing the right workspace access.
+            {{ t('auth.oauth.loadingBody') }}
           </p>
         } @else if (error()) {
           <div
@@ -52,14 +57,14 @@ import * as AuthActions from '../../../core/state/auth/auth.actions';
             </svg>
           </div>
           <h2 class="mb-2 text-3xl font-black text-white">
-            Authentication failed
+            {{ t('auth.oauth.failedTitle') }}
           </h2>
           <p class="mb-6 text-sm leading-7 text-slate-200">{{ error() }}</p>
           <a
             href="/auth/login"
             class="inline-flex items-center justify-center rounded-md bg-gradient-to-r from-amber-300 via-amber-200 to-teal-200 px-6 py-3 text-sm font-bold text-slate-900 transition hover:brightness-105"
           >
-            Back to Login
+            {{ t('auth.oauth.backToLogin') }}
           </a>
         } @else {
           <div
@@ -78,9 +83,10 @@ import * as AuthActions from '../../../core/state/auth/auth.actions';
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           </div>
-          <h2 class="mb-2 text-3xl font-black text-white">Welcome back</h2>
+          <h2 class="mb-2 text-3xl font-black text-white">{{ t('auth.oauth.successTitle') }}</h2>
           <p class="text-sm leading-7 text-slate-200">{{ message() }}</p>
         }
+      </div>
       </div>
       </div>
     </div>
@@ -91,6 +97,7 @@ export class OAuthCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private authService = inject(AuthService);
   private store = inject(Store);
+  private languageService = inject(LanguageService);
 
   loading = signal(true);
   error = signal('');
@@ -121,7 +128,7 @@ export class OAuthCallbackComponent implements OnInit {
         }
       } else {
         this.loading.set(false);
-        this.error.set(message || 'Authentication failed. Please try again.');
+        this.error.set(message || this.t('auth.oauth.failedDefault'));
       }
     });
   }
@@ -159,8 +166,8 @@ export class OAuthCallbackComponent implements OnInit {
 
       this.message.set(
         isNew
-          ? `Your ${user.loginType} account has been connected successfully!`
-          : `You have been logged in with ${user.loginType} successfully!`,
+          ? this.t('auth.oauth.connected', { provider: user.loginType })
+          : this.t('auth.oauth.loggedIn', { provider: user.loginType }),
       );
 
       this.loading.set(false);
@@ -209,17 +216,17 @@ export class OAuthCallbackComponent implements OnInit {
         const token = localStorage.getItem('hrms_auth_token');
         if (token && user) {
           this.store.dispatch(AuthActions.loginSuccess({ user, token }));
-          this.message.set('You have been logged in successfully!');
+          this.message.set(this.t('auth.oauth.loggedIn', { provider: 'OAuth' }));
           setTimeout(() => {
             this.router.navigate(['/dashboard']);
           }, 1500);
         } else {
-          this.error.set('Authentication data not found. Please login again.');
+          this.error.set(this.t('auth.oauth.dataMissing'));
         }
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Failed to complete authentication. Please try again.');
+        this.error.set(this.t('auth.oauth.failedDefault'));
         this.loading.set(false);
       },
     });
@@ -235,5 +242,9 @@ export class OAuthCallbackComponent implements OnInit {
       },
       error: () => {},
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 }

@@ -8,6 +8,7 @@ import {
 } from '../../core/services/subscription.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ActivatedRoute, Router } from '@angular/router';
+import { LanguageService } from '../../core/services/language.service';
 
 type BillingCycle = 'monthly' | 'yearly';
 type BillingGateway = 'razorpay' | 'stripe';
@@ -24,11 +25,11 @@ type CheckoutStage = 'select' | 'review' | 'pay';
           <div class="space-y-5">
             <div class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
               <span class="h-2 w-2 rounded-full bg-cyan-500"></span>
-              SaaS Billing
+              {{ t('billing.saasBilling') }}
             </div>
             <div>
-              <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">Plans, trial status, and purchase workflows</h1>
-              <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">This workspace now supports both the internal SaaS subscription flow and your real buy/upgrade payment scenario with addon selection, state list, and invoice generation.</p>
+              <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{{ t('billing.title') }}</h1>
+              <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{{ t('billing.subtitle') }}</p>
             </div>
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm" *ngFor="let card of stats()">
@@ -40,12 +41,12 @@ type CheckoutStage = 'select' | 'review' | 'pay';
           </div>
           <div class="space-y-4 rounded-md border border-slate-200 bg-white/90 p-5 shadow-sm">
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Current workspace</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('billing.currentWorkspace') }}</p>
               <h2 class="mt-2 text-xl font-black text-slate-900">{{ currentWorkspacePlanName() }}</h2>
-              <p class="mt-2 text-sm text-slate-500">{{ status()?.organization?.companyName || legacyContext()?.existingPlan?.orgName || 'Organization' }}</p>
+              <p class="mt-2 text-sm text-slate-500">{{ status()?.organization?.companyName || legacyContext()?.existingPlan?.orgName || t('billing.organization') }}</p>
             </div>
             <div class="rounded-md border px-4 py-4" [ngClass]="bannerTone()">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em]">Subscription state</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.18em]">{{ t('billing.subscriptionState') }}</p>
               <p class="mt-2 text-lg font-black">{{ humanStatus() }}</p>
               <p class="mt-2 text-sm">{{ statusNote() }}</p>
             </div>
@@ -60,21 +61,21 @@ type CheckoutStage = 'select' | 'review' | 'pay';
       <section class="rounded-md border border-slate-200 bg-white px-4 py-4 shadow-sm">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Upgrade Journey</p>
-            <h2 class="mt-1 text-lg font-black text-slate-900">Follow the same guided flow as the reference upgrade experience</h2>
+            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('billing.upgradeJourney') }}</p>
+            <h2 class="mt-1 text-lg font-black text-slate-900">{{ t('billing.upgradeJourneySubtitle') }}</h2>
           </div>
           <div class="grid gap-3 sm:grid-cols-3">
             <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'select' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'">
               <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 1</p>
-              <p class="mt-1 text-sm font-semibold">Select Plan</p>
+              <p class="mt-1 text-sm font-semibold">{{ t('billing.selectPlan') }}</p>
             </div>
             <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'review' ? 'border-cyan-600 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-slate-50 text-slate-600'">
               <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 2</p>
-              <p class="mt-1 text-sm font-semibold">Review Checkout</p>
+              <p class="mt-1 text-sm font-semibold">{{ t('billing.reviewCheckout') }}</p>
             </div>
             <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'pay' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'">
               <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 3</p>
-              <p class="mt-1 text-sm font-semibold">Pay & Activate</p>
+              <p class="mt-1 text-sm font-semibold">{{ t('billing.payActivate') }}</p>
             </div>
           </div>
         </div>
@@ -688,6 +689,7 @@ export class BillingComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly languageService = inject(LanguageService);
 
   plans = signal<BillingPlan[]>([]);
   status = signal<SubscriptionStatusPayload | null>(null);
@@ -1010,7 +1012,7 @@ export class BillingComponent implements OnInit {
   startLegacyPurchase(): void {
     const context = this.legacyContext();
     if (!context) {
-      this.toastService.error('Legacy billing context is not available.');
+      this.toastService.error(this.t('billing.legacyContextMissing'));
       return;
     }
     if (!this.contactName().trim()) {
@@ -1045,11 +1047,11 @@ export class BillingComponent implements OnInit {
           this.launchLegacyRazorpay(result);
           return;
         }
-        this.toastService.success(result.message || 'Legacy payment started successfully.');
+        this.toastService.success(result.message || this.t('billing.legacyPaymentStarted'));
         this.processing.set(false);
       },
       error: (error) => {
-        this.toastService.error(error?.error?.message || 'Unable to start legacy payment flow.');
+        this.toastService.error(error?.error?.message || this.t('billing.legacyPaymentStartFailed'));
         this.processing.set(false);
       },
     });
@@ -1077,14 +1079,14 @@ export class BillingComponent implements OnInit {
     }).subscribe({
       next: (result) => {
         this.generatedInvoice.set(result.invoice);
-        this.toastService.success('Legacy successPayment and invoice flow completed.');
+        this.toastService.success(this.t('billing.legacyConfirmed'));
         this.pendingLegacyPaymentRecordId.set(null);
         this.pendingLegacyOrderId.set('');
         this.processing.set(false);
         this.loadAll();
       },
       error: (error) => {
-        this.toastService.error(error?.error?.message || 'Unable to confirm legacy payment.');
+        this.toastService.error(error?.error?.message || this.t('billing.legacyConfirmFailed'));
         this.processing.set(false);
       },
     });
@@ -1118,7 +1120,7 @@ export class BillingComponent implements OnInit {
               this.loadAll();
             },
             error: () => {
-              this.toastService.error('Payment verification failed.');
+              this.toastService.error(this.t('billing.paymentVerificationFailed'));
               this.processing.set(false);
               this.activePlanActionId.set(null);
               this.checkoutStage.set('review');
@@ -1138,7 +1140,7 @@ export class BillingComponent implements OnInit {
         this.checkoutStage.set('review');
       },
       error: (error) => {
-        this.toastService.error(error?.error?.message || 'Unable to start upgrade flow right now.');
+        this.toastService.error(error?.error?.message || this.t('billing.upgradeStartFailed'));
         this.processing.set(false);
         this.activePlanActionId.set(null);
         this.checkoutStage.set('review');
@@ -1148,9 +1150,14 @@ export class BillingComponent implements OnInit {
 
   currentWorkspacePlanName(): string {
     if (this.status()?.plan?.name) return this.status()!.plan!.name;
-    if (this.legacyContext()?.existingPlan?.planStatus === 0) return 'Trial Plan';
-    if (this.legacyContext()?.existingPlan?.planStatus === 1) return 'Active Plan';
+    if (this.legacyContext()?.existingPlan?.planStatus === 0) return this.t('billing.trialPlan');
+    if (this.legacyContext()?.existingPlan?.planStatus === 1) return this.t('billing.activePlan');
     return 'No active plan';
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   printInvoice(): void {

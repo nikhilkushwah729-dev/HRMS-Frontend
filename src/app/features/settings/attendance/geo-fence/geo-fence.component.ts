@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AttendanceService, GeoFenceSettings, GeoFenceZone } from '../../../../core/services/attendance.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 @Component({
   selector: 'app-geo-fence',
@@ -30,12 +31,12 @@ import { ToastService } from '../../../../core/services/toast.service';
               </div>
               <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Enforcement</p>
-                <p class="mt-2 text-lg font-black text-slate-900">{{ settings().geofence_enabled ? 'Enabled' : 'Disabled' }}</p>
+                <p class="mt-2 text-lg font-black text-slate-900">{{ settings().geofence_enabled ? t('common.enabled') : t('common.disabled') }}</p>
                 <p class="mt-1 text-xs text-slate-500">Attendance restriction status</p>
               </div>
               <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Mode</p>
-                <p class="mt-2 text-lg font-black text-slate-900">{{ editingId() ? 'Edit Zone' : 'Create Zone' }}</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('common.mode') }}</p>
+                <p class="mt-2 text-lg font-black text-slate-900">{{ editingId() ? t('common.edit') : t('common.create') }} Zone</p>
                 <p class="mt-1 text-xs text-slate-500">Manage office boundary</p>
               </div>
             </div>
@@ -48,12 +49,12 @@ import { ToastService } from '../../../../core/services/toast.service';
                 <h2 class="mt-1 text-lg font-black text-slate-900">Find protected sites</h2>
               </div>
               <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-white">
-                Reset Form
+                {{ t('common.reset') }}
               </button>
             </div>
 
             <div class="mt-4 space-y-3">
-              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Search zones</label>
+              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.searchZones') }}</label>
               <div class="relative">
                 <input [value]="searchQuery()" (input)="updateSearch($event)" class="w-full rounded-md border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-700 outline-none transition-all focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-200/60" placeholder="Search by zone name">
                 <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -156,13 +157,13 @@ import { ToastService } from '../../../../core/services/toast.service';
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-3">
                     <p class="break-words text-lg font-black text-slate-900">{{ zone.name }}</p>
-                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [ngClass]="zone.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">{{ zone.is_active ? 'Active' : 'Inactive' }}</span>
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold" [ngClass]="zone.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">{{ zone.is_active ? t('common.active') : t('common.inactive') }}</span>
                   </div>
                   <p class="mt-2 break-words text-sm leading-6 text-slate-600">{{ zone.center_lat | number:'1.4-4' }}, {{ zone.center_lng | number:'1.4-4' }} | Radius {{ zone.radius_meters }} meters</p>
                 </div>
                 <div class="flex flex-col gap-3 sm:flex-row">
-                  <button type="button" (click)="editZone(zone)" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
-                  <button type="button" (click)="deleteZone(zone.id)" class="rounded-md border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Delete</button>
+                  <button type="button" (click)="editZone(zone)" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
+                  <button type="button" (click)="deleteZone(zone.id)" class="rounded-md border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
                 </div>
               </article>
             } @empty {
@@ -173,7 +174,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                     <circle cx="12" cy="10" r="2.5" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No geo-fence zones found</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">
                   Add the first approved site to start validating attendance
                   punches against real location boundaries.
@@ -190,6 +191,7 @@ export class GeoFenceComponent implements OnInit {
   private fb = inject(FormBuilder);
   private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
+  private languageService = inject(LanguageService);
 
   zones = signal<GeoFenceZone[]>([]);
   settings = signal<GeoFenceSettings>({
@@ -318,5 +320,10 @@ export class GeoFenceComponent implements OnInit {
       longitude: 77.2090,
       radius_meters: 150
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

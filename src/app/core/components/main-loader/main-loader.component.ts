@@ -1,5 +1,6 @@
-import { Component, Input } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-main-loader',
@@ -33,7 +34,7 @@ import { CommonModule } from '@angular/common';
           <div class="w-1.5 h-full rounded-full bg-primary-500/30 animate-loader-bar-5"></div>
         </div>
         
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] translate-x-1">Initializing Experience</p>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] translate-x-1">{{ t('common.initializingExperience') }}</p>
       </div>
     </div>
   `,
@@ -64,4 +65,11 @@ import { CommonModule } from '@angular/common';
     }
   `]
 })
-export class MainLoaderComponent {}
+export class MainLoaderComponent {
+  private readonly languageService = inject(LanguageService);
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
+  }
+}

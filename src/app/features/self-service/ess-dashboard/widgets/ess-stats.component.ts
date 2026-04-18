@@ -19,7 +19,7 @@ export interface InsightCard {
       @for (stat of stats(); track stat.label) {
         <div class="app-surface-card group relative flex h-full flex-col items-start overflow-hidden p-6 transition-all hover:-translate-y-1 hover:shadow-lg" [ngClass]="stat.tone">
           <!-- Floating Icon Context -->
-          <div class="absolute top-5 right-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/60 transition-colors duration-500 group-hover:scale-105 text-slate-800">
+          <div class="absolute top-5 right-5 flex h-12 w-12 items-center justify-center rounded-md bg-white shadow-sm ring-1 ring-slate-200/60 transition-colors duration-500 group-hover:scale-105 text-slate-800">
              <div class="h-6 w-6" [innerHTML]="sanitizeIcon(stat.icon)"></div>
           </div>
 

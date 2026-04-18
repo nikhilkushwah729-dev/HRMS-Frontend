@@ -524,10 +524,16 @@ export class PermissionService {
     return null;
   }
 
+  private isSuperAdmin(user: User | null | undefined): boolean {
+    return this.resolveRoleId(user) === 1;
+  }
+
   hasPermission(
     user: User | null | undefined,
     permission: PermissionKey,
   ): boolean {
+    if (this.isSuperAdmin(user)) return true;
+
     const explicitUserPermissions = Array.isArray((user as any)?.permissions)
       ? ((user as any).permissions as string[])
       : []
@@ -551,6 +557,8 @@ export class PermissionService {
   }
 
   canAccessRoute(user: User | null | undefined, route: string): boolean {
+    if (this.isSuperAdmin(user)) return true;
+
     const requirement = this.getRouteRequirement(route);
     if (!requirement) return true;
 
@@ -754,6 +762,10 @@ export class PermissionService {
         module: 'settings',
       },
     ];
+
+    if (this.isSuperAdmin(user)) {
+      return allModules;
+    }
 
     return allModules.filter((module) => this.canAccessRoute(user, module.route));
   }

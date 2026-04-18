@@ -23,6 +23,7 @@ import {
   UiSelectAdvancedComponent,
 } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-edit-employee',
@@ -34,14 +35,14 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
     UiSelectAdvancedComponent,
   ],
   template: `
-    <div class="mx-auto max-w-6xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-6xl space-y-5 px-1 py-2 sm:space-y-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef6ff_100%)] shadow-sm"
       >
         <div
           class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8"
         >
-          <div class="space-y-5">
+          <div class="min-w-0 space-y-5">
             <div
               class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
             >
@@ -85,7 +86,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
         (ngSubmit)="onSubmit()"
         class="space-y-6"
       >
-        <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
           <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
               <p
@@ -195,7 +196,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             </div>
           </section>
 
-          <section class="space-y-6">
+          <section class="space-y-5 sm:space-y-6">
             <div class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p
@@ -392,6 +393,7 @@ export class EditEmployeeComponent implements OnInit {
   private toastService = inject(ToastService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private languageService = inject(LanguageService);
 
   loading = false;
   employeeId = 0;
@@ -451,7 +453,7 @@ export class EditEmployeeComponent implements OnInit {
   ngOnInit() {
     this.employeeId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.employeeId) {
-      this.toastService.error('Invalid employee ID');
+      this.toastService.error(this.t('employee.invalidEmployeeId'));
       this.router.navigate(['/employees']);
       return;
     }
@@ -496,7 +498,7 @@ export class EditEmployeeComponent implements OnInit {
       },
       error: (err) => {
         this.toastService.error(
-          err?.error?.message || 'Failed to load employee',
+          err?.error?.message || this.t('employee.failedToLoad'),
         );
         this.router.navigate(['/employees']);
       },
@@ -533,19 +535,19 @@ export class EditEmployeeComponent implements OnInit {
           });
           this.toastService.success(
             newValue
-              ? 'Geofence requirement enabled'
-              : 'Geofence requirement disabled',
+              ? this.t('employee.geofenceEnabled')
+              : this.t('employee.geofenceDisabled'),
           );
         },
         error: () => {
-          this.toastService.error('Failed to update geofence settings');
+          this.toastService.error(this.t('employee.geofenceUpdateFailed'));
         },
       });
   }
 
   onSubmit() {
     if (this.employeeForm.invalid) {
-      this.toastService.error('Please fill all required fields correctly.');
+      this.toastService.error(this.t('employee.validationError'));
       return;
     }
 
@@ -586,6 +588,11 @@ export class EditEmployeeComponent implements OnInit {
         this.toastService.error(msg);
       },
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   goBack() {

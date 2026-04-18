@@ -19,6 +19,7 @@ import {
 import { User } from '../../core/models/auth.model';
 import { WorkspaceCatalogService } from '../../core/access/workspace-catalog.service';
 import { WorkspaceModuleView } from '../../core/access/access.models';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -80,7 +81,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
                 @if (hasOrgLogo()) {
                   <img
                     [src]="orgLogo()"
-                    [alt]="orgName() || 'Organization Logo'"
+                    [alt]="orgName() || t('common.organizationLogo')"
                     class="w-full h-full object-cover"
                     (error)="onOrgLogoError()"
                   />
@@ -95,7 +96,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               <p
                 class="text-[9px] font-extrabold text-emerald-500/80 uppercase tracking-[0.2em] mb-1"
               >
-                Active Space
+                {{ t('sidebar.activeSpace') }}
               </p>
               @if (isOrgLoading()) {
                 <div
@@ -104,9 +105,9 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               } @else {
                 <h2
                   class="text-base font-black text-white truncate leading-tight tracking-tight"
-                  title="{{ orgName() || 'Enterprise' }}"
+                  title="{{ orgName() || t('common.enterprise') }}"
                 >
-                  {{ orgName() || 'Enterprise' }}
+                  {{ orgName() || t('common.enterprise') }}
                 </h2>
               }
             </div>
@@ -128,7 +129,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
             </div>
             <div class="flex items-center gap-2">
               <span class="rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300 border border-emerald-500/20">
-                {{ activeModuleCount() }} active
+                {{ activeModuleCount() }} {{ t('common.active') }}
               </span>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -150,7 +151,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
           <div class="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
             <div class="min-w-0">
               <p class="text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">
-                Billing Pulse
+                {{ t('sidebar.billingPulse') }}
               </p>
               <p class="mt-1 truncate text-[11px] font-semibold text-slate-200">
                 {{ subscriptionHelperText() }}
@@ -161,7 +162,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               (click)="closeOnMobile()"
               class="shrink-0 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-200 transition hover:bg-cyan-500/20"
             >
-              Billing
+              {{ t('common.billing') }}
             </a>
           </div>
         </div>
@@ -186,7 +187,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               <span class="app-nav-section-title">{{ mainSectionLabel() }}</span>
               <span
                 class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-[8px] font-black text-indigo-400 border border-indigo-500/20 uppercase tracking-tighter"
-                >Portal</span
+                >{{ t('common.portal') }}</span
               >
             </div>
             <div
@@ -224,7 +225,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
                     <span
                       class="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] border-rose-200 bg-rose-50 text-rose-700"
                     >
-                      Locked
+                      {{ t('common.locked') }}
                     </span>
                   </button>
                 } @else {
@@ -267,7 +268,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               <span class="app-nav-section-title">{{ peopleSectionLabel() }}</span>
               <span
                 class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-sky-500/10 text-[8px] font-black text-sky-300 border border-sky-500/20 uppercase tracking-tighter"
-                >Directory</span
+                >{{ t('common.directory') }}</span
               >
             </div>
             <div
@@ -303,7 +304,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
                       <span>{{ link.label }}</span>
                     </span>
                     <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                      Lock
+                      {{ t('common.locked') }}
                     </span>
                   </button>
                 } @else {
@@ -339,7 +340,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
               <span class="app-nav-section-title">{{ systemSectionLabel() }}</span>
               <span
                 class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-violet-500/10 text-[8px] font-black text-violet-300 border border-violet-500/20 uppercase tracking-tighter"
-                >Admin</span
+                >{{ t('common.admin') }}</span
               >
             </div>
             <div
@@ -375,7 +376,7 @@ import { WorkspaceModuleView } from '../../core/access/access.models';
                       <span>{{ link.label }}</span>
                     </span>
                     <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                      Lock
+                      {{ t('common.locked') }}
                     </span>
                   </button>
                 } @else {
@@ -565,6 +566,7 @@ export class SidebarComponent implements OnInit {
   private router = inject(Router);
   private toastService = inject(ToastService);
   private subscriptionService = inject(SubscriptionService);
+  private languageService = inject(LanguageService);
   currentUser = signal<User | null>(null);
   orgName = signal<string>('');
   orgLogo = signal<string>('');
@@ -648,8 +650,8 @@ export class SidebarComponent implements OnInit {
   }
 
   moduleStateLabel(slug?: string): string {
-    if (!slug) return 'Core';
-    return this.isModuleEnabled(slug) ? 'On' : 'Locked';
+    if (!slug) return this.t('common.core');
+    return this.isModuleEnabled(slug) ? this.t('common.on') : this.t('common.locked');
   }
 
   activeModuleCount(): number {
@@ -658,13 +660,16 @@ export class SidebarComponent implements OnInit {
 
   subscriptionBadgeLabel(): string {
     const status = this.subscriptionStatus();
-    if (!status) return 'Subscription';
-    if (status.organization.readOnlyMode) return 'Read Only';
+    if (!status) return this.t('sidebar.subscription');
+    if (status.organization.readOnlyMode) return this.t('sidebar.readOnly');
     if (status.organization.isTrialActive) {
       const days = Math.max(0, status.trialDaysRemaining ?? 0);
-      return `Trial ${days} Day${days === 1 ? '' : 's'}`;
+      return this.t('sidebar.trialPlan', {
+        days,
+        suffix: days === 1 ? '' : 's',
+      });
     }
-    return status.plan?.name || 'Premium Plan';
+    return status.plan?.name || this.t('sidebar.premiumPlan');
   }
 
   subscriptionHelperText(): string {
@@ -730,26 +735,26 @@ export class SidebarComponent implements OnInit {
   }
 
   mainSectionLabel(): string {
-    return 'Self Service';
+    return this.t('sidebar.selfService');
   }
 
   peopleSectionLabel(): string {
-    if (this.isAdminRole()) return 'Organization';
-    if (this.isManagerRole()) return 'Team';
-    return 'People';
+    if (this.isAdminRole()) return this.t('sidebar.organization');
+    if (this.isManagerRole()) return this.t('sidebar.team');
+    return this.t('sidebar.people');
   }
 
   systemSectionLabel(): string {
-    return 'Configuration';
+    return this.t('sidebar.configuration');
   }
 
   userName(): string {
     const user = this.currentUser() ?? this.authService.getStoredUser();
-    if (!user) return 'Workspace User';
+    if (!user) return this.t('common.workspaceUser');
     return (
       `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
       user.email ||
-      'Workspace User'
+      this.t('common.workspaceUser')
     );
   }
 
@@ -758,17 +763,17 @@ export class SidebarComponent implements OnInit {
       ?.roleId;
     switch (roleId) {
       case 1:
-        return 'Super Admin';
+        return this.t('sidebar.superAdmin');
       case 2:
-        return 'Admin';
+        return this.t('sidebar.admin');
       case 3:
-        return 'HR Manager';
+        return this.t('sidebar.hrManager');
       case 4:
-        return 'Manager';
+        return this.t('sidebar.manager');
       case 5:
-        return 'Employee';
+        return this.t('sidebar.employee');
       default:
-        return 'Employee';
+        return this.t('sidebar.employee');
     }
   }
 
@@ -781,7 +786,7 @@ export class SidebarComponent implements OnInit {
 
   orgInitial(): string {
     const source = this.orgName().trim();
-    return (source.charAt(0) || 'E').toUpperCase();
+    return (source.charAt(0) || this.t('common.enterprise').charAt(0) || 'E').toUpperCase();
   }
 
   onOrgLogoError() {
@@ -792,10 +797,15 @@ export class SidebarComponent implements OnInit {
         (
           storedUser?.organizationName ||
           storedUser?.companyName ||
-          'Enterprise'
+          this.t('common.enterprise')
         ).trim(),
       );
     }
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   closeOnMobile() {
@@ -855,7 +865,7 @@ export class SidebarComponent implements OnInit {
 
   openLockedModule(link: WorkspaceModuleView): void {
     this.closeOnMobile();
-    this.toastService.info(link.lockReason ?? `${link.label} is locked for this organization.`);
+    this.toastService.info(link.lockReason ?? `${link.label} ${this.t('common.locked').toLowerCase()}.`);
     this.router.navigateByUrl('/billing');
   }
 

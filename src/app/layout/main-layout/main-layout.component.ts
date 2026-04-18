@@ -16,7 +16,7 @@ import { TopbarComponent } from '../topbar/topbar.component';
         <div class="app-shell-main flex flex-col">
           <app-topbar></app-topbar>
           <main class="app-page">
-            <div class="app-page-inner">
+            <div class="app-page-inner min-w-0">
               <router-outlet></router-outlet>
             </div>
           </main>

@@ -1,6 +1,7 @@
-import { Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   EmployeeService,
   EmployeeInvitation,
@@ -17,14 +18,14 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
   standalone: true,
   imports: [CommonModule, FormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-6xl space-y-5 px-1 py-2 sm:space-y-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm"
       >
         <div
-          class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8 lg:py-8"
+          class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8"
         >
-          <div class="space-y-5">
+          <div class="min-w-0 space-y-5">
             <div
               class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
             >
@@ -35,11 +36,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <h1
                 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
               >
-                Employee invitations
+                Invite new employee
               </h1>
               <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Invite new team members, track onboarding progress, and keep
-                pending access requests under control from one clean workspace.
+                Send secure onboarding invites, assign the right role, and
+                track pending access requests from the same people onboarding
+                family as add employee.
               </p>
             </div>
           </div>
@@ -47,26 +49,81 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           <div
             class="rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5"
           >
-            <p
-              class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-            >
-              Pending invites
-            </p>
-            <p class="mt-2 text-2xl font-black text-slate-900">
-              {{ pendingInvitations.length }}
-            </p>
-            <p class="mt-2 text-sm leading-6 text-slate-500">
-              Accepted: {{ acceptedInvitations.length }} | Revoked/expired:
-              {{ revokedInvitations.length }}
-            </p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p
+                  class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                >
+                  Invitation summary
+                </p>
+                <p class="mt-2 text-2xl font-black text-slate-900">
+                  {{ pendingInvitations.length }}
+                </p>
+                <p class="mt-2 text-sm leading-6 text-slate-500">
+                  Accepted: {{ acceptedInvitations.length }} | Revoked/expired:
+                  {{ revokedInvitations.length }}
+                </p>
+              </div>
+
+              <div class="relative shrink-0">
+                <button
+                  type="button"
+                  (click)="toggleOnboardingMenu()"
+                  class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
+                >
+                  <span>Onboarding</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+
+                @if (showOnboardingMenu()) {
+                  <div class="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
+                    <button
+                      type="button"
+                      (click)="openAddEmployee()"
+                      class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <span>Add Employee</span>
+                      <span class="text-slate-400">&rarr;</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white"
+                    >
+                      <span>Invitations</span>
+                      <span class="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]">Current</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <div
-        class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-      >
-        <div class="app-chip-switch">
+      <section class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
+        <div class="app-surface-card p-5 sm:p-6">
+          <div class="mb-6">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+            >
+              Invite Pipeline
+            </p>
+            <h2 class="mt-2 text-2xl font-black text-slate-900">
+              Track pending and accepted access
+            </h2>
+          </div>
+
+          <div class="app-chip-switch max-w-full overflow-x-auto no-scrollbar whitespace-nowrap">
           <button
             (click)="activeTab = 'pending'"
             [class.app-chip-button-active]="activeTab === 'pending'"
@@ -88,25 +145,52 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           >
             Revoked / Expired ({{ revokedInvitations.length }})
           </button>
+          </div>
         </div>
 
-        <button
-          (click)="openModal()"
-          class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="h-5 w-5"
-            viewBox="0 0 20 20"
-            fill="currentColor"
+        <div class="app-surface-card p-5 sm:p-6">
+          <div class="mb-6">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
+            >
+              Quick Action
+            </p>
+            <h2 class="mt-2 text-2xl font-black text-slate-900">
+              Send secure access
+            </h2>
+          </div>
+
+          <div class="rounded-md border border-slate-200 bg-slate-50 p-5">
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+            >
+              Invitation note
+            </p>
+            <p class="mt-3 text-sm leading-7 text-slate-600">
+              Use invitations when you want the employee to complete account
+              onboarding by email instead of creating the full profile
+              immediately.
+            </p>
+          </div>
+
+          <button
+            (click)="openModal()"
+            class="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
-            <path
-              d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"
-            />
-          </svg>
-          Invite Employee
-        </button>
-      </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"
+              />
+            </svg>
+            Invite Employee
+          </button>
+        </div>
+      </section>
 
       <div *ngIf="loading" class="flex items-center justify-center py-16">
         <div
@@ -344,7 +428,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
         <div class="p-6">
           <div class="space-y-4">
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-700"
+              <label class="mb-1 block text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
                 >Email Address *</label
               >
               <input
@@ -356,7 +440,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-700"
+              <label class="mb-1 block text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
                 >Role *</label
               >
               <app-ui-select-advanced
@@ -373,7 +457,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               </p>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-slate-700"
+              <label class="mb-1 block text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
                 >Message (Optional)</label
               >
               <textarea
@@ -415,9 +499,11 @@ export class InvitationsComponent implements OnInit {
   private toastService = inject(ToastService);
   private liveRefreshService = inject(LiveRefreshService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   invitations: EmployeeInvitation[] = [];
   roles: Role[] = [];
+  showOnboardingMenu = signal(false);
   loading = false;
   sending = false;
   showModal = false;
@@ -537,6 +623,15 @@ export class InvitationsComponent implements OnInit {
 
   closeModal() {
     this.showModal = false;
+  }
+
+  toggleOnboardingMenu() {
+    this.showOnboardingMenu.update((value) => !value);
+  }
+
+  openAddEmployee() {
+    this.showOnboardingMenu.set(false);
+    this.router.navigate(['/employees/add']);
   }
 
   sendInvitation() {

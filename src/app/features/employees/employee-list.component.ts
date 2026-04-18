@@ -17,36 +17,35 @@ import { LiveRefreshService } from '../../core/services/live-refresh.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UiSelectAdvancedComponent } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-employee-list',
   standalone: true,
   imports: [CommonModule, FormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-4 sm:gap-5 lg:gap-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm"
       >
         <div
-          class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8 lg:py-8"
+          class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8 lg:py-8"
         >
-          <div class="space-y-5">
+          <div class="min-w-0 space-y-5">
             <div
               class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
             >
               <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-              Employee Workspace
+              {{ t('employee.workspace') }}
             </div>
             <div>
               <h1
-                class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
+                class="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl xl:text-4xl"
               >
-                People directory and workforce records
+                {{ t('employee.directoryTitle') }}
               </h1>
               <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Manage active employees, onboarding flow, leave visibility, and
-                organization headcount from one place with a cleaner responsive
-                employee module.
+                {{ t('employee.directorySubtitle') }}
               </p>
             </div>
 
@@ -57,12 +56,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
                 >
-                  Total Employees
+                  {{ t('common.totalEmployees') }}
                 </p>
                 <p class="mt-2 text-2xl font-black text-slate-900">
                   {{ employeeStats().total }}
                 </p>
-                <p class="mt-1 text-xs text-slate-500">All employee records</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.allEmployeeRecords') }}</p>
               </div>
               <div
                 class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm"
@@ -70,12 +69,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
                 >
-                  Active
+                  {{ t('common.active') }}
                 </p>
                 <p class="mt-2 text-2xl font-black text-emerald-600">
                   {{ employeeStats().active }}
                 </p>
-                <p class="mt-1 text-xs text-slate-500">Currently working</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.currentlyWorking') }}</p>
               </div>
               <div
                 class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm"
@@ -83,12 +82,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
                 >
-                  On Leave
+                  {{ t('common.onLeave') }}
                 </p>
                 <p class="mt-2 text-2xl font-black text-amber-500">
                   {{ employeeStats().onLeave }}
                 </p>
-                <p class="mt-1 text-xs text-slate-500">Temporary absences</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.temporaryAbsences') }}</p>
               </div>
               <div
                 class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm"
@@ -96,12 +95,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
                 >
-                  Terminated
+                  {{ t('common.terminated') }}
                 </p>
                 <p class="mt-2 text-2xl font-black text-rose-500">
                   {{ employeeStats().terminated }}
                 </p>
-                <p class="mt-1 text-xs text-slate-500">Historical records</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.historicalRecords') }}</p>
               </div>
             </div>
           </div>
@@ -113,14 +112,13 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <p
                 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
               >
-                Quick Actions
+                {{ t('common.quickActions') }}
               </p>
               <h2 class="mt-1 text-lg font-black text-slate-900">
-                Directory controls
+                {{ t('common.directoryControls') }}
               </h2>
               <p class="mt-1 text-sm text-slate-500">
-                Export records, create employees, and monitor filtered directory
-                health.
+                {{ t('common.directoryControlsDescription') }}
               </p>
             </div>
 
@@ -130,20 +128,19 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <p
                 class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
               >
-                Directory health
+                {{ t('common.directoryHealth') }}
               </p>
               <p class="mt-2 text-2xl font-black text-slate-900">
                 {{ employeeStats().active }}
               </p>
               <p class="mt-1 text-xs leading-5 text-slate-500">
-                Active team members currently available in the workforce
-                directory.
+                {{ t('common.directoryHealthDescription') }}
               </p>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
               <button
-                class="inline-flex items-center justify-center gap-2 rounded-md border border-stone-200 bg-white px-5 py-3 font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                class="inline-flex items-center justify-center gap-2 rounded-md border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
                 (click)="exportEmployees()"
               >
                 <svg
@@ -163,10 +160,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                   <path d="M12 12v9" />
                   <path d="m8 17 4 4 4-4" />
                 </svg>
-                Export
+                {{ t('common.exportCsv') }}
               </button>
               <button
-                class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-5 py-3 font-semibold text-white transition hover:bg-slate-800"
+                class="inline-flex items-center justify-center gap-2 rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
                 (click)="addEmployee()"
               >
                 <svg
@@ -183,7 +180,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                   <path d="M5 12h14" />
                   <path d="M12 5v14" />
                 </svg>
-                Add Employee
+                {{ t('common.addEmployee') }}
               </button>
             </div>
           </div>
@@ -191,7 +188,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
       </section>
 
       <div
-        class="flex overflow-x-auto no-scrollbar rounded-md border border-slate-200 bg-white px-2"
+        class="flex overflow-x-auto no-scrollbar rounded-md border border-slate-200 bg-white px-1.5 sm:px-2"
       >
         @for (tab of tabs; track tab.id) {
           @let tId = tab.id;
@@ -205,7 +202,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             "
           >
             <div class="flex items-center gap-2">
-              {{ tab.label }}
+              {{ tabLabel(tab.id) }}
               <span
                 [class]="
                   'px-1.5 py-0.5 rounded text-[10px] ' +
@@ -228,9 +225,9 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
 
       <div class="card overflow-hidden rounded-md">
         <div
-          class="p-4 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+          class="flex flex-col items-start justify-between gap-4 border-b border-slate-100 p-4 lg:flex-row lg:items-center"
         >
-          <div class="relative w-full md:max-w-[320px]">
+          <div class="relative w-full lg:max-w-[320px]">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="16"
@@ -250,23 +247,23 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               type="text"
               [(ngModel)]="searchQuery"
               (input)="onFilterChange()"
-              placeholder="Search by name, email or code..."
+              [placeholder]="t('common.searchByNameEmailOrCode')"
               class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-md text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10 transition-all"
             />
           </div>
-          <div class="flex gap-2 w-full flex-col sm:flex-row md:w-auto">
+          <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto lg:flex-wrap lg:justify-end">
             <app-ui-select-advanced
               [(ngModel)]="statusFilter"
               (ngModelChange)="onFilterChange()"
               [options]="statusFilterOptions"
-              placeholder="Status: All"
+              [placeholder]="statusPlaceholder()"
               [searchable]="false"
             ></app-ui-select-advanced>
             <button
               class="flex-1 md:flex-none px-3 py-2 border border-slate-200 rounded-md text-sm font-medium bg-white text-slate-600 hover:bg-slate-50 transition-colors"
               (click)="clearFilters()"
             >
-              Clear
+              {{ t('common.clear') }}
             </button>
           </div>
         </div>
@@ -274,7 +271,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
         <div class="md:hidden divide-y divide-slate-100">
           @if (loading()) {
             <div class="px-5 py-12 text-center text-slate-400 font-medium">
-              Loading employees...
+              {{ t('common.loadingEmployees') }}
             </div>
           } @else if (filteredEmployees().length === 0) {
             <div class="px-5 py-12 text-center">
@@ -296,16 +293,16 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                   </svg>
                 </div>
                 <div>
-                  <p class="text-slate-700 font-semibold">No employees found</p>
+                  <p class="text-slate-700 font-semibold">{{ t('common.noResults') }}</p>
                   <p class="text-slate-400 text-sm">
-                    Try another search or clear your filters.
+                    {{ t('common.tryAnotherSearch') }}
                   </p>
                 </div>
                 <button
                   class="px-4 py-2 rounded-md border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                   (click)="clearFilters()"
                 >
-                  Reset Filters
+                  {{ t('common.resetFilters') }}
                 </button>
               </div>
             </div>
@@ -335,7 +332,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                       'bg-slate-50 text-slate-500': emp.status === 'inactive',
                     }"
                   >
-                    {{ emp.status.split('_').join(' ') }}
+                    {{ tabLabel(emp.status) }}
                   </span>
                 </div>
 
@@ -344,10 +341,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                     <p
                       class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400"
                     >
-                      Employee Code
+                      {{ t('common.employeeId') }}
                     </p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                      {{ emp.employeeCode || 'N/A' }}
+                      {{ emp.employeeCode || t('common.notAvailableShort') }}
                     </p>
                   </div>
                   <div class="rounded-md bg-slate-50 px-4 py-3">
@@ -364,10 +361,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                     <p
                       class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400"
                     >
-                      Joined Date
+                      {{ t('common.joinedDate') }}
                     </p>
                     <p class="mt-2 text-sm font-semibold text-slate-900">
-                      {{ (emp.createdAt | date: 'mediumDate') || 'Recently' }}
+                      {{ (emp.createdAt | date: 'mediumDate') || t('common.recent') }}
                     </p>
                   </div>
                 </div>
@@ -377,19 +374,19 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                     (click)="viewEmployee(emp)"
                     class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    View
+                    {{ t('common.view') }}
                   </button>
                   <button
                     (click)="editEmployee(emp)"
                     class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     (click)="deleteEmployee(emp.id)"
                     class="rounded-md border border-rose-200 px-4 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </article>
@@ -404,12 +401,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Employee
+                  {{ t('sidebar.employee') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  ID
+                  {{ t('common.employeeId') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
@@ -424,12 +421,12 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"
                 >
-                  Joined Date
+                  {{ t('common.joinedDate') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
                 >
-                  Actions
+                  {{ t('common.actions') }}
                 </th>
               </tr>
             </thead>
@@ -440,7 +437,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                     colspan="6"
                     class="px-6 py-12 text-center text-slate-400 font-medium"
                   >
-                    Loading employees...
+                    {{ t('common.loadingEmployees') }}
                   </td>
                 </tr>
               } @else if (filteredEmployees().length === 0) {
@@ -465,17 +462,17 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                       </div>
                       <div>
                         <p class="text-slate-700 font-semibold">
-                          No employees found
+                          {{ t('common.noResults') }}
                         </p>
                         <p class="text-slate-400 text-sm">
-                          Try another search or clear your filters.
+                          {{ t('common.tryAnotherSearch') }}
                         </p>
                       </div>
                       <button
                         class="px-4 py-2 rounded-md border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
                         (click)="clearFilters()"
                       >
-                        Reset Filters
+                        {{ t('common.reset') }}
                       </button>
                     </div>
                   </td>
@@ -504,7 +501,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                     <td class="px-6 py-4">
                       <span
                         class="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-bold"
-                        >{{ emp.employeeCode || 'N/A' }}</span
+                            >{{ emp.employeeCode || t('common.notAvailableShort') }}</span
                       >
                     </td>
                     <td class="px-6 py-4 text-slate-600 font-medium text-sm">
@@ -522,18 +519,18 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                             emp.status === 'inactive',
                         }"
                       >
-                        {{ emp.status.split('_').join(' ') }}
+                        {{ tabLabel(emp.status) }}
                       </span>
                     </td>
                     <td class="px-6 py-4 text-slate-500 text-sm italic">
-                      {{ (emp.createdAt | date: 'mediumDate') || 'Recently' }}
+                      {{ (emp.createdAt | date: 'mediumDate') || t('common.recent') }}
                     </td>
                     <td class="px-6 py-4 text-right">
                       <div class="flex justify-end gap-2">
                         <button
                           (click)="viewEmployee(emp)"
                           class="p-2 rounded-md text-slate-400 hover:bg-slate-100 hover:text-primary-600 transition-colors"
-                          title="View Details"
+                          [title]="t('common.viewDetails')"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -553,7 +550,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                         <button
                           (click)="editEmployee(emp)"
                           class="p-2 rounded-md text-slate-400 hover:bg-slate-100 hover:text-primary-600 transition-colors"
-                          title="Edit"
+                          [title]="t('common.edit')"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -573,7 +570,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                         <button
                           (click)="deleteEmployee(emp.id)"
                           class="p-2 rounded-md text-slate-400 hover:bg-red-50 hover:text-error transition-colors"
-                          title="Delete"
+                          [title]="t('common.delete')"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -604,15 +601,14 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           class="flex flex-col gap-3 border-t border-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6"
         >
           <span class="text-sm text-slate-400 font-medium tracking-tight">
-            Showing {{ filteredEmployees().length }} of
-            {{ rawEmployees().length }} entries
+            {{ t('common.showingOfEntries', { shown: filteredEmployees().length, total: rawEmployees().length }) }}
           </span>
           <div class="flex flex-wrap items-center gap-2">
             <span class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-              {{ currentTab().replace('_', ' ') }} roster
+              {{ tabLabel(currentTab()) }} {{ t('common.roster') }}
             </span>
             <span class="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
-              {{ employeeStats().active }} active / {{ employeeStats().total }} total
+              {{ employeeStats().active }} {{ t('common.active') }} / {{ employeeStats().total }} {{ t('common.totalEmployees').toLowerCase() }}
             </span>
           </div>
         </div>
@@ -628,18 +624,12 @@ export class EmployeeListComponent implements OnInit {
   private router = inject(Router);
   private liveRefreshService = inject(LiveRefreshService);
   private destroyRef = inject(DestroyRef);
+  private languageService = inject(LanguageService);
 
   rawEmployees = signal<any[]>([]);
   loading = signal<boolean>(true);
   searchQuery = '';
   statusFilter = '';
-  statusFilterOptions: SelectOption[] = [
-    { label: 'All Status', value: '' },
-    { label: 'Active', value: 'active' },
-    { label: 'Inactive', value: 'inactive' },
-    { label: 'On Leave', value: 'on_leave' },
-    { label: 'Terminated', value: 'terminated' },
-  ];
   currentTab = signal<'active' | 'inactive' | 'on_leave' | 'terminated'>(
     'active',
   );
@@ -684,14 +674,23 @@ export class EmployeeListComponent implements OnInit {
   });
   tabs: {
     id: 'active' | 'inactive' | 'on_leave' | 'terminated';
-    label: string;
     count: number;
   }[] = [
-    { id: 'active', label: 'Active', count: 0 },
-    { id: 'inactive', label: 'Inactive', count: 0 },
-    { id: 'on_leave', label: 'On Leave', count: 0 },
-    { id: 'terminated', label: 'Terminated', count: 0 },
+    { id: 'active', count: 0 },
+    { id: 'inactive', count: 0 },
+    { id: 'on_leave', count: 0 },
+    { id: 'terminated', count: 0 },
   ];
+
+  get statusFilterOptions(): SelectOption[] {
+    return [
+      { label: `${this.t('common.status')}: All`, value: '' },
+      { label: this.t('common.active'), value: 'active' },
+      { label: this.t('common.inactive'), value: 'inactive' },
+      { label: this.t('common.onLeave'), value: 'on_leave' },
+      { label: this.t('common.terminated'), value: 'terminated' },
+    ];
+  }
 
   ngOnInit() {
     this.loadEmployees();
@@ -812,7 +811,7 @@ export class EmployeeListComponent implements OnInit {
   exportEmployees() {
     const rows = this.filteredEmployees();
     if (!rows.length) {
-      this.toastService.error('No employees available to export');
+      this.toastService.error(this.t('common.noEmployeesToExport'));
       return;
     }
 
@@ -846,56 +845,102 @@ export class EmployeeListComponent implements OnInit {
     link.download = `employees-${this.currentTab()}-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
-    this.toastService.success('Employee export downloaded');
+    this.toastService.success(this.t('common.employeeExportDownloaded'));
   }
 
   addEmployee() {
     this.router.navigate(['/employees/add']);
   }
 
+  private resolveEmployeeId(value: unknown): number | null {
+    const id = Number(value);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  }
+
   getRoleLabel(roleId?: number | null): string {
     switch (Number(roleId ?? 0)) {
       case 1:
-        return 'Super Admin';
+        return this.t('sidebar.superAdmin');
       case 2:
-        return 'Admin';
+        return this.t('sidebar.admin');
       case 3:
-        return 'HR Manager';
+        return this.t('sidebar.hrManager');
       case 4:
-        return 'Manager';
+        return this.t('sidebar.manager');
       case 5:
-        return 'Employee';
+        return this.t('sidebar.employee');
       default:
-        return 'Employee';
+        return this.t('sidebar.employee');
     }
   }
 
+  tabLabel(tabId: 'active' | 'inactive' | 'on_leave' | 'terminated' | string): string {
+    switch (tabId) {
+      case 'active':
+        return this.t('common.active');
+      case 'inactive':
+        return this.t('common.inactive');
+      case 'on_leave':
+        return this.t('common.onLeave');
+      case 'terminated':
+        return this.t('common.terminated');
+      default:
+        return String(tabId);
+    }
+  }
+
+  statusPlaceholder(): string {
+    return `${this.t('common.status')}: All`;
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
+  }
+
   editEmployee(emp: any) {
-    this.router.navigate(['/employees/edit', emp.id]);
+    const id = this.resolveEmployeeId(emp?.id);
+    if (!id) {
+      this.toastService.error(this.t('common.recordUnavailable'));
+      return;
+    }
+
+    this.router.navigate(['/employees/edit', id]);
   }
 
   viewEmployee(emp: any) {
-    this.router.navigate(['/employees/view', emp.id]);
+    const id = this.resolveEmployeeId(emp?.id);
+    if (!id) {
+      this.toastService.error(this.t('common.recordUnavailable'));
+      return;
+    }
+
+    this.router.navigate(['/employees/view', id]);
   }
 
   async deleteEmployee(id: number) {
+    const employeeId = this.resolveEmployeeId(id);
+    if (!employeeId) {
+      this.toastService.error(this.t('common.recordUnavailable'));
+      return;
+    }
+
     const confirmed = await this.modalService.confirm({
-      title: 'Delete Employee',
-      message:
-        'Are you sure you want to delete this employee? This action cannot be undone.',
-      confirmText: 'Delete Now',
-      cancelText: 'Keep Employee',
+      title: this.t('common.deleteEmployee'),
+      message: this.t('common.deleteEmployeeConfirm'),
+      confirmText: this.t('common.deleteNow'),
+      cancelText: this.t('common.keepEmployee'),
       type: 'danger',
     });
 
     if (confirmed) {
-      this.employeeService.deleteEmployee(id).subscribe({
+      this.employeeService.deleteEmployee(employeeId).subscribe({
         next: () => {
-          this.toastService.success('Employee deleted successfully');
+          this.toastService.success(this.t('common.employeeDeletedSuccessfully'));
           this.loadEmployees();
         },
         error: (err) => {
-          this.toastService.error('Failed to delete employee');
+          this.toastService.error(this.t('common.failedToDeleteEmployee'));
           console.error(err);
         },
       });

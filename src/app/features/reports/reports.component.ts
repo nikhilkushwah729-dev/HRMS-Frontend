@@ -13,7 +13,7 @@ import { computed } from '@angular/core';
   standalone: true,
   imports: [CommonModule, FormsModule, DatePipe, UiSelectAdvancedComponent],
   template: `
-    <div class="flex flex-col gap-6 pb-10 max-w-7xl mx-auto">
+    <div class="mx-auto flex max-w-7xl flex-col gap-5 pb-8 sm:gap-6 lg:pb-10">
       <!-- Header -->
       <header class="app-module-hero flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5">
         <div class="max-w-2xl">
@@ -21,13 +21,13 @@ import { computed } from '@angular/core';
           <h1 class="app-module-title mt-3">Attendance analytics and export workflows</h1>
           <p class="app-module-text mt-3">Generate operational reports, compare daily and monthly trends, and export attendance analysis for leadership or compliance use.</p>
         </div>
-        <div class="flex flex-col gap-3 xl:items-end">
+        <div class="flex w-full flex-col gap-3 xl:w-auto xl:items-end">
           <div class="app-module-highlight min-w-[240px]">
             <span class="app-module-highlight-label">Report mode</span>
             <div class="app-module-highlight-value mt-3">{{ currentReportLabel() }}</div>
             <p class="mt-2 text-sm text-white/80">Switch between daily, monthly, late-arrival, and absent reports instantly.</p>
           </div>
-          <div class="app-chip-switch">
+          <div class="app-chip-switch max-w-full overflow-x-auto no-scrollbar whitespace-nowrap">
             <button (click)="setReportType('daily')" 
                   [ngClass]="currentReportType() === 'daily' ? 'bg-teal-700 text-white' : 'text-slate-600 hover:bg-stone-100'"
                   class="app-chip-button">
@@ -53,8 +53,8 @@ import { computed } from '@angular/core';
       </header>
 
       <!-- Filters -->
-      <div class="bg-white rounded-md border border-slate-200 p-4">
-        <div class="flex flex-wrap items-end gap-4">
+      <div class="rounded-md border border-slate-200 bg-white p-4">
+        <div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
           <!-- Date Range -->
           <div class="flex flex-col gap-1">
             <label class="text-xs font-bold text-slate-400 uppercase">Start Date</label>
@@ -66,7 +66,7 @@ import { computed } from '@angular/core';
           </div>
           
           <!-- Department Filter -->
-          <div class="flex flex-col gap-1 w-[220px]">
+          <div class="flex w-full flex-col gap-1 sm:w-[220px]">
             <label class="text-xs font-bold text-slate-400 uppercase">Department</label>
             <app-ui-select-advanced
               [(ngModel)]="filters.departmentId"
@@ -92,7 +92,7 @@ import { computed } from '@angular/core';
           </button>
 
           <!-- Export Buttons -->
-          <div class="flex gap-2 ml-auto">
+          <div class="flex flex-wrap gap-2 lg:ml-auto">
             <button (click)="exportExcel()" [disabled]="loading()"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all disabled:opacity-50 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -113,7 +113,7 @@ import { computed } from '@angular/core';
 
       <!-- Daily Report View -->
       @if (currentReportType() === 'daily' && dailyReport()) {
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
           <div class="bg-white rounded-md border border-slate-200 p-4">
             <p class="text-xs font-bold text-slate-400 uppercase">Total Employees</p>
             <p class="text-2xl font-black text-slate-900 mt-1">{{ dailyReport()?.totalEmployees }}</p>
@@ -143,7 +143,7 @@ import { computed } from '@angular/core';
 
       <!-- Monthly Report View -->
       @if (currentReportType() === 'monthly' && monthlyReport()) {
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5">
           <div class="bg-white rounded-md border border-slate-200 p-4">
             <p class="text-xs font-bold text-slate-400 uppercase">Working Days</p>
             <p class="text-2xl font-black text-slate-900 mt-1">{{ monthlyReport()?.workingDays }}</p>
@@ -169,7 +169,7 @@ import { computed } from '@angular/core';
 
       <!-- Data Table -->
       <div class="bg-white rounded-md border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+        <div class="flex flex-col gap-2 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 class="font-bold text-slate-800">
             @switch (currentReportType()) {
               @case ('daily') { Daily Attendance - {{ filters.startDate | date:'mediumDate' }} }

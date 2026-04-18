@@ -6,6 +6,7 @@ import { OrganizationService } from '../../core/services/organization.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CustomButtonComponent } from '../../core/components/ui/button/custom-button.component';
+import { LanguageService } from '../../core/services/language.service';
 
 type AddonTab = 'active' | 'locked';
 type AddonCategory = 'all' | 'ess' | 'ops' | 'premium';
@@ -50,7 +51,7 @@ interface AddonViewModel {
                     class="rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition"
                     [ngClass]="activeTab() === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
                   >
-                    Active {{ activeCount() }}
+                    {{ t('common.active') }} {{ activeCount() }}
                   </button>
                   <button
                     type="button"
@@ -195,7 +196,7 @@ interface AddonViewModel {
                         <div class="flex flex-wrap items-center gap-2">
                           <h2 class="truncate text-xl font-black tracking-tight text-slate-900">{{ addon.name }}</h2>
                           <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="addon.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
-                            {{ addon.isActive ? 'Enabled' : 'Locked' }}
+                            {{ addon.isActive ? t('common.active') : t('common.locked') }}
                           </span>
                         </div>
                         <p class="mt-1 text-xs font-black uppercase tracking-[0.18em]" [ngClass]="addon.isActive ? 'text-emerald-600' : 'text-slate-400'">
@@ -236,7 +237,7 @@ interface AddonViewModel {
                       (btnClick)="addon.isActive ? openAddon(addon) : openBilling(addon)"
                       addClass="w-full"
                     >
-                      {{ addon.isActive ? 'Open Module' : 'Upgrade Plan' }}
+                      {{ addon.isActive ? t('common.openModule') : t('common.upgradePlan') }}
                     </app-custom-button>
                   </div>
                 </div>
@@ -246,7 +247,7 @@ interface AddonViewModel {
 
           @if (visibleAddons().length === 0) {
             <section class="rounded-[28px] border border-slate-200 bg-white p-10 text-center shadow-sm">
-              <h2 class="text-lg font-black text-slate-900">No add-ons found in this view</h2>
+              <h2 class="text-lg font-black text-slate-900">{{ t('common.noResults') }}</h2>
               <p class="mt-2 text-sm text-slate-500">Try another category or switch between active and learn-and-buy modes.</p>
             </section>
           }
@@ -261,6 +262,7 @@ export class AddOnsComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly permissionService = inject(PermissionService);
   private readonly toastService = inject(ToastService);
+  private readonly languageService = inject(LanguageService);
 
   readonly categories = [
     { id: 'all' as AddonCategory, label: 'All' },
@@ -302,6 +304,11 @@ export class AddOnsComponent implements OnInit {
 
   activeCategoryLabel(): string {
     return this.categories.find((item) => item.id === this.activeCategory())?.label ?? 'All';
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   loadAddons(): void {

@@ -9,6 +9,7 @@ import {
   FaceRecognitionService,
 } from '../../../../core/services/face-recognition.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 interface FaceData {
   id: number;
@@ -123,7 +124,7 @@ interface FaceData {
                         ? 'bg-emerald-100 text-emerald-700'
                         : 'bg-amber-100 text-amber-700'
                     "
-                    >{{ entry.status }}</span
+                    >{{ entry.status === 'Registered' ? t('common.connected') : t('common.pending') }}</span
                   >
                   <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                     {{ entry.employeeId }}
@@ -142,7 +143,7 @@ interface FaceData {
                   (click)="openEnrollmentFor(entry.id)"
                   class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                 >
-                  {{ entry.status === 'Registered' ? 'Review' : 'Enroll' }}
+                  {{ entry.status === 'Registered' ? t('common.view') : 'Enroll' }}
                 </button>
                 <button
                   type="button"
@@ -152,7 +153,7 @@ interface FaceData {
                   (click)="removeRegistration(entry)"
                   class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {{ busyId() === entry.id ? 'Removing...' : 'Delete Data' }}
+                  {{ busyId() === entry.id ? 'Removing...' : t('common.delete') }}
                 </button>
               </div>
             </article>
@@ -165,7 +166,7 @@ interface FaceData {
                   <path d="M3 7.5C3 5 5 3 7.5 3h9C19 3 21 5 21 7.5v9c0 2.5-2 4.5-4.5 4.5h-9C5 21 3 19 3 16.5z" />
                 </svg>
               </div>
-              <p class="mt-4 text-base font-semibold text-slate-900">No biometric records matched</p>
+              <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
               <p class="mt-2 text-sm text-slate-500">Try another employee name, code, or email to review enrollment coverage.</p>
             </div>
           }
@@ -180,6 +181,7 @@ export class FaceRecognitionComponent implements OnInit {
   private toastService = inject(ToastService);
   private router = inject(Router);
   private datePipe = inject(DatePipe);
+  private languageService = inject(LanguageService);
 
   data = signal<FaceData[]>([]);
   searchQuery = signal('');
@@ -318,5 +320,10 @@ export class FaceRecognitionComponent implements OnInit {
         );
         this.toastService.success('Biometric data removed successfully.');
       });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

@@ -2,10 +2,10 @@
   <div class="refresh-banner">
     <div class="refresh-text">
       <span class="status-indicator"></span>
-      New version available. Refresh to update.
+      {{ t('common.newVersionAvailable') }}
     </div>
     <button (click)="reload()" class="refresh-button">
-      REFRESH
+      {{ t('common.refresh') }}
     </button>
   </div>
   <div class="h-10-spacer"></div>
@@ -18,11 +18,11 @@
   <div class="sticky top-0 z-[60] border-b border-amber-200 bg-amber-50/95 px-4 py-3 backdrop-blur">
     <div class="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Subscription Notice</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">{{ t('common.subscriptionNotice') }}</p>
         <p class="mt-1 text-sm font-medium text-amber-900">{{ trialBannerMessage() }}</p>
       </div>
       <button (click)="upgrade()" class="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-        Upgrade Plan
+        {{ t('common.upgradePlan') }}
       </button>
     </div>
   </div>
@@ -48,7 +48,7 @@
       <path d="M4.93 19.07l1.41-1.41"/>
       <path d="M17.66 6.34l1.41-1.41"/>
     </svg>
-    <span class="font-medium text-sm">You are offline</span>
+    <span class="font-medium text-sm">{{ t('common.youAreOffline') }}</span>
   </div>
 }
 
@@ -73,14 +73,14 @@
   </div>
 
   <!-- Message Text -->
-  <h2 class="text-xl font-bold text-slate-900 mb-2">User Limit Exceeded</h2>
+  <h2 class="text-xl font-bold text-slate-900 mb-2">{{ t('common.userLimitExceeded') }}</h2>
   <p class="text-slate-500 text-sm mb-8 leading-relaxed">
-    You have reached the employee limit for your current plan. Please upgrade your subscription to add more team members.
+    {{ t('common.userLimitExceededMessage') }}
   </p>
 
   <!-- Upgrade Button -->
   <div class="flex justify-center items-center gap-3">
-    <app-custom-button (btnClick)="upgrade()">Upgrade Plan</app-custom-button>
-    <app-custom-button type="secondary" (btnClick)="userLimitService.closeModal()">Dismiss</app-custom-button>
+    <app-custom-button (btnClick)="upgrade()">{{ t('common.upgradePlan') }}</app-custom-button>
+    <app-custom-button type="secondary" (btnClick)="userLimitService.closeModal()">{{ t('common.dismiss') }}</app-custom-button>
   </div>
 </app-custom-modal>

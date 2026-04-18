@@ -8,6 +8,7 @@ export interface Organization {
     id: number;
     name: string;
     logo?: string;
+    employeeCodePrefix?: string;
     email: string;
     phone?: string;
     address?: string;
@@ -74,6 +75,7 @@ export class OrganizationService {
     private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly orgDraftKey = 'hrms_org_profile_draft';
     private readonly locationsKey = 'locations';
+    private readonly employeeCodePrefixKey = 'employee-code-prefix';
 
     private _activeModules = signal<string[]>([]);
     /**
@@ -140,6 +142,7 @@ export class OrganizationService {
             id: Number(item?.id ?? 1),
             name: item?.name ?? item?.organizationName ?? item?.organization_name ?? item?.companyName ?? item?.company_name ?? '',
             logo: this.resolveAssetUrl(item?.logo ?? item?.logoUrl ?? item?.logo_url ?? item?.organizationLogo ?? item?.organization_logo ?? item?.companyLogo ?? item?.company_logo ?? '') ?? '',
+            employeeCodePrefix: item?.employeeCodePrefix ?? item?.employee_code_prefix ?? '',
             email: item?.email ?? '',
             phone: item?.phone ?? item?.orgContactNumber ?? item?.org_contact_number ?? '',
             address: item?.address ?? item?.orgStreet1 ?? '',
@@ -391,6 +394,32 @@ export class OrganizationService {
             map((items) => items.map((item: any) => this.normalizeLocation(item))),
             tap((locations) => this.saveLocalLocations(locations)),
             catchError(() => of(this.readLocalLocations()))
+        );
+    }
+
+    getEmployeeCodePrefix(): Observable<string> {
+        return this.getSettingsCollection<any>(this.employeeCodePrefixKey, []).pipe(
+            map((items) => {
+                const rawValue = Array.isArray(items) ? items[0]?.value ?? items[0]?.prefix ?? items[0] : '';
+                const prefix = String(rawValue ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                return prefix.length === 3 ? prefix : '';
+            }),
+            catchError(() => of(''))
+        );
+    }
+
+    saveEmployeeCodePrefix(prefix: string): Observable<string> {
+        const normalizedPrefix = String(prefix ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+        const payload = normalizedPrefix ? [{ value: normalizedPrefix }] : [];
+
+        return this.saveSettingsCollection(this.employeeCodePrefixKey, payload).pipe(
+            map((items) => {
+                const firstItem: any = Array.isArray(items) ? items[0] : null;
+                const rawValue = firstItem?.value ?? firstItem?.prefix ?? firstItem ?? normalizedPrefix;
+                const value = String(rawValue ?? normalizedPrefix).trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                return value.length === 3 ? value : '';
+            }),
+            catchError(() => of(normalizedPrefix))
         );
     }
 

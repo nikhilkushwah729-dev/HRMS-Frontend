@@ -7,7 +7,7 @@ import { RouterModule } from '@angular/router';
   imports: [RouterModule],
   template: `
     <div class="min-h-full">
-      <div class="mx-auto max-w-[1600px] p-2">
+      <div class="mx-auto w-full max-w-[1680px] px-0 py-0">
         <router-outlet></router-outlet>
       </div>
     </div>

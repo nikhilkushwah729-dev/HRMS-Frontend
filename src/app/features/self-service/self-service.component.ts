@@ -34,6 +34,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { LiveRefreshService } from '../../core/services/live-refresh.service';
 import { ReportService, DailyReport } from '../../core/services/report.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LanguageService } from '../../core/services/language.service';
 
 // Models
 import { User } from '../../core/models/auth.model';
@@ -113,24 +114,25 @@ interface HolidayCalendarItem {
     EssTeamEngagementComponent
   ],
   template: `
-    <div class="min-h-full p-2">
-      <div class="mx-auto max-w-[1600px] space-y-5">
-        <section class="app-module-hero">
-          <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div class="min-h-full">
+      <div class="mx-auto w-full max-w-[1680px] space-y-5">
+        <section class="app-module-hero overflow-hidden rounded-md border border-white/70 bg-gradient-to-br from-white via-indigo-50/60 to-sky-50/70 shadow-[0_24px_80px_-36px_rgba(79,70,229,0.35)] ring-1 ring-slate-200/60">
+          <div class="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_58%)] lg:block"></div>
+          <div class="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div class="max-w-3xl">
-              <p class="app-module-kicker">Self Service Workspace</p>
-              <h1 class="app-module-title mt-3">Manage attendance, leave, requests, and team visibility from one place</h1>
-              <p class="app-module-text mt-3">
-                This self-service space follows the same UbiTech-style experience as the rest of your HRMS modules, with clear actions, live summaries, and employee-first workflows.
-              </p>
+              <p class="app-module-kicker">{{ t('selfService.workspace') }}</p>
+              <h1 class="app-module-title mt-3 max-w-4xl">{{ t('selfService.heroTitle') }}</h1>
+              <p class="app-module-text mt-3 max-w-2xl text-slate-600">{{ t('selfService.heroSubtitle') }}</p>
             </div>
-            <div class="app-module-highlight min-w-[260px]">
-              <span class="app-module-highlight-label">Today focus</span>
+            <div class="app-module-highlight min-w-[280px] rounded-md border border-white/20 bg-slate-950/88 shadow-2xl shadow-slate-900/25">
+              <span class="app-module-highlight-label">{{ t('selfService.todayFocus') }}</span>
               <div class="app-module-highlight-value mt-3">
-                {{ todayStatus()?.is_clocked_in ? 'Attendance Active' : 'Ready To Start' }}
+                {{ todayStatus()?.is_clocked_in ? t('selfService.attendanceActive') : t('selfService.readyToStart') }}
               </div>
-              <p class="mt-2 text-sm text-white/80">
-                Pending requests: {{ pendingRequests() }} | Leave balance: {{ totalLeaveBalance() }} days
+              <p class="mt-3 text-sm leading-6 text-white/80">
+                {{ t('selfService.pendingRequestsLabel', { count: pendingRequests() }) }}
+                <span class="mx-2 text-white/40">•</span>
+                {{ t('selfService.leaveBalanceLabel', { count: totalLeaveBalance() }) }}
               </p>
             </div>
           </div>
@@ -144,70 +146,74 @@ interface HolidayCalendarItem {
           (closeBanner)="specialMessage.set([])">
         </app-ess-greeting>
 
-        <div class="space-y-6">
+        <div class="space-y-5">
           <!-- Quick Glance Stats -->
           <app-ess-stats [stats]="workspaceStats()"></app-ess-stats>
 
           <!-- Main Dashboard Grid: Modern Keka-style 2-Column Split -->
-          <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+          <div class="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
             
             <!-- Left Column: Main Feed/Activity (8/12) -->
-            <div class="xl:col-span-8 space-y-6">
+            <div class="min-w-0 space-y-5 xl:col-span-8">
               
               <!-- Network Hub: "Who's In" Feel -->
               <app-ess-network-hub 
                 [teammates]="teammates()" 
                 [reportees]="reportees()"
+                [currentUserName]="currentUserFullName()"
+                [managerName]="currentManagerName()"
                 (navigate)="navigateTo($event)"
-                class="min-h-[500px]">
+                class="min-h-[420px]">
               </app-ess-network-hub>
 
               <!-- Workspace Highlights -->
               <app-ess-pulse 
                 [highlights]="workspaceHighlights()" 
                 [unreadCount]="notificationService.unreadCount()"
-                class="min-h-[430px]">
+                class="min-h-[360px]">
               </app-ess-pulse>
 
-              <!-- Request History & Tracking -->
-              <app-ess-requests-ledger 
-                [requests]="myLeaveRequests()"
-                (viewAll)="navigateTo('/leaves')"
-                class="min-h-[460px]">
-              </app-ess-requests-ledger>
+              <div class="space-y-4">
+                <!-- Request History & Tracking -->
+                <app-ess-requests-ledger 
+                  [requests]="myLeaveRequests()"
+                  (viewAll)="navigateTo('/leaves')"
+                  class="min-h-[390px]">
+                </app-ess-requests-ledger>
 
-              <!-- Full Attendance Calendar -->
-              <app-ess-calendar 
-                [monthLabel]="calendarCursor() | date:'MMMM yyyy'"
-                [summary]="calendarSummary()"
-                [legends]="calendarLegends"
-                [days]="calendarGrid()"
-                [selectedDay]="selectedCalendarDay()"
-                [selectedMetrics]="selectedCalendarViewMetrics()"
-                [selectedNotes]="selectedCalendarViewNotes()"
-                (previousMonth)="previousCalendarMonth()"
-                (nextMonth)="nextCalendarMonth()"
-                (jumpToToday)="jumpToCurrentMonth()"
-                (selectDay)="openCalendarDay($event)"
-                (closeDetail)="closeCalendarDay()"
-                (navigate)="navigateTo($event)"
-                class="min-h-[700px]">
-              </app-ess-calendar>
+                <!-- Full Attendance Calendar -->
+                <app-ess-calendar 
+                  [monthDate]="calendarCursor()"
+                  [summary]="calendarSummary()"
+                  [legends]="calendarLegends()"
+                  [days]="calendarGrid()"
+                  [selectedDay]="selectedCalendarDay()"
+                  [selectedMetrics]="selectedCalendarViewMetrics()"
+                  [selectedNotes]="selectedCalendarViewNotes()"
+                  (previousMonth)="previousCalendarMonth()"
+                  (nextMonth)="nextCalendarMonth()"
+                  (jumpToToday)="jumpToCurrentMonth()"
+                  (selectDay)="openCalendarDay($event)"
+                  (closeDetail)="closeCalendarDay()"
+                  (navigate)="navigateTo($event)"
+                  class="min-h-[620px]">
+                </app-ess-calendar>
+              </div>
 
               <!-- Organizational Announcements -->
               <app-ess-announcements [announcement]="announcements()[0]"></app-ess-announcements>
 
-              <div class="grid grid-cols-1 2xl:grid-cols-2 gap-6">
+              <div class="grid grid-cols-1 gap-5 2xl:grid-cols-2">
                 <app-ess-quick-actions
-                  [actions]="quickActions"
+                  [actions]="quickActions()"
                   (navigate)="navigateTo($event)"
-                  class="min-h-[340px]">
+                  class="min-h-[290px]">
                 </app-ess-quick-actions>
 
                 <app-ess-workflow-center
                   [workflows]="workflowCenter()"
                   (navigate)="navigateTo($event)"
-                  class="min-h-[340px]">
+                  class="min-h-[290px]">
                 </app-ess-workflow-center>
               </div>
 
@@ -215,36 +221,35 @@ interface HolidayCalendarItem {
                 [projects]="projectWorkbench()"
                 [timesheets]="timesheetWorkbench()"
                 (navigate)="navigateTo($event)"
-                class="min-h-[420px]">
+                class="min-h-[360px]">
               </app-ess-workbench>
             </div>
 
             <!-- Right Column: Personal & Team Context (4/12) - STICKY -->
-            <div class="xl:col-span-4 space-y-6 xl:sticky xl:top-6">
+            <div class="min-w-0 space-y-5 xl:col-span-4 xl:sticky xl:top-5">
               
               <!-- Real-time Web Clock -->
-              <app-ess-attendance-center [todayStatus]="todayStatus()" class="min-h-[480px]"></app-ess-attendance-center>
+              <app-ess-attendance-center [todayStatus]="todayStatus()" class="min-h-[400px]"></app-ess-attendance-center>
 
               <!-- Rapid Leave Balances -->
               <app-ess-leave-balance 
                 [balances]="leaveBalances()"
                 (requestLeave)="navigateTo('/leaves')"
-                class="min-h-[480px]">
+                class="min-h-[400px]">
               </app-ess-leave-balance>
 
               <!-- Holiday Countdown -->
-              <app-ess-holidays [holidays]="upcomingHolidays()" class="min-h-[400px]"></app-ess-holidays>
+              <app-ess-holidays [holidays]="upcomingHolidays()" class="min-h-[320px]"></app-ess-holidays>
 
               <!-- Team Engagement (Birthdays/Anniversary) -->
-              <app-ess-team-engagement [occasions]="teamOccasions()" class="min-h-[400px]"></app-ess-team-engagement>
+              <app-ess-team-engagement [occasions]="teamOccasions()" class="min-h-[320px]"></app-ess-team-engagement>
+
             </div>
           </div>
-
         </div>
       </div>
     </div>
   `,
-
 })
 export class SelfServiceComponent implements OnInit {
   private authService = inject(AuthService);
@@ -260,6 +265,7 @@ export class SelfServiceComponent implements OnInit {
   private liveRefreshService = inject(LiveRefreshService);
   private reportService = inject(ReportService);
   private toastService = inject(ToastService);
+  private languageService = inject(LanguageService);
   private router = inject(Router);
   private destroyRef = inject(DestroyRef);
 
@@ -293,33 +299,35 @@ export class SelfServiceComponent implements OnInit {
   weeklyOffPolicyCount = signal<number>(0);
 
   calendarGrid = computed(() => this.buildCalendarDays());
+  readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
+    this.languageService.t(key, params);
 
   workspaceStats = computed<InsightCard[]>(() => [
     {
-      label: 'Workforce Strength',
+      label: this.t('selfService.stats.workforceStrength'),
       value: this.employees().length.toString(),
-      description: 'Active personnel in your network.',
+      description: this.t('selfService.stats.workforceStrengthHelp'),
       tone: 'border-indigo-100 bg-indigo-50/30',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
     },
     {
-      label: 'Leave Portfolio',
-      value: `${this.totalLeaveBalance()} Days`,
-      description: 'Available time-off across all buckets.',
+      label: this.t('selfService.stats.leavePortfolio'),
+      value: this.t('selfService.dayCount', { count: this.totalLeaveBalance() }),
+      description: this.t('selfService.stats.leavePortfolioHelp'),
       tone: 'border-emerald-100 bg-emerald-50/30',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></svg>'
     },
     {
-      label: 'Request Activity',
-      value: `${this.pendingRequests()} Pending`,
-      description: 'Active requests awaiting approval.',
+      label: this.t('selfService.stats.requestActivity'),
+      value: this.t('selfService.pendingCount', { count: this.pendingRequests() }),
+      description: this.t('selfService.stats.requestActivityHelp'),
       tone: 'border-amber-100 bg-amber-50/30',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>'
     },
     {
-      label: 'Active Projects',
+      label: this.t('selfService.stats.activeProjects'),
       value: this.projects().length.toString(),
-      description: 'Concurrent projects under tracking.',
+      description: this.t('selfService.stats.activeProjectsHelp'),
       tone: 'border-sky-100 bg-sky-50/30',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2s-7 7-9.38 11z"/><path d="M9 12H4s.5-1 1-2c2-3.7 6.4-5.3 10.1-3.6z"/><path d="M15 9v5s1-.5 2-1c3.7-2 5.3-6.4 3.6-10.1z"/></svg>'
     },
@@ -329,17 +337,33 @@ export class SelfServiceComponent implements OnInit {
     const list: DashboardHighlight[] = [];
     const status = this.todayStatus();
     if (status?.is_clocked_in && status.check_in) {
-      list.push({ id: 'att', name: 'Attendance Active', message: `You clocked in at ${new Date(status.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Keep up the great work!`, tone: 'border-emerald-100 bg-emerald-50/50' });
+      list.push({
+        id: 'att',
+        name: this.t('selfService.attendanceActive'),
+        message: this.t('selfService.highlightAttendanceMessage', {
+          time: new Date(status.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        }),
+        tone: 'border-emerald-100 bg-emerald-50/50'
+      });
     }
     if (this.pendingRequests() > 0) {
-      list.push({ id: 'leave', name: 'Pending Approvals', message: `You have ${this.pendingRequests()} leave request(s) awaiting review.`, tone: 'border-amber-100 bg-amber-50/50' });
+      list.push({
+        id: 'leave',
+        name: this.t('selfService.pendingApprovals'),
+        message: this.t('selfService.highlightPendingMessage', { count: this.pendingRequests() }),
+        tone: 'border-amber-100 bg-amber-50/50'
+      });
     }
     const latestTimesheet = this.timesheets()[0];
     if (latestTimesheet) {
       list.push({
         id: 'time',
-        name: 'Latest Timesheet',
-        message: `${latestTimesheet.projectName} logged for ${latestTimesheet.hours}h on ${new Date(latestTimesheet.workDate).toLocaleDateString()}.`,
+        name: this.t('selfService.latestTimesheet'),
+        message: this.t('selfService.highlightTimesheetMessage', {
+          project: latestTimesheet.projectName,
+          hours: latestTimesheet.hours,
+          date: new Date(latestTimesheet.workDate).toLocaleDateString()
+        }),
         tone: 'border-sky-100 bg-sky-50/50'
       });
     }
@@ -347,25 +371,38 @@ export class SelfServiceComponent implements OnInit {
     if (latestAnnouncement?.title) {
       list.push({
         id: 'announce',
-        name: 'Org Update',
+        name: this.t('selfService.orgUpdate'),
         message: latestAnnouncement.title,
         tone: 'border-violet-100 bg-violet-50/50'
       });
     }
     const projects = this.projects().filter(p => p.progress < 50);
     if (projects.length > 0) {
-      list.push({ id: 'proj', name: 'Project Focus', message: `${projects[0].name} requires attention (Progress: ${projects[0].progress}%).`, tone: 'border-indigo-100 bg-indigo-50/50' });
+      list.push({
+        id: 'proj',
+        name: this.t('selfService.projectFocus'),
+        message: this.t('selfService.highlightProjectMessage', {
+          project: projects[0].name,
+          progress: projects[0].progress
+        }),
+        tone: 'border-indigo-100 bg-indigo-50/50'
+      });
     }
     if (this.isManager() && this.activeShiftCount() === 0) {
       list.push({
         id: 'setup',
-        name: 'Settings Attention',
-        message: 'No active shift policy found. Configure attendance settings to keep self-service accurate.',
+        name: this.t('selfService.settingsAttention'),
+        message: this.t('selfService.highlightSettingsMessage'),
         tone: 'border-rose-100 bg-rose-50/50'
       });
     }
     if (list.length < 3) {
-      list.push({ id: 'well', name: 'Organization Pulse', message: 'All systems operational. Have a productive day ahead!', tone: 'border-slate-100 bg-slate-50/50' });
+      list.push({
+        id: 'well',
+        name: this.t('selfService.organizationPulse'),
+        message: this.t('selfService.highlightAllGood'),
+        tone: 'border-slate-100 bg-slate-50/50'
+      });
     }
     return list.slice(0, 3);
   });
@@ -378,28 +415,29 @@ export class SelfServiceComponent implements OnInit {
   ]);
 
   calendarSummary = computed(() => [
-    { label: 'Present', value: this.calendarAttendance().filter(r => r.status === 'present').length, description: 'Standard workdays' },
-    { label: 'Absent', value: this.calendarAttendance().filter(r => r.status === 'absent').length, description: 'Unmarked activity' },
-    { label: 'Leaves', value: this.calendarAttendance().filter(r => r.status === 'on_leave').length, description: 'Approved time-off' },
+    { label: this.t('selfService.present'), value: this.calendarAttendance().filter(r => r.status === 'present').length, description: this.t('selfService.calendar.standardWorkdays'), tone: 'border-emerald-100 bg-emerald-50/40' },
+    { label: this.t('selfService.absent'), value: this.calendarAttendance().filter(r => r.status === 'absent').length, description: this.t('selfService.calendar.unmarkedActivity'), tone: 'border-rose-100 bg-rose-50/40' },
+    { label: this.t('selfService.leaves'), value: this.calendarAttendance().filter(r => r.status === 'on_leave').length, description: this.t('selfService.calendar.approvedTimeOff'), tone: 'border-violet-100 bg-violet-50/40' },
     {
-      label: 'Holidays',
+      label: this.t('selfService.holidays'),
       value: this.upcomingHolidays().filter((holiday) => {
         const holidayDate = new Date(holiday.date);
         const cursor = this.calendarCursor();
         return holidayDate.getFullYear() === cursor.getFullYear() && holidayDate.getMonth() === cursor.getMonth();
       }).length,
-      description: 'Organization breaks'
+      description: this.t('selfService.calendar.organizationBreaks'),
+      tone: 'border-sky-100 bg-sky-50/40'
     }
   ]);
 
-  calendarLegends = [
-    { key: 'present', label: 'Present', dotClass: 'bg-emerald-500', chipClass: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
-    { key: 'late', label: 'Late', dotClass: 'bg-amber-500', chipClass: 'border-amber-200 bg-amber-50 text-amber-700' },
-    { key: 'absent', label: 'Absent', dotClass: 'bg-rose-500', chipClass: 'border-rose-200 bg-rose-50 text-rose-700' },
-    { key: 'leave', label: 'Leave', dotClass: 'bg-violet-500', chipClass: 'border-violet-200 bg-violet-50 text-violet-700' },
-    { key: 'holiday', label: 'Holiday', dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700' },
-    { key: 'weekend', label: 'Off', dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50 text-slate-500' }
-  ];
+  calendarLegends = computed(() => [
+    { key: 'present', label: this.t('selfService.present'), dotClass: 'bg-emerald-500', chipClass: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
+    { key: 'late', label: this.t('selfService.late'), dotClass: 'bg-amber-500', chipClass: 'border-amber-200 bg-amber-50 text-amber-700' },
+    { key: 'absent', label: this.t('selfService.absent'), dotClass: 'bg-rose-500', chipClass: 'border-rose-200 bg-rose-50 text-rose-700' },
+    { key: 'leave', label: this.t('selfService.leave'), dotClass: 'bg-violet-500', chipClass: 'border-violet-200 bg-violet-50 text-violet-700' },
+    { key: 'holiday', label: this.t('selfService.holiday'), dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700' },
+    { key: 'weekend', label: this.t('selfService.off'), dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50 text-slate-500' }
+  ]);
 
   selectedCalendarViewMetrics = computed(() => {
     const day = this.selectedCalendarDay();
@@ -409,44 +447,44 @@ export class SelfServiceComponent implements OnInit {
     const record = this.calendarAttendance().find(r => this.toIsoDate(new Date(r.date)) === iso);
 
     return [
-      { label: 'Check-in', value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A' },
-      { label: 'Duration', value: record?.work_hours ? `${record.work_hours}H` : '0H' },
-      { label: 'Overtime', value: '0H' },
-      { label: 'Location', value: 'HQ' }
+      { label: this.t('selfService.calendar.checkIn'), value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : this.t('selfService.notAvailable') },
+      { label: this.t('selfService.calendar.duration'), value: record?.work_hours ? `${record.work_hours}H` : '0H' },
+      { label: this.t('selfService.calendar.overtime'), value: '0H' },
+      { label: this.t('selfService.calendar.location'), value: 'HQ' }
     ];
   });
 
   selectedCalendarViewNotes = computed(() => {
     const day = this.selectedCalendarDay();
     if (!day) return [];
-    if (day.statusKey === 'weekend') return ['Scheduled weekly off day.'];
-    if (day.statusKey === 'holiday') return [`Organization Holiday: ${day.sublabel}`];
-    if (day.statusKey === 'leave') return [`Approved Leave: ${day.label}`];
-    if (day.statusKey === 'present') return ['Standard workday recorded.', 'No anomalies detected.'];
-    return ['No specific activity logs for this day.'];
+    if (day.statusKey === 'weekend') return [this.t('selfService.calendar.scheduledWeeklyOff')];
+    if (day.statusKey === 'holiday') return [this.t('selfService.calendar.organizationHoliday', { name: day.sublabel })];
+    if (day.statusKey === 'leave') return [this.t('selfService.calendar.approvedLeave', { name: day.label })];
+    if (day.statusKey === 'present') return [this.t('selfService.calendar.standardWorkdayRecorded'), this.t('selfService.calendar.noAnomalies')];
+    return [this.t('selfService.calendar.noSpecificLogs')];
   });
 
-  quickActions: QuickAction[] = [
-    { title: 'Clock In Now', description: 'Start your shift', route: '/attendance', icon: 'clock-3', tone: 'primary' },
-    { title: 'Apply Leave', description: 'Request time off', route: '/leaves', icon: 'calendar-plus', tone: 'success' },
-    { title: 'My Requests', description: 'Track approvals', route: '/leaves', icon: 'layout-grid', tone: 'warning' },
-    { title: 'Timesheets', description: 'Log project hours', route: '/timesheets', icon: 'clock-3', tone: 'slate' },
-    { title: 'My Profile', description: 'Update personal details', route: '/profile', icon: 'spark', tone: 'warning' },
-    { title: 'Open Reports', description: 'Insights & history', route: '/reports-center', icon: 'chart-column', tone: 'slate' },
-    { title: 'More Add-ons', description: 'Explore extensions', route: '/add-ons', icon: 'blocks', tone: 'primary' }
-  ];
+  quickActions = computed<QuickAction[]>(() => [
+    { title: this.t('selfService.actions.clockInNow'), description: this.t('selfService.actions.startYourShift'), route: '/attendance', icon: 'clock-3', tone: 'primary' },
+    { title: this.t('selfService.actions.applyLeave'), description: this.t('selfService.actions.requestTimeOff'), route: '/leaves', icon: 'calendar-plus', tone: 'success' },
+    { title: this.t('selfService.actions.myRequests'), description: this.t('selfService.actions.trackApprovals'), route: '/leaves', icon: 'layout-grid', tone: 'warning' },
+    { title: this.t('selfService.actions.timesheets'), description: this.t('selfService.actions.logProjectHours'), route: '/timesheets', icon: 'clock-3', tone: 'slate' },
+    { title: this.t('selfService.actions.myProfile'), description: this.t('selfService.actions.updatePersonalDetails'), route: '/profile', icon: 'spark', tone: 'warning' },
+    { title: this.t('selfService.actions.openReports'), description: this.t('selfService.actions.insightsHistory'), route: '/reports-center', icon: 'chart-column', tone: 'slate' },
+    { title: this.t('selfService.actions.moreAddons'), description: this.t('selfService.actions.exploreExtensions'), route: '/add-ons', icon: 'blocks', tone: 'primary' }
+  ]);
 
   workflowCenter = computed<WorkflowCenterCard[]>(() => {
     const isAdmin = this.isManager();
     const list: WorkflowCenterCard[] = [];
 
     if (isAdmin) {
-      list.push({ key: 'rev', title: 'Review Employees', description: 'Manage profiles and access governance.', route: '/employees', tone: 'border-indigo-100 bg-indigo-50/50', badge: 'ADMIN' });
-      list.push({ key: 'att', title: 'Team Attendance', description: 'Real-time monitoring of department shifts.', route: '/admin/team-attendance', tone: 'border-emerald-100 bg-emerald-50/50', badge: 'LEAD' });
+      list.push({ key: 'rev', title: this.t('selfService.workflow.reviewEmployees'), description: this.t('selfService.workflow.reviewEmployeesHelp'), route: '/employees', tone: 'border-indigo-100 bg-indigo-50/50', badge: 'ADMIN' });
+      list.push({ key: 'att', title: this.t('selfService.workflow.teamAttendance'), description: this.t('selfService.workflow.teamAttendanceHelp'), route: '/admin/team-attendance', tone: 'border-emerald-100 bg-emerald-50/50', badge: 'LEAD' });
     }
 
-    list.push({ key: 'his', title: 'Activity History', description: 'Comprehensive insight view of attendance and HR trends.', route: '/reports-center', tone: 'border-slate-100 bg-slate-50/50', badge: 'SELF' });
-    list.push({ key: 'req', title: 'Request Center', description: 'Open leave actions, and status tracking.', route: '/leaves', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
+    list.push({ key: 'his', title: this.t('selfService.workflow.activityHistory'), description: this.t('selfService.workflow.activityHistoryHelp'), route: '/reports-center', tone: 'border-slate-100 bg-slate-50/50', badge: 'SELF' });
+    list.push({ key: 'req', title: this.t('selfService.workflow.requestCenter'), description: this.t('selfService.workflow.requestCenterHelp'), route: '/leaves', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
     return list;
   });
 
@@ -514,8 +552,8 @@ export class SelfServiceComponent implements OnInit {
           const first = normalized[0];
           const type = first.isBirthday ? 'Birthday' : 'Anniversary';
           this.specialMessage.set([
-            `Happy ${type}, ${first.firstName}!`,
-            `Wishing you a fantastic day and continued success with us.`
+            this.t('selfService.specialMessageTitle', { type, name: first.firstName }),
+            this.t('selfService.specialMessageBody')
           ]);
           this.playConfetti();
         }
@@ -529,7 +567,7 @@ export class SelfServiceComponent implements OnInit {
 
         const today = new Date();
         if (today.getDate() === 1) {
-          this.specialMessage.set(['Happy New Year!', 'Wishing you a year filled with joy and success!']);
+          this.specialMessage.set([this.t('selfService.newYearTitle'), this.t('selfService.newYearBody')]);
           this.playConfetti();
         }
       }
@@ -867,20 +905,22 @@ export class SelfServiceComponent implements OnInit {
 
   private resolveCalendarMeta(date: Date, att: AttendanceRecord | undefined, holiday: string | undefined): any {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-    if (holiday) return { statusKey: 'holiday', label: 'Holiday', sublabel: holiday, dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700', cardClass: 'border-sky-100 bg-sky-50/50' };
+    if (holiday) return { statusKey: 'holiday', label: this.t('selfService.holiday'), sublabel: holiday, dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700', cardClass: 'border-sky-100 bg-sky-50/50' };
     if (att) {
       const isLate = att.is_late || (att.status === 'late');
       return {
         statusKey: isLate ? 'late' : 'present',
-        label: isLate ? 'Late' : 'Present',
-        sublabel: att.check_in ? `Entry: ${new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Marked',
+        label: isLate ? this.t('selfService.late') : this.t('selfService.present'),
+        sublabel: att.check_in
+          ? this.t('selfService.calendar.entryAt', { time: new Date(att.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })
+          : this.t('selfService.calendar.marked'),
         dotClass: isLate ? 'bg-amber-500' : 'bg-emerald-500',
-        chipClass: isLate ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700',
-        cardClass: isLate ? 'border-amber-100 bg-amber-50/40' : 'border-emerald-100 bg-emerald-50/40'
+        chipClass: isLate ? 'border-amber-200 bg-amber-50/90 text-amber-700' : 'border-emerald-200 bg-emerald-50/90 text-emerald-700',
+        cardClass: isLate ? 'border-amber-100 bg-gradient-to-br from-amber-50/95 to-white' : 'border-emerald-100 bg-gradient-to-br from-emerald-50/95 to-white'
       };
     }
-    if (isWeekend) return { statusKey: 'weekend', label: 'Weekend', sublabel: 'Weekly Off', dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50 text-slate-500', cardClass: 'border-slate-100 bg-slate-50/30' };
-    return { statusKey: 'upcoming', label: 'Upcoming', sublabel: 'Standard Day', dotClass: 'bg-slate-200', chipClass: 'border-slate-100 bg-white text-slate-400', cardClass: 'border-slate-100 bg-white' };
+    if (isWeekend) return { statusKey: 'weekend', label: this.t('selfService.off'), sublabel: this.t('selfService.calendar.weeklyOffLabel'), dotClass: 'bg-slate-400', chipClass: 'border-slate-200 bg-slate-50/95 text-slate-600', cardClass: 'border-slate-200 bg-gradient-to-br from-slate-50 to-white' };
+    return { statusKey: 'upcoming', label: this.t('selfService.calendar.upcoming'), sublabel: this.t('selfService.calendar.standardDay'), dotClass: 'bg-slate-300', chipClass: 'border-slate-200 bg-white/95 text-slate-500', cardClass: 'border-slate-100 bg-white' };
   }
 
   private toIsoDate(date: Date): string {
@@ -891,6 +931,21 @@ export class SelfServiceComponent implements OnInit {
     const user = this.currentUser();
     if (!user) return [];
     return this.employees().filter(m => m.managerId === user.managerId && m.id !== user.id);
+  });
+
+  currentUserFullName = computed(() => {
+    const user = this.currentUser();
+    return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+  });
+
+  currentManagerName = computed(() => {
+    const user = this.currentUser();
+    if (!user?.managerId) {
+      return '';
+    }
+
+    const manager = this.employees().find((employee) => employee.id === user.managerId);
+    return [manager?.firstName, manager?.lastName].filter(Boolean).join(' ').trim();
   });
 
   reportees = computed(() => {

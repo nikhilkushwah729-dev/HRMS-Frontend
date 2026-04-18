@@ -35,11 +35,11 @@ Chart.register(...registerables);
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="flex flex-col gap-8 relative">
+    <div class="relative flex flex-col gap-5 sm:gap-6 lg:gap-8">
       <!-- Leave Form Modal -->
       @if (showForm()) {
         <div
-          class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
         >
           <div
             class="bg-white rounded-md shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200"
@@ -71,7 +71,7 @@ Chart.register(...registerables);
             <form
               [formGroup]="leaveForm"
               (ngSubmit)="submitLeave()"
-              class="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(90vh-88px)]"
+            class="max-h-[calc(90vh-88px)] space-y-4 overflow-y-auto p-4 sm:p-6"
             >
               <div class="flex flex-col gap-1.5">
                 <app-ui-select-advanced
@@ -150,7 +150,7 @@ Chart.register(...registerables);
       }
 
       <header
-        class="app-module-hero flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5 mb-8"
+        class="app-module-hero mb-6 flex flex-col items-start justify-between gap-5 xl:mb-8 xl:flex-row xl:items-end"
       >
         <div class="max-w-2xl">
           <p class="app-module-kicker">Leave Workspace</p>
@@ -172,8 +172,8 @@ Chart.register(...registerables);
               Open leave items waiting for action or recent submission tracking.
             </p>
           </div>
-          <div class="flex items-center gap-3 w-full sm:w-auto">
-            <div class="app-chip-switch">
+          <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+            <div class="app-chip-switch w-full overflow-x-auto no-scrollbar sm:w-auto">
               <button
                 (click)="currentView.set('request')"
                 [class.bg-slate-900]="currentView() === 'request'"
@@ -225,7 +225,7 @@ Chart.register(...registerables);
             </div>
             <button
               (click)="toggleForm()"
-              class="btn-primary flex-1 sm:flex-none flex items-center justify-center gap-2 py-3 rounded-md"
+              class="btn-primary flex w-full items-center justify-center gap-2 rounded-md py-3 sm:w-auto sm:flex-none"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -247,13 +247,13 @@ Chart.register(...registerables);
 
       @if (currentView() === 'dashboard') {
         <div
-          class="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500"
+          class="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 lg:grid-cols-3 lg:gap-8"
         >
           <!-- Analytics Charts -->
-          <div class="lg:col-span-2 space-y-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-6 lg:col-span-2 lg:space-y-8">
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
               <div
-                class="card p-6 border-slate-100 bg-white/50 backdrop-blur-md"
+                class="card border-slate-100 bg-white/50 p-5 backdrop-blur-md sm:p-6"
               >
                 <h3
                   class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2"
@@ -265,9 +265,7 @@ Chart.register(...registerables);
                   <canvas id="leaveDistChart"></canvas>
                 </div>
               </div>
-              <div
-                class="card p-6 border-slate-100 bg-white/50 backdrop-blur-md"
-              >
+              <div class="card border-slate-100 bg-white/50 p-5 backdrop-blur-md sm:p-6">
                 <h3
                   class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2"
                 >

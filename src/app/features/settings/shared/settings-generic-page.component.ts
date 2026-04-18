@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { ToastService } from '../../../core/services/toast.service';
 import { SettingsFieldConfig, SettingsPageConfig } from './settings-page.types';
 import { SettingsWorkspaceService } from './settings-workspace.service';
+import { LanguageService } from '../../../core/services/language.service';
 
 @Component({
   selector: 'app-settings-generic-page',
@@ -23,37 +24,36 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
 
             <div class="grid gap-3 sm:grid-cols-3">
               <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{{ config().primaryMetricLabel || 'Configured items' }}</p>
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{{ config().primaryMetricLabel || t('common.configuredItems') }}</p>
                 <p class="mt-2 text-2xl font-black text-slate-900">{{ items().length }}</p>
-                <p class="mt-1 text-xs text-slate-500">Saved records</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.savedRecords') }}</p>
               </div>
               <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Active</p>
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.active') }}</p>
                 <p class="mt-2 text-2xl font-black text-slate-900">{{ activeCount() }}</p>
-                <p class="mt-1 text-xs text-slate-500">Enabled right now</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.enabledRightNow') }}</p>
               </div>
               <div class="rounded-md border border-white/70 bg-white/80 px-4 py-4 shadow-sm">
-                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Fields</p>
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.fields') }}</p>
                 <p class="mt-2 text-2xl font-black text-slate-900">{{ config().fields.length }}</p>
-                <p class="mt-1 text-xs text-slate-500">Configuration inputs</p>
+                <p class="mt-1 text-xs text-slate-500">{{ t('common.configurationInputs') }}</p>
               </div>
             </div>
           </div>
 
           <div class="app-module-highlight">
-            <p class="app-module-highlight-label">Editor status</p>
+            <p class="app-module-highlight-label">{{ t('common.editorStatus') }}</p>
             <p class="mt-3 app-module-highlight-value">
-              {{ editingId() ? 'Editing' : 'Ready' }}
+              {{ editingId() ? t('common.editing') : t('common.ready') }}
             </p>
             <p class="mt-3 text-sm leading-6 text-white/80">
-              {{ editingId() ? 'You are updating an existing configuration record.' : 'Create a new configuration and publish it to the shared settings workspace.' }}
+              {{ editingId() ? t('common.editing') + ' ' + config().itemName : t('common.create') + ' ' + config().itemName }}
             </p>
             <div class="mt-4 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
-              {{ secondaryFields().length }} quick attributes visible in directory cards
+              {{ t('common.quickAttributesVisible', { count: secondaryFields().length }) }}
             </div>
             <div class="mt-3 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs leading-5 text-white/80">
-              Shared workspace-backed settings keep the same masters available
-              to every admin inside this organization.
+              {{ t('common.sharedWorkspaceSettings') }}
             </div>
           </div>
         </div>
@@ -62,17 +62,17 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
       <div class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
         <section class="app-surface-card overflow-hidden">
           <div class="border-b border-slate-100 px-6 py-5">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ editingId() ? 'Update' : 'Create' }} {{ config().itemName }}</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-900">Configuration editor</h2>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ editingId() ? t('common.update') : t('common.create') }} {{ config().itemName }}</p>
+            <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('common.configurationEditor') }}</h2>
             <p class="mt-2 text-sm leading-6 text-slate-500">
-              Fill in the core values below to keep this setting clean, searchable, and easy for admins to maintain.
+              {{ t('common.configurationEditorHelp') }}
             </p>
           </div>
 
           <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5 px-6 py-6">
             <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <p class="font-bold">Quick note</p>
-              <p class="mt-1 leading-6">These settings now save to the shared organization settings workspace, so all admins in the same organization can manage the same configuration data.</p>
+              <p class="font-bold">{{ t('common.quickNote') }}</p>
+              <p class="mt-1 leading-6">{{ t('common.sharedSettingsNote') }}</p>
             </div>
 
             @for (field of config().fields; track field.key) {
@@ -80,7 +80,7 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
                 <div class="flex items-center justify-between gap-3">
                   <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ field.label }}</label>
                   @if (field.required) {
-                    <span class="rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-rose-600">Required</span>
+                    <span class="rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-rose-600">{{ t('common.required') }}</span>
                   }
                 </div>
 
@@ -94,12 +94,12 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
                   @case ('toggle') {
                     <label class="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
                       <input type="checkbox" [formControlName]="field.key" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500" />
-                      Enable {{ field.label.toLowerCase() }}
+                      {{ t('common.enable') }} {{ field.label.toLowerCase() }}
                     </label>
                   }
                   @case ('select') {
                     <select [formControlName]="field.key" class="app-field">
-                      <option value="">Select {{ field.label }}</option>
+                      <option value="">{{ t('common.selectField', { field: field.label }) }}</option>
                       @for (option of field.options || []; track option.value) {
                         <option [value]="option.value">{{ option.label }}</option>
                       }
@@ -114,10 +114,10 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
 
             <div class="grid gap-3 sm:grid-cols-2">
               <button type="submit" [disabled]="form.invalid" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
-                {{ editingId() ? 'Update' : 'Save' }} {{ config().itemName }}
+                {{ editingId() ? t('common.update') : t('common.save') }} {{ config().itemName }}
               </button>
               <button type="button" (click)="reset()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Reset
+                {{ t('common.reset') }}
               </button>
             </div>
           </form>
@@ -127,13 +127,13 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
           <div class="border-b border-slate-100 px-6 py-5">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Configured {{ config().itemName }}s</p>
-                <h2 class="mt-2 text-2xl font-black text-slate-900">Settings directory</h2>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ t('common.configuredItems') }}</p>
+                <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('common.directory') }}</h2>
                 <p class="mt-2 text-sm leading-6 text-slate-500">
                   Browse and update existing records quickly. Search works across every visible value on the card.
                 </p>
               </div>
-              <input [value]="searchQuery()" (input)="updateSearch($event)" class="app-field w-full max-w-sm" [placeholder]="'Search ' + config().itemName + 's'" />
+              <input [value]="searchQuery()" (input)="updateSearch($event)" class="app-field w-full max-w-sm" [placeholder]="t('common.searchItems', { itemName: config().itemName })" />
             </div>
           </div>
 
@@ -145,7 +145,7 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
                     <p class="text-lg font-black text-slate-900">{{ item[primaryLabelKey()] || item['name'] || config().itemName }}</p>
                     <span class="rounded-full px-3 py-1 text-xs font-semibold"
                       [ngClass]="isItemActive(item) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">
-                      {{ isItemActive(item) ? 'Active' : 'Inactive' }}
+                      {{ isItemActive(item) ? t('common.active') : t('common.inactive') }}
                     </span>
                   </div>
               <div class="mt-2 flex flex-wrap gap-2">
@@ -158,12 +158,12 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
                     }
                   </div>
                   <p class="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-                    {{ config().itemName }} record
+                    {{ t('common.itemRecord', { itemName: config().itemName }) }}
                   </p>
                 </div>
                 <div class="flex gap-3">
-                  <button type="button" (click)="edit(item)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
-                  <button type="button" (click)="remove(item['id'])" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Delete</button>
+                  <button type="button" (click)="edit(item)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
+                  <button type="button" (click)="remove(item['id'])" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
                 </div>
               </article>
             } @empty {
@@ -174,7 +174,7 @@ import { SettingsWorkspaceService } from './settings-workspace.service';
                     <path d="M5 12h14" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No {{ config().itemName }} records yet</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noItemRecordsYet', { itemName: config().itemName }) }}</p>
                 <p class="mt-2 text-sm text-slate-500">{{ config().emptyState }}</p>
               </div>
             }
@@ -189,6 +189,7 @@ export class SettingsGenericPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly toastService = inject(ToastService);
   private readonly workspace = inject(SettingsWorkspaceService);
+  private readonly languageService = inject(LanguageService);
 
   config = signal<SettingsPageConfig>({
     storageKey: 'hrms_generic_page',
@@ -228,6 +229,11 @@ export class SettingsGenericPageComponent implements OnInit {
     this.config.set(config);
     this.buildForm(config.fields);
     this.loadItems();
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   private buildForm(fields: SettingsFieldConfig[]): void {
@@ -308,7 +314,7 @@ export class SettingsGenericPageComponent implements OnInit {
   displayValue(item: Record<string, any>, field: SettingsFieldConfig): string {
     const value = item[field.key];
     if (value === undefined || value === null || value === '') return '';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'boolean') return value ? this.t('common.yes') : this.t('common.no');
     return String(value);
   }
 

@@ -7,6 +7,7 @@ import {
   SelectOption,
 } from '../../../../core/components/ui/ui-select-advanced.component';
 import { SettingsWorkspaceService } from '../../shared/settings-workspace.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 interface RemoteWorkPlan {
   id: string;
@@ -219,7 +220,7 @@ interface RemoteWorkPlan {
                           ? 'bg-emerald-100 text-emerald-700'
                           : 'bg-slate-100 text-slate-600'
                       "
-                      >{{ plan.isActive ? 'Active' : 'Inactive' }}</span
+                      >{{ plan.isActive ? t('common.active') : t('common.inactive') }}</span
                     >
                     <span
                       class="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700"
@@ -236,14 +237,14 @@ interface RemoteWorkPlan {
                     (click)="editPlan(plan)"
                     class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     type="button"
                     (click)="deletePlan(plan.id)"
                     class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </article>
@@ -255,7 +256,7 @@ interface RemoteWorkPlan {
                     <path d="M5 15l4-4 4 3 6-7" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No remote work plans yet</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">
                   Create the first plan to define who can work remotely and how
                   approvals should flow.
@@ -273,6 +274,7 @@ export class RemoteWorkComponent implements OnInit {
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
   private workspace = inject(SettingsWorkspaceService);
+  private languageService = inject(LanguageService);
 
   plans = signal<RemoteWorkPlan[]>([]);
   searchQuery = signal('');
@@ -411,5 +413,10 @@ export class RemoteWorkComponent implements OnInit {
       appliesTo: '',
       isActive: true,
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }
