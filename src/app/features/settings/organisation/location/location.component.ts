@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrganizationService, OfficeLocation } from '../../../../core/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 @Component({
   selector: 'app-location',
@@ -71,16 +72,16 @@ import { ToastService } from '../../../../core/services/toast.service';
               <input formControlName="name" class="app-field" placeholder="Head Office">
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Zone</label>
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.zone') }}</label>
               <input formControlName="zone" class="app-field" placeholder="North India">
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Address</label>
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.address') }}</label>
               <textarea formControlName="address" rows="3" class="app-field resize-none" placeholder="Full office address"></textarea>
             </div>
             <div class="grid gap-4 md:grid-cols-2">
               <div class="flex flex-col gap-2">
-                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">City</label>
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.city') }}</label>
                 <input formControlName="city" class="app-field" placeholder="Delhi">
               </div>
               <div class="flex flex-col gap-2">
@@ -89,7 +90,7 @@ import { ToastService } from '../../../../core/services/toast.service';
               </div>
             </div>
             <div class="flex flex-col gap-2">
-              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Contact Number</label>
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('common.contactNumber') }}</label>
               <input formControlName="contactNumber" class="app-field" placeholder="Office contact number">
             </div>
             <div class="grid gap-3 sm:grid-cols-2">
@@ -97,7 +98,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                 {{ saving() ? 'Saving...' : editingId() ? 'Update Location' : 'Save Location' }}
               </button>
               <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Reset
+                {{ t('common.reset') }}
               </button>
             </div>
           </form>
@@ -122,15 +123,15 @@ import { ToastService } from '../../../../core/services/toast.service';
                   <div class="flex flex-wrap items-center gap-3">
                     <p class="text-lg font-black text-slate-900">{{ location.name }}</p>
                     <span class="rounded-full px-3 py-1 text-xs font-semibold" [ngClass]="location.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'">
-                      {{ location.isActive ? 'Active' : 'Inactive' }}
+                      {{ location.isActive ? t('common.active') : t('common.inactive') }}
                     </span>
                   </div>
                   <p class="mt-1 text-sm text-slate-500">{{ location.zone || 'No zone' }} | {{ location.city || 'No city' }}</p>
                   <p class="mt-2 text-sm leading-7 text-slate-600">{{ location.address || 'No address available' }}</p>
                 </div>
                 <div class="flex items-center gap-3">
-                  <button (click)="editLocation(location)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
-                  <button (click)="removeLocation(location.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Delete</button>
+                  <button (click)="editLocation(location)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
+                  <button (click)="removeLocation(location.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
                 </div>
               </div>
             } @empty {
@@ -141,7 +142,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                     <circle cx="12" cy="10" r="2.5" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No locations configured yet</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">
                   Add the first office or branch so organisation masters can
                   reference the correct working location.
@@ -158,6 +159,7 @@ export class LocationComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
 
   locations = signal<OfficeLocation[]>([]);
   searchQuery = signal('');
@@ -262,5 +264,10 @@ export class LocationComponent implements OnInit {
       },
       error: () => this.toastService.error('Failed to remove location')
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

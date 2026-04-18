@@ -19,7 +19,7 @@ export interface ModuleCard {
   template: `
     <div class="flex flex-col h-full overflow-hidden">
       <div class="mb-8 flex items-center gap-5">
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50/50 text-indigo-600 shadow-sm ring-1 ring-indigo-100 backdrop-blur-md">
+        <div class="flex h-14 w-14 items-center justify-center rounded-md bg-indigo-50/50 text-indigo-600 shadow-sm ring-1 ring-indigo-100 backdrop-blur-md">
           <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.1 6.27a2 2 0 0 0 0 3.66l9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09a2 2 0 0 0 0-3.66Z"/><path d="m2.1 11.74 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09"/><path d="m2.1 16.81 9.07 4.09a2 2 0 0 0 1.66 0l9.07-4.09"/></svg>
         </div>
         <div>
@@ -30,9 +30,9 @@ export interface ModuleCard {
       
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         @for (module of modules(); track module.key) {
-          <button (click)="navigate.emit(module.route)" class="group relative flex flex-col rounded-[32px] border border-slate-100 bg-white p-6 transition-all hover:-translate-y-1 hover:border-indigo-200 hover:shadow-2xl ring-1 ring-slate-200/50 hover:ring-indigo-300 backdrop-blur-sm h-full">
+          <button (click)="navigate.emit(module.route)" class="group relative flex flex-col rounded-md border border-slate-100 bg-white p-6 transition-all hover:-translate-y-1 hover:border-indigo-200 hover:shadow-2xl ring-1 ring-slate-200/50 hover:ring-indigo-300 backdrop-blur-sm h-full">
             <div class="flex items-center justify-between gap-4 mb-6">
-              <div class="h-16 w-16 rounded-2xl bg-indigo-50/40 p-4 text-indigo-600 transition-all group-hover:bg-indigo-600 group-hover:text-white ring-4 ring-white shadow-md flex items-center justify-center backdrop-blur-sm">
+              <div class="h-16 w-16 rounded-md bg-indigo-50/40 p-4 text-indigo-600 transition-all group-hover:bg-indigo-600 group-hover:text-white ring-4 ring-white shadow-md flex items-center justify-center backdrop-blur-sm">
                 <div class="h-10 w-10" [innerHTML]="getIcon(module.key)"></div>
               </div>
               <span class="rounded-full bg-slate-50 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-indigo-500 transition-colors border border-slate-100">
@@ -45,7 +45,7 @@ export interface ModuleCard {
               <p class="mt-2 text-sm leading-relaxed text-slate-500 group-hover:text-slate-600 transition-colors line-clamp-2">{{ module.description }}</p>
             </div>
             
-            <div class="mt-8 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400 opacity-0 transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:opacity-100 shadow-sm">
+            <div class="flex h-10 w-10 items-center justify-center rounded-md bg-slate-50 text-slate-400 opacity-0 transition-all group-hover:bg-indigo-600 group-hover:text-white group-hover:opacity-100 shadow-sm">
                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </div>
 
@@ -54,7 +54,7 @@ export interface ModuleCard {
               <button
                 type="button"
                 (click)="$event.stopPropagation(); navigate.emit('/billing')"
-                class="absolute inset-0 z-20 rounded-[32px] bg-gradient-to-t from-white via-white/90 to-transparent flex flex-col items-center justify-end pb-8 pointer-events-auto"
+                class="absolute inset-0 z-20 rounded-md bg-gradient-to-t from-white via-white/90 to-transparent flex flex-col items-center justify-end pb-8 pointer-events-auto"
               >
                  <div class="flex items-center gap-2.5 rounded-full bg-slate-900 px-5 py-2.5 text-white shadow-2xl ring-4 ring-white/50 transform transition-transform group-hover:scale-105">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { User } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
@@ -161,6 +161,10 @@ export class EmployeeService {
         return records.map((item: any) => this.normalizeInvitation(item));
     }
 
+    private isValidEmployeeId(id: unknown): id is number {
+        return Number.isInteger(id) && Number(id) > 0;
+    }
+
     getEmployees(): Observable<User[]> {
         return this.http.get<any>(`${this.apiUrl}/employees`).pipe(
             map(res => this.mapEmployeeListResponse(res))
@@ -168,6 +172,10 @@ export class EmployeeService {
     }
 
     getEmployeeById(id: number): Observable<User> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         return this.http.get<any>(`${this.apiUrl}/employees/${id}`).pipe(
             map(res => this.mapEmployeeResponse(res))
         );
@@ -197,6 +205,10 @@ export class EmployeeService {
     }
 
     updateEmployee(id: number, employee: Partial<User>): Observable<User> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         const payload = this.buildEmployeePayload(employee);
         return this.http.put<any>(`${this.apiUrl}/employees/${id}`, payload).pipe(
             map(res => this.mapEmployeeResponse(res)),
@@ -218,6 +230,10 @@ export class EmployeeService {
     }
 
     deleteEmployee(id: number): Observable<void> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         return this.http.delete<any>(`${this.apiUrl}/employees/${id}`).pipe(
             tap(() => {
                 this.auditLogService.logAction(

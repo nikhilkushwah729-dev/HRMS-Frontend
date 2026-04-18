@@ -14,6 +14,7 @@ import {
   Designation,
 } from '../../core/services/organization.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LanguageService } from '../../core/services/language.service';
 import {
   UiPhoneInputComponent,
   UiSelectAdvancedComponent,
@@ -30,29 +31,28 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
     UiSelectAdvancedComponent,
   ],
   template: `
-    <div class="mx-auto max-w-6xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-6xl space-y-5 px-1 py-2 sm:space-y-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm"
       >
         <div
           class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8"
         >
-          <div class="space-y-5">
+          <div class="min-w-0 space-y-5">
             <div
               class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
             >
               <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-              People Operations
+              {{ t('employee.peopleOperations') }}
             </div>
             <div>
               <h1
                 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
               >
-                Add new employee
+                {{ t('employee.addNew') }}
               </h1>
               <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                Set up employee identity, access role, department placement, and
-                emergency details from a cleaner onboarding workspace.
+                {{ t('employee.subtitle') }}
               </p>
             </div>
           </div>
@@ -60,17 +60,65 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           <div
             class="rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5"
           >
-            <p
-              class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-            >
-              Generated code
-            </p>
-            <p class="mt-2 break-words text-2xl font-black text-slate-900">
-              {{ employeeForm.get('employeeCode')?.value || 'Pending' }}
-            </p>
-            <p class="mt-2 text-sm text-slate-600">
-              Organization prefix: {{ orgPrefix() }}
-            </p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p
+                  class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                >
+                  {{ t('employee.generatedCode') }}
+                </p>
+                <p class="mt-2 break-words text-2xl font-black text-slate-900">
+                  {{ employeeForm.get('employeeCode')?.value || t('common.pending') }}
+                </p>
+                <p class="mt-2 text-sm text-slate-600">
+                  {{ t('employee.organizationPrefix', { prefix: orgPrefix() }) }}
+                </p>
+                <p class="mt-1 text-xs text-slate-500">
+                  {{ t('employee.prefixHint') }}
+                </p>
+              </div>
+
+              <div class="relative shrink-0">
+                <button
+                  type="button"
+                  (click)="toggleOnboardingMenu()"
+                  class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
+                >
+                  <span>{{ t('common.onboarding') }}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+
+                @if (showOnboardingMenu()) {
+                  <div class="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
+                    <button
+                      type="button"
+                      class="flex w-full items-center justify-between bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white"
+                    >
+                      <span>{{ t('common.addEmployee') }}</span>
+                      <span class="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em]">{{ t('common.current') }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      (click)="openInvitations()"
+                      class="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <span>{{ t('common.invitations') }}</span>
+                      <span class="text-slate-400">&rarr;</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -80,16 +128,16 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
         (ngSubmit)="onSubmit()"
         class="space-y-6"
       >
-        <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
           <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
               <p
                 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
               >
-                Core Profile
+                {{ t('employee.coreProfile') }}
               </p>
               <h2 class="mt-2 text-2xl font-black text-slate-900">
-                Identity and access
+                {{ t('employee.identityAccess') }}
               </h2>
             </div>
 
@@ -97,7 +145,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2">
                 <label
                   class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >First Name</label
+                  >{{ t('employee.firstName') }}</label
                 >
                 <input
                   type="text"
@@ -109,7 +157,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2">
                 <label
                   class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >Last Name</label
+                  >{{ t('employee.lastName') }}</label
                 >
                 <input
                   type="text"
@@ -121,7 +169,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2 md:col-span-2">
                 <label
                   class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >Email Address</label
+                  >{{ t('employee.emailAddress') }}</label
                 >
                 <input
                   type="email"
@@ -133,7 +181,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2 md:col-span-2">
                 <label
                   class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >Password</label
+                  >{{ t('employee.password') }}</label
                 >
                 <input
                   type="password"
@@ -153,7 +201,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2 md:col-span-2">
                 <label
                   class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >Employee Code</label
+                  >{{ t('employee.employeeCode') }}</label
                 >
                 <div class="relative">
                   <input
@@ -197,10 +245,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <p
                 class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
               >
-                Team Placement
+                {{ t('employee.teamPlacement') }}
               </p>
               <h2 class="mt-2 text-2xl font-black text-slate-900">
-                Role and status
+                {{ t('employee.roleStatus') }}
               </h2>
             </div>
 
@@ -208,8 +256,8 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2">
                 <app-ui-select-advanced
                   formControlName="departmentId"
-                  label="Department"
-                  placeholder="Select Department"
+                  [label]="t('employee.department')"
+                  [placeholder]="t('employee.selectDepartment')"
                   [options]="departmentOptions()"
                   searchPlaceholder="Search departments..."
                 ></app-ui-select-advanced>
@@ -217,8 +265,8 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2">
                 <app-ui-select-advanced
                   formControlName="designationId"
-                  label="Designation"
-                  placeholder="Select Designation"
+                  [label]="t('employee.designation')"
+                  [placeholder]="t('employee.selectDesignation')"
                   [options]="designationOptions()"
                   searchPlaceholder="Search designations..."
                 ></app-ui-select-advanced>
@@ -226,16 +274,16 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               <div class="flex flex-col gap-2">
                 <app-ui-select-advanced
                   formControlName="roleId"
-                  label="Role"
-                  placeholder="Select Role"
+                  [label]="t('employee.role')"
+                  [placeholder]="t('employee.selectRole')"
                   [options]="roleOptions"
                 ></app-ui-select-advanced>
               </div>
               <div class="flex flex-col gap-2">
                 <app-ui-select-advanced
                   formControlName="status"
-                  label="Status"
-                  placeholder="Select Status"
+                  [label]="t('employee.status')"
+                  [placeholder]="t('employee.selectStatus')"
                   [options]="statusOptions"
                 ></app-ui-select-advanced>
               </div>
@@ -243,12 +291,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                 <p
                   class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
                 >
-                  Onboarding note
+                  {{ t('employee.onboardingNote') }}
                 </p>
                 <p class="mt-3 text-sm leading-7 text-slate-600">
-                  Once created, this employee can be moved into leave,
-                  attendance, payroll, and self-service workflows without
-                  leaving the people module.
+                  {{ t('employee.onboardingNoteBody') }}
                 </p>
               </div>
             </div>
@@ -260,10 +306,10 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             <p
               class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
             >
-              Employment Details
+              {{ t('employee.employmentDetails') }}
             </p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">
-              Joining and emergency contact
+              {{ t('employee.joiningEmergency') }}
             </h2>
           </div>
 
@@ -271,14 +317,14 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             <div class="flex flex-col gap-2">
               <label
                 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                >Join Date</label
+                >{{ t('employee.joinDate') }}</label
               >
               <input type="date" formControlName="joinDate" class="app-field" />
             </div>
             <div class="flex flex-col gap-2">
               <label
                 class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                >Emergency Contact</label
+                >{{ t('employee.emergencyContact') }}</label
               >
               <input
                 type="text"
@@ -289,7 +335,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             </div>
             <div class="md:col-span-2">
               <app-ui-phone-input
-                label="Emergency Phone"
+                [label]="t('employee.emergencyPhone')"
                 formControlName="emergencyPhone"
                 placeholder="Enter emergency contact number"
                 hint="Use a reachable emergency number"
@@ -304,16 +350,16 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           <button
             type="button"
             (click)="goBack()"
-            class="rounded-md border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            class="rounded-md border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 sm:min-w-[140px]"
           >
-            Cancel
+            {{ t('common.cancel') }}
           </button>
           <button
             type="submit"
             [disabled]="employeeForm.invalid || loading"
-            class="rounded-md bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+            class="rounded-md bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50 sm:min-w-[160px]"
           >
-            {{ loading ? 'Creating...' : 'Create Employee' }}
+            {{ loading ? t('common.creating') : t('common.createEmployee') }}
           </button>
         </div>
       </form>
@@ -326,9 +372,11 @@ export class AddEmployeeComponent implements OnInit {
   private employeeService = inject(EmployeeService);
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
+  private languageService = inject(LanguageService);
   private router = inject(Router);
 
   loading = false;
+  showOnboardingMenu = signal(false);
   orgPrefix = signal<string>('EMP');
   departments = signal<Department[]>([]);
   designations = signal<Designation[]>([]);
@@ -380,13 +428,23 @@ export class AddEmployeeComponent implements OnInit {
 
     this.orgService.getOrganization().subscribe({
       next: (org) => {
-        const prefix = org.name
-          ? org.name.substring(0, 3).toUpperCase()
-          : 'EMP';
-        this.orgPrefix.set(prefix);
-        this.generateEmployeeCode(prefix);
+        const fallbackPrefix = this.resolveFallbackPrefix(org?.name);
+        this.orgService.getEmployeeCodePrefix().subscribe({
+          next: (savedPrefix) => {
+            const prefix = savedPrefix || fallbackPrefix;
+            this.orgPrefix.set(prefix);
+            this.generateEmployeeCode(prefix);
+          },
+          error: () => {
+            this.orgPrefix.set(fallbackPrefix);
+            this.generateEmployeeCode(fallbackPrefix);
+          },
+        });
       },
-      error: () => this.generateEmployeeCode('EMP'),
+      error: () => {
+        this.orgPrefix.set('EMP');
+        this.generateEmployeeCode('EMP');
+      },
     });
   }
 
@@ -394,15 +452,32 @@ export class AddEmployeeComponent implements OnInit {
     this.generateEmployeeCode(this.orgPrefix());
   }
 
+  private resolveFallbackPrefix(orgName?: string | null): string {
+    const cleaned = String(orgName ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+
+    return cleaned.slice(0, 3) || 'EMP';
+  }
+
   generateEmployeeCode(prefix: string = 'EMP') {
     const random = Math.floor(1000 + Math.random() * 9000);
-    const code = `${prefix}-${random}`;
+    const normalizedPrefix = String(prefix || 'EMP')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 3) || 'EMP';
+    const code = `${normalizedPrefix}-${random}`;
     this.employeeForm.patchValue({ employeeCode: code });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 
   onSubmit() {
     if (this.employeeForm.invalid) {
-      this.toastService.error('Please fill all required fields correctly.');
+      this.toastService.error(this.t('employee.validationError'));
       return;
     }
 
@@ -417,7 +492,7 @@ export class AddEmployeeComponent implements OnInit {
 
     this.employeeService.createEmployee(payload).subscribe({
       next: () => {
-        this.toastService.success('Employee created successfully!');
+        this.toastService.success(this.t('employee.createdSuccess'));
         setTimeout(() => this.router.navigate(['/employees']), 1500);
       },
       error: (err) => {
@@ -425,7 +500,7 @@ export class AddEmployeeComponent implements OnInit {
         const msg =
           err.error?.errors?.[0]?.message ||
           err.error?.message ||
-          'Failed to create employee. Email or code might already exist.';
+          this.t('employee.createFailed');
         this.toastService.error(msg);
       },
     });
@@ -433,5 +508,14 @@ export class AddEmployeeComponent implements OnInit {
 
   goBack() {
     this.router.navigate(['/employees']);
+  }
+
+  toggleOnboardingMenu() {
+    this.showOnboardingMenu.update((value) => !value);
+  }
+
+  openInvitations() {
+    this.showOnboardingMenu.set(false);
+    this.router.navigate(['/employees/invitations']);
   }
 }

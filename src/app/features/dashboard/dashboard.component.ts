@@ -11,6 +11,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import type { User } from '../../core/models/auth.model';
 import { EmployeeService } from '../../core/services/employee.service';
+import { LanguageService } from '../../core/services/language.service';
 import {
   AttendanceService,
   TodayAttendance,
@@ -68,13 +69,13 @@ interface ModuleCard {
 
           <div class="hero-actions">
             <a routerLink="/attendance" class="hero-btn hero-btn-primary"
-              >Open Attendance</a
+              >{{ t('dashboard.openAttendance') }}</a
             >
             <a routerLink="/leaves" class="hero-btn hero-btn-secondary"
-              >Manage Leaves</a
+              >{{ t('dashboard.manageLeaves') }}</a
             >
             <a routerLink="/profile" class="hero-btn hero-btn-ghost"
-              >View Profile</a
+              >{{ t('dashboard.viewProfile') }}</a
             >
           </div>
         </div>
@@ -87,8 +88,8 @@ interface ModuleCard {
             ></span>
             <span>{{
               todayAttendance()?.is_clocked_in
-                ? 'Workday live'
-                : 'Waiting for check-in'
+                ? t('dashboard.workdayLive')
+                : t('dashboard.waitingForCheckIn')
             }}</span>
           </div>
 
@@ -101,23 +102,23 @@ interface ModuleCard {
 
           <div class="hero-meta-grid">
             <div class="hero-meta-card">
-              <span>Current time</span>
+              <span>{{ t('dashboard.currentTime') }}</span>
               <strong>{{ currentTime() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Today</span>
+              <span>{{ t('dashboard.today') }}</span>
               <strong>{{ currentDay() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Hours</span>
+              <span>{{ t('dashboard.hours') }}</span>
               <strong>{{ totalHours() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Shift</span>
+              <span>{{ t('dashboard.shift') }}</span>
               <strong>{{ shiftName() }}</strong>
             </div>
             <div class="hero-meta-card" style="grid-column: 1 / -1;">
-              <span>Hierarchy</span>
+              <span>{{ t('dashboard.hierarchy') }}</span>
               <strong>{{ hierarchyRoleLabel() }}</strong>
             </div>
           </div>
@@ -128,7 +129,7 @@ interface ModuleCard {
               type="button"
               disabled
             >
-              Attendance already recorded
+              {{ t('dashboard.attendanceAlreadyRecorded') }}
             </button>
           } @else {
             <button
@@ -136,7 +137,7 @@ interface ModuleCard {
               type="button"
               (click)="markAttendance()"
             >
-              Mark attendance now
+              {{ t('dashboard.markAttendanceNow') }}
             </button>
           }
         </aside>
@@ -144,8 +145,8 @@ interface ModuleCard {
 
       <section class="announcement-section">
         <div class="announcement-section-head">
-          <p class="panel-eyebrow" style="color: #7c3aed;">Announcements</p>
-          <h3>Organization updates</h3>
+          <p class="panel-eyebrow" style="color: #7c3aed;">{{ t('dashboard.announcements') }}</p>
+          <h3>{{ t('dashboard.organizationUpdates') }}</h3>
         </div>
 
         @if (hasAnnouncements()) {
@@ -1505,6 +1506,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private employeeService = inject(EmployeeService);
   private attendanceService = inject(AttendanceService);
   private announcementService = inject(AnnouncementService);
+  private languageService = inject(LanguageService);
 
   currentUser = signal<User | null>(null);
   employees = signal<User[]>([]);
@@ -1779,15 +1781,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   dashboardSummary(): string {
-    if (this.isManager()) return 'Team operations at a glance';
-    return 'Your self-service workspace';
+    if (this.isManager()) return this.t('dashboard.teamOperationsAtGlance');
+    return this.t('dashboard.selfServiceWorkspace');
   }
 
   dashboardDescription(): string {
     if (this.isManager()) {
-      return 'Track attendance, approvals, and team activity from one focused workspace.';
+      return this.t('dashboard.managerDescription');
     }
-    return 'Manage attendance, leaves, documents, expenses, and personal work from one clean view.';
+    return this.t('dashboard.employeeDescription');
   }
 
   reportsToName(): string {
@@ -1867,24 +1869,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   teammatesPreview(): string {
     const people = this.teammates().slice(0, 3);
-    if (!people.length) return 'No peers assigned yet';
+    if (!people.length) return this.t('dashboard.noPeersAssignedYet');
     return people.map((person) => `${person.firstName} ${person.lastName}`).join(', ');
   }
 
   reporteesPreview(): string {
     const people = this.reportees().slice(0, 3);
     if (!people.length) {
-      return this.isManager() ? 'No direct reportees yet' : 'No direct reportees';
+      return this.t('dashboard.noDirectReporteesYet');
     }
     return people.map((person) => `${person.firstName} ${person.lastName}`).join(', ');
   }
 
   hierarchyRoleLabel(): string {
     const user = this.currentUser();
-    if (!user) return 'Employee';
-    if (this.reportees().length > 0) return 'Lead';
-    if (user.managerId) return 'Individual contributor';
-    return this.isManager() ? 'Top level' : 'Self service';
+    if (!user) return this.t('dashboard.employee');
+    if (this.reportees().length > 0) return this.t('dashboard.lead');
+    if (user.managerId) return this.t('dashboard.individualContributor');
+    return this.isManager() ? this.t('dashboard.topLevel') : this.t('dashboard.selfServiceWorkspace');
   }
 
   hierarchySubtitle(): string {
@@ -1902,19 +1904,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   attendanceHeadline(): string {
-    if (!this.todayAttendance()) return 'Syncing your workday';
+    if (!this.todayAttendance()) return this.t('dashboard.syncingWorkday');
     return this.todayAttendance()?.is_clocked_in
-      ? 'You are checked in'
-      : 'Ready for check-in';
+      ? this.t('dashboard.checkedIn')
+      : this.t('dashboard.readyForCheckIn');
   }
 
   attendanceSubline(): string {
     const status = this.todayAttendance();
-    if (!status) return 'We are loading your attendance details for today.';
+    if (!status) return this.t('dashboard.loadingAttendanceToday');
     if (status.is_clocked_in && status.check_in) {
       return `Checked in at ${this.attendanceTime(status.check_in)} with ${this.totalHours()} logged so far.`;
     }
-    return 'Start your day from here and your live attendance data will appear instantly.';
+    return this.t('dashboard.startYourDay');
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   attendanceTime(value?: string | null): string {

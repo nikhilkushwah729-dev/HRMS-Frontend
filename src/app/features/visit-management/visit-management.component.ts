@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../core/services/toast.service';
 import { VisitDashboardResponse, VisitManagementService, VisitRecord, VisitReferencesResponse, VisitStatus } from '../../core/services/visit-management.service';
 import { CustomModalComponent } from '../../core/components/modal/custom-modal.component';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-visit-management',
@@ -13,29 +14,29 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
     <div class="mx-auto max-w-7xl space-y-6">
       <section class="app-module-hero">
         <div class="space-y-4">
-          <p class="app-module-kicker">Visit Operations</p>
-          <h1 class="app-module-title">Visit Management Control Center</h1>
-          <p class="app-module-text max-w-3xl">Schedule visits, manage client and visitor masters, run approvals, capture GPS check-in/out, log notes, track follow-ups, and review analytics from one unified workspace.</p>
+          <p class="app-module-kicker">{{ t('visit.operations') }}</p>
+          <h1 class="app-module-title">{{ t('visit.controlCenter') }}</h1>
+          <p class="app-module-text max-w-3xl">{{ t('visit.subtitle') }}</p>
           <div class="flex flex-wrap gap-3">
-            <button type="button" (click)="downloadReport('csv')" class="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">Export CSV</button>
-            <button type="button" (click)="downloadReport('json')" class="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Export JSON</button>
+            <button type="button" (click)="downloadReport('csv')" class="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">{{ t('common.exportCsv') }}</button>
+            <button type="button" (click)="downloadReport('json')" class="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.exportJson') }}</button>
           </div>
         </div>
         <div class="mt-8 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <div class="app-stat-card">
-            <p class="app-stat-label">Total Visits</p>
+            <p class="app-stat-label">{{ t('visit.totalVisits') }}</p>
             <p class="app-stat-value mt-2">{{ summary().total }}</p>
           </div>
           <div class="app-stat-card">
-            <p class="app-stat-label text-amber-600">Pending</p>
+            <p class="app-stat-label text-amber-600">{{ t('common.pending') }}</p>
             <p class="app-stat-value mt-2">{{ summary().pendingApproval }}</p>
           </div>
           <div class="app-stat-card">
-            <p class="app-stat-label text-blue-600">In Progress</p>
+            <p class="app-stat-label text-blue-600">{{ t('visit.inProgress') }}</p>
             <p class="app-stat-value mt-2">{{ summary().inProgress }}</p>
           </div>
           <div class="app-stat-card">
-            <p class="app-stat-label text-rose-600">Overdue</p>
+            <p class="app-stat-label text-rose-600">{{ t('visit.overdue') }}</p>
             <p class="app-stat-value mt-2">{{ summary().overdueFollowUps }}</p>
           </div>
         </div>
@@ -43,24 +44,24 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
 
       <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <article class="app-stat-card border-l-4 border-l-teal-500">
-          <p class="app-stat-label">Today's Visits</p>
+          <p class="app-stat-label">{{ t('visit.todaysVisits') }}</p>
           <p class="app-stat-value mt-2">{{ summary().todaysVisits }}</p>
-          <p class="mt-2 text-xs font-medium text-slate-400">Scheduled for today</p>
+          <p class="mt-2 text-xs font-medium text-slate-400">{{ t('visit.scheduledForToday') }}</p>
         </article>
         <article class="app-stat-card border-l-4 border-l-amber-500">
-          <p class="app-stat-label">Reminders</p>
+          <p class="app-stat-label">{{ t('visit.reminders') }}</p>
           <p class="app-stat-value mt-2">{{ summary().upcomingReminders }}</p>
-          <p class="mt-2 text-xs font-medium text-slate-400">Upcoming prompts</p>
+          <p class="mt-2 text-xs font-medium text-slate-400">{{ t('visit.upcomingPrompts') }}</p>
         </article>
         <article class="app-stat-card border-l-4 border-l-emerald-500">
-          <p class="app-stat-label">Completed</p>
+            <p class="app-stat-label">{{ t('common.complete') }}</p>
           <p class="app-stat-value mt-2">{{ summary().completed }}</p>
-          <p class="mt-2 text-xs font-medium text-slate-400">Successfully closed</p>
+          <p class="mt-2 text-xs font-medium text-slate-400">{{ t('visit.successfullyClosed') }}</p>
         </article>
         <article class="app-stat-card border-l-4 border-l-violet-500">
-          <p class="app-stat-label">Average Time</p>
+          <p class="app-stat-label">{{ t('visit.averageTime') }}</p>
           <p class="app-stat-value mt-2">{{ reports().summary?.averageVisitHours || 0 }}h</p>
-          <p class="mt-2 text-xs font-medium text-slate-400">Avg. visit duration</p>
+          <p class="mt-2 text-xs font-medium text-slate-400">{{ t('visit.avgVisitDuration') }}</p>
         </article>
       </section>
 
@@ -68,23 +69,23 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
         <section class="space-y-6">
           <article class="app-glass-card overflow-hidden rounded-xl border-none shadow-2xl">
             <div class="bg-slate-900/5 px-6 py-6">
-              <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">{{ editingVisitId() ? 'Update Entry' : 'New Entry' }}</p>
-              <h2 class="mt-2 text-2xl font-black text-slate-900">Visit Planner</h2>
+              <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">{{ editingVisitId() ? t('common.update') + ' Entry' : t('visit.newEntry') }}</p>
+              <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('visit.visitPlanner') }}</h2>
             </div>
             <form [formGroup]="visitForm" (ngSubmit)="saveVisit()" class="space-y-5 px-6 py-8">
               <div class="space-y-1.5">
-                <label class="app-field-label ml-1">Title</label>
+                <label class="app-field-label ml-1">{{ t('visit.title') }}</label>
                 <input formControlName="title" class="app-field" placeholder="e.g. QBR Review">
               </div>
               <div class="space-y-1.5">
-                <label class="app-field-label ml-1">Purpose</label>
+                <label class="app-field-label ml-1">{{ t('visit.purpose') }}</label>
                 <textarea formControlName="purpose" rows="3" class="app-field resize-none" placeholder="Primary objectives..."></textarea>
               </div>
                 <div class="grid gap-4">
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Client</label>
                     <select formControlName="clientId" class="app-field">
-                      <option [ngValue]="null">Select client</option>
+                      <option [ngValue]="null">{{ t('visit.selectClient') }}</option>
                       @for (client of references().clients; track client.id) {
                         <option [ngValue]="client.id">{{ client.name }}</option>
                       }
@@ -93,7 +94,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Visitor</label>
                     <select formControlName="visitorId" class="app-field">
-                      <option [ngValue]="null">Select visitor</option>
+                      <option [ngValue]="null">{{ t('visit.selectVisitor') }}</option>
                       @for (visitor of references().visitors; track visitor.id) {
                         <option [ngValue]="visitor.id">{{ visitor.fullName }}</option>
                       }
@@ -104,7 +105,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Host</label>
                     <select formControlName="hostEmployeeId" class="app-field">
-                      <option [ngValue]="null">Select host</option>
+                      <option [ngValue]="null">{{ t('visit.selectHost') }}</option>
                       @for (employee of references().employees; track employee.id) {
                         <option [ngValue]="employee.id">{{ employee.fullName }}</option>
                       }
@@ -113,7 +114,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Approver</label>
                     <select formControlName="approverEmployeeId" class="app-field">
-                      <option [ngValue]="null">Select approver</option>
+                      <option [ngValue]="null">{{ t('visit.selectApprover') }}</option>
                       @for (employee of references().employees; track employee.id) {
                         <option [ngValue]="employee.id">{{ employee.fullName }}</option>
                       }
@@ -131,31 +132,31 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   </div>
                 </div>
               <div class="space-y-1.5">
-                <label class="app-field-label ml-1">Location</label>
+                <label class="app-field-label ml-1">{{ t('common.location') }}</label>
                 <input formControlName="locationName" class="app-field" placeholder="Meeting room or address">
               </div>
               <div class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
                 <input type="checkbox" formControlName="requiresApproval" class="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
-                <span class="text-sm font-bold text-slate-700">Requires formal approval</span>
+                <span class="text-sm font-bold text-slate-700">{{ t('visit.requiresFormalApproval') }}</span>
               </div>
               <div class="grid gap-3 pt-2">
                 <button type="submit" [disabled]="visitForm.invalid || savingVisit()" class="flex h-12 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-slate-800 disabled:opacity-50">
-                  {{ savingVisit() ? 'Processing...' : editingVisitId() ? 'Update Schedule' : 'Schedule Visit' }}
+                  {{ savingVisit() ? t('visit.processing') : editingVisitId() ? t('common.update') + ' Schedule' : t('visit.scheduleVisit') }}
                 </button>
-                <button type="button" (click)="resetVisitForm()" class="flex h-12 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-500 transition hover:bg-slate-50">Cancel</button>
+                <button type="button" (click)="resetVisitForm()" class="flex h-12 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-500 transition hover:bg-slate-50">{{ t('common.cancel') }}</button>
               </div>
             </form>
           </article>
 
           <article class="app-surface-card overflow-hidden !rounded-xl p-0">
             <div class="border-b border-slate-100 bg-slate-50/30 px-6 py-5">
-              <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">Directory</p>
-              <h2 class="mt-2 text-xl font-black text-slate-900">Registry</h2>
+              <p class="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-400">{{ t('visit.directory') }}</p>
+              <h2 class="mt-2 text-xl font-black text-slate-900">{{ t('visit.registry') }}</h2>
             </div>
             <div class="space-y-6 px-6 py-8">
               <form [formGroup]="clientForm" (ngSubmit)="saveClient()" class="space-y-4">
                 <div class="flex items-center justify-between">
-                  <p class="text-xs font-black uppercase text-slate-900">{{ editingClientId() ? 'Update Client' : 'Add Client' }}</p>
+                  <p class="text-xs font-black uppercase text-slate-900">{{ editingClientId() ? t('visit.updateClient') : t('visit.addClient') }}</p>
                   @if (editingClientId()) {
                     <button type="button" (click)="resetClientForm()" class="text-[10px] font-bold uppercase text-rose-500">Cancel</button>
                   }
@@ -164,11 +165,11 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   <input formControlName="name" class="app-field !py-2" placeholder="Client name">
                   <input formControlName="contactPerson" class="app-field !py-2" placeholder="Contact person">
                 </div>
-                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">Register Client</button>
+                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">{{ t('visit.registerClient') }}</button>
               </form>
               <form [formGroup]="visitorForm" (ngSubmit)="saveVisitor()" class="space-y-4 border-t border-slate-100 pt-6">
                 <div class="flex items-center justify-between">
-                  <p class="text-xs font-black uppercase text-slate-900">{{ editingVisitorId() ? 'Update Visitor' : 'Add Visitor' }}</p>
+                  <p class="text-xs font-black uppercase text-slate-900">{{ editingVisitorId() ? t('visit.updateVisitor') : t('visit.addVisitor') }}</p>
                   @if (editingVisitorId()) {
                     <button type="button" (click)="resetVisitorForm()" class="text-[10px] font-bold uppercase text-rose-500">Cancel</button>
                   }
@@ -183,25 +184,25 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   </select>
                   <input formControlName="phone" class="app-field !py-2" placeholder="Phone number">
                 </div>
-                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">Register Visitor</button>
+                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">{{ t('visit.registerVisitor') }}</button>
               </form>
               <div class="grid gap-6 border-t border-slate-100 pt-6">
                 <div class="space-y-3">
-                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recent Clients</p>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ t('visit.recentClients') }}</p>
                   <div class="grid gap-2">
                     @for (client of references().clients.slice(0, 4); track client.id) {
                       <button type="button" (click)="editClient(client.id)" class="group flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 p-3 transition hover:border-teal-200 hover:bg-teal-50/30">
                         <span class="min-w-0 pr-2 text-left">
                           <span class="block truncate text-sm font-bold text-slate-800 transition group-hover:text-teal-900">{{ client.name }}</span>
-                          <span class="block truncate text-[10px] text-slate-400">{{ client.contactPerson || 'General Inquiry' }}</span>
+                          <span class="block truncate text-[10px] text-slate-400">{{ client.contactPerson || t('visit.generalInquiry') }}</span>
                         </span>
-                        <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-teal-600">Modify</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-teal-600">{{ t('visit.modify') }}</span>
                       </button>
                     }
                   </div>
                 </div>
                 <div class="space-y-3">
-                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recent Visitors</p>
+                  <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ t('visit.recentVisitors') }}</p>
                   <div class="grid gap-2">
                     @for (visitor of references().visitors.slice(0, 4); track visitor.id) {
                       <button type="button" (click)="editVisitor(visitor.id)" class="group flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/50 p-3 transition hover:border-violet-200 hover:bg-violet-50/30">
@@ -209,7 +210,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                           <span class="block truncate text-sm font-bold text-slate-800 transition group-hover:text-violet-900">{{ visitor.fullName }}</span>
                           <span class="block truncate text-[10px] text-slate-400">{{ linkedClientName(visitor.clientId) }}</span>
                         </span>
-                        <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-violet-600">Modify</span>
+                        <span class="text-[10px] font-black uppercase text-slate-400 group-hover:text-violet-600">{{ t('visit.modify') }}</span>
                       </button>
                     }
                   </div>
@@ -222,12 +223,12 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
         <section class="space-y-6">
           <article class="app-surface-card overflow-hidden !rounded-xl p-0 shadow-sm transition hover:shadow-md">
             <div class="border-b border-slate-100 bg-slate-50/20 px-6 py-6 font-primary">
-               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Reports Snapshot</p>
-               <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Operations Analytics</h2>
+               <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">{{ t('visit.reportsSnapshot') }}</p>
+               <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-900">{{ t('visit.operationsAnalytics') }}</h2>
             </div>
             <div class="grid gap-4 border-b border-slate-100 bg-slate-50/50 px-6 py-10 grid-cols-1 sm:grid-cols-3">
               <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Total visits</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{{ t('visit.totalVisits') }}</p>
                 <div class="mt-3 flex items-end justify-between">
                   <p class="text-4xl font-black tracking-tighter text-slate-900 md:text-5xl">{{ reports().summary?.totalVisits || 0 }}</p>
                   <div class="mb-1 h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
@@ -236,7 +237,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                 </div>
               </div>
               <div class="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50/50 to-white p-6 shadow-sm transition hover:shadow-md">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-600">Successfully closed</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-600">{{ t('visit.successfullyClosed') }}</p>
                 <div class="mt-3 flex items-end justify-between">
                   <p class="text-4xl font-black tracking-tighter text-teal-900 md:text-5xl">{{ reports().summary?.completedVisits || 0 }}</p>
                   <div class="mb-1 h-10 w-10 rounded-xl bg-teal-100 flex items-center justify-center text-teal-600">
@@ -245,7 +246,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                 </div>
               </div>
               <div class="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/50 to-white p-6 shadow-sm transition hover:shadow-md">
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600">Pending approval</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600">{{ t('common.pending') }}</p>
                 <div class="mt-3 flex items-end justify-between">
                   <p class="text-4xl font-black tracking-tighter text-amber-900 md:text-5xl">{{ reports().summary?.approvalPending || 0 }}</p>
                   <div class="mb-1 h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
@@ -256,7 +257,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
             </div>
             <div class="grid gap-8 px-6 py-10 sm:grid-cols-2">
               <div class="space-y-4">
-                <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">By Status</p>
+                <p class="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">{{ t('visit.byStatus') }}</p>
                 <div class="grid gap-2">
                   @for (item of dashboard().statusBreakdown; track item.status) {
                     <div class="flex items-center justify-between min-w-0 rounded-xl bg-slate-50 p-4 transition hover:bg-white hover:shadow-sm">
@@ -328,18 +329,18 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                     </div>
                   </div>
                   <div class="flex flex-wrap items-center gap-2 self-end xl:self-center">
-                    <button type="button" (click)="editVisit(visit)" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-600 transition hover:bg-white hover:shadow-sm">Modify</button>
+                    <button type="button" (click)="editVisit(visit)" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-bold uppercase tracking-widest text-slate-600 transition hover:bg-white hover:shadow-sm">{{ t('common.edit') }}</button>
                     @if (canApprove() && visit.status === 'pending_approval') {
                       <div class="flex flex-wrap gap-2 rounded-lg bg-teal-50/50 p-1">
-                         <button type="button" (click)="reviewVisit(visit.id, 'approve')" class="rounded-md bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-emerald-700">Approve</button>
-                         <button type="button" (click)="reviewVisit(visit.id, 'reject')" class="rounded-md bg-rose-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-rose-700">Reject</button>
+                         <button type="button" (click)="reviewVisit(visit.id, 'approve')" class="rounded-md bg-emerald-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-emerald-700">{{ t('common.approve') }}</button>
+                         <button type="button" (click)="reviewVisit(visit.id, 'reject')" class="rounded-md bg-rose-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-rose-700">{{ t('common.reject') }}</button>
                       </div>
                     }
                     @if (visit.status === 'planned') {
                       <button type="button" (click)="submitCheckAction(visit.id, 'checkIn')" class="rounded-lg bg-sky-600 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-sky-700 hover:shadow-lg hover:shadow-sky-500/20">Initiate</button>
                     }
                     @if (visit.status === 'in_progress') {
-                      <button type="button" (click)="submitCheckAction(visit.id, 'checkOut')" class="rounded-lg bg-amber-600 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-amber-700 hover:shadow-lg hover:shadow-amber-500/20">Complete</button>
+                      <button type="button" (click)="submitCheckAction(visit.id, 'checkOut')" class="rounded-lg bg-amber-600 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-white transition hover:bg-amber-700 hover:shadow-lg hover:shadow-amber-500/20">{{ t('common.complete') }}</button>
                     }
                     <button type="button" (click)="openPass(visit)" class="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:bg-white hover:text-indigo-600 hover:shadow-sm" title="Generate Gate Pass">
                       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
@@ -347,7 +348,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                   </div>
                 </div>
               } @empty {
-                <div class="px-6 py-14 text-center text-slate-500">No visits matched the current filters.</div>
+                <div class="px-6 py-14 text-center text-slate-500">{{ t('common.noResults') }}</div>
               }
             </div>
           </article>
@@ -369,7 +370,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                     <span class="text-[10px] font-black uppercase text-slate-400">{{ statusLabel(item.status) }}</span>
                   </div>
                 } @empty {
-                  <div class="py-12 text-center text-sm font-bold text-slate-300">No entries in upcoming queue</div>
+                  <div class="py-12 text-center text-sm font-bold text-slate-300">{{ t('common.noResults') }}</div>
                 }
               </div>
             </article>
@@ -393,7 +394,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
                     </div>
                   </div>
                 } @empty {
-                  <div class="py-12 text-center text-sm font-bold text-slate-300">No recent activity detected</div>
+                  <div class="py-12 text-center text-sm font-bold text-slate-300">{{ t('common.noResults') }}</div>
                 }
               </div>
             </article>
@@ -587,7 +588,7 @@ import { CustomModalComponent } from '../../core/components/modal/custom-modal.c
           <!-- Actions -->
           <div class="mt-12 flex gap-4 no-print font-primary">
             <button type="button" (click)="printPass()" class="flex-1 rounded-2xl bg-indigo-600 py-4 text-sm font-black text-white shadow-xl shadow-indigo-200 transition hover:bg-emerald-600 active:scale-95">Print Physical Pass</button>
-            <button type="button" (click)="showPassModal.set(false)" class="flex-1 rounded-2xl border-2 border-slate-100 bg-white py-4 text-sm font-black text-slate-600 transition hover:bg-slate-50 active:scale-95">Dismiss</button>
+            <button type="button" (click)="showPassModal.set(false)" class="flex-1 rounded-2xl border-2 border-slate-100 bg-white py-4 text-sm font-black text-slate-600 transition hover:bg-slate-50 active:scale-95">{{ t('common.dismiss') }}</button>
           </div>
         </div>
         
@@ -601,6 +602,7 @@ export class VisitManagementComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly toastService = inject(ToastService);
   private readonly visitService = inject(VisitManagementService);
+  private readonly languageService = inject(LanguageService);
 
   readonly statuses: VisitStatus[] = ['pending_approval', 'planned', 'in_progress', 'completed', 'rejected'];
   summary = computed(() => this.dashboard().summary);
@@ -661,6 +663,11 @@ export class VisitManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.refreshAll();
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   refreshAll(): void {
@@ -752,8 +759,8 @@ export class VisitManagementComponent implements OnInit {
     if (!this.selectedVisit() || this.followUpForm.invalid) return;
     const value = this.followUpForm.getRawValue();
     this.visitService.addFollowUp(this.selectedVisit()!.id, { ...value, dueAt: value.dueAt ? new Date(value.dueAt).toISOString() : undefined }).subscribe({
-      next: () => { this.followUpForm.reset({ title: '', description: '', assignedTo: null, priority: 'medium', dueAt: '' }); this.openVisit(this.selectedVisit()!.id); this.toastService.success('Follow-up added.'); },
-      error: () => this.toastService.error('Unable to add follow-up right now.'),
+      next: () => { this.followUpForm.reset({ title: '', description: '', assignedTo: null, priority: 'medium', dueAt: '' }); this.openVisit(this.selectedVisit()!.id); this.toastService.success(this.t('visit.followUpAdded')); },
+      error: () => this.toastService.error(this.t('visit.followUpAddFailed')),
     });
   }
 
@@ -761,8 +768,8 @@ export class VisitManagementComponent implements OnInit {
     if (this.clientForm.invalid) return;
     const request$ = this.editingClientId() ? this.visitService.updateClient(this.editingClientId()!, this.clientForm.getRawValue()) : this.visitService.createClient(this.clientForm.getRawValue());
     request$.subscribe({
-      next: (client: any) => { this.references.update((state: VisitReferencesResponse) => ({ ...state, clients: this.upsertById(state.clients, client) })); this.clientForm.reset({ name: '', contactPerson: '' }); this.editingClientId.set(null); this.toastService.success('Client saved.'); },
-      error: () => this.toastService.error('Unable to save client right now.'),
+      next: (client: any) => { this.references.update((state: VisitReferencesResponse) => ({ ...state, clients: this.upsertById(state.clients, client) })); this.clientForm.reset({ name: '', contactPerson: '' }); this.editingClientId.set(null); this.toastService.success(this.t('visit.clientSaved')); },
+      error: () => this.toastService.error(this.t('visit.clientSaveFailed')),
     });
   }
 
@@ -770,8 +777,8 @@ export class VisitManagementComponent implements OnInit {
     if (this.visitorForm.invalid) return;
     const request$ = this.editingVisitorId() ? this.visitService.updateVisitor(this.editingVisitorId()!, this.visitorForm.getRawValue()) : this.visitService.createVisitor(this.visitorForm.getRawValue());
     request$.subscribe({
-      next: (visitor: any) => { this.references.update((state: VisitReferencesResponse) => ({ ...state, visitors: this.upsertById(state.visitors, visitor) })); this.visitorForm.reset({ fullName: '', clientId: null, phone: '' }); this.editingVisitorId.set(null); this.toastService.success('Visitor saved.'); },
-      error: () => this.toastService.error('Unable to save visitor right now.'),
+      next: (visitor: any) => { this.references.update((state: VisitReferencesResponse) => ({ ...state, visitors: this.upsertById(state.visitors, visitor) })); this.visitorForm.reset({ fullName: '', clientId: null, phone: '' }); this.editingVisitorId.set(null); this.toastService.success(this.t('visit.visitorSaved')); },
+      error: () => this.toastService.error(this.t('visit.visitorSaveFailed')),
     });
   }
 
@@ -800,12 +807,12 @@ export class VisitManagementComponent implements OnInit {
   }
 
   gpsLabel(point?: { latitude: number; longitude: number; address?: string } | null): string {
-    if (!point) return 'Not captured';
+    if (!point) return this.t('visit.notCaptured');
     return `${point.latitude.toFixed(4)}, ${point.longitude.toFixed(4)}`;
   }
 
   linkedClientName(clientId?: number | null): string {
-    return this.references().clients.find((client: any) => client.id === clientId)?.name || 'No client linked';
+    return this.references().clients.find((client: any) => client.id === clientId)?.name || this.t('visit.noClientLinked');
   }
 
   editClient(id: number): void {
@@ -850,9 +857,9 @@ export class VisitManagementComponent implements OnInit {
           this.openVisit(this.selectedVisit()!.id);
         }
         this.refreshAll();
-        this.toastService.success('Follow-up marked as completed.');
+        this.toastService.success(this.t('visit.followUpCompleted'));
       },
-      error: () => this.toastService.error('Unable to update follow-up right now.'),
+      error: () => this.toastService.error(this.t('visit.followUpUpdateFailed')),
     });
   }
 
@@ -868,9 +875,9 @@ export class VisitManagementComponent implements OnInit {
         anchor.download = format === 'json' ? 'visit-report.json' : 'visit-report.csv';
         anchor.click();
         URL.revokeObjectURL(url);
-        this.toastService.success(`Visit report exported as ${format.toUpperCase()}.`);
+        this.toastService.success(this.t('visit.reportExported', { format: format.toUpperCase() }));
       },
-      error: () => this.toastService.error('Unable to export visit report right now.'),
+      error: () => this.toastService.error(this.t('visit.reportExportFailed')),
     });
   }
 

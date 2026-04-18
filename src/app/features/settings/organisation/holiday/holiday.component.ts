@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrganizationHoliday, OrganizationService } from '../../../../core/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 @Component({
   selector: 'app-holiday-settings',
@@ -90,7 +91,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                 {{ saving() ? 'Saving...' : editingId() ? 'Update Holiday' : 'Save Holiday' }}
               </button>
               <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Reset
+                {{ t('common.reset') }}
               </button>
             </div>
           </form>
@@ -120,9 +121,9 @@ import { ToastService } from '../../../../core/services/toast.service';
                   </div>
                 </div>
                 <div class="flex gap-3">
-                  <button type="button" (click)="editHoliday(holiday)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
+                  <button type="button" (click)="editHoliday(holiday)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
                   <button type="button" (click)="deleteHoliday(holiday.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </article>
@@ -136,7 +137,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                     <path d="M3 10h18" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No holidays configured yet</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">
                   Add the first holiday to start building the organization’s
                   official calendar.
@@ -153,6 +154,7 @@ export class HolidayComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly organizationService = inject(OrganizationService);
   private readonly toastService = inject(ToastService);
+  private readonly languageService = inject(LanguageService);
 
   holidays = signal<OrganizationHoliday[]>([]);
   searchQuery = signal('');
@@ -248,5 +250,10 @@ export class HolidayComponent implements OnInit {
       },
       error: () => this.toastService.error('Unable to delete holiday.')
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

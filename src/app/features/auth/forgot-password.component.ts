@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { LanguageService } from '../../core/services/language.service';
+import { AuthLanguageSwitcherComponent } from './auth-language-switcher.component';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AuthLanguageSwitcherComponent],
   template: `
 <div class="flex h-[100dvh] flex-col overflow-hidden bg-[radial-gradient(circle_at_top_right,_rgba(20,184,166,0.16),_transparent_22%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.16),_transparent_24%),linear-gradient(135deg,#0f172a_0%,#111827_55%,#0f172a_100%)] lg:flex-row">
   <!-- Left Banner -->
@@ -23,13 +25,13 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
       </div>
       <h2 class="text-3xl xl:text-4xl leading-tight mb-4 font-bold">
-        Secure <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-teal-300">Account Recovery</span>
+        {{ t('auth.forgot.heroTitlePrefix') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-teal-300">{{ t('auth.forgot.heroTitleAccent') }}</span>
       </h2>
-      <p class="text-sm xl:text-base text-slate-300 leading-relaxed mb-8">Reset your password securely and regain access to your workspace in seconds.</p>
+      <p class="text-sm xl:text-base text-slate-300 leading-relaxed mb-8">{{ t('auth.forgot.heroSubtitle') }}</p>
       <div class="space-y-3">
-        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></div><span class="text-sm text-slate-200">Secure Token-Based Reset</span></div>
-        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><span class="text-sm text-slate-200">Instant Password Update</span></div>
-        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><span class="text-sm text-slate-200">Bank-Level Security</span></div>
+        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg></div><span class="text-sm text-slate-200">{{ t('auth.forgot.featureToken') }}</span></div>
+        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><span class="text-sm text-slate-200">{{ t('auth.forgot.featureInstant') }}</span></div>
+        <div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><span class="text-sm text-slate-200">{{ t('auth.forgot.featureBank') }}</span></div>
       </div>
     </div>
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
@@ -41,28 +43,31 @@ import { AuthService } from '../../core/services/auth.service';
   <!-- Right Form Side -->
   <div class="flex-1 overflow-y-auto bg-transparent">
     <div class="mx-auto flex min-h-[100dvh] w-full max-w-[860px] flex-col items-center justify-center p-4 sm:p-6 lg:min-h-full lg:p-10">
+      <div class="mb-4 w-full max-w-[480px]">
+        <app-auth-language-switcher />
+      </div>
 
-      <div class="lg:hidden mb-5 w-full max-w-[480px] rounded-[28px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+      <div class="lg:hidden mb-4 w-full max-w-[480px] rounded-[24px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:mb-5 sm:rounded-[28px]">
         <div class="flex items-center gap-3">
           <div class="bg-gradient-to-br from-primary-500 to-primary-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
             <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
           </div>
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">Recovery Flow</p>
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">{{ t('auth.forgot.mobileKicker') }}</p>
             <p class="mt-1 text-sm font-black tracking-tight text-white">HRNexus Security</p>
           </div>
         </div>
-        <h2 class="mt-2 text-2xl font-black tracking-tight">Recover access with a clean, device-friendly reset experience</h2>
+        <h2 class="mt-2 text-xl font-black tracking-tight sm:text-2xl">{{ t('auth.forgot.mobileTitle') }}</h2>
       </div>
 
       <div class="w-full max-w-[480px]">
-        <div class="rounded-[30px] border border-white/10 bg-slate-800/80 p-6 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-7">
+        <div class="rounded-[24px] border border-white/10 bg-slate-800/80 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:rounded-[30px] sm:p-7">
           <div class="text-center mb-5">
             <div class="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center mx-auto mb-3">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </div>
-            <h2 class="text-xl font-bold text-white mb-0.5">Forgot Password</h2>
-            <p class="text-xs text-slate-400">Enter your email to receive a reset link</p>
+            <h2 class="text-xl font-bold text-white mb-0.5">{{ t('auth.forgot.cardTitle') }}</h2>
+            <p class="text-xs text-slate-400">{{ t('auth.forgot.cardSubtitle') }}</p>
           </div>
 
           @if (error) {
@@ -79,12 +84,12 @@ import { AuthService } from '../../core/services/auth.service';
 
           <form (ngSubmit)="onSubmit()" #forgotForm="ngForm" class="space-y-4">
             <div class="flex flex-col gap-1">
-              <label for="email" class="text-xs font-semibold text-slate-300">Work Email</label>
+              <label for="email" class="text-xs font-semibold text-slate-300">{{ t('auth.login.workEmail') }}</label>
               <div class="relative">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                 <input type="email" id="email" name="email"
                   class="w-full pl-8 pr-3 py-2.5 rounded-md border border-slate-700 bg-slate-900/50 text-slate-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/20 transition-all placeholder-slate-600"
-                  placeholder="name@company.com"
+                  [placeholder]="t('auth.login.emailPlaceholder')"
                   [(ngModel)]="email" required>
               </div>
             </div>
@@ -94,17 +99,17 @@ import { AuthService } from '../../core/services/auth.service';
               @if (loading) {
                 <svg class="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
               } @else {
-                Send Reset Link
+                {{ t('auth.forgot.sendLink') }}
               }
             </button>
           </form>
 
           <div class="mt-5 pt-4 border-t border-slate-700 text-center">
-            <p class="text-xs text-slate-500">Remembered your password? <a routerLink="/auth/login" class="text-primary-400 font-semibold hover:underline">Sign In</a></p>
+            <p class="text-xs text-slate-500">{{ t('auth.forgot.remembered') }} <a routerLink="/auth/login" class="text-primary-400 font-semibold hover:underline">{{ t('auth.signup.signIn') }}</a></p>
           </div>
         </div>
         <div class="mt-3 text-center">
-          <p class="text-[10px] text-slate-600">&copy; 2026 HRNexus Technology. All rights reserved.</p>
+          <p class="text-[10px] text-slate-600">&copy; 2026 HRNexus Technology. {{ t('common.allRightsReserved') }}</p>
         </div>
       </div>
     </div>
@@ -114,6 +119,7 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class ForgotPasswordComponent {
   private authService = inject(AuthService);
+  private languageService = inject(LanguageService);
 
   email = '';
   loading = false;
@@ -125,11 +131,11 @@ export class ForgotPasswordComponent {
     const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     if (!this.email) {
-      this.error = 'Please enter your email.';
+      this.error = this.t('auth.login.enterEmail');
       return;
     }
     if (!emailLooksValid) {
-      this.error = 'Please enter a valid email address.';
+      this.error = this.t('auth.login.validEmail');
       return;
     }
 
@@ -140,13 +146,17 @@ export class ForgotPasswordComponent {
     this.authService.forgotPassword(email).subscribe({
       next: () => {
         this.loading = false;
-        this.success = 'If an account exists with this email, a reset link has been sent.';
+        this.success = this.t('auth.forgot.success');
       },
       error: (err: any) => {
         this.loading = false;
-        this.error = err.error?.message || 'Failed to send reset email. Please try again.';
+        this.error = err.error?.message || this.t('auth.forgot.failed');
       }
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 }
 

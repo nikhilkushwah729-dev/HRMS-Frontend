@@ -45,10 +45,10 @@ import {
     UiSelectAdvancedComponent,
   ],
   template: `
-    <div class="flex flex-col gap-6 pb-10 max-w-7xl mx-auto">
+    <div class="mx-auto flex max-w-7xl flex-col gap-4 pb-8 sm:gap-5 lg:gap-6 lg:pb-10">
       <!-- Header -->
       <header
-        class="app-module-hero flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5"
+        class="app-module-hero flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between"
       >
         <div class="max-w-2xl">
           <p class="app-module-kicker">Attendance Operations</p>
@@ -72,7 +72,7 @@ import {
             </p>
           </div>
           <div
-            class="app-chip-switch overflow-x-auto no-scrollbar whitespace-nowrap"
+            class="app-chip-switch max-w-full overflow-x-auto no-scrollbar whitespace-nowrap"
           >
             <button
               (click)="setView('punch')"
@@ -145,7 +145,7 @@ import {
       </header>
 
       <section
-        class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4"
+        class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
         <div
           class="rounded-md border border-slate-200 bg-white px-5 py-4 shadow-sm"
@@ -198,14 +198,14 @@ import {
       </section>
 
       <!-- Attendance Suite Shortcuts -->
-      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <button
           type="button"
           (click)="setView('punch')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-teal-300 transition-all"
+          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-teal-300 hover:shadow-md sm:p-5"
         >
           <div class="flex items-start justify-between gap-4">
-            <div>
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Core action
               </p>
@@ -223,10 +223,10 @@ import {
         <button
           type="button"
           (click)="setView('tracking')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-cyan-300 transition-all"
+          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-cyan-300 hover:shadow-md sm:p-5"
         >
           <div class="flex items-start justify-between gap-4">
-            <div>
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Operations
               </p>
@@ -244,10 +244,10 @@ import {
         <button
           type="button"
           (click)="setView('geofence')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-purple-300 transition-all"
+          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-purple-300 hover:shadow-md sm:p-5"
         >
           <div class="flex items-start justify-between gap-4">
-            <div>
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Compliance
               </p>

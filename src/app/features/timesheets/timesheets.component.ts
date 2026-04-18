@@ -12,6 +12,7 @@ import {
 } from '../../core/services/timesheet.service';
 import { ProjectService } from '../../core/services/project.service';
 import { ToastService } from '../../core/services/toast.service';
+import { LanguageService } from '../../core/services/language.service';
 import {
   UiSelectAdvancedComponent,
   SelectOption,
@@ -35,9 +36,9 @@ import {
               class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center gap-3"
             >
               <div>
-                <h2 class="text-xl font-bold text-slate-900">Log Time</h2>
+                <h2 class="text-xl font-bold text-slate-900">{{ t('timesheet.logTime') }}</h2>
                 <p class="text-slate-400 text-sm mt-0.5">
-                  Record your work hours for a project.
+                  {{ t('timesheet.recordHours') }}
                 </p>
               </div>
               <button
@@ -66,10 +67,10 @@ import {
               <div class="flex flex-col gap-1.5">
                 <app-ui-select-advanced
                   formControlName="projectId"
-                  label="Project"
-                  placeholder="General / No Project"
+                  [label]="t('timesheet.project')"
+                  [placeholder]="t('timesheet.generalNoProject')"
                   [options]="projectOptions()"
-                  searchPlaceholder="Search projects..."
+                  [searchPlaceholder]="t('timesheet.searchProjects')"
                   [allowClear]="true"
                 ></app-ui-select-advanced>
               </div>
@@ -77,7 +78,7 @@ import {
                 <div class="flex flex-col gap-1.5">
                   <label
                     class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                    >Work Date</label
+                    >{{ t('timesheet.workDate') }}</label
                   >
                   <input
                     type="date"
@@ -88,7 +89,7 @@ import {
                 <div class="flex flex-col gap-1.5">
                   <label
                     class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                    >Hours Worked</label
+                    >{{ t('timesheet.hoursWorked') }}</label
                   >
                   <input
                     type="number"
@@ -104,7 +105,7 @@ import {
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                  >Description</label
+                  >{{ t('timesheet.description') }}</label
                 >
                 <textarea
                   formControlName="description"
@@ -121,14 +122,14 @@ import {
                   (click)="toggleForm()"
                   class="px-5 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   [disabled]="timesheetForm.invalid || processing()"
                   class="btn-primary min-w-[130px]"
                 >
-                  {{ processing() ? 'Saving...' : 'Log Time' }}
+                  {{ processing() ? t('common.saving') : t('timesheet.logTime') }}
                 </button>
               </div>
             </form>
@@ -140,24 +141,22 @@ import {
         class="app-module-hero flex flex-col xl:flex-row justify-between xl:items-end gap-5"
       >
         <div class="max-w-2xl">
-          <p class="app-module-kicker">Timesheet Workspace</p>
+          <p class="app-module-kicker">{{ t('timesheet.workspace') }}</p>
           <h1 class="app-module-title mt-3">
-            Project hours and work-log history
+            {{ t('timesheet.title') }}
           </h1>
           <p class="app-module-text mt-3">
-            Capture daily effort, organize project-linked entries, and review
-            approval progress from a focused timesheet workspace.
+            {{ t('timesheet.subtitle') }}
           </p>
         </div>
         <div class="flex flex-col gap-3 xl:items-end">
           <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">This month</span>
+            <span class="app-module-highlight-label">{{ t('timesheet.thisMonth') }}</span>
             <div class="app-module-highlight-value mt-3">
               {{ totalHours() }}h
             </div>
             <p class="mt-2 text-sm text-white/80">
-              Current month effort already recorded across project and general
-              entries.
+              {{ t('timesheet.thisMonthEffort') }}
             </p>
           </div>
           <button
@@ -176,7 +175,7 @@ import {
               <path d="M5 12h14" />
               <path d="M12 5v14" />
             </svg>
-            Log Time
+            {{ t('timesheet.logTime') }}
           </button>
         </div>
       </header>
@@ -187,7 +186,7 @@ import {
           <p
             class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
           >
-            Total Hours This Month
+            {{ t('timesheet.totalHoursThisMonth') }}
           </p>
           <p class="text-3xl font-extrabold text-slate-900 tracking-tight">
             {{ totalHours() }}
@@ -198,7 +197,7 @@ import {
           <p
             class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
           >
-            Pending Approval
+            {{ t('timesheet.pendingApproval') }}
           </p>
           <p class="text-3xl font-extrabold text-amber-500 tracking-tight">
             {{ pendingCount() }}
@@ -208,7 +207,7 @@ import {
           <p
             class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
           >
-            Approved Entries
+            {{ t('timesheet.approvedEntries') }}
           </p>
           <p class="text-3xl font-extrabold text-green-500 tracking-tight">
             {{ approvedCount() }}
@@ -222,7 +221,7 @@ import {
         <div
           class="p-5 border-b border-slate-50 flex justify-between items-center"
         >
-          <h3 class="font-bold text-slate-900">Time Log History</h3>
+          <h3 class="font-bold text-slate-900">{{ t('timesheet.timeLogHistory') }}</h3>
           @if (loading()) {
             <div
               class="animate-spin rounded-full h-5 w-5 border-2 border-primary-500 border-t-transparent"
@@ -236,27 +235,27 @@ import {
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Date
+                  {{ t('common.date') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Project
+                  {{ t('timesheet.project') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Hours
+                  {{ t('dashboard.hours') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Status
+                  {{ t('common.status') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Description
+                  {{ t('timesheet.description') }}
                 </th>
               </tr>
             </thead>
@@ -271,7 +270,7 @@ import {
                   </td>
                   <td class="px-6 py-4">
                     <span class="text-sm text-slate-500 font-medium">{{
-                      entry.project?.name || 'General'
+                      entry.project?.name || t('timesheet.general')
                     }}</span>
                   </td>
                   <td class="px-6 py-4">
@@ -323,13 +322,13 @@ import {
                         </svg>
                       </div>
                       <p class="text-sm font-semibold text-slate-400">
-                        No timesheet entries yet
+                        {{ t('timesheet.noEntriesYet') }}
                       </p>
                       <button
                         (click)="toggleForm()"
                         class="text-primary-600 text-sm font-bold hover:underline"
                       >
-                        Log your first entry
+                        {{ t('timesheet.noEntriesCta') }}
                       </button>
                     </div>
                   </td>
@@ -354,6 +353,7 @@ export class TimesheetsComponent implements OnInit {
   private projectService = inject(ProjectService);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
 
   timesheets = signal<Timesheet[]>([]);
   projects = signal<any[]>([]);
@@ -500,17 +500,22 @@ export class TimesheetsComponent implements OnInit {
     this.processing.set(true);
     this.timesheetService.createTimesheet(this.timesheetForm.value).subscribe({
       next: () => {
-        this.toastService.success('Time logged successfully!');
+        this.toastService.success(this.t('timesheet.timeLoggedSuccess'));
         this.loadTimesheets();
         this.toggleForm();
         this.processing.set(false);
       },
       error: (err) => {
-        this.toastService.error('Failed to log time.');
+        this.toastService.error(this.t('timesheet.timeLoggedFailed'));
         this.processing.set(false);
         console.error(err);
       },
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   getStatusClass(status?: string) {

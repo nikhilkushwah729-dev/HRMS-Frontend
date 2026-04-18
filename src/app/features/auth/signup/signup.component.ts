@@ -5,13 +5,15 @@ import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
 import { COUNTRIES as countryCodes, type CountryCodeData } from '../../../core/constants/countries';
+import { LanguageService } from '../../../core/services/language.service';
 
 import { UiPhoneInputComponent } from '../../../core/components/ui';
+import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.component';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent, AuthLanguageSwitcherComponent],
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.css'
 })
@@ -20,6 +22,7 @@ export class SignupComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private el = inject(ElementRef);
+  private languageService = inject(LanguageService);
 
   loading = signal(false);
   error = signal('');
@@ -90,7 +93,10 @@ export class SignupComponent implements OnInit {
 
     if (this.selectedCountry && this.form.phone) {
       if (this.form.phone.length !== this.selectedCountry.phoneNumberLength) {
-        this.error.set(`Phone number for ${this.selectedCountry.name} must be exactly ${this.selectedCountry.phoneNumberLength} digits.`);
+        this.error.set(this.t('auth.signup.phoneDigits', {
+          country: this.selectedCountry.name,
+          digits: this.selectedCountry.phoneNumberLength,
+        }));
         this.loading.set(false);
         return;
       }
@@ -109,12 +115,16 @@ export class SignupComponent implements OnInit {
     this.authService.register(payload).subscribe({
       next: (res) => {
         this.loading.set(false);
-        this.success.set('Account created successfully. Please check your email for verification.');
+        this.success.set(this.t('auth.signup.successMessage'));
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.error?.message || 'Registration failed. Please try again.');
+        this.error.set(err.error?.message || this.t('auth.signup.failed'));
       }
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 }

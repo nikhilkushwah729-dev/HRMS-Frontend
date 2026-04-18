@@ -10,6 +10,7 @@ import { ExpenseService } from '../../core/services/expense.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { LanguageService } from '../../core/services/language.service';
 import { User } from '../../core/models/auth.model';
 import {
   UiSelectAdvancedComponent,
@@ -34,9 +35,9 @@ import {
               class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center gap-3"
             >
               <div>
-                <h2 class="text-xl font-bold text-slate-900">Add Expense</h2>
+                <h2 class="text-xl font-bold text-slate-900">{{ t('expense.addExpense') }}</h2>
                 <p class="text-slate-400 text-sm mt-0.5">
-                  Submit a new expense for approval.
+                  {{ t('expense.submitExpenseHelp') }}
                 </p>
               </div>
               <button
@@ -65,7 +66,7 @@ import {
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                  >Title / Description</label
+                  >{{ t('expense.titleDescription') }}</label
                 >
                 <input
                   type="text"
@@ -92,7 +93,7 @@ import {
                 <div class="flex flex-col gap-1.5">
                   <label
                     class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                    >Date</label
+                    >{{ t('common.date') }}</label
                   >
                   <input
                     type="date"
@@ -112,7 +113,7 @@ import {
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                  >Additional Notes</label
+                  >{{ t('expense.additionalNotes') }}</label
                 >
                 <textarea
                   formControlName="description"
@@ -129,14 +130,14 @@ import {
                   (click)="toggleForm()"
                   class="px-5 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   [disabled]="expenseForm.invalid || processing()"
                   class="btn-primary min-w-[130px]"
                 >
-                  {{ processing() ? 'Submitting...' : 'Submit Expense' }}
+                  {{ processing() ? t('expense.submitting') : t('expense.submitExpense') }}
                 </button>
               </div>
             </form>
@@ -148,23 +149,22 @@ import {
         class="app-module-hero flex flex-col xl:flex-row justify-between xl:items-end gap-5"
       >
         <div class="max-w-2xl">
-          <p class="app-module-kicker">Expense Workspace</p>
+          <p class="app-module-kicker">{{ t('expense.workspace') }}</p>
           <h1 class="app-module-title mt-3">
-            Claims, approvals, and reimbursement flow
+            {{ t('expense.title') }}
           </h1>
           <p class="app-module-text mt-3">
-            Track submitted expenses, pending approvals, and your reimbursable
-            spend through a clearer finance-facing workflow.
+            {{ t('expense.subtitle') }}
           </p>
         </div>
         <div class="flex flex-col gap-3 xl:items-end">
           <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">Pending total</span>
+            <span class="app-module-highlight-label">{{ t('expense.pendingTotal') }}</span>
             <div class="app-module-highlight-value mt-3">
               {{ myPendingTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
             </div>
             <p class="mt-2 text-sm text-white/80">
-              Live pending expense value still waiting in the approval chain.
+              {{ t('expense.pendingTotalHelp') }}
             </p>
           </div>
           <button
@@ -183,7 +183,7 @@ import {
               <path d="M5 12h14" />
               <path d="M12 5v14" />
             </svg>
-            Add Expense
+            {{ t('expense.addExpense') }}
           </button>
         </div>
       </header>
@@ -213,7 +213,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Pending
+              {{ t('common.pending') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myPendingTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -242,7 +242,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Approved
+              {{ t('common.approve') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myApprovedTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -272,7 +272,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Total Claimed
+              {{ t('expense.totalClaimed') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myTotalClaimed() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -290,7 +290,7 @@ import {
         >
           <h3 class="font-bold text-slate-900">
             {{
-              activeModule() === 'approval' ? 'Pending Approval' : 'My Expenses'
+              activeModule() === 'approval' ? t('expense.pendingApproval') : t('expense.myExpenses')
             }}
           </h3>
           <div class="flex items-center gap-3">
@@ -312,7 +312,7 @@ import {
                       : 'text-slate-500'
                   "
                 >
-                  Approval ({{ pendingApprovalCount() }})
+                  {{ t('expense.approval') }} ({{ pendingApprovalCount() }})
                 </button>
                 <button
                   (click)="activeModule.set('mine')"
@@ -323,7 +323,7 @@ import {
                       : 'text-slate-500'
                   "
                 >
-                  My Expenses ({{ myExpenses().length }})
+                  {{ t('expense.myExpenses') }} ({{ myExpenses().length }})
                 </button>
               </div>
             }
@@ -337,44 +337,44 @@ import {
                   <th
                     class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                   >
-                    Requested By
+                    {{ t('expense.requestedBy') }}
                   </th>
                 }
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Title
+                  {{ t('expense.titleDescription') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Amount
+                  {{ t('expense.amount') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Category
+                  {{ t('common.type') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Date
+                  {{ t('common.date') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Pending With
+                  {{ t('expense.pendingWith') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Status
+                  {{ t('common.status') }}
                 </th>
                 @if (isApprover() && activeModule() === 'approval') {
                   <th
                     class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
                   >
-                    Action
+                    {{ t('expense.action') }}
                   </th>
                 }
               </tr>
@@ -388,7 +388,7 @@ import {
                         {{
                           expense.employee?.fullName ||
                             expense.employee?.firstName ||
-                            'Employee'
+                            t('sidebar.employee')
                         }}
                       </span>
                     </td>
@@ -406,7 +406,7 @@ import {
                   <td class="px-6 py-4">
                     <span
                       class="text-xs font-bold text-slate-400 uppercase tracking-tight"
-                      >{{ expense.category || 'General' }}</span
+                      >{{ expense.category || t('expense.general') }}</span
                     >
                   </td>
                   <td class="px-6 py-4">
@@ -564,6 +564,7 @@ export class ExpensesComponent implements OnInit {
   private authService = inject(AuthService);
   private permissionService = inject(PermissionService);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
 
   currentUser = signal<User | null>(null);
   expenses = signal<any[]>([]);
@@ -753,13 +754,13 @@ export class ExpensesComponent implements OnInit {
     this.processing.set(true);
     this.expenseService.createExpense(this.expenseForm.value).subscribe({
       next: () => {
-        this.toastService.success('Expense submitted for approval!');
+        this.toastService.success(this.t('expense.expenseSubmitted'));
         this.loadExpenses();
         this.toggleForm();
         this.processing.set(false);
       },
       error: (err) => {
-        this.toastService.error('Failed to submit expense.');
+        this.toastService.error(this.t('expense.expenseSubmitFailed'));
         this.processing.set(false);
         console.error(err);
       },
@@ -780,7 +781,7 @@ export class ExpensesComponent implements OnInit {
       this.expenseService.updateExpenseStatus(id, status, reason).subscribe({
         next: () => {
           this.loadExpenses();
-          this.toastService.success(`Expense ${status} successfully.`);
+          this.toastService.success(this.t('expense.expenseStatusSuccess', { status }));
         },
         error: (err) => {
           const msg = err.error?.message || `Failed to ${status} expense.`;
@@ -802,5 +803,10 @@ export class ExpensesComponent implements OnInit {
       default:
         return 'bg-slate-50 text-slate-600';
     }
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

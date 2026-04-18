@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   ElementRef,
   ViewChild,
@@ -17,6 +17,7 @@ import { EmployeeService } from '../../core/services/employee.service';
 import { DocumentService } from '../../core/services/document.service';
 import { ToastService } from '../../core/services/toast.service';
 import { OrganizationService } from '../../core/services/organization.service';
+import { LanguageService } from '../../core/services/language.service';
 import { UiSelectAdvancedComponent } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
 import { compressImageDataUrl } from '../../core/utils/image-compression.util';
@@ -26,7 +27,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, UiSelectAdvancedComponent],
   template: `
-    <div class="mx-auto max-w-7xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-7xl space-y-5 px-1 py-2 sm:space-y-6">
       <!-- Experience Modal -->
       <div
         *ngIf="showExperienceModal()"
@@ -45,7 +46,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               (click)="closeModals()"
               class="text-slate-400 hover:text-slate-600"
             >
-              ✕
+              &times;
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -175,7 +176,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               (click)="closeModals()"
               class="text-slate-400 hover:text-slate-600"
             >
-              ✕
+              &times;
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -304,7 +305,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               (click)="closeModals()"
               class="text-slate-400 hover:text-slate-600"
             >
-              ✕
+              &times;
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -1285,7 +1286,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                         ? doc.fileSizeKb + ' KB'
                         : doc.size || 'Unknown size'
                     }}
-                    • Captured on
+                    &bull; Captured on
                     {{ doc.createdAt || doc.date | date: 'mediumDate' }}
                   </p>
                 </div>
@@ -1370,7 +1371,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                       </div>
                     </div>
                     <p class="mt-1 text-xs font-bold text-slate-600">
-                      {{ exp.companyName || exp.company }} •
+                      {{ exp.companyName || exp.company }} &bull;
                       {{ exp.startDate | date: 'MMM yyyy' }} -
                       {{
                         exp.isCurrent
@@ -1430,7 +1431,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                       </div>
                     </div>
                     <p class="mt-1 text-xs font-bold text-slate-600">
-                      {{ edu.institution || edu.school }} •
+                      {{ edu.institution || edu.school }} &bull;
                       {{ edu.startDate | date: 'yyyy' }} -
                       {{ edu.endDate | date: 'yyyy' }}
                     </p>
@@ -1473,6 +1474,7 @@ export class ProfileComponent implements OnInit {
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
   private orgService = inject(OrganizationService);
+  private languageService = inject(LanguageService);
   protected router = inject(Router);
 
   user = signal<any>(null);
@@ -1609,15 +1611,15 @@ export class ProfileComponent implements OnInit {
     const user = this.user();
     return [
       {
-        label: 'Email Verification',
-        value: user?.emailVerified ? 'Verified' : 'Not verified',
+        label: this.t('employee.emailVerification'),
+        value: user?.emailVerified ? this.t('common.verified') : this.t('common.notVerified'),
       },
       {
-        label: 'Phone Verification',
-        value: user?.phoneVerified ? 'Verified' : 'Not verified',
+        label: this.t('employee.phoneVerification'),
+        value: user?.phoneVerified ? this.t('common.verified') : this.t('common.notVerified'),
       },
-      { label: 'Login Type', value: user?.loginType || 'email' },
-      { label: 'Account Access', value: user?.isLocked ? 'Locked' : 'Active' },
+      { label: this.t('employee.loginMethod'), value: user?.loginType || 'email' },
+      { label: this.t('employee.accountAccess'), value: user?.isLocked ? this.t('common.locked') : this.t('common.active') },
     ];
   });
 
@@ -1625,19 +1627,24 @@ export class ProfileComponent implements OnInit {
     const user = this.user();
     return [
       {
-        label: 'Salary',
-        value: user?.salary ? String(user.salary) : 'Not available',
+        label: this.t('employee.salary'),
+        value: user?.salary ? String(user.salary) : this.t('common.notAvailable'),
       },
-      { label: 'Bank Account', value: user?.bankAccount || 'Not available' },
-      { label: 'Bank Name', value: user?.bankName || 'Not available' },
-      { label: 'IFSC Code', value: user?.ifscCode || 'Not available' },
-      { label: 'PAN Number', value: user?.panNumber || 'Not available' },
+      { label: this.t('employee.bankAccount'), value: user?.bankAccount || this.t('common.notAvailable') },
+      { label: this.t('employee.bankName'), value: user?.bankName || this.t('common.notAvailable') },
+      { label: this.t('employee.ifscCode'), value: user?.ifscCode || this.t('common.notAvailable') },
+      { label: this.t('employee.panNumber'), value: user?.panNumber || this.t('common.notAvailable') },
       {
-        label: 'Country',
-        value: user?.countryName || user?.countryCode || 'Not available',
+        label: this.t('employee.country'),
+        value: user?.countryName || user?.countryCode || this.t('common.notAvailable'),
       },
     ];
   });
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
+  }
 
   ngOnInit() {
     this.refreshProfile();
@@ -1662,8 +1669,9 @@ export class ProfileComponent implements OnInit {
     this.authService.getMe().subscribe({
       next: (me) => {
         this.fetchOrganizationBranding();
-        if (me?.id) {
-          this.employeeService.getEmployeeById(me.id).subscribe({
+          const employeeId = Number(me?.id);
+          if (Number.isInteger(employeeId) && employeeId > 0) {
+          this.employeeService.getEmployeeById(employeeId).subscribe({
             next: (employee) => {
               const mergedUser = this.mergeUserData(me, employee);
               this.user.set(mergedUser);
@@ -1946,7 +1954,14 @@ export class ProfileComponent implements OnInit {
       panNumber: this.profileForm.get('panNumber')?.value?.trim() || undefined,
     };
 
-    this.employeeService.updateEmployee(user.id, payload).subscribe({
+      const employeeId = Number(user?.id);
+      if (!Number.isInteger(employeeId) || employeeId <= 0) {
+        this.saving.set(false);
+        this.toastService.error('Your employee profile is not available right now.');
+        return;
+      }
+
+      this.employeeService.updateEmployee(employeeId, payload).subscribe({
       next: (updatedUser) => {
         const mergedUser = this.mergeUserData(user, {
           ...updatedUser,
@@ -2518,7 +2533,14 @@ export class ProfileComponent implements OnInit {
         this.profileForm.get('lastName')?.value?.trim() || user?.lastName,
     };
 
-    this.employeeService.updateEmployee(user.id, payload).subscribe({
+      const employeeId = Number(user?.id);
+      if (!Number.isInteger(employeeId) || employeeId <= 0) {
+        this.avatarSaving.set(false);
+        this.toastService.error('Your employee profile is not available right now.');
+        return;
+      }
+
+      this.employeeService.updateEmployee(employeeId, payload).subscribe({
       next: (updatedUser) => {
         const mergedUser = this.mergeUserData(user, {
           ...updatedUser,
@@ -2553,3 +2575,4 @@ export class ProfileComponent implements OnInit {
     });
   }
 }
+
