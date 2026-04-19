@@ -611,8 +611,13 @@ export class AuthService {
         );
     }
 
-    getMe(): Observable<User> {
-        return this.http.get<any>(`${this.apiUrl}/auth/me`).pipe(
+    getMe(options?: { skipLoading?: boolean }): Observable<User> {
+        let headers = undefined;
+        if (options?.skipLoading) {
+            headers = { 'X-Skip-Loading': 'true' };
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/auth/me`, { headers }).pipe(
             map((res) => this.normalizeUser({
                 ...(res?.data ?? res?.user ?? res),
                 organization: res?.data?.organization ?? res?.organization,

@@ -108,7 +108,6 @@ export class PermissionService {
     2: [
       'dashboard.view',
       'profile.view',
-      'billing.view',
       'addons.view',
       'employees.view',
       'employees.invite',
@@ -136,7 +135,6 @@ export class PermissionService {
     3: [
       'dashboard.view',
       'profile.view',
-      'billing.view',
       'addons.view',
       'employees.view',
       'employees.invite',
@@ -154,14 +152,12 @@ export class PermissionService {
       'geofence.view',
       'regularization.view',
       'documents.view',
-      'roles.view',
       'announcements.view',
     ],
     // Manager
     4: [
       'dashboard.view',
       'profile.view',
-      'billing.view',
       'addons.view',
       'employees.view',
       'visitorManagement.view',
@@ -184,7 +180,6 @@ export class PermissionService {
     5: [
       'dashboard.view',
       'profile.view',
-      'billing.view',
       'addons.view',
       'visitorManagement.view',
       'attendance.view',
@@ -204,7 +199,7 @@ export class PermissionService {
     '/dashboard': { modules: ['dashboard'] },
     '/self-service': { modules: ['dashboard'] },
     '/ess': { modules: ['dashboard'] },
-    '/billing': { modules: ['dashboard'] },
+    '/billing': { keys: ['billing.view'] },
     '/add-ons': { modules: ['dashboard'], keys: ['addons.view'] },
     '/add-ons/guide': { modules: ['dashboard'], keys: ['addons.view'] },
     '/settings': { modules: ['settings'] },
@@ -320,6 +315,60 @@ export class PermissionService {
     const parsed = Number(rawRole);
     if (!Number.isFinite(parsed)) return null;
     return parsed as RoleId;
+  }
+
+  private resolveRoleName(user: User | null | undefined): string {
+    const rawRole =
+      typeof user?.role === 'string'
+        ? user.role
+        : String(user?.role?.name || '').trim();
+
+    if (rawRole) return rawRole;
+
+    const roleId = this.resolveRoleId(user);
+    const roleNames: Record<RoleId, string> = {
+      1: 'Super Admin',
+      2: 'Admin',
+      3: 'Admin',
+      4: 'Manager',
+      5: 'Employee',
+    };
+
+    return roleId ? roleNames[roleId] : 'User';
+  }
+
+  private normalizeRoleName(value: string): string {
+    return value.trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+
+  getNormalizedRoleName(user: User | null | undefined): string {
+    return this.normalizeRoleName(this.resolveRoleName(user));
+  }
+
+  getRoleDisplayName(user: User | null | undefined): string {
+    const normalizedRole = this.getNormalizedRoleName(user);
+
+    if (normalizedRole.includes('super admin')) return 'Super Admin';
+    if (
+      normalizedRole.includes('hr manager') ||
+      normalizedRole.includes('hr admin') ||
+      normalizedRole === 'admin' ||
+      normalizedRole.includes('(admin)')
+    ) {
+      return 'Admin';
+    }
+    if (normalizedRole.includes('manager')) return 'Manager';
+    if (normalizedRole.includes('staff') || normalizedRole.includes('employee')) {
+      return 'Employee';
+    }
+
+    const roleId = this.resolveRoleId(user);
+    if (roleId === 1) return 'Super Admin';
+    if (roleId === 2 || roleId === 3) return 'Admin';
+    if (roleId === 4) return 'Manager';
+    if (roleId === 5) return 'Employee';
+
+    return this.resolveRoleName(user);
   }
 
   private normalizeRoute(route: string): string {
@@ -524,15 +573,46 @@ export class PermissionService {
     return null;
   }
 
-  private isSuperAdmin(user: User | null | undefined): boolean {
-    return this.resolveRoleId(user) === 1;
+  isSuperAdminUser(user: User | null | undefined): boolean {
+    const roleName = this.getNormalizedRoleName(user);
+    return roleName.includes('super admin');
+  }
+
+  isAdminUser(user: User | null | undefined): boolean {
+    if (this.isSuperAdminUser(user)) return true;
+
+    const roleName = this.getNormalizedRoleName(user);
+    const roleId = this.resolveRoleId(user);
+    const scope = user?.accessScope;
+
+    return (
+      roleId === 2 ||
+      roleId === 3 ||
+      scope === 'all' ||
+      roleName === 'admin' ||
+      roleName.includes('hr admin') ||
+      roleName.includes('hr manager') ||
+      roleName.includes('(admin)')
+    );
+  }
+
+  isManagerialUser(user: User | null | undefined): boolean {
+    if (this.isAdminUser(user)) return true;
+
+    const roleName = this.getNormalizedRoleName(user);
+    const roleId = this.resolveRoleId(user);
+    return roleId === 4 || roleName.includes('manager');
+  }
+
+  isEmployeeUser(user: User | null | undefined): boolean {
+    return !this.isManagerialUser(user);
   }
 
   hasPermission(
     user: User | null | undefined,
     permission: PermissionKey,
   ): boolean {
-    if (this.isSuperAdmin(user)) return true;
+    if (this.isSuperAdminUser(user)) return true;
 
     const explicitUserPermissions = Array.isArray((user as any)?.permissions)
       ? ((user as any).permissions as string[])
@@ -557,7 +637,7 @@ export class PermissionService {
   }
 
   canAccessRoute(user: User | null | undefined, route: string): boolean {
-    if (this.isSuperAdmin(user)) return true;
+    if (this.isSuperAdminUser(user)) return true;
 
     const requirement = this.getRouteRequirement(route);
     if (!requirement) return true;
@@ -763,7 +843,7 @@ export class PermissionService {
       },
     ];
 
-    if (this.isSuperAdmin(user)) {
+    if (this.isSuperAdminUser(user)) {
       return allModules;
     }
 
@@ -772,14 +852,6 @@ export class PermissionService {
 
   // Get user role name
   getRoleName(user: User | null | undefined): string {
-    const roleId = this.resolveRoleId(user);
-    const roleNames: Record<RoleId, string> = {
-      1: 'Super Admin',
-      2: 'Admin',
-      3: 'HR Manager',
-      4: 'Manager',
-      5: 'Employee',
-    };
-    return roleId ? roleNames[roleId] : 'User';
+    return this.getRoleDisplayName(user);
   }
 }

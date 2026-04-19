@@ -11,12 +11,10 @@ import { UserLimitService } from './core/services/user-limit.service';
 import { SubscriptionService, SubscriptionStatusPayload } from './core/services/subscription.service';
 import { LanguageService } from './core/services/language.service';
 import { filter } from 'rxjs/operators';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { CommonModule, AsyncPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { MainLoaderComponent } from './core/components/main-loader/main-loader.component';
 import { CustomModalComponent } from './core/components/modal/custom-modal.component';
 import { CustomButtonComponent } from './core/components/button/custom-button.component';
-import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -24,7 +22,6 @@ import { ThemeService } from './core/services/theme.service';
   imports: [
     CommonModule,
     RouterOutlet,
-    AsyncPipe,
     ToastComponent,
     ConfirmModalComponent,
     TopLoaderComponent,
@@ -40,15 +37,16 @@ export class AppComponent implements OnInit {
   public userLimitService = inject(UserLimitService);
   public subscriptionService = inject(SubscriptionService);
   public languageService = inject(LanguageService);
-  public themeService = inject(ThemeService);
   private authService = inject(AuthService);
   private store = inject(Store);
   private router = inject(Router);
   
   title = 'HRNexus';
   showRefreshStrip = signal(false);
+  currentUrl = signal(this.router.url || '/');
+  routeLoading = signal(false);
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
-  loading$ = toObservable(this.topLoaderService.loadingSignal);
+  isAuthRoute = computed(() => this.currentUrl().startsWith('/auth'));
   trialBannerMessage = computed(() => {
     this.languageService.currentLanguage();
     const status = this.subscriptionStatus();
@@ -69,19 +67,19 @@ export class AppComponent implements OnInit {
   isOnline = true;
 
   ngOnInit() {
-    this.themeService.initialize();
-
     const token = this.authService.getStoredToken();
     const user = this.authService.getStoredUser();
+    const initialUrl = this.router.url || '/';
+    const isInitialAuthRoute = initialUrl.startsWith('/auth');
     
     // Immediate hydration from storage for instant UI
     if (token && user) {
       this.store.dispatch(AuthActions.restoreUser({ user, token }));
     }
 
-    // Always fetch fresh truth from API if we have a session to ensure persistence
-    if (token) {
-      this.authService.getMe().subscribe({
+    // Keep auth pages lightweight; refresh session only on non-auth routes.
+    if (token && !isInitialAuthRoute) {
+      this.authService.getMe({ skipLoading: true }).subscribe({
         next: (freshUser) => {
           this.authService.setStoredUser(freshUser);
           this.store.dispatch(AuthActions.restoreUser({ user: freshUser, token }));
@@ -109,8 +107,15 @@ export class AppComponent implements OnInit {
       )
     ).subscribe(event => {
       if (event instanceof NavigationStart) {
+        this.currentUrl.set(event.url);
+        this.routeLoading.set(true);
         this.topLoaderService.show();
+      } else if (event instanceof NavigationEnd) {
+        this.currentUrl.set(event.urlAfterRedirects);
+        this.routeLoading.set(false);
+        this.topLoaderService.hide();
       } else {
+        this.routeLoading.set(false);
         this.topLoaderService.hide();
       }
     });

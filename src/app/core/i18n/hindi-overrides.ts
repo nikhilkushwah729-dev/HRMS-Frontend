@@ -29,6 +29,8 @@ export const HINDI_TRANSLATION_OVERRIDES: TranslationDictionary = normalizeTrans
   'common.profile': 'मेरी प्रोफ़ाइल',
   'common.profileSettings': 'प्रोफ़ाइल सेटिंग्स',
   'common.settings': 'सेटिंग्स',
+  'common.hrControls': 'एचआर कंट्रोल्स',
+  'common.teamControls': 'टीम कंट्रोल्स',
   'common.theme': 'थीम',
   'common.lightMode': 'लाइट मोड',
   'common.darkMode': 'डार्क मोड',

@@ -4,6 +4,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { EmployeeService } from '../../core/services/employee.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   selector: 'app-view-employee',
@@ -171,6 +172,7 @@ import { LanguageService } from '../../core/services/language.service';
   styles: []
 })
 export class ViewEmployeeComponent implements OnInit {
+  private readonly permissionService = inject(PermissionService);
   private employeeService = inject(EmployeeService);
   private toastService = inject(ToastService);
   private router = inject(Router);
@@ -265,13 +267,23 @@ export class ViewEmployeeComponent implements OnInit {
   }
 
   getRoleLabel(roleId?: number): string {
-    switch (roleId) {
-      case 1: return this.t('sidebar.superAdmin');
-      case 2: return this.t('sidebar.admin');
-      case 3: return this.t('sidebar.hrManager');
-      case 4: return this.t('sidebar.manager');
-      case 5: return this.t('sidebar.employee');
-      default: return this.t('sidebar.employee');
+    const label = this.permissionService.getRoleDisplayName({
+      email: '',
+      firstName: '',
+      lastName: '',
+      roleId,
+    });
+
+    switch (label) {
+      case 'Super Admin':
+        return this.t('sidebar.superAdmin');
+      case 'Admin':
+        return this.t('sidebar.admin');
+      case 'Manager':
+        return this.t('sidebar.manager');
+      case 'Employee':
+      default:
+        return this.t('sidebar.employee');
     }
   }
 

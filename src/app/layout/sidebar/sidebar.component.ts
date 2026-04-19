@@ -707,23 +707,29 @@ export class SidebarComponent implements OnInit {
     return this.permissionService.canAccessRoute(user, route);
   }
 
+  private normalizedRoleName(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return this.permissionService.getNormalizedRoleName(user);
+  }
+
   private roleId(): number | undefined {
     const user = this.currentUser() ?? this.authService.getStoredUser();
     return user?.roleId;
   }
 
   private isEmployeeRole(): boolean {
-    return this.roleId() === 5;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return this.permissionService.isEmployeeUser(user);
   }
 
   private isManagerRole(): boolean {
-    const roleId = this.roleId();
-    return roleId === 3 || roleId === 4;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return this.permissionService.isManagerialUser(user) && !this.permissionService.isAdminUser(user);
   }
 
   private isAdminRole(): boolean {
-    const roleId = this.roleId();
-    return roleId === 1 || roleId === 2;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return this.permissionService.isAdminUser(user);
   }
 
   hasPeopleSection(): boolean {
@@ -745,6 +751,8 @@ export class SidebarComponent implements OnInit {
   }
 
   systemSectionLabel(): string {
+    if (this.isAdminRole()) return this.t('common.settings');
+    if (this.roleId() === 4) return this.t('common.teamControls');
     return this.t('sidebar.configuration');
   }
 
@@ -759,19 +767,17 @@ export class SidebarComponent implements OnInit {
   }
 
   userRole(): string {
-    const roleId = (this.currentUser() ?? this.authService.getStoredUser())
-      ?.roleId;
-    switch (roleId) {
-      case 1:
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    const roleName = this.permissionService.getRoleDisplayName(user);
+
+    switch (roleName) {
+      case 'Super Admin':
         return this.t('sidebar.superAdmin');
-      case 2:
+      case 'Admin':
         return this.t('sidebar.admin');
-      case 3:
-        return this.t('sidebar.hrManager');
-      case 4:
+      case 'Manager':
         return this.t('sidebar.manager');
-      case 5:
-        return this.t('sidebar.employee');
+      case 'Employee':
       default:
         return this.t('sidebar.employee');
     }

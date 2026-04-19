@@ -270,7 +270,7 @@ export class SelfServiceComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
   currentUser = signal<User | null>(null);
-  currentTime = signal<string>(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  currentTime = signal<string>(new Date().toLocaleTimeString(this.languageService.currentLanguage().locale, { hour: '2-digit', minute: '2-digit' }));
   todayStatus = signal<TodayAttendance | null>(null);
   leaveBalances = signal<any[]>([]);
   totalLeaveBalance = signal<number>(0);
@@ -408,7 +408,7 @@ export class SelfServiceComponent implements OnInit {
   });
 
   settingsHealthItems = computed(() => [
-    { label: 'Organization', value: this.organizationProfile()?.name || this.currentUser()?.organizationName || 'Not configured' },
+    { label: this.t('common.enterprise'), value: this.organizationProfile()?.name || this.currentUser()?.organizationName || this.t('common.pending') },
     { label: 'Active Shifts', value: `${this.activeShiftCount()}` },
     { label: 'Geo-Fence', value: this.geoFenceSettings()?.geofence_enabled ? 'Enabled' : 'Disabled' },
     { label: 'Weekly Off', value: this.weeklyOffPolicyCount() === 1 ? '1 policy' : `${this.weeklyOffPolicyCount()} policies` }
@@ -535,7 +535,7 @@ export class SelfServiceComponent implements OnInit {
         this.permissionService.syncForUser(this.currentUser());
         this.notificationService.loadNotifications();
         this.loadSystemSettings();
-        this.currentTime.set(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        this.currentTime.set(new Date().toLocaleTimeString(this.languageService.currentLanguage().locale, { hour: '2-digit', minute: '2-digit' }));
       });
   }
 
@@ -544,7 +544,7 @@ export class SelfServiceComponent implements OnInit {
       next: (occasions: any[]) => {
         const normalized = (occasions || []).map(o => ({
           ...o,
-          designation: o.designation?.name || 'Employee'
+          designation: o.designation?.name || this.t('sidebar.employee')
         }));
         this.teamOccasions.set(normalized);
 
@@ -643,7 +643,7 @@ export class SelfServiceComponent implements OnInit {
     return {
       id: Number(raw?.id ?? 0),
       name: String(raw?.name ?? 'Project'),
-      description: String(raw?.description ?? 'N/A'),
+      description: String(raw?.description ?? this.t('selfService.notAvailable')),
       status,
       statusLabel: status.replace(/_/g, ' '),
       progress: Number(raw?.progress ?? 0),
@@ -671,7 +671,7 @@ export class SelfServiceComponent implements OnInit {
       projectName: raw?.project?.name ?? 'General Worklog',
       workDate: String(raw?.date ?? raw?.workDate ?? raw?.log_date ?? new Date().toISOString()),
       hours: Number(raw?.hours ?? raw?.hoursWorked ?? raw?.hours_logged ?? 0),
-      description: String(raw?.description ?? 'No notes added'),
+      description: String(raw?.description ?? this.t('selfService.calendar.noSpecificLogs')),
       status: String(raw?.status ?? 'pending'),
       tone: 'bg-emerald-50 text-emerald-700'
     };
@@ -705,7 +705,7 @@ export class SelfServiceComponent implements OnInit {
     const slug = String(raw?.slug ?? '').trim().toLowerCase();
     return {
       id: Number(raw?.id ?? 0),
-      name: String(raw?.name ?? 'Add-on'),
+      name: String(raw?.name ?? this.t('common.addons')),
       slug,
       description: String(raw?.description ?? ''),
       isActive: Boolean(raw?.isActive),
@@ -828,7 +828,7 @@ export class SelfServiceComponent implements OnInit {
       '12-25': 'Christmas Day',
     };
 
-    return knownNames[suffix] ?? 'Organization Holiday';
+    return knownNames[suffix] ?? this.t('selfService.holiday');
   }
 
   loadCalendarMonth(): void {
@@ -955,8 +955,10 @@ export class SelfServiceComponent implements OnInit {
   });
 
   isManager(): boolean {
-    const roleId = this.currentUser()?.roleId ?? 5;
-    return roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4 || this.reportees().length > 0;
+    return (
+      this.permissionService.isManagerialUser(this.currentUser()) ||
+      this.reportees().length > 0
+    );
   }
 
   navigateTo(path: string) {

@@ -29,7 +29,7 @@
 }
 
 <!-- Main Pulsating Loader -->
-@if (loading$ | async) {
+@if (routeLoading() && !isAuthRoute()) {
   <app-main-loader />
 }
 

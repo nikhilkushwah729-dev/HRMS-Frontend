@@ -87,30 +87,80 @@ export class SignupComponent implements OnInit {
     this.selectedCountry = country;
   }
 
-  onSubmit() {
-    this.loading.set(true);
-    this.error.set('');
+  private extractErrorMessage(err: any): string {
+    const backendError = err?.error;
 
-    if (this.selectedCountry && this.form.phone) {
-      if (this.form.phone.length !== this.selectedCountry.phoneNumberLength) {
+    if (Array.isArray(backendError?.errors) && backendError.errors.length > 0) {
+      return backendError.errors[0]?.message || this.t('auth.signup.failed');
+    }
+
+    return backendError?.message || this.t('auth.signup.failed');
+  }
+
+  onSubmit() {
+    this.error.set('');
+    this.success.set('');
+
+    const companyName = this.form.companyName.trim();
+    const adminFirstName = this.form.adminFirstName.trim();
+    const adminLastName = this.form.adminLastName.trim();
+    const email = this.form.email.trim().toLowerCase();
+    const adminPassword = this.form.adminPassword;
+    const phone = this.form.phone.replace(/\D/g, '');
+
+    if (!companyName || !adminFirstName || !email || !adminPassword) {
+      this.error.set(this.t('auth.signup.failed'));
+      return;
+    }
+
+    if (adminPassword.length < 8) {
+      this.error.set(this.t('auth.signup.passwordMin'));
+      return;
+    }
+
+    if (adminPassword !== this.confirmPassword) {
+      this.error.set(this.t('auth.signup.passwordsNoMatch'));
+      return;
+    }
+
+    if (!this.termsAccepted) {
+      this.error.set(this.t('auth.signup.agreePrefix'));
+      return;
+    }
+
+    if (this.selectedCountry && phone) {
+      if (phone.length !== this.selectedCountry.phoneNumberLength) {
         this.error.set(this.t('auth.signup.phoneDigits', {
           country: this.selectedCountry.name,
           digits: this.selectedCountry.phoneNumberLength,
         }));
-        this.loading.set(false);
         return;
       }
     }
 
-    const fullPhone = this.form.phone;
+    this.loading.set(true);
 
-    const payload = {
-      ...this.form,
-      countryCode: this.selectedCountry?.flag || null,
-      countryName: this.selectedCountry?.name || null,
-      dialCode: this.selectedCountry?.code || null,
-      country: this.selectedCountry?.name || null,
+    const payload: Record<string, unknown> = {
+      companyName,
+      adminFirstName,
+      email,
+      adminPassword,
     };
+
+    if (adminLastName) {
+      payload['adminLastName'] = adminLastName;
+    }
+
+    if (phone) {
+      payload['phone'] = phone;
+    }
+
+    if (this.selectedCountry) {
+      payload['countryCode'] = this.selectedCountry.flag;
+      payload['countryName'] = this.selectedCountry.name;
+      payload['dialCode'] = this.selectedCountry.code;
+      payload['country'] = this.selectedCountry.name;
+    }
 
     this.authService.register(payload).subscribe({
       next: (res) => {
@@ -119,7 +169,7 @@ export class SignupComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.error?.message || this.t('auth.signup.failed'));
+        this.error.set(this.extractErrorMessage(err));
       }
     });
   }

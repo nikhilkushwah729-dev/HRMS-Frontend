@@ -66,5 +66,11 @@ export const permissionGuard: CanActivateChildFn = (route, state) => {
     return true;
   }
 
+  // Never redirect /dashboard back to itself on an access miss.
+  // That creates an infinite navigation loop and leaves the global loader active.
+  if (normalizeRoute(targetRoute) === '/dashboard') {
+    return true;
+  }
+
   return router.createUrlTree(['/dashboard']);
 };

@@ -12,6 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
 import type { User } from '../../core/models/auth.model';
 import { EmployeeService } from '../../core/services/employee.service';
 import { LanguageService } from '../../core/services/language.service';
+import { PermissionService } from '../../core/services/permission.service';
 import {
   AttendanceService,
   TodayAttendance,
@@ -1502,6 +1503,7 @@ interface ModuleCard {
   ],
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  private readonly permissionService = inject(PermissionService);
   private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
   private attendanceService = inject(AttendanceService);
@@ -1965,8 +1967,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   isManager(): boolean {
-    const roleId = this.currentUser()?.roleId;
-    return roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4;
+    return this.permissionService.isManagerialUser(this.currentUser());
   }
 
   markAttendance(): void {

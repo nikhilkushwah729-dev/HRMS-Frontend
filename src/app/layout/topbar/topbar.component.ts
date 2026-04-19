@@ -10,6 +10,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { EmployeeService } from '../../core/services/employee.service';
 import { Project, ProjectService } from '../../core/services/project.service';
 import { OrganizationService, Designation } from '../../core/services/organization.service';
+import { AppLanguage, LanguageService } from '../../core/services/language.service';
 import { User } from '../../core/models/auth.model';
 import { catchError, forkJoin, of } from 'rxjs';
 import { PermissionService } from '../../core/services/permission.service';
@@ -464,19 +465,39 @@ type GuidePreview = {
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>My Profile</span>
               </button>
-              @if (canAccess('/settings')) {
-                <button (click)="goToSearchResult('/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group mt-1">
+              @if (settingsEntry(); as settingsEntry) {
+                <button (click)="goToSearchResult(settingsEntry.route)" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group mt-1">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                  <span>Profile Settings</span>
+                  <span>{{ settingsEntry.label }}</span>
                 </button>
               }
-              @if (canAccess('/admin/settings')) {
-                <div class="my-1.5 border-t border-slate-100"></div>
-                <button (click)="goToSearchResult('/admin/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                  <span>Admin Settings</span>
-                </button>
-              }
+              <div class="my-1.5 border-t border-slate-100"></div>
+              <div class="px-3 py-2.5">
+                <div class="mb-2.5 flex items-center justify-between gap-3">
+                  <span class="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{{ languageLabel() }}</span>
+                  <span class="text-[11px] font-semibold text-slate-500">{{ currentLanguage().nativeLabel }}</span>
+                </div>
+                <div class="space-y-1">
+                  @for (language of languageOptions; track language.code) {
+                    <button
+                      type="button"
+                      (click)="switchLanguage(language)"
+                      class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors"
+                      [ngClass]="currentLanguage().code === language.code ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900'"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-[13px] font-semibold leading-5">{{ language.label }}</p>
+                        <p class="truncate text-[11px] leading-4" [ngClass]="currentLanguage().code === language.code ? 'text-indigo-500' : 'text-slate-400'">{{ language.nativeLabel }}</p>
+                      </div>
+                      @if (currentLanguage().code === language.code) {
+                        <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-600 px-1 text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
               <div class="my-1.5 border-t border-slate-100"></div>
               <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-all group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-0.5 transition-transform"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
@@ -582,6 +603,7 @@ export class TopbarComponent implements OnInit {
   private workspaceCatalog = inject(WorkspaceCatalogService);
   private organizationService = inject(OrganizationService);
   private subscriptionService = inject(SubscriptionService);
+  private languageService = inject(LanguageService);
   layoutService = inject(LayoutService);
   notifService = inject(NotificationService);
 
@@ -596,6 +618,8 @@ export class TopbarComponent implements OnInit {
   searchResults = signal<SearchResult[]>([]);
   loggingOut = signal(false);
   currentUser = signal<User | null>(null);
+  readonly currentLanguage = this.languageService.currentLanguage;
+  readonly languageOptions = this.languageService.languages;
   private currentPath = signal('/');
   private employeeCache = signal<User[]>([]);
   private projectCache = signal<Project[]>([]);
@@ -688,7 +712,7 @@ export class TopbarComponent implements OnInit {
     this.currentPath.set(this.router.url || '/');
     this.currentUser.set(this.authService.getStoredUser());
     this.permissionService.syncForUser(this.currentUser());
-    this.updateRoleLabel(this.currentUser()?.roleId);
+    this.updateRoleLabel(this.currentUser());
     
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
       this.currentPath.set(event.urlAfterRedirects || event.url || '/');
@@ -700,7 +724,7 @@ export class TopbarComponent implements OnInit {
       if (user) {
         this.currentUser.set(user);
         this.permissionService.syncForUser(user);
-        this.updateRoleLabel(user.roleId);
+        this.updateRoleLabel(user);
       }
     });
 
@@ -715,26 +739,12 @@ export class TopbarComponent implements OnInit {
     });
   }
 
-  private updateRoleLabel(roleId?: number) {
-    switch (roleId) {
-      case 1: 
-        this.userRoleLabel.set('Super Admin');
-        break;
-      case 2: 
-        this.userRoleLabel.set('Admin');
-        break;
-      case 3: 
-        this.userRoleLabel.set('HR Manager');
-        break;
-      case 4:
-        this.userRoleLabel.set('Manager');
-        break;
-      case 5:
-        this.userRoleLabel.set('Employee');
-        break;
-      default: 
-        this.userRoleLabel.set('Employee');
-    }
+  private resolveRoleLabel(user?: User | null): string {
+    return this.permissionService.getRoleDisplayName(user);
+  }
+
+  private updateRoleLabel(user?: User | null) {
+    this.userRoleLabel.set(this.resolveRoleLabel(user));
   }
 
   private loadUserDesignation() {
@@ -950,6 +960,53 @@ export class TopbarComponent implements OnInit {
     return this.permissionService.hasPermission(user, 'notifications.view');
   }
 
+  languageLabel(): string {
+    return this.languageService.t('common.language');
+  }
+
+  switchLanguage(language: AppLanguage): void {
+    this.languageService.setLanguage(language.code);
+  }
+
+  settingsEntry(): { route: string; label: string } | null {
+    if (this.canAccess('/settings')) {
+      return { route: '/settings', label: this.languageService.t('common.settings') };
+    }
+
+    const currentUser = this.currentUser() ?? this.authService.getStoredUser();
+    const roleId = this.getRoleId();
+
+    if (this.permissionService.isAdminUser(currentUser)) {
+      if (this.canAccess('/admin/roles')) {
+        return { route: '/admin/roles', label: this.languageService.t('common.settings') };
+      }
+      if (this.canAccess('/admin/documents')) {
+        return { route: '/admin/documents', label: this.languageService.t('common.settings') };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: this.languageService.t('common.settings') };
+      }
+    }
+
+    if (roleId === 4) {
+      if (this.canAccess('/admin/team-attendance')) {
+        return { route: '/admin/team-attendance', label: this.languageService.t('common.teamControls') };
+      }
+      if (this.canAccess('/admin/regularization')) {
+        return { route: '/admin/regularization', label: this.languageService.t('common.teamControls') };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: this.languageService.t('common.teamControls') };
+      }
+    }
+
+    if (this.canAccess('/admin/settings')) {
+      return { route: '/admin/settings', label: this.languageService.t('common.settings') };
+    }
+
+    return null;
+  }
+
   canUseSearch(): boolean {
     return this.getVisibleQuickLinks().length > 0;
   }
@@ -1012,9 +1069,9 @@ export class TopbarComponent implements OnInit {
 
   headerKicker(): string {
     if (this.currentPath() === '/' || this.currentPath() === '/dashboard' || this.currentPath() === '/self-service') {
-      const roleId = this.getRoleId();
-      if (roleId === 1 || roleId === 2) return 'Operations Command Center';
-      if (roleId === 3 || roleId === 4) return 'Team Workspace';
+      const user = this.currentUser() ?? this.authService.getStoredUser();
+      if (this.permissionService.isAdminUser(user)) return 'Operations Command Center';
+      if (this.permissionService.isManagerialUser(user)) return 'Team Workspace';
       return 'Self-Service Workspace';
     }
     return 'HR Workspace';
@@ -1040,11 +1097,11 @@ export class TopbarComponent implements OnInit {
   headerSubtitle(): string {
     const path = this.currentPath();
     if (path === '/' || path === '/dashboard' || path === '/self-service') {
-      const roleId = this.getRoleId();
-      if (roleId === 1 || roleId === 2) {
+      const user = this.currentUser() ?? this.authService.getStoredUser();
+      if (this.permissionService.isAdminUser(user)) {
           return 'Monitor workforce operations, approvals, compliance, and system controls from one workspace.';
       }
-      if (roleId === 3 || roleId === 4) {
+      if (this.permissionService.isManagerialUser(user)) {
           return 'Track team attendance, review requests, and keep daily operations close at hand.';
       }
         return 'Access attendance, leave, profile, and daily self-service tools from one dashboard.';
@@ -1058,30 +1115,17 @@ export class TopbarComponent implements OnInit {
   }
 
   roleLabel(): string {
-    // First try to get from observable, then fallback to stored user
-    let roleId: number | undefined;
-    
-    // Subscribe synchronously to get current value
-    this.user$.subscribe(user => {
-      if (user) {
-        roleId = user.roleId;
-      }
-    }).unsubscribe();
-    
-    // Fallback to stored user if not found in store
-    if (!roleId) {
-      const storedUser = this.authService.getStoredUser();
-      roleId = storedUser?.roleId;
+    let userRef: User | null | undefined = this.currentUser();
+
+    if (!userRef) {
+      this.user$.subscribe((user) => {
+        if (user) {
+          userRef = user;
+        }
+      }).unsubscribe();
     }
-    
-    switch (roleId) {
-      case 1: return 'Super Admin';
-      case 2: return 'Admin';
-      case 3: return 'HR Manager';
-      case 4: return 'Manager';
-      case 5: return 'Employee';
-      default: return 'Employee';
-    }
+
+    return this.resolveRoleLabel(userRef ?? this.authService.getStoredUser());
   }
 
   private getRoleId(): number | undefined {
