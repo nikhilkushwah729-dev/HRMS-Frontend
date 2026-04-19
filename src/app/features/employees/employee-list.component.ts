@@ -18,6 +18,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { UiSelectAdvancedComponent } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
 import { LanguageService } from '../../core/services/language.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   selector: 'app-employee-list',
@@ -618,6 +619,7 @@ import { LanguageService } from '../../core/services/language.service';
   styles: [],
 })
 export class EmployeeListComponent implements OnInit {
+  private readonly permissionService = inject(PermissionService);
   private employeeService = inject(EmployeeService);
   private modalService = inject(ModalService);
   private toastService = inject(ToastService);
@@ -858,17 +860,21 @@ export class EmployeeListComponent implements OnInit {
   }
 
   getRoleLabel(roleId?: number | null): string {
-    switch (Number(roleId ?? 0)) {
-      case 1:
+    const label = this.permissionService.getRoleDisplayName({
+      email: '',
+      firstName: '',
+      lastName: '',
+      roleId: Number(roleId ?? 0) || undefined,
+    });
+
+    switch (label) {
+      case 'Super Admin':
         return this.t('sidebar.superAdmin');
-      case 2:
+      case 'Admin':
         return this.t('sidebar.admin');
-      case 3:
-        return this.t('sidebar.hrManager');
-      case 4:
+      case 'Manager':
         return this.t('sidebar.manager');
-      case 5:
-        return this.t('sidebar.employee');
+      case 'Employee':
       default:
         return this.t('sidebar.employee');
     }

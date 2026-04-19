@@ -14,12 +14,15 @@ export const guestGuard: CanActivateFn = () => {
     const token = authService.getStoredToken();
     const user = authService.getStoredUser();
 
-    if (token && user) {
-        // User is already authenticated, redirect to unified home
-        router.navigate(['/dashboard']);
-        return false;
+    if (!token && !user) {
+        return true;
     }
 
-    return true;
+    if (!token || !user) {
+        authService.clearAuthStorage();
+        return true;
+    }
+
+    return router.createUrlTree(['/dashboard']);
 };
 
