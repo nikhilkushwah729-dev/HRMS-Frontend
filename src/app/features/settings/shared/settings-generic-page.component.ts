@@ -6,6 +6,8 @@ import { ToastService } from '../../../core/services/toast.service';
 import { SettingsFieldConfig, SettingsPageConfig } from './settings-page.types';
 import { SettingsWorkspaceService } from './settings-workspace.service';
 import { LanguageService } from '../../../core/services/language.service';
+import { PermissionService } from '../../../core/services/permission.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-settings-generic-page',
@@ -86,19 +88,19 @@ import { LanguageService } from '../../../core/services/language.service';
 
                 @switch (field.type) {
                   @case ('textarea') {
-                    <textarea [formControlName]="field.key" rows="4" class="app-field resize-none" [placeholder]="field.placeholder || ''"></textarea>
+                    <textarea [formControlName]="field.key" rows="4" class="app-field resize-none" [placeholder]="field.placeholder || ''" [readonly]="!canEditSettings()"></textarea>
                   }
                   @case ('number') {
-                    <input type="number" [formControlName]="field.key" class="app-field" [placeholder]="field.placeholder || ''" />
+                    <input type="number" [formControlName]="field.key" class="app-field" [placeholder]="field.placeholder || ''" [readonly]="!canEditSettings()" />
                   }
                   @case ('toggle') {
                     <label class="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                      <input type="checkbox" [formControlName]="field.key" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500" />
+                      <input type="checkbox" [formControlName]="field.key" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500" [disabled]="!canEditSettings()" />
                       {{ t('common.enable') }} {{ field.label.toLowerCase() }}
                     </label>
                   }
                   @case ('select') {
-                    <select [formControlName]="field.key" class="app-field">
+                    <select [formControlName]="field.key" class="app-field" [disabled]="!canEditSettings()">
                       <option value="">{{ t('common.selectField', { field: field.label }) }}</option>
                       @for (option of field.options || []; track option.value) {
                         <option [value]="option.value">{{ option.label }}</option>
@@ -106,17 +108,17 @@ import { LanguageService } from '../../../core/services/language.service';
                     </select>
                   }
                   @default {
-                    <input type="text" [formControlName]="field.key" class="app-field" [placeholder]="field.placeholder || ''" />
+                    <input type="text" [formControlName]="field.key" class="app-field" [placeholder]="field.placeholder || ''" [readonly]="!canEditSettings()" />
                   }
                 }
               </div>
             }
 
             <div class="grid gap-3 sm:grid-cols-2">
-              <button type="submit" [disabled]="form.invalid" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
+              <button type="submit" [disabled]="form.invalid || !canEditSettings()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
                 {{ editingId() ? t('common.update') : t('common.save') }} {{ config().itemName }}
               </button>
-              <button type="button" (click)="reset()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+              <button type="button" (click)="reset()" [disabled]="!canEditSettings()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50">
                 {{ t('common.reset') }}
               </button>
             </div>
@@ -161,10 +163,12 @@ import { LanguageService } from '../../../core/services/language.service';
                     {{ t('common.itemRecord', { itemName: config().itemName }) }}
                   </p>
                 </div>
-                <div class="flex gap-3">
-                  <button type="button" (click)="edit(item)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
-                  <button type="button" (click)="remove(item['id'])" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
-                </div>
+                @if (canEditSettings()) {
+                  <div class="flex gap-3">
+                    <button type="button" (click)="edit(item)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
+                    <button type="button" (click)="remove(item['id'])" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
+                  </div>
+                }
               </article>
             } @empty {
               <div class="px-6 py-16 text-center">
@@ -190,6 +194,8 @@ export class SettingsGenericPageComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly workspace = inject(SettingsWorkspaceService);
   private readonly languageService = inject(LanguageService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly authService = inject(AuthService);
 
   config = signal<SettingsPageConfig>({
     storageKey: 'hrms_generic_page',
@@ -216,6 +222,9 @@ export class SettingsGenericPageComponent implements OnInit {
 
   activeCount = computed(() =>
     this.items().filter((item) => Boolean(item['active'] ?? item['enabled'] ?? item['published'] ?? true)).length
+  );
+  canEditSettings = computed(() =>
+    this.permissionService.canManageSettings(this.authService.getStoredUser())
   );
 
   primaryLabelKey = computed(() => this.config().fields.find((field) => field.type !== 'toggle')?.key || 'name');
@@ -266,6 +275,11 @@ export class SettingsGenericPageComponent implements OnInit {
   }
 
   save(): void {
+    if (!this.canEditSettings()) {
+      this.toastService.error('You do not have permission to update these settings.');
+      return;
+    }
+
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -289,11 +303,16 @@ export class SettingsGenericPageComponent implements OnInit {
   }
 
   edit(item: Record<string, any>): void {
+    if (!this.canEditSettings()) return;
     this.editingId.set(String(item['id']));
     this.form.patchValue(item);
   }
 
   remove(id: string): void {
+    if (!this.canEditSettings()) {
+      this.toastService.error('You do not have permission to delete these settings.');
+      return;
+    }
     this.items.update((list) => list.filter((item) => String(item['id']) !== String(id)));
     this.persist();
     if (this.editingId() === String(id)) {
@@ -303,6 +322,7 @@ export class SettingsGenericPageComponent implements OnInit {
   }
 
   reset(): void {
+    if (!this.canEditSettings()) return;
     this.editingId.set(null);
     const defaults: Record<string, any> = {};
     this.config().fields.forEach((field) => {

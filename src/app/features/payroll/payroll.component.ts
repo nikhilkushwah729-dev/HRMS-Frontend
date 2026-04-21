@@ -1,6 +1,9 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PayrollService, Payslip } from '../../core/services/payroll.service';
+import { PermissionService } from '../../core/services/permission.service';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-payroll',
@@ -55,7 +58,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
             @if (loading()) {
               <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary-500 border-t-transparent"></div>
             } @else {
-              <button class="bg-slate-50 hover:bg-slate-100 p-2 rounded-md text-slate-500 transition-colors" title="Download All">
+              <button *ngIf="canDownloadPayroll()" class="bg-slate-50 hover:bg-slate-100 p-2 rounded-md text-slate-500 transition-colors" title="Download All">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
               </button>
             }
@@ -105,7 +108,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
                     </span>
                   </td>
                   <td class="px-6 py-4 text-right">
-                    <button class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Download Payslip">
+                    <button *ngIf="canDownloadPayroll()" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Download Payslip">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                     </button>
                   </td>
@@ -127,7 +130,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
                  <span class="font-bold text-slate-900 tracking-tight leading-snug">Form 16 (2024-25)</span>
                  <span class="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">Ready for Download</span>
               </div>
-              <button class="rounded-lg bg-primary-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-700 sm:self-auto">Download</button>
+              <button *ngIf="canDownloadPayroll()" class="rounded-lg bg-primary-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-700 sm:self-auto">Download</button>
            </div>
            
            <div class="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
@@ -138,7 +141,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
                  <span class="font-bold text-slate-900 tracking-tight leading-snug">Investment Proofs</span>
                  <span class="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1">Deadline: 31st March 2025</span>
               </div>
-              <button class="rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:self-auto">Submit Docs</button>
+              <button *ngIf="canManagePayrollDocs()" class="rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:self-auto">Submit Docs</button>
            </div>
         </div>
       </div>
@@ -148,12 +151,16 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
 })
 export class PayrollComponent implements OnInit {
   private payrollService = inject(PayrollService);
+  private permissionService = inject(PermissionService);
+  private authService = inject(AuthService);
   payslips = signal<Payslip[]>([]);
   loading = signal(true);
+  currentUser = signal<User | null>(null);
 
   latestPayslip = computed(() => this.payslips().length > 0 ? this.payslips()[0] : null);
 
   ngOnInit() {
+    this.currentUser.set(this.authService.getStoredUser());
     this.payrollService.getPayslips().subscribe({
       next: (data) => {
         this.payslips.set(data);
@@ -187,5 +194,24 @@ export class PayrollComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  canDownloadPayroll(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.hasPermission(user, 'payroll.view') ||
+      this.permissionService.hasPermission(user, 'payroll.read')
+    );
+  }
+
+  canManagePayrollDocs(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.isAdminUser(user) ||
+      this.permissionService.isHrManagerUser(user) ||
+      this.permissionService.hasPermission(user, 'payroll.create') ||
+      this.permissionService.hasPermission(user, 'payroll.update') ||
+      this.permissionService.hasPermission(user, 'payroll.approve')
+    );
   }
 }

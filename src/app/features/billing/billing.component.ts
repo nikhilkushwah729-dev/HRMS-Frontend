@@ -19,669 +19,1457 @@ type CheckoutStage = 'select' | 'review' | 'pay';
   standalone: true,
   imports: [CommonModule, CurrencyPipe, DatePipe],
   template: `
-    <div class="mx-auto max-w-[1600px] space-y-6 p-2">
-      <section class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_30%),linear-gradient(135deg,#ffffff_0%,#f8fafc_48%,#ecfeff_100%)] shadow-sm">
-        <div class="grid gap-6 px-5 py-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-8">
-          <div class="space-y-5">
-            <div class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-              <span class="h-2 w-2 rounded-full bg-cyan-500"></span>
-              {{ t('billing.saasBilling') }}
-            </div>
-            <div>
-              <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">{{ t('billing.title') }}</h1>
-              <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{{ t('billing.subtitle') }}</p>
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm" *ngFor="let card of stats()">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ card.label }}</p>
-                <p class="mt-2 text-2xl font-black text-slate-900">{{ card.value }}</p>
-                <p class="mt-1 text-xs text-slate-500">{{ card.help }}</p>
-              </div>
-            </div>
-          </div>
-          <div class="space-y-4 rounded-md border border-slate-200 bg-white/90 p-5 shadow-sm">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('billing.currentWorkspace') }}</p>
-              <h2 class="mt-2 text-xl font-black text-slate-900">{{ currentWorkspacePlanName() }}</h2>
-              <p class="mt-2 text-sm text-slate-500">{{ status()?.organization?.companyName || legacyContext()?.existingPlan?.orgName || t('billing.organization') }}</p>
-            </div>
-            <div class="rounded-md border px-4 py-4" [ngClass]="bannerTone()">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em]">{{ t('billing.subscriptionState') }}</p>
-              <p class="mt-2 text-lg font-black">{{ humanStatus() }}</p>
-              <p class="mt-2 text-sm">{{ statusNote() }}</p>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <button type="button" (click)="selectedGateway.set('razorpay')" class="rounded-md border px-4 py-2 text-sm font-semibold transition" [ngClass]="selectedGateway() === 'razorpay' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">Razorpay</button>
-              <button type="button" (click)="selectedGateway.set('stripe')" class="rounded-md border px-4 py-2 text-sm font-semibold transition" [ngClass]="selectedGateway() === 'stripe' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">Stripe</button>
-            </div>
-          </div>
-        </div>
-      </section>
+    <div class="billing-shell">
 
-      <section class="rounded-md border border-slate-200 bg-white px-4 py-4 shadow-sm">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('billing.upgradeJourney') }}</p>
-            <h2 class="mt-1 text-lg font-black text-slate-900">{{ t('billing.upgradeJourneySubtitle') }}</h2>
-          </div>
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'select' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-600'">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 1</p>
-              <p class="mt-1 text-sm font-semibold">{{ t('billing.selectPlan') }}</p>
-            </div>
-            <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'review' ? 'border-cyan-600 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-slate-50 text-slate-600'">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 2</p>
-              <p class="mt-1 text-sm font-semibold">{{ t('billing.reviewCheckout') }}</p>
-            </div>
-            <div class="rounded-md border px-4 py-3" [ngClass]="checkoutStage() === 'pay' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-600'">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 3</p>
-              <p class="mt-1 text-sm font-semibold">{{ t('billing.payActivate') }}</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- ─── ANIMATED BACKGROUND ─── -->
+      <div class="billing-bg" aria-hidden="true">
+        <div class="bg-orb bg-orb-1"></div>
+        <div class="bg-orb bg-orb-2"></div>
+        <div class="bg-orb bg-orb-3"></div>
+        <div class="bg-grid"></div>
+      </div>
 
-      <section *ngIf="focusedAddonLabel()" class="rounded-md border border-amber-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_55%,#fef3c7_100%)] px-5 py-5 shadow-sm">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div class="max-w-3xl">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Add-on Upgrade Flow</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-900">{{ focusedAddonLabel() }} is ready for activation</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-600">
-              You opened billing from the self-service add-on card. We have already highlighted this module in the checkout journey so you can continue without searching again.
-            </p>
+      <div class="billing-content">
+        <!-- ─── BACK NAVIGATION ─── -->
+        <nav class="billing-nav">
+          <div class="nav-left" (click)="goDashboard()" id="nav-brand">
+            <div class="nav-logo">HN</div>
+            <div class="nav-sep"></div>
+            <span class="nav-text">Billing & Subscriptions</span>
           </div>
-          <div class="flex flex-wrap gap-3">
-            <button type="button" (click)="checkoutStage.set('review')" class="rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
-              Review {{ focusedAddonLabel() }}
-            </button>
-            <button type="button" (click)="clearAddonFocus()" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              Clear Focus
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section *ngIf="legacyContext()" class="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <article class="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Real API Scenario</p>
-              <h2 class="mt-2 text-2xl font-black text-slate-900">{{ legacyContext()!.suggestedAction }} payment workflow</h2>
-            </div>
-            <span class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="legacyContext()!.suggestedAction === 'Buy' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'">
-              {{ legacyContext()!.suggestedAction }}
-            </span>
-          </div>
-
-          <div class="mt-6 grid gap-4 md:grid-cols-2">
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Plan window</p>
-              <p class="mt-2 text-sm font-bold text-slate-900">{{ legacyContext()!.existingPlan.startDate || 'N/A' }} to {{ legacyContext()!.existingPlan.endDate || 'N/A' }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">User limit</p>
-              <p class="mt-2 text-sm font-bold text-slate-900">{{ legacyContext()!.existingPlan.userlimit || 0 }}</p>
-            </div>
-          </div>
-
-          <div class="mt-6 grid gap-4 md:grid-cols-2">
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>Billing Contact Name</span>
-              <input [value]="contactName()" (input)="contactName.set(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300" placeholder="hari singh delhi">
-            </label>
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>State</span>
-              <select [value]="stateCode()" (change)="stateCode.set(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300">
-                <option value="">Select state</option>
-                <option *ngFor="let state of legacyContext()!.states" [value]="state.code">{{ state.name }}</option>
-              </select>
-            </label>
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>No. of Users</span>
-              <input type="number" [value]="nouser()" (input)="updateNouser(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300" placeholder="0">
-            </label>
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>GSTIN</span>
-              <input [value]="gstin()" (input)="gstin.set(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300" placeholder="Optional">
-            </label>
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>Duration</span>
-              <input type="number" min="1" [value]="duration()" (input)="updateDuration(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300" placeholder="1">
-            </label>
-            <label class="space-y-2 text-sm font-semibold text-slate-700">
-              <span>Duration Type</span>
-              <select [value]="durationType()" (change)="durationType.set(($any($event.target)).value)" class="w-full rounded-md border border-slate-200 px-3 py-2.5 outline-none transition focus:border-cyan-300">
-                <option value="Years">Years</option>
-                <option value="Months">Months</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="mt-4 rounded-md border border-cyan-100 bg-cyan-50 px-4 py-4 text-sm text-cyan-800">
-            {{ pricingEstimateNote() }}
-          </div>
-
-          <div class="mt-6">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Add-ons</p>
-                <h3 class="mt-1 text-lg font-black text-slate-900">Select modules for {{ legacyContext()!.suggestedAction.toLowerCase() }}</h3>
-              </div>
-              <span class="text-sm font-bold text-slate-900">Base {{ legacyContext()!.basePlanAmount | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="mt-4 grid gap-3 md:grid-cols-2">
-              <label *ngFor="let addon of legacyContext()!.addonCatalog" class="flex items-start gap-3 rounded-md border border-slate-200 px-4 py-4 transition hover:border-cyan-200 hover:bg-cyan-50/40">
-                <input type="checkbox" [checked]="addonSelected(addon.name)" (change)="toggleAddon(addon.name, ($any($event.target)).checked)" class="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600">
-                <span class="min-w-0 flex-1">
-                  <span class="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-900">
-                    <span>{{ addon.name }}</span>
-                    <span *ngIf="normalizeAddonKey(addon.name) === normalizeAddonKey(focusedAddonLabel())" class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-                      Focused
-                    </span>
-                  </span>
-                  <span class="mt-1 block text-xs text-slate-500">{{ effectiveAddonPrice(addon) | currency:'INR':'symbol':'1.0-0' }} estimated amount</span>
-                  <span class="mt-1 block text-[11px] text-slate-400">Legacy source price: {{ addon.price | currency:'INR':'symbol':'1.0-0' }}</span>
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="mt-6 flex flex-wrap gap-3">
-            <button type="button" (click)="startLegacyPurchase()" [disabled]="processing()" class="rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
-              {{ processing() ? 'Processing...' : legacyContext()!.suggestedAction + ' with ' + (selectedGateway() === 'razorpay' ? 'Razorpay' : 'Stripe') }}
-            </button>
-            <button type="button" *ngIf="pendingLegacyOrderId()" (click)="confirmLegacyPayment()" [disabled]="processing()" class="rounded-md border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50 disabled:opacity-50">
-              Mark Payment Success
-            </button>
-          </div>
-        </article>
-
-        <article class="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Scenario Summary</p>
-          <h2 class="mt-2 text-2xl font-black text-slate-900">API-aligned totals</h2>
-          <div class="mt-6 space-y-3">
-            <div class="grid gap-3 sm:grid-cols-3">
-              <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Users</p>
-                <p class="mt-2 text-lg font-black text-slate-900">{{ billableUsers() }}</p>
-              </div>
-              <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Duration</p>
-                <p class="mt-2 text-lg font-black text-slate-900">{{ duration() }} {{ durationType() }}</p>
-              </div>
-              <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Mode</p>
-                <p class="mt-2 text-lg font-black text-slate-900">{{ legacyContext()!.suggestedAction }}</p>
-              </div>
-            </div>
-            <div class="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <span class="text-sm text-slate-600">Base plan amount</span>
-              <span class="text-sm font-black text-slate-900">{{ legacyContext()!.basePlanAmount | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <span class="text-sm text-slate-600">Selected add-ons</span>
-              <span class="text-sm font-black text-slate-900">{{ selectedAddonAmount() | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <span class="text-sm text-slate-600">Tax (18%)</span>
-              <span class="text-sm font-black text-slate-900">{{ legacyTax() | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3 rounded-md border border-slate-900 bg-slate-900 px-4 py-4">
-              <span class="text-sm font-semibold text-slate-200">Invoice total</span>
-              <span class="text-lg font-black text-white">{{ legacyTotalWithTax() | currency:'INR':'symbol':'1.0-0' }}</span>
-            </div>
-            <div class="rounded-md border border-cyan-100 bg-cyan-50 px-4 py-4 text-sm text-cyan-800" *ngIf="legacyContext()!.pricingMatrix">
-              User pricing tiers loaded for upgrade scenario and available for extension.
-            </div>
-            <div class="rounded-md border border-slate-200 px-4 py-4" *ngIf="pendingLegacyOrderId()">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pending order</p>
-              <p class="mt-2 break-all text-sm font-bold text-slate-900">{{ pendingLegacyOrderId() }}</p>
-              <p class="mt-1 text-xs text-slate-500">If checkout completes outside the popup, you can still confirm the payment from this screen.</p>
-            </div>
-            <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800" *ngIf="generatedInvoice()">
-              Invoice generated successfully: {{ generatedInvoice()?.invoicedata?.invoice || 'available' }}
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section *ngIf="generatedInvoice()?.invoicedata" class="billing-print-shell rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Invoice Preview</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-900">{{ generatedInvoice()!.invoicedata.invoice }}</h2>
-            <p class="mt-2 text-sm text-slate-500">{{ generatedInvoice()!.invoicedata.text_head }}</p>
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <button type="button" (click)="downloadInvoiceJson()" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              Download JSON
-            </button>
-            <button type="button" (click)="printInvoice()" class="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              Print Invoice
-            </button>
-          </div>
-        </div>
-
-        <div class="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div class="space-y-4">
-            <div class="rounded-md border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_55%,#ecfeff_100%)] px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Billed To</p>
-              <p class="mt-2 text-sm font-bold text-slate-900">{{ generatedInvoice()!.invoicedata.org_name }}</p>
-              <p class="mt-1 text-sm text-slate-600">{{ generatedInvoice()!.invoicedata.cname }}</p>
-              <p class="mt-1 text-sm text-slate-600">{{ generatedInvoice()!.invoicedata.email }}</p>
-              <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <div class="rounded-md border border-slate-200 bg-white px-3 py-3">
-                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Invoice ID</p>
-                  <p class="mt-1 text-sm font-bold text-slate-900">{{ generatedInvoice()!.invoicedata.invoice }}</p>
-                </div>
-                <div class="rounded-md border border-slate-200 bg-white px-3 py-3">
-                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">State Code</p>
-                  <p class="mt-1 text-sm font-bold text-slate-900">{{ generatedInvoice()!.invoicedata.state_code || 'N/A' }}</p>
-                </div>
-              </div>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Narration</p>
-              <pre class="mt-3 whitespace-pre-wrap font-sans text-sm leading-7 text-slate-700">{{ generatedInvoice()!.invoicedata.narration }}</pre>
-            </div>
-          </div>
-
-          <div class="space-y-4">
-            <div class="rounded-md border border-slate-200 px-4 py-4">
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">Base amount</span>
-                <span class="text-sm font-bold text-slate-900">{{ generatedInvoice()!.invoicedata.total_baseamt | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">Add-ons</span>
-                <span class="text-sm font-bold text-slate-900">{{ invoiceAddonTotal() | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">IGST</span>
-                <span class="text-sm font-bold text-slate-900">{{ generatedInvoice()!.invoicedata.IGST | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-              <div class="mt-3 flex items-center justify-between gap-3 rounded-md bg-slate-900 px-4 py-4">
-                <span class="text-sm font-semibold text-slate-200">Invoice total</span>
-                <span class="text-lg font-black text-white">{{ generatedInvoice()!.invoicedata.total | currency:'INR':'symbol':'1.0-0' }}</span>
-              </div>
-            </div>
-
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Included add-ons</p>
-              <pre class="mt-3 whitespace-pre-wrap font-sans text-sm leading-7 text-slate-700">{{ generatedInvoice()!.invoicedata.addonshtml }}</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="flex flex-wrap items-center justify-between gap-4 rounded-md border border-slate-200 bg-white px-4 py-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Billing cycle</p>
-          <h2 class="mt-1 text-lg font-black text-slate-900">Compare internal SaaS plans</h2>
-        </div>
-        <div class="flex gap-3">
-          <button type="button" (click)="billingCycle.set('monthly')" class="rounded-md border px-4 py-2 text-sm font-semibold transition" [ngClass]="billingCycle() === 'monthly' ? 'border-cyan-200 bg-cyan-50 text-cyan-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">Monthly</button>
-          <button type="button" (click)="billingCycle.set('yearly')" class="rounded-md border px-4 py-2 text-sm font-semibold transition" [ngClass]="billingCycle() === 'yearly' ? 'border-cyan-200 bg-cyan-50 text-cyan-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">Yearly</button>
-        </div>
-      </section>
-
-      <section class="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        <article class="rounded-md border bg-white p-6 shadow-sm transition" *ngFor="let plan of plans()" [ngClass]="selectedPlanId() === plan.id ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-300'" (click)="selectPlan(plan)">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ plan.slug }}</p>
-              <h2 class="mt-2 text-2xl font-black text-slate-900">{{ plan.name }}</h2>
-            </div>
-            <div class="flex flex-col items-end gap-2">
-              <span class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="status()?.plan?.id === plan.id ? 'bg-emerald-100 text-emerald-700' : selectedPlanId() === plan.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'">
-                {{ status()?.plan?.id === plan.id ? 'Current' : selectedPlanId() === plan.id ? 'Selected' : 'Available' }}
-              </span>
-              <span *ngIf="plan.slug === recommendedPlanSlug()" class="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
-                Recommended
-              </span>
-            </div>
-          </div>
-          <p class="mt-4 text-4xl font-black tracking-tight text-slate-900">{{ planPrice(plan) | currency:plan.currency:'symbol':'1.0-0' }}</p>
-          <p class="mt-1 text-sm text-slate-500">per {{ billingCycle() === 'yearly' ? 'year' : 'month' }}</p>
-          <p class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
-            {{ plan.slug === 'trial' ? 'Trial-only reference plan for onboarding.' : planPitch(plan) }}
-          </p>
-          <div class="mt-5 space-y-3 text-sm text-slate-600">
-            <div class="flex items-center justify-between gap-3">
-              <span>User limit</span>
-              <span class="font-bold text-slate-900">{{ plan.userLimit }}</span>
-            </div>
-            <div class="flex items-center justify-between gap-3">
-              <span>Storage</span>
-              <span class="font-bold text-slate-900">{{ plan.storageLimitMb }} MB</span>
-            </div>
-            <div class="pt-2">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Modules</p>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" *ngFor="let module of plan.modules">{{ module }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="mt-6 space-y-2">
-            <div class="flex items-center justify-between gap-3 text-xs text-slate-500" *ngFor="let limit of plan.limits">
-              <span>{{ limit.label }}</span>
-              <span class="font-bold text-slate-700">{{ limit.enabled ? (limit.value || 'Enabled') : 'Not included' }}</span>
-            </div>
-          </div>
-          <button type="button" (click)="openCheckoutModal(plan); $event.stopPropagation()" [disabled]="!canStartPlanAction(plan)" class="mt-6 w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
-            {{ planActionLabel(plan) }}
+          <button class="nav-exit" (click)="goDashboard()" id="btn-back-dashboard">
+            <span>Dashboard</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
-        </article>
-        </div>
+        </nav>
 
-        <aside class="rounded-md border border-slate-200 bg-white p-6 shadow-sm xl:sticky xl:top-4 xl:h-fit">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Plan Checkout</p>
-          <h2 class="mt-2 text-2xl font-black text-slate-900">{{ selectedPlan()?.name || 'Select a plan' }}</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-500">{{ selectedPlan() ? planPitch(selectedPlan()!) : 'Choose a plan card to see billing summary and checkout guidance.' }}</p>
+        <!-- ─── TOP HERO SECTION ─── -->
+        <section class="hero-section">
+          <div class="hero-left">
+            <div class="hero-badge">
+              <span class="badge-dot"></span>
+              Subscription Management
+            </div>
+            <h1 class="hero-title">
+              Power up your<br>
+              <span class="hero-gradient-text">HR Workspace</span>
+            </h1>
+            <p class="hero-sub">
+              Unlock premium modules, scale your team, and manage the entire billing lifecycle in one place.
+            </p>
 
-          <div class="mt-6 space-y-3" *ngIf="selectedPlan() as plan">
-            <div class="rounded-md border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_55%,#ecfeff_100%)] px-4 py-4">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-sm font-semibold text-slate-600">Checkout stage</span>
-                <span class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="checkoutStage() === 'select' ? 'bg-slate-900 text-white' : checkoutStage() === 'review' ? 'bg-cyan-100 text-cyan-700' : 'bg-emerald-100 text-emerald-700'">
-                  {{ checkoutStage() }}
-                </span>
+            <!-- Stats row -->
+            <div class="hero-stats">
+              <div class="stat-chip" *ngFor="let card of stats()">
+                <span class="stat-label">{{ card.label }}</span>
+                <span class="stat-value">{{ card.value }}</span>
+                <span class="stat-help">{{ card.help }}</span>
               </div>
-              <p class="mt-2 text-xs text-slate-500">{{ checkoutStageMessage() }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-sm text-slate-600">Plan price</span>
-                <span class="text-lg font-black text-slate-900">{{ planPrice(plan) | currency:plan.currency:'symbol':'1.0-0' }}</span>
-              </div>
-              <p class="mt-2 text-xs text-slate-500">Billed {{ billingCycle() === 'yearly' ? 'annually' : 'monthly' }} via {{ selectedGateway() | titlecase }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 px-4 py-4">
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">Included users</span>
-                <span class="text-sm font-bold text-slate-900">{{ plan.userLimit }}</span>
-              </div>
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">Storage</span>
-                <span class="text-sm font-bold text-slate-900">{{ plan.storageLimitMb }} MB</span>
-              </div>
-              <div class="flex items-center justify-between gap-3 py-2">
-                <span class="text-sm text-slate-600">Modules</span>
-                <span class="text-sm font-bold text-slate-900">{{ plan.modules.length }}</span>
-              </div>
-            </div>
-            <div class="rounded-md border border-slate-200 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What happens next</p>
-              <div class="mt-3 space-y-2 text-sm text-slate-600">
-                <div class="flex items-start gap-2">
-                  <span class="mt-1 h-2 w-2 rounded-full bg-slate-300"></span>
-                  <span>Plan intent is created for {{ plan.name }}.</span>
-                </div>
-                <div class="flex items-start gap-2">
-                  <span class="mt-1 h-2 w-2 rounded-full bg-cyan-400"></span>
-                  <span>{{ selectedGateway() === 'razorpay' ? 'Razorpay checkout opens when keys are configured.' : 'Stripe-ready flow can continue from the generated payment intent.' }}</span>
-                </div>
-                <div class="flex items-start gap-2">
-                  <span class="mt-1 h-2 w-2 rounded-full bg-emerald-400"></span>
-                  <span>Successful payment updates subscription, access, and billing history.</span>
-                </div>
-              </div>
-            </div>
-            <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800">
-              Secure checkout starts after clicking the CTA below. Simulation mode auto-verifies when live gateway secrets are not configured.
-            </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <button type="button" (click)="checkoutStage.set('review')" [disabled]="processing()" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
-                Review Details
-              </button>
-              <button type="button" (click)="openCheckoutModal(plan)" [disabled]="!canStartPlanAction(plan)" class="rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
-                Continue to Checkout
-              </button>
-            </div>
-            <button type="button" *ngIf="pendingLegacyOrderId()" (click)="checkoutStage.set('pay')" class="w-full rounded-md border border-emerald-200 px-4 py-3 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-50">
-              Continue Payment Review
-            </button>
-            <button type="button" *ngIf="selectedGateway() === 'stripe' && !processing() && !plan.isTrialPlan && status()?.plan?.id !== plan.id" (click)="upgrade(plan)" class="w-full rounded-md border border-cyan-200 px-4 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50">
-              Generate Stripe Payment Intent
-            </button>
-            <p class="text-xs text-slate-500">{{ status()?.plan?.id === plan.id ? 'This plan is already active for the workspace.' : 'You can change billing cycle before confirming the upgrade.' }}</p>
-          </div>
-        </aside>
-      </section>
-
-      <section class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-        <article class="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Trial & access</p>
-          <h2 class="mt-2 text-2xl font-black text-slate-900">Countdown and policy</h2>
-          <div class="mt-6 space-y-3">
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Trial end date</p>
-              <p class="mt-2 text-lg font-black text-slate-900">{{ status()?.organization?.trialEndDate ? (status()!.organization.trialEndDate | date:'dd MMM yyyy') : 'N/A' }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Read only mode</p>
-              <p class="mt-2 text-lg font-black text-slate-900">{{ status()?.organization?.readOnlyMode ? 'Enabled' : 'Disabled' }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Grace period</p>
-              <p class="mt-2 text-lg font-black text-slate-900">{{ status()?.organization?.gracePeriodEndDate ? (status()!.organization.gracePeriodEndDate | date:'dd MMM yyyy') : 'No grace window' }}</p>
             </div>
           </div>
-        </article>
 
-        <article class="rounded-md border border-slate-200 bg-white p-6 shadow-sm">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Billing history</p>
-          <h2 class="mt-2 text-2xl font-black text-slate-900">Transactions</h2>
-          <div class="mt-6 space-y-3" *ngIf="status()?.billingHistory?.length; else noHistory">
-            <div class="rounded-md border border-slate-200 px-4 py-4" *ngFor="let item of status()?.billingHistory">
-              <div class="flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-bold text-slate-900">{{ item.amount | currency:item.currency:'symbol':'1.0-0' }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ item.gateway || 'Gateway' }} | {{ item.billingCycle || 'cycle' }}</p>
-                </div>
-                <span class="rounded-full px-3 py-1 text-xs font-semibold" [ngClass]="paymentTone(item.status)">{{ item.status }}</span>
-              </div>
-              <p class="mt-2 text-xs text-slate-500">{{ item.createdAt | date:'dd MMM yyyy, hh:mm a' }}</p>
-            </div>
-          </div>
-          <ng-template #noHistory>
-            <div class="mt-6 rounded-md border border-dashed border-slate-200 px-4 py-10 text-center text-sm text-slate-500">No billing history yet. Your first successful upgrade will appear here.</div>
-          </ng-template>
-        </article>
-      </section>
-
-      <div *ngIf="checkoutModalOpen()" class="fixed inset-0 z-[80] bg-slate-950/45 backdrop-blur-sm" (click)="closeCheckoutModal()"></div>
-      <section *ngIf="checkoutModalOpen() && selectedPlan() as plan" class="fixed inset-x-3 top-4 z-[81] mx-auto max-w-4xl overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl">
-        <div class="grid max-h-[88vh] gap-0 lg:grid-cols-[1.1fr_0.9fr]">
-          <div class="overflow-y-auto bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 sm:p-6">
-            <div class="flex items-start justify-between gap-4">
+          <!-- Active plan card -->
+          <div class="plan-status-card">
+            <div class="psc-header">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Upgrade Checkout</p>
-                <h2 class="mt-2 text-2xl font-black text-slate-900">{{ plan.name }}</h2>
-                <p class="mt-2 text-sm leading-6 text-slate-500">{{ checkoutStageMessage() }}</p>
+                <p class="psc-eyebrow">Active License</p>
+                <h2 class="psc-plan-name">{{ currentWorkspacePlanName() }}</h2>
               </div>
-              <button type="button" (click)="closeCheckoutModal()" class="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Close
-              </button>
+              <span class="psc-status-badge" [ngClass]="statusBadgeClass()">{{ humanStatus() }}</span>
             </div>
 
-            <div class="mt-6 grid gap-3 sm:grid-cols-3">
-              <div class="rounded-2xl border px-4 py-4" [ngClass]="checkoutStage() === 'select' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-600'">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-9 w-9 items-center justify-center rounded-full text-xs font-black" [ngClass]="checkoutStage() === 'select' ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'">1</span>
-                  <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 1</p>
-                    <p class="mt-1 text-sm font-semibold">Select</p>
-                  </div>
-                </div>
+            <div class="psc-divider"></div>
+
+            <div class="psc-meta">
+              <div class="psc-meta-row" *ngIf="status()?.organization?.isTrialActive">
+                <span class="psc-meta-icon">⏳</span>
+                <span>{{ status()?.trialDaysRemaining }} days left in trial</span>
               </div>
-              <div class="rounded-2xl border px-4 py-4" [ngClass]="checkoutStage() === 'review' ? 'border-cyan-600 bg-cyan-50 text-cyan-700' : 'border-slate-200 bg-white text-slate-600'">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-9 w-9 items-center justify-center rounded-full text-xs font-black" [ngClass]="checkoutStage() === 'review' ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-700'">2</span>
-                  <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 2</p>
-                    <p class="mt-1 text-sm font-semibold">Review</p>
-                  </div>
-                </div>
+              <div class="psc-meta-row">
+                <span class="psc-meta-icon">🏢</span>
+                <span>{{ status()?.organization?.companyName || 'Your Workspace' }}</span>
               </div>
-              <div class="rounded-2xl border px-4 py-4" [ngClass]="checkoutStage() === 'pay' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-600'">
-                <div class="flex items-center gap-3">
-                  <span class="flex h-9 w-9 items-center justify-center rounded-full text-xs font-black" [ngClass]="checkoutStage() === 'pay' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'">3</span>
-                  <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.18em]">Step 3</p>
-                    <p class="mt-1 text-sm font-semibold">Pay</p>
-                  </div>
-                </div>
+              <div class="psc-meta-row">
+                <span class="psc-meta-icon">📅</span>
+                <span>{{ statusNote() }}</span>
               </div>
             </div>
 
-            <div class="mt-6 space-y-4">
-              <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Workspace Plan</p>
-                <div class="mt-3 flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">Selected plan</span>
-                  <span class="text-sm font-black text-slate-900">{{ plan.name }}</span>
-                </div>
-                <div class="mt-2 flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">Billing cycle</span>
-                  <span class="text-sm font-black text-slate-900">{{ billingCycle() | titlecase }}</span>
-                </div>
-                <div class="mt-2 flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">Gateway</span>
-                  <span class="text-sm font-black text-slate-900">{{ selectedGateway() | titlecase }}</span>
-                </div>
-              </div>
-
-              <div class="rounded-md border border-slate-200 px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Included Modules</p>
-                <div class="mt-3 flex flex-wrap gap-2">
-                  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700" *ngFor="let module of plan.modules">{{ module }}</span>
-                </div>
-              </div>
-
-              <div class="rounded-md border border-cyan-100 bg-cyan-50 px-4 py-4 text-sm text-cyan-800" *ngIf="checkoutStage() !== 'pay'">
-                Review this plan, then continue to payment. If live keys are not configured, simulation mode will still activate the plan safely for testing.
-              </div>
-
-              <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-800" *ngIf="checkoutStage() === 'pay'">
-                Payment flow is ready. For Razorpay, checkout opens automatically when publishable keys are available.
+            <div class="psc-gateway">
+              <p class="psc-gateway-label">Payment Gateway</p>
+              <div class="gateway-toggle">
+                <button (click)="selectedGateway.set('razorpay')"
+                        [class.gw-active]="selectedGateway() === 'razorpay'"
+                        class="gw-btn" id="gateway-razorpay">
+                  <span class="gw-icon">⚡</span> Razorpay
+                </button>
+                <button (click)="selectedGateway.set('stripe')"
+                        [class.gw-active]="selectedGateway() === 'stripe'"
+                        class="gw-btn" id="gateway-stripe">
+                  <span class="gw-icon">💳</span> Stripe
+                </button>
               </div>
             </div>
           </div>
+        </section>
 
-          <aside class="border-t border-slate-200 bg-slate-50 p-5 sm:p-6 lg:border-l lg:border-t-0">
-            <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Order Summary</p>
-            <h3 class="mt-2 text-xl font-black text-slate-900">{{ plan.name }}</h3>
-
-            <div class="mt-5 space-y-3">
-              <div class="rounded-md border border-slate-200 bg-white px-4 py-4">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">Plan price</span>
-                  <span class="text-lg font-black text-slate-900">{{ planPrice(plan) | currency:plan.currency:'symbol':'1.0-0' }}</span>
-                </div>
-                <div class="mt-2 flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">User limit</span>
-                  <span class="text-sm font-bold text-slate-900">{{ plan.userLimit }}</span>
-                </div>
-                <div class="mt-2 flex items-center justify-between gap-3">
-                  <span class="text-sm text-slate-600">Storage</span>
-                  <span class="text-sm font-bold text-slate-900">{{ plan.storageLimitMb }} MB</span>
-                </div>
-              </div>
-
-              <div class="rounded-md border border-slate-200 bg-white px-4 py-4">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Checkout actions</p>
-                <div class="mt-4 grid gap-3">
-                  <button type="button" (click)="checkoutStage.set('review')" [disabled]="processing()" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">
-                    Review Details
-                  </button>
-                  <button type="button" (click)="upgrade(plan)" [disabled]="!canStartPlanAction(plan)" class="rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50">
-                    {{ checkoutStage() === 'pay' ? 'Pay & Activate' : 'Start Secure Payment' }}
-                  </button>
-                </div>
-              </div>
-
-              <p class="text-xs leading-5 text-slate-500">
-                Payment success updates subscription, feature access, and billing history automatically.
-              </p>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section *ngIf="paymentSuccessOpen()" class="fixed inset-0 z-[82] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
-        <div class="w-full max-w-md rounded-[24px] border border-emerald-100 bg-white p-6 text-center shadow-2xl">
-          <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
-            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500 text-white">
-              <span class="text-2xl font-black">✓</span>
-            </div>
-          </div>
-          <h2 class="mt-5 text-2xl font-black text-slate-900">Payment Successful</h2>
-          <p class="mt-2 text-sm leading-6 text-slate-500">Your workspace subscription has been updated and the selected plan is now active.</p>
-          <div class="mt-6 grid gap-3 sm:grid-cols-2">
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-left">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Activated Plan</p>
-              <p class="mt-1 text-sm font-bold text-slate-900">{{ status()?.plan?.name || selectedPlan()?.name || 'Updated Plan' }}</p>
-            </div>
-            <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-left">
-              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Billing Gateway</p>
-              <p class="mt-1 text-sm font-bold text-slate-900">{{ selectedGateway() | titlecase }}</p>
-            </div>
-          </div>
-          <div class="mt-6 grid gap-3">
-            <button type="button" (click)="closePaymentSuccess()" class="rounded-md bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
-              Continue
+        <!-- ─── STEPPER ─── -->
+        <nav class="stepper-nav">
+          <div class="stepper-track">
+            <button class="step-item" [class.step-active]="checkoutStage() === 'select'"
+                    [class.step-done]="checkoutStage() === 'review' || checkoutStage() === 'pay'"
+                    (click)="checkoutStage.set('select')" id="step-select">
+              <span class="step-circle">
+                <span *ngIf="checkoutStage() === 'select'">1</span>
+                <svg *ngIf="checkoutStage() !== 'select'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="step-label">Pick Plan</span>
             </button>
-            <button type="button" *ngIf="generatedInvoice()?.invoicedata" (click)="printInvoice()" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-              Print Invoice
+
+            <div class="step-connector" [class.connector-done]="checkoutStage() === 'review' || checkoutStage() === 'pay'"></div>
+
+            <button class="step-item" [class.step-active]="checkoutStage() === 'review'"
+                    [class.step-done]="checkoutStage() === 'pay'"
+                    [disabled]="!selectedPlanId()"
+                    (click)="selectedPlanId() && checkoutStage.set('review')" id="step-review">
+              <span class="step-circle">
+                <span *ngIf="checkoutStage() !== 'pay'">2</span>
+                <svg *ngIf="checkoutStage() === 'pay'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              <span class="step-label">Configure</span>
+            </button>
+
+            <div class="step-connector" [class.connector-done]="checkoutStage() === 'pay'"></div>
+
+            <button class="step-item" [class.step-active]="checkoutStage() === 'pay'" id="step-checkout">
+              <span class="step-circle">3</span>
+              <span class="step-label">Checkout</span>
             </button>
           </div>
+        </nav>
+
+        <!-- ─── STEP CONTENT ─── -->
+        <main [ngSwitch]="checkoutStage()" class="step-content">
+
+          <!-- STEP 1 – Plan Selection -->
+          <div *ngSwitchCase="'select'" class="fade-in">
+            <!-- Billing cycle toggle -->
+            <div class="cycle-toggle-wrap">
+              <div class="cycle-toggle">
+                <button (click)="billingCycle.set('monthly')"
+                        [class.cycle-active]="billingCycle() === 'monthly'"
+                        class="cycle-btn" id="cycle-monthly">Monthly</button>
+                <button (click)="billingCycle.set('yearly')"
+                        [class.cycle-active]="billingCycle() === 'yearly'"
+                        class="cycle-btn" id="cycle-yearly">
+                  Yearly
+                  <span class="cycle-badge">Save 20%</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Plan cards grid -->
+            <div class="plans-grid">
+              <div *ngFor="let plan of upgradablePlans(); let i = index"
+                   (click)="selectPlan(plan)"
+                   [class.plan-selected]="selectedPlanId() === plan.id"
+                   [class.plan-popular]="plan.slug === recommendedPlanSlug()"
+                   class="plan-card"
+                   [attr.id]="'plan-' + plan.slug">
+
+                <div class="plan-card-glow" *ngIf="plan.slug === recommendedPlanSlug()"></div>
+
+                <div class="plan-card-inner">
+                  <div class="plan-card-top">
+                    <div class="plan-header">
+                      <div>
+                        <span class="plan-slug">{{ plan.slug }}</span>
+                        <h3 class="plan-name">{{ plan.name }}</h3>
+                      </div>
+                      <span *ngIf="plan.slug === recommendedPlanSlug()" class="popular-badge">
+                        ⭐ Popular
+                      </span>
+                    </div>
+
+                    <div class="plan-price">
+                      <span class="price-currency">₹</span>
+                      <span class="price-amount">{{ planPrice(plan) | number:'1.0-0' }}</span>
+                      <span class="price-period">/{{ billingCycle() === 'yearly' ? 'yr' : 'mo' }}</span>
+                    </div>
+
+                    <p class="plan-pitch">{{ planPitch(plan) }}</p>
+
+                    <div class="plan-modules">
+                      <span class="modules-label">Modules included</span>
+                      <ul class="modules-list">
+                        <li *ngFor="let module of plan.modules.slice(0, 6)" class="module-item">
+                          <span class="module-check">✓</span>
+                          {{ module }}
+                        </li>
+                        <li *ngIf="plan.modules.length > 6" class="module-more">
+                          +{{ plan.modules.length - 6 }} more
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button type="button"
+                          (click)="$event.stopPropagation(); selectPlan(plan); checkoutStage.set('review')"
+                          [disabled]="status()?.plan?.id === plan.id"
+                          class="plan-cta"
+                          [attr.id]="'select-plan-' + plan.slug">
+                    <span *ngIf="status()?.plan?.id === plan.id">✓ Current Plan</span>
+                    <span *ngIf="status()?.plan?.id !== plan.id">Select {{ plan.name }} →</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2 – Configure & Review -->
+          <div *ngSwitchCase="'review'" class="fade-in review-layout">
+            <div class="review-main">
+
+              <!-- Configure section -->
+              <section class="review-card">
+                <div class="review-card-header">
+                  <div>
+                    <h3 class="review-card-title">Customise Your Plan</h3>
+                    <p class="review-card-sub">Configure seats and billing details</p>
+                  </div>
+                  <button (click)="checkoutStage.set('select')" class="change-plan-btn" id="btn-change-plan">
+                    ← Change Plan
+                  </button>
+                </div>
+
+                <div class="config-grid">
+                  <div class="config-field">
+                    <label class="field-label">Seat Count</label>
+                    <div class="seat-input-wrap">
+                      <button (click)="updateNouser(String(Math.max(1, nouser() - 1)))" class="seat-adj" id="btn-seats-minus">−</button>
+                      <input type="number"
+                             [value]="nouser() || selectedPlan()?.userLimit"
+                             (input)="updateNouser(($any($event.target)).value)"
+                             class="seat-input" id="input-seats" min="1">
+                      <button (click)="updateNouser(String(nouser() + 1))" class="seat-adj" id="btn-seats-plus">+</button>
+                    </div>
+                    <p class="field-hint">Plan minimum: {{ selectedPlan()?.userLimit }} seats</p>
+                  </div>
+
+                  <div class="config-field">
+                    <label class="field-label">Duration</label>
+                    <div class="duration-tabs">
+                      <button (click)="duration.set(1)" [class.dur-active]="duration() === 1" class="dur-btn" id="btn-dur-1">1 Year</button>
+                      <button (click)="duration.set(2)" [class.dur-active]="duration() === 2" class="dur-btn" id="btn-dur-2">2 Years</button>
+                      <button (click)="duration.set(3)" [class.dur-active]="duration() === 3" class="dur-btn" id="btn-dur-3">3 Years</button>
+                    </div>
+                  </div>
+
+                  <div class="config-field">
+                    <label class="field-label">Billing Name</label>
+                    <input [value]="contactName()"
+                           (input)="contactName.set(($any($event.target)).value)"
+                           class="text-field" placeholder="Full billing name" id="input-billing-name">
+                  </div>
+
+                  <div class="config-field">
+                    <label class="field-label">GSTIN <span class="optional">(optional)</span></label>
+                    <input [value]="gstin()"
+                           (input)="gstin.set(($any($event.target)).value)"
+                           class="text-field" placeholder="22AAAAA0000A1Z5" id="input-gstin">
+                  </div>
+
+                  <div class="config-field">
+                    <label class="field-label">State</label>
+                    <select [value]="stateCode()"
+                            (change)="stateCode.set(($any($event.target)).value)"
+                            class="text-field" id="select-state">
+                      <option value="">Select state</option>
+                      <option *ngFor="let state of legacyContext()?.states" [value]="state.code">{{ state.name }}</option>
+                    </select>
+                  </div>
+
+                  <div class="config-field">
+                    <label class="field-label">Currency</label>
+                    <div class="currency-display">{{ selectedPlan()?.currency || 'INR' }} — Indian Rupee</div>
+                  </div>
+                </div>
+
+                <!-- Modules included -->
+                <div class="modules-section">
+                  <p class="field-label mb-sm">Modules Included in {{ selectedPlan()?.name }}</p>
+                  <div class="modules-chips">
+                    <span *ngFor="let mod of selectedPlan()?.modules" class="module-chip">{{ mod }}</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Sticky summary -->
+            <aside class="checkout-summary">
+              <div class="summary-card">
+                <div class="summary-header">
+                  <div class="summary-plan-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  </div>
+                  <div>
+                    <p class="summary-eyebrow">Order Summary</p>
+                    <h3 class="summary-plan-name">{{ selectedPlan()?.name }} Plan</h3>
+                  </div>
+                </div>
+
+                <div class="summary-lines">
+                  <div class="summary-line">
+                    <span>{{ checkoutUnitLabel() }}</span>
+                    <span>{{ checkoutUnitAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="summary-line">
+                    <span>{{ checkoutBaseLabel() }}</span>
+                    <span>{{ checkoutBaseAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="summary-line" *ngIf="selectedAddonAmount() > 0">
+                    <span>Add-ons</span>
+                    <span>{{ selectedAddonAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
+                  </div>
+                  <div class="summary-line">
+                    <span>GST (18%)</span>
+                    <span>{{ checkoutTax() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
+                  </div>
+                </div>
+
+                <div class="summary-total">
+                  <span>Total Payable</span>
+                  <span class="total-amount">{{ checkoutTotalWithTax() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
+                </div>
+
+                <button (click)="payNow()"
+                        [disabled]="processing()"
+                        class="pay-btn" id="btn-pay-now">
+                  <span *ngIf="!processing()">
+                    <span class="pay-lock">🔒</span> Pay Securely Now
+                  </span>
+                  <span *ngIf="processing()" class="pay-loading">
+                    <span class="spinner-sm"></span> Processing…
+                  </span>
+                </button>
+
+                <p class="summary-secure">256-bit SSL · Secured via {{ selectedGateway() | titlecase }}</p>
+
+                <div class="summary-note">
+                  <span class="note-icon">⚠️</span>
+                  <p>Final amount is confirmed by the payment gateway. All prices include active seat configuration.</p>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <!-- STEP 3 – Processing -->
+          <div *ngSwitchCase="'pay'" class="fade-in pay-state">
+            <div class="pay-spinner-wrap">
+              <div class="pay-ring pay-ring-1"></div>
+              <div class="pay-ring pay-ring-2"></div>
+              <div class="pay-ring pay-ring-3"></div>
+              <div class="pay-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              </div>
+            </div>
+            <h3 class="pay-title">Syncing with {{ selectedGateway() | titlecase }}</h3>
+            <p class="pay-sub">Initializing secure payment session. Please do not close this window.</p>
+            <button (click)="checkoutStage.set('review')" class="pay-cancel-btn" id="btn-cancel-payment">
+              Cancel Transaction
+            </button>
+          </div>
+
+        </main>
+
+        <!-- ─── BILLING HISTORY ─── -->
+        <section class="history-section" *ngIf="status()?.billingHistory?.length">
+          <div class="history-header">
+            <div>
+              <span class="history-eyebrow">Payment Records</span>
+              <h3 class="history-title">Transaction History</h3>
+            </div>
+            <span class="history-updated">Last updated: {{ status()?.billingHistory?.[0]?.createdAt | date:'dd MMM yyyy' }}</span>
+          </div>
+
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Reference ID</th>
+                  <th>Plan</th>
+                  <th>Amount</th>
+                  <th>Cycle</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th class="th-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of status()?.billingHistory; let i = index"
+                    class="history-row"
+                    [attr.id]="'payment-row-' + item.id">
+                  <td class="td-ref">
+                    <span class="ref-badge">#{{ item.id }}</span>
+                  </td>
+                  <td class="td-gateway">
+                    <span class="gateway-tag">{{ item.gateway || '—' }}</span>
+                  </td>
+                  <td class="td-amount">
+                    {{ item.amount | currency:item.currency:'symbol':'1.0-0' }}
+                  </td>
+                  <td class="td-cycle">
+                    <span class="cycle-tag" *ngIf="item.billingCycle">{{ item.billingCycle }}</span>
+                    <span *ngIf="!item.billingCycle">—</span>
+                  </td>
+                  <td class="td-status">
+                    <span class="status-pill" [ngClass]="paymentTone(item.status)">
+                      <span class="status-dot"></span>
+                      {{ item.status }}
+                    </span>
+                  </td>
+                  <td class="td-date">{{ item.createdAt | date:'dd MMM yyyy, hh:mm a' }}</td>
+                  <td class="td-actions">
+                    <button *ngIf="item.invoiceUrl"
+                            class="action-btn" title="View Invoice"
+                            [attr.id]="'view-invoice-' + item.id">
+                      📄 Receipt
+                    </button>
+                    <span *ngIf="!item.invoiceUrl" class="no-invoice">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Empty state if no history -->
+        <div class="empty-history" *ngIf="!status()?.billingHistory?.length && status()">
+          <div class="empty-icon">🧾</div>
+          <h4>No transactions yet</h4>
+          <p>Your payment history will appear here after your first upgrade.</p>
         </div>
-      </section>
-    </div>
+
+      </div><!-- /billing-content -->
+
+      <!-- ─── PAYMENT SUCCESS MODAL ─── -->
+      <div *ngIf="paymentSuccessOpen()" class="modal-overlay" id="payment-success-modal">
+        <div class="success-modal">
+          <div class="success-confetti" aria-hidden="true">
+            <span *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="confetti-piece"></span>
+          </div>
+
+          <div class="success-icon-wrap">
+            <div class="success-icon-ring"></div>
+            <div class="success-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+
+          <h2 class="success-title">Plan Activated! 🎉</h2>
+          <p class="success-sub">
+            Your workspace has been upgraded to
+            <strong>{{ status()?.plan?.name || selectedPlan()?.name }}</strong>.
+            All premium modules are now unlocked and ready to use.
+          </p>
+
+          <div class="success-plan-chip">
+            <span>✓</span>
+            <span>{{ status()?.plan?.name || selectedPlan()?.name }} · Active</span>
+          </div>
+
+          <div class="success-actions">
+            <button (click)="closePaymentSuccess()" class="success-primary-btn" id="btn-go-dashboard">
+              Go to Dashboard
+            </button>
+            <button (click)="printInvoice()" class="success-secondary-btn" id="btn-print-invoice">
+              🖨️ Print Invoice
+            </button>
+          </div>
+
+          <button (click)="closePaymentSuccess()" class="modal-close" id="btn-close-success" aria-label="Close">×</button>
+        </div>
+      </div>
+
+    </div><!-- /billing-shell -->
   `,
   styles: [`
-    @media print {
-      body {
-        background: white !important;
-      }
-
-      button,
-      .fixed,
-      .shadow-sm,
-      .shadow-2xl {
-        box-shadow: none !important;
-      }
-
-      section:not(.billing-print-shell),
-      .fixed,
-      .rounded-md button {
-        display: none !important;
-      }
-
-      app-root > *:not(.billing-print-shell) {
-        display: none !important;
-      }
-
-      .billing-print-shell {
-        display: block !important;
-        border: 0 !important;
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        max-width: 100% !important;
-        background: white !important;
-      }
-
-      .billing-print-shell * {
-        color: #0f172a !important;
-      }
-
-      .billing-print-shell pre {
-        white-space: pre-wrap !important;
-      }
+    /* ─── CORE SHELL ─── */
+    .billing-shell {
+      min-height: 100vh;
+      position: relative;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #060b14;
+      color: #e2e8f0;
+      overflow-x: hidden;
     }
+
+    /* ─── ANIMATED BACKGROUND ─── */
+    .billing-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+      animation: orb-drift 16s ease-in-out infinite alternate;
+    }
+    .bg-orb-1 {
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, #10b981, #064e3b);
+      top: -200px; left: -200px;
+      animation-delay: 0s;
+    }
+    .bg-orb-2 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, #6366f1, #1e1b4b);
+      bottom: -100px; right: -100px;
+      animation-delay: -6s;
+    }
+    .bg-orb-3 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, #0ea5e9, #0c4a6e);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      animation-delay: -11s;
+    }
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    @keyframes orb-drift {
+      from { transform: translateY(0px) scale(1); }
+      to   { transform: translateY(40px) scale(1.08); }
+    }
+
+    /* ─── CONTENT WRAPPER (MAIN PANEL) ─── */
+    .billing-content {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 24px auto 80px;
+      padding: 48px;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+    }
+
+    /* ─── NAVIGATION (FULL-SCREEN MODE) ─── */
+    .billing-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .nav-left:hover { opacity: 1; }
+    .nav-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, #10b981, #6366f1);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 900; color: white;
+    }
+    .nav-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.1); }
+    .nav-text { font-size: 14px; font-weight: 700; color: #f1f5f9; }
+
+    .nav-exit {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-exit:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #f87171; }
+
+    /* ─── FADE IN ANIMATION ─── */
+    .fade-in {
+      animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── HERO SECTION ─── */
+    .hero-section {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 40px;
+      align-items: start;
+      margin-bottom: 48px;
+    }
+    @media (max-width: 1024px) {
+      .hero-section { grid-template-columns: 1fr; }
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #34d399;
+      margin-bottom: 20px;
+    }
+    .badge-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero-title {
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: #f8fafc;
+      margin: 0 0 16px;
+    }
+    .hero-gradient-text {
+      background: linear-gradient(135deg, #10b981 0%, #6366f1 50%, #0ea5e9 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: 17px;
+      color: #94a3b8;
+      line-height: 1.7;
+      max-width: 560px;
+      margin: 0 0 32px;
+    }
+
+    /* Stats row */
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    @media (max-width: 600px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
+    .stat-chip {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+    }
+    .stat-chip:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: rgba(16,185,129,0.2);
+      transform: translateY(-2px);
+    }
+    .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+    .stat-value { font-size: 24px; font-weight: 900; color: #f1f5f9; }
+    .stat-help  { font-size: 10px; color: #475569; }
+
+    /* ─── PLAN STATUS CARD ─── */
+    .plan-status-card {
+      background: rgba(15,23,42,0.7);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 0 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .psc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+    .psc-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; margin-bottom: 6px; }
+    .psc-plan-name { font-size: 26px; font-weight: 900; color: #f8fafc; }
+    .psc-status-badge {
+      padding: 5px 14px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      white-space: nowrap;
+    }
+    .badge-active   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .badge-trial    { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+    .badge-expired  { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .badge-default  { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); }
+    .psc-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 0 0 20px; }
+    .psc-meta { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .psc-meta-row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #94a3b8; line-height: 1.5; }
+    .psc-meta-icon { font-size: 15px; flex-shrink: 0; }
+    .psc-gateway-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 10px; }
+    .gateway-toggle { display: flex; gap: 8px; }
+    .gw-btn {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .gw-btn:hover { background: rgba(255,255,255,0.07); color: #94a3b8; }
+    .gw-active {
+      background: rgba(16,185,129,0.12) !important;
+      border-color: rgba(16,185,129,0.35) !important;
+      color: #34d399 !important;
+      box-shadow: 0 0 20px rgba(16,185,129,0.1);
+    }
+    .gw-icon { font-size: 14px; }
+
+    /* ─── STEPPER ─── */
+    .stepper-nav { margin-bottom: 40px; }
+    .stepper-track {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 8px 16px;
+      backdrop-filter: blur(12px);
+    }
+    .step-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .step-item:disabled { opacity: 0.4; cursor: not-allowed; }
+    .step-circle {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+    .step-active .step-circle {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+      box-shadow: 0 0 20px rgba(16,185,129,0.4);
+    }
+    .step-active { color: #f1f5f9; }
+    .step-done .step-circle {
+      background: rgba(16,185,129,0.15);
+      border-color: rgba(16,185,129,0.4);
+      color: #34d399;
+    }
+    .step-done { color: #64748b; }
+    .step-connector {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 0 4px;
+      transition: background 0.4s;
+    }
+    .connector-done { background: rgba(16,185,129,0.3); }
+    .step-label { font-size: 12px; font-weight: 700; }
+
+    /* ─── BILLING CYCLE TOGGLE ─── */
+    .cycle-toggle-wrap { display: flex; justify-content: center; margin-bottom: 36px; }
+    .cycle-toggle {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding: 4px;
+      gap: 4px;
+    }
+    .cycle-btn {
+      padding: 10px 24px;
+      border-radius: 100px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.25s;
+    }
+    .cycle-active {
+      background: #10b981;
+      color: white;
+      box-shadow: 0 4px 20px rgba(16,185,129,0.35);
+    }
+    .cycle-badge {
+      font-size: 9px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 100px;
+    }
+
+    /* ─── PLAN CARDS GRID ─── */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .plan-card {
+      position: relative;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
+      outline: 2px solid transparent;
+      outline-offset: 4px;
+    }
+    .plan-card:hover { transform: translateY(-6px); }
+    .plan-selected {
+      outline-color: #10b981;
+      box-shadow: 0 0 0 1px rgba(16,185,129,0.3), 0 20px 60px rgba(16,185,129,0.15);
+    }
+    .plan-popular .plan-card-inner {
+      border-color: rgba(99,102,241,0.3) !important;
+    }
+    .plan-card-glow {
+      position: absolute;
+      inset: -2px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(16,185,129,0.2));
+      z-index: 0;
+      animation: glow-pulse 3s ease-in-out infinite alternate;
+    }
+    @keyframes glow-pulse {
+      from { opacity: 0.5; }
+      to   { opacity: 1; }
+    }
+    .plan-card-inner {
+      position: relative;
+      z-index: 1;
+      background: rgba(15,23,42,0.75);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 480px;
+    }
+    .plan-card-top { flex: 1; }
+    .plan-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .plan-slug { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; display: block; margin-bottom: 4px; }
+    .plan-name { font-size: 28px; font-weight: 900; color: #f8fafc; }
+    .popular-badge {
+      font-size: 10px; font-weight: 800;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(16,185,129,0.15));
+      border: 1px solid rgba(99,102,241,0.3);
+      color: #a5b4fc;
+      padding: 4px 12px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .plan-price {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .price-currency { font-size: 22px; font-weight: 900; color: #94a3b8; }
+    .price-amount { font-size: 52px; font-weight: 900; color: #f8fafc; line-height: 1; }
+    .price-period { font-size: 14px; font-weight: 600; color: #475569; }
+    .plan-pitch { font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 24px; }
+
+    .modules-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 10px; display: block; }
+    .modules-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+    .module-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #94a3b8; }
+    .module-check { color: #10b981; font-weight: 800; width: 16px; flex-shrink: 0; }
+    .module-more { font-size: 12px; color: #475569; font-style: italic; padding-left: 26px; }
+
+    .plan-cta {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.25s;
+      box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+    }
+    .plan-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(16,185,129,0.4); }
+    .plan-cta:disabled {
+      background: rgba(255,255,255,0.06);
+      color: #475569;
+      cursor: default;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ─── REVIEW LAYOUT ─── */
+    .review-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) { .review-layout { grid-template-columns: 1fr; } }
+
+    .review-card {
+      background: rgba(15,23,42,0.7);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 32px;
+    }
+    .review-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 28px;
+    }
+    .review-card-title { font-size: 22px; font-weight: 900; color: #f8fafc; margin-bottom: 4px; }
+    .review-card-sub { font-size: 13px; color: #64748b; }
+    .change-plan-btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .change-plan-btn:hover { border-color: #10b981; color: #34d399; }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) { .config-grid { grid-template-columns: 1fr; } }
+
+    .config-field { display: flex; flex-direction: column; gap: 8px; }
+    .field-label {
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: #64748b;
+    }
+    .optional { font-weight: 400; text-transform: none; letter-spacing: 0; color: #475569; }
+    .field-hint { font-size: 10px; color: #475569; font-style: italic; }
+    .mb-sm { margin-bottom: 12px; }
+
+    .seat-input-wrap {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .seat-adj {
+      width: 44px; height: 52px;
+      background: transparent;
+      border: none;
+      color: #64748b; font-size: 20px; font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .seat-adj:hover { background: rgba(255,255,255,0.06); color: #10b981; }
+    .seat-input {
+      flex: 1; min-width: 0;
+      background: transparent; border: none;
+      text-align: center;
+      font-size: 20px; font-weight: 900; color: #f1f5f9;
+      padding: 0 4px; height: 52px;
+      outline: none;
+    }
+    .seat-input::-webkit-outer-spin-button,
+    .seat-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    .text-field {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 8px;
+      padding: 14px 18px;
+      color: #f1f5f9;
+      font-size: 14px; font-weight: 500;
+      outline: none; transition: all 0.2s;
+    }
+    .text-field:focus {
+      border-color: rgba(16,185,129,0.4);
+      background: rgba(16,185,129,0.04);
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.08);
+    }
+    .text-field option { background: #0f172a; }
+
+    .duration-tabs {
+      display: flex; gap: 8px;
+    }
+    .dur-btn {
+      flex: 1; padding: 12px 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      color: #64748b; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .dur-active {
+      background: rgba(16,185,129,0.12) !important;
+      border-color: rgba(16,185,129,0.3) !important;
+      color: #34d399 !important;
+    }
+
+    .currency-display {
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      font-size: 13px; color: #475569; font-weight: 500;
+    }
+
+    .modules-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 24px; }
+    .modules-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .module-chip {
+      padding: 6px 14px;
+      background: rgba(16,185,129,0.08);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 100px;
+      font-size: 12px; font-weight: 600; color: #34d399;
+    }
+
+    /* ─── CHECKOUT SUMMARY ─── */
+    .checkout-summary { position: sticky; top: 24px; }
+    .summary-card {
+      background: rgba(15,23,42,0.85);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .summary-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px;
+    }
+    .summary-plan-icon {
+      width: 48px; height: 48px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #10b981; flex-shrink: 0;
+    }
+    .summary-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 4px; }
+    .summary-plan-name { font-size: 18px; font-weight: 900; color: #f8fafc; }
+
+    .summary-lines { display: flex; flex-direction: column; gap: 0; }
+    .summary-line {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13px; color: #64748b;
+    }
+    .summary-line:last-child { border-bottom: none; }
+    .summary-line span:last-child { font-weight: 700; color: #94a3b8; }
+    .summary-included { color: #34d399 !important; font-weight: 700 !important; }
+
+    .summary-total {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 20px 0 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px; font-weight: 700; color: #94a3b8;
+    }
+    .total-amount { font-size: 32px; font-weight: 900; color: #f8fafc; }
+
+    .pay-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 50%, #0d9488 100%);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px; font-weight: 900;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .pay-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent, rgba(255,255,255,0.08));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .pay-btn:hover::before { opacity: 1; }
+    .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(16,185,129,0.4); }
+    .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .pay-lock { font-size: 14px; }
+    .pay-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .spinner-sm {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .summary-secure { text-align: center; font-size: 11px; color: #475569; font-weight: 600; margin-bottom: 16px; }
+    .summary-note {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(251,191,36,0.06);
+      border: 1px solid rgba(251,191,36,0.12);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .note-icon { font-size: 16px; flex-shrink: 0; }
+    .summary-note p { font-size: 11px; color: #92400e; line-height: 1.5; color: #ca8a04; }
+
+    /* ─── PAY STATE ─── */
+    .pay-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px; text-align: center; gap: 20px;
+    }
+    .pay-spinner-wrap {
+      position: relative;
+      width: 100px; height: 100px;
+      margin-bottom: 20px;
+    }
+    .pay-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      animation: spin 2s linear infinite;
+    }
+    .pay-ring-1 { inset: 0; border-top-color: #10b981; animation-duration: 1.5s; }
+    .pay-ring-2 { inset: 12px; border-top-color: #6366f1; animation-duration: 2s; animation-direction: reverse; }
+    .pay-ring-3 { inset: 22px; border-top-color: #0ea5e9; animation-duration: 2.5s; }
+    .pay-icon {
+      position: absolute;
+      inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #10b981;
+    }
+    .pay-title { font-size: 26px; font-weight: 900; color: #f8fafc; }
+    .pay-sub { font-size: 14px; color: #64748b; max-width: 440px; line-height: 1.6; }
+    .pay-cancel-btn {
+      margin-top: 8px;
+      padding: 12px 24px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #64748b; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .pay-cancel-btn:hover { border-color: rgba(239,68,68,0.3); color: #f87171; }
+
+    /* ─── BILLING HISTORY ─── */
+    .history-section {
+      margin-top: 60px;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 24px;
+    }
+    .history-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; display: block; margin-bottom: 6px; }
+    .history-title { font-size: 26px; font-weight: 900; color: #f8fafc; }
+    .history-updated { font-size: 12px; color: #475569; }
+
+    .history-table-wrap {
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .history-table thead tr {
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .history-table th {
+      padding: 16px 20px;
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.12em;
+      color: #475569; text-align: left;
+    }
+    .th-right { text-align: right; }
+    .history-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+    .history-row:last-child { border-bottom: none; }
+    .history-row:hover { background: rgba(255,255,255,0.02); }
+    .history-table td { padding: 16px 20px; vertical-align: middle; }
+
+    .td-ref {}
+    .ref-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      font-size: 12px; font-weight: 700; color: #94a3b8;
+      font-family: 'Courier New', monospace;
+    }
+    .td-amount { font-weight: 900; font-size: 15px; color: #f1f5f9; }
+    .td-date { color: #475569; font-size: 12px; }
+    .td-actions { text-align: right; }
+    .gateway-tag {
+      padding: 4px 10px;
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-radius: 8px;
+      font-size: 11px; font-weight: 700; color: #a5b4fc;
+      text-transform: capitalize;
+    }
+    .cycle-tag {
+      padding: 4px 10px;
+      background: rgba(14,165,233,0.08);
+      border: 1px solid rgba(14,165,233,0.15);
+      border-radius: 8px;
+      font-size: 11px; font-weight: 700; color: #38bdf8;
+      text-transform: capitalize;
+    }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      border-radius: 100px;
+      font-size: 11px; font-weight: 800;
+      text-transform: capitalize;
+    }
+    .status-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor;
+    }
+    .bg-emerald-50 { background: rgba(16,185,129,0.1) !important; color: #34d399 !important; border: 1px solid rgba(16,185,129,0.2); }
+    .bg-amber-50   { background: rgba(251,191,36,0.08) !important; color: #fbbf24 !important; border: 1px solid rgba(251,191,36,0.18); }
+    .bg-rose-50    { background: rgba(239,68,68,0.1) !important;  color: #f87171 !important; border: 1px solid rgba(239,68,68,0.2); }
+    .bg-slate-100  { background: rgba(148,163,184,0.08) !important; color: #94a3b8 !important; border: 1px solid rgba(148,163,184,0.15); }
+    .bg-violet-50  { background: rgba(139,92,246,0.08) !important; color: #a78bfa !important; border: 1px solid rgba(139,92,246,0.2); }
+
+    .action-btn {
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      color: #64748b; font-size: 11px; font-weight: 700;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .action-btn:hover { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: #34d399; }
+    .no-invoice { color: #334155; }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-history {
+      margin-top: 60px;
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-history h4 { font-size: 18px; font-weight: 800; color: #f1f5f9; margin-bottom: 8px; }
+    .empty-history p { font-size: 14px; color: #64748b; }
+
+    /* ─── SUCCESS MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(16px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fade-up 0.25s ease both;
+    }
+    .success-modal {
+      position: relative;
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(32px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 52px 48px;
+      max-width: 520px; width: 100%;
+      text-align: center;
+      box-shadow: 0 80px 160px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+      animation: modal-pop 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    @keyframes modal-pop {
+      from { opacity: 0; transform: scale(0.9) translateY(20px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Confetti */
+    .success-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 16px; }
+    .confetti-piece {
+      position: absolute;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      animation: confetti-fall 3s ease-in-out infinite;
+    }
+    .confetti-piece:nth-child(1)  { background: #10b981; left: 10%;  animation-delay: 0.0s; }
+    .confetti-piece:nth-child(2)  { background: #6366f1; left: 20%;  animation-delay: 0.2s; }
+    .confetti-piece:nth-child(3)  { background: #f59e0b; left: 30%;  animation-delay: 0.4s; }
+    .confetti-piece:nth-child(4)  { background: #0ea5e9; left: 40%;  animation-delay: 0.1s; }
+    .confetti-piece:nth-child(5)  { background: #ec4899; left: 50%;  animation-delay: 0.3s; }
+    .confetti-piece:nth-child(6)  { background: #10b981; left: 60%;  animation-delay: 0.5s; }
+    .confetti-piece:nth-child(7)  { background: #f59e0b; left: 70%;  animation-delay: 0.15s; }
+    .confetti-piece:nth-child(8)  { background: #6366f1; left: 80%;  animation-delay: 0.35s; }
+    .confetti-piece:nth-child(9)  { background: #0ea5e9; left: 90%;  animation-delay: 0.25s; }
+    .confetti-piece:nth-child(10) { background: #ec4899; left: 15%;  animation-delay: 0.45s; }
+    .confetti-piece:nth-child(11) { background: #10b981; left: 45%;  animation-delay: 0.55s; }
+    .confetti-piece:nth-child(12) { background: #f59e0b; left: 75%;  animation-delay: 0.05s; }
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+      20%  { opacity: 1; }
+      80%  { opacity: 1; }
+      100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
+    }
+
+    .success-icon-wrap {
+      position: relative;
+      width: 96px; height: 96px;
+      margin: 0 auto 28px;
+    }
+    .success-icon-ring {
+      position: absolute; inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(16,185,129,0.3);
+      animation: ring-spin 4s linear infinite;
+    }
+    @keyframes ring-spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .success-icon {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.1));
+      border: 1px solid rgba(16,185,129,0.3);
+      display: flex; align-items: center; justify-content: center;
+      color: #10b981;
+      box-shadow: 0 0 60px rgba(16,185,129,0.25);
+    }
+
+    .success-title { font-size: 36px; font-weight: 900; color: #f8fafc; margin-bottom: 16px; }
+    .success-sub { font-size: 15px; color: #64748b; line-height: 1.7; margin-bottom: 24px; }
+    .success-sub strong { color: #34d399; }
+    .success-plan-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 20px;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 100px;
+      font-size: 13px; font-weight: 700; color: #34d399;
+      margin-bottom: 32px;
+    }
+    .success-actions { display: flex; flex-direction: column; gap: 12px; }
+    .success-primary-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none; border-radius: 18px;
+      color: white; font-size: 15px; font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
+      transition: all 0.25s;
+    }
+    .success-primary-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(16,185,129,0.4); }
+    .success-secondary-btn {
+      width: 100%;
+      padding: 14px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      color: #64748b; font-size: 13px; font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .success-secondary-btn:hover { border-color: rgba(255,255,255,0.2); color: #94a3b8; }
+
+    .modal-close {
+      position: absolute; top: 20px; right: 24px;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      color: #64748b; font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #f87171; }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
   `],
 })
 export class BillingComponent implements OnInit {
@@ -716,13 +1504,16 @@ export class BillingComponent implements OnInit {
   billingSource = signal<string>('');
   requestedMode = signal<string>('');
 
+  readonly Math = Math;
+  readonly String = String;
+
   stats = computed(() => {
     const status = this.status();
     return [
-      { label: 'Plan', value: status?.plan?.name || (this.legacyContext()?.suggestedAction === 'Buy' ? 'Trial' : 'Active'), help: 'Current assigned subscription' },
-      { label: 'Trial Days', value: status?.trialDaysRemaining ?? 0, help: 'Remaining before expiry' },
-      { label: 'Read Only', value: status?.organization?.readOnlyMode ? 'Yes' : 'No', help: 'Workspace restriction state' },
-      { label: 'Invoices', value: status?.billingHistory?.length ?? 0, help: 'Recorded payment attempts' },
+      { label: 'Plan', value: status?.plan?.name || 'Loading…', help: 'Current subscription' },
+      { label: 'Trial Days', value: status?.trialDaysRemaining ?? 0, help: 'Days remaining' },
+      { label: 'Read Only', value: status?.organization?.readOnlyMode ? 'Yes' : 'No', help: 'Workspace mode' },
+      { label: 'Invoices', value: status?.billingHistory?.length ?? 0, help: 'Total payments' },
     ];
   });
 
@@ -730,6 +1521,13 @@ export class BillingComponent implements OnInit {
     const planId = this.selectedPlanId();
     return this.plans().find((plan) => plan.id === planId) ?? null;
   });
+
+  /** Only non-trial plans are shown in the upgrade grid */
+  upgradablePlans = computed(() => this.plans().filter((plan) => !plan.isTrialPlan));
+
+  goDashboard(): void {
+    this.router.navigate(['/dashboard']);
+  }
 
   ngOnInit(): void {
     this.route.queryParamMap.subscribe((params) => {
@@ -798,65 +1596,17 @@ export class BillingComponent implements OnInit {
 
   planPitch(plan: BillingPlan): string {
     if (plan.slug === 'basic') return 'For growing teams that need attendance and core ESS workflows.';
-    if (plan.slug === 'pro') return 'Best fit for HR teams that need payroll, visit management, and full operations coverage.';
+    if (plan.slug === 'pro') return 'Best fit for HR teams that need payroll, visit management, and full operations.';
     if (plan.slug === 'enterprise') return 'For scaled organizations that need higher capacity and enterprise controls.';
     return 'Flexible access for onboarding and workspace evaluation.';
   }
 
-  planActionLabel(plan: BillingPlan): string {
-    if (this.status()?.plan?.id === plan.id) return 'Current plan';
-    if (this.activePlanActionId() === plan.id && this.processing()) return 'Processing...';
-    if (plan.isTrialPlan) return 'Trial reference';
-    return this.status()?.organization?.isTrialActive ? `Upgrade to ${plan.name}` : `Choose ${plan.name}`;
-  }
-
-  canStartPlanAction(plan: BillingPlan): boolean {
-    return !this.processing() && !plan.isTrialPlan && this.status()?.plan?.id !== plan.id;
-  }
-
-  checkoutStageMessage(): string {
-    if (this.checkoutStage() === 'select') {
-      return 'Pick the right subscription plan and billing cycle for your workspace.';
-    }
-    if (this.checkoutStage() === 'review') {
-      return 'Review plan pricing, limits, and checkout details before continuing to payment.';
-    }
-    return 'Complete payment and activate the selected plan for the organization.';
-  }
-
-  openCheckoutModal(plan?: BillingPlan): void {
-    if (plan && !this.canStartPlanAction(plan)) {
-      if (plan.isTrialPlan) {
-        this.toastService.info('Free trial is only a reference plan. Please choose Basic, Pro, or Enterprise.');
-        return;
-      }
-      if (this.status()?.plan?.id === plan.id) {
-        this.toastService.info(`${plan.name} is already active for this workspace.`);
-        return;
-      }
-      if (this.processing()) {
-        return;
-      }
-    }
-
-    if (plan) {
-      this.selectedPlanId.set(plan.id);
-    }
-    if (this.checkoutStage() === 'select') {
-      this.checkoutStage.set('review');
-    }
-    this.checkoutModalOpen.set(true);
-  }
-
-  closeCheckoutModal(): void {
-    if (this.processing()) return;
-    this.checkoutModalOpen.set(false);
-  }
-
-  closePaymentSuccess(): void {
-    this.paymentSuccessOpen.set(false);
-    this.checkoutModalOpen.set(false);
-    this.checkoutStage.set('select');
+  statusBadgeClass(): string {
+    const status = this.status()?.organization?.subscriptionStatus;
+    if (status === 'active') return 'psc-status-badge badge-active';
+    if (status === 'trialing') return 'psc-status-badge badge-trial';
+    if (status === 'expired' || status === 'cancelled') return 'psc-status-badge badge-expired';
+    return 'psc-status-badge badge-default';
   }
 
   humanStatus(): string {
@@ -872,33 +1622,26 @@ export class BillingComponent implements OnInit {
     const status = this.status();
     if (status) {
       if (status.organization.isTrialActive) return `${status.trialDaysRemaining ?? 0} day(s) remaining in your free trial.`;
-      if (status.organization.readOnlyMode) return 'Your workspace is currently read-only until an upgrade is completed.';
-      return 'Your subscription is active and premium modules are available as per plan.';
+      if (status.organization.readOnlyMode) return 'Workspace is read-only until an upgrade is completed.';
+      return 'Subscription is active — premium modules are available.';
     }
     if (this.legacyContext()) {
       return this.legacyContext()!.suggestedAction === 'Buy'
-        ? 'Legacy API indicates the organization is still in trial and should use the Buy workflow.'
-        : 'Legacy API indicates the organization already has an active plan and should use the Upgrade workflow.';
+        ? 'Organization is in trial — use Buy workflow.'
+        : 'Organization has an active plan — use Upgrade workflow.';
     }
-    return 'Subscription status is loading.';
-  }
-
-  bannerTone(): string {
-    const status = this.status()?.organization;
-    if (status?.readOnlyMode || status?.subscriptionStatus === 'expired') return 'border-rose-200 bg-rose-50 text-rose-700';
-    if (status?.isTrialActive || this.legacyContext()?.suggestedAction === 'Buy') return 'border-amber-200 bg-amber-50 text-amber-700';
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+    return 'Loading subscription status…';
   }
 
   paymentTone(status: string): string {
     const map: Record<string, string> = {
-      success: 'bg-emerald-50 text-emerald-700',
-      pending: 'bg-amber-50 text-amber-700',
-      failed: 'bg-rose-50 text-rose-700',
-      refunded: 'bg-slate-100 text-slate-700',
-      disputed: 'bg-violet-50 text-violet-700',
+      success: 'bg-emerald-50',
+      pending: 'bg-amber-50',
+      failed: 'bg-rose-50',
+      refunded: 'bg-slate-100',
+      disputed: 'bg-violet-50',
     };
-    return map[status] || 'bg-slate-100 text-slate-700';
+    return map[status] || 'bg-slate-100';
   }
 
   addonSelected(name: string): boolean {
@@ -963,7 +1706,7 @@ export class BillingComponent implements OnInit {
   }
 
   effectiveAddonPrice(addon: { name: string; price: string; status: string }): number {
-    const rawPrice = Number(addon.price || 0);
+    const rawPrice = this.toAmount(addon.price);
     if (this.legacyContext()?.suggestedAction === 'Buy') {
       return Number((rawPrice * this.billableUsers() * this.durationMonths()).toFixed(2));
     }
@@ -973,12 +1716,15 @@ export class BillingComponent implements OnInit {
   selectedAddonAmount(): number {
     const context = this.legacyContext();
     if (!context) return 0;
-    return context.addonCatalog.reduce((sum, addon) => sum + (this.addonSelected(addon.name) ? this.effectiveAddonPrice(addon) : 0), 0);
+    return context.addonCatalog.reduce((sum, addon) => {
+      if (!this.addonSelected(addon.name)) return sum;
+      if (context.suggestedAction === 'Upgrade' && addon.status === '1') return sum;
+      return sum + this.effectiveAddonPrice(addon);
+    }, 0);
   }
 
   legacySubtotal(): number {
-    const context = this.legacyContext();
-    return (context?.basePlanAmount || 0) + this.selectedAddonAmount();
+    return this.checkoutBaseAmount() + this.selectedAddonAmount();
   }
 
   legacyTax(): number {
@@ -989,14 +1735,73 @@ export class BillingComponent implements OnInit {
     return Number((this.legacySubtotal() + this.legacyTax()).toFixed(2));
   }
 
+  checkoutSubtotal(): number {
+    return this.checkoutBaseAmount() + this.selectedAddonAmount();
+  }
+
+  checkoutUnitLabel(): string {
+    return this.legacyContext()?.suggestedAction === 'Buy'
+      ? 'Price per seat / month'
+      : `Price per seat (${this.billingCycle()})`;
+  }
+
+  checkoutUnitAmount(): number {
+    const plan = this.selectedPlan();
+    if (plan) return this.legacyContext()?.suggestedAction === 'Buy' ? plan.monthlyPrice : this.planPrice(plan);
+    return this.toAmount(this.legacyContext()?.basePlanAmount);
+  }
+
+  checkoutBaseLabel(): string {
+    const action = this.legacyContext()?.suggestedAction;
+    if (action === 'Buy') return `Base plan (${this.billableUsers()} seats x ${this.durationMonths()} months)`;
+    if (action === 'Upgrade') return `Base plan (${this.billableUsers()} seats)`;
+    return `Seats (${this.billableUsers()})`;
+  }
+
+  checkoutBaseAmount(): number {
+    const context = this.legacyContext();
+    const legacyBaseAmount = this.toAmount(context?.basePlanAmount);
+    if (legacyBaseAmount > 0) return legacyBaseAmount;
+
+    const plan = this.selectedPlan();
+    if (!plan) return 0;
+
+    if (context?.suggestedAction === 'Buy') {
+      const seatAmount = plan.monthlyPrice * this.billableUsers();
+      return Number((seatAmount * this.durationMonths()).toFixed(2));
+    }
+
+    const seatAmount = this.planPrice(plan) * this.billableUsers();
+    return Number(seatAmount.toFixed(2));
+  }
+
+  checkoutTax(): number {
+    return Number((this.checkoutSubtotal() * 0.18).toFixed(2));
+  }
+
+  checkoutTotalWithTax(): number {
+    return Number((this.checkoutSubtotal() + this.checkoutTax()).toFixed(2));
+  }
+
   pricingEstimateNote(): string {
     if (this.legacyContext()?.suggestedAction === 'Buy') {
-      return `Buy flow estimate is based on ${this.billableUsers()} user(s) x ${this.durationMonths()} month(s), which matches the sample legacy annual pricing pattern you shared.`;
+      return `Buy flow estimate is based on ${this.billableUsers()} user(s) x ${this.durationMonths()} month(s).`;
     }
-    if (this.legacyContext()?.pricingMatrix) {
-      return 'Upgrade flow is using the paid addon catalog from the legacy API. User pricing tiers are loaded and can influence the final gateway-side total.';
+    return 'Totals are based on the legacy addon catalog and finalized by the payment API.';
+  }
+
+  payNow(): void {
+    if (this.legacyContext()?.configured) {
+      this.startLegacyPurchase();
+      return;
     }
-    return 'Totals are based on the current legacy addon catalog and will be finalized by the payment API response.';
+    this.upgrade(this.selectedPlan()!);
+  }
+
+  private toAmount(value: unknown): number {
+    const normalized = typeof value === 'string' ? value.replace(/[^0-9.-]+/g, '') : value;
+    const parsed = Number(normalized || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   invoiceAddonTotal(): number {
@@ -1009,90 +1814,43 @@ export class BillingComponent implements OnInit {
       .reduce((sum, value) => sum + value, 0);
   }
 
-  startLegacyPurchase(): void {
-    const context = this.legacyContext();
-    if (!context) {
-      this.toastService.error(this.t('billing.legacyContextMissing'));
+  openCheckoutModal(plan?: BillingPlan): void {
+    if (plan && plan.isTrialPlan) {
+      this.toastService.info('Free trial is only a reference plan. Please choose Basic, Pro, or Enterprise.');
       return;
     }
-    if (!this.contactName().trim()) {
-      this.toastService.warning('Billing contact name is required.');
+    if (plan && this.status()?.plan?.id === plan.id) {
+      this.toastService.info(`${plan.name} is already active for this workspace.`);
       return;
     }
-    if (!this.stateCode().trim()) {
-      this.toastService.warning('Please select a state.');
-      return;
-    }
-
-    this.processing.set(true);
-    this.subscriptionService.legacyPurchase({
-      nouser: this.nouser(),
-      selectedAddons: Object.entries(this.selectedAddons()).map(([name, status]) => ({ name, status })),
-      paymentMethod: this.selectedGateway() === 'razorpay' ? 'Razorpay' : 'Stripe',
-      state: this.stateCode(),
-      country: context.existingPlan.countryname || 'India',
-      zip: context.existingPlan.zip || '',
-      city: context.existingPlan.cityName || '',
-      name: this.contactName(),
-      duration: this.duration(),
-      durationType: this.durationType(),
-      gstin: this.gstin(),
-      remark: 'Auto Mode',
-      action: context.suggestedAction,
-    }).subscribe({
-      next: (result) => {
-        this.pendingLegacyPaymentRecordId.set(result.paymentRecordId);
-        this.pendingLegacyOrderId.set(result.orderId || '');
-        if (this.selectedGateway() === 'razorpay' && result.orderId && result.publishableKey) {
-          this.launchLegacyRazorpay(result);
-          return;
-        }
-        this.toastService.success(result.message || this.t('billing.legacyPaymentStarted'));
-        this.processing.set(false);
-      },
-      error: (error) => {
-        this.toastService.error(error?.error?.message || this.t('billing.legacyPaymentStartFailed'));
-        this.processing.set(false);
-      },
-    });
+    if (plan) this.selectedPlanId.set(plan.id);
+    if (this.checkoutStage() === 'select') this.checkoutStage.set('review');
+    this.checkoutModalOpen.set(true);
   }
 
-  confirmLegacyPayment(): void {
-    const context = this.legacyContext();
-    const paymentRecordId = this.pendingLegacyPaymentRecordId();
-    const orderId = this.pendingLegacyOrderId();
-    if (!context || !paymentRecordId || !orderId) {
-      this.toastService.warning('No pending legacy payment is available to confirm.');
-      return;
-    }
+  closeCheckoutModal(): void {
+    if (this.processing()) return;
+    this.checkoutModalOpen.set(false);
+  }
 
-    this.processing.set(true);
-    this.subscriptionService.legacyConfirm({
-      paymentRecordId,
-      orderId,
-      paymentStatus: 'Success',
-      paymentRzrId: `pay_${Date.now()}`,
-      nouser: this.nouser(),
-      duration: this.duration(),
-      durationType: this.durationType(),
-      action: context.suggestedAction,
-    }).subscribe({
-      next: (result) => {
-        this.generatedInvoice.set(result.invoice);
-        this.toastService.success(this.t('billing.legacyConfirmed'));
-        this.pendingLegacyPaymentRecordId.set(null);
-        this.pendingLegacyOrderId.set('');
-        this.processing.set(false);
-        this.loadAll();
-      },
-      error: (error) => {
-        this.toastService.error(error?.error?.message || this.t('billing.legacyConfirmFailed'));
-        this.processing.set(false);
-      },
-    });
+  closePaymentSuccess(): void {
+    this.paymentSuccessOpen.set(false);
+    this.checkoutModalOpen.set(false);
+    this.checkoutStage.set('select');
+  }
+
+  currentWorkspacePlanName(): string {
+    if (this.status()?.plan?.name) return this.status()!.plan!.name;
+    if (this.legacyContext()?.existingPlan?.planStatus === 0) return this.t('billing.trialPlan');
+    if (this.legacyContext()?.existingPlan?.planStatus === 1) return this.t('billing.activePlan');
+    return 'No Active Plan';
   }
 
   upgrade(plan: BillingPlan): void {
+    if (!plan || plan.isTrialPlan) {
+      this.toastService.info('Please select a paid plan (Basic, Pro, or Enterprise) to upgrade.');
+      return;
+    }
     this.activePlanActionId.set(plan.id);
     this.checkoutStage.set('pay');
     this.checkoutModalOpen.set(true);
@@ -1148,18 +1906,6 @@ export class BillingComponent implements OnInit {
     });
   }
 
-  currentWorkspacePlanName(): string {
-    if (this.status()?.plan?.name) return this.status()!.plan!.name;
-    if (this.legacyContext()?.existingPlan?.planStatus === 0) return this.t('billing.trialPlan');
-    if (this.legacyContext()?.existingPlan?.planStatus === 1) return this.t('billing.activePlan');
-    return 'No active plan';
-  }
-
-  t(key: string, params?: Record<string, string | number | null | undefined>): string {
-    this.languageService.currentLanguage();
-    return this.languageService.t(key, params);
-  }
-
   printInvoice(): void {
     window.print();
   }
@@ -1170,7 +1916,6 @@ export class BillingComponent implements OnInit {
       this.toastService.warning('No invoice is available to download.');
       return;
     }
-
     const blob = new Blob([JSON.stringify(invoice, null, 2)], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -1180,11 +1925,85 @@ export class BillingComponent implements OnInit {
     URL.revokeObjectURL(url);
   }
 
+  startLegacyPurchase(): void {
+    const context = this.legacyContext();
+    if (!context) { this.toastService.error(this.t('billing.legacyContextMissing')); return; }
+    if (!this.contactName().trim()) { this.toastService.warning('Billing contact name is required.'); return; }
+    if (!this.stateCode().trim()) { this.toastService.warning('Please select a state.'); return; }
+
+    this.processing.set(true);
+    this.subscriptionService.legacyPurchase({
+      nouser: this.billableUsers(),
+      selectedAddons: Object.entries(this.selectedAddons()).map(([name, status]) => ({ name, status })),
+      paymentMethod: this.selectedGateway() === 'razorpay' ? 'Razorpay' : 'Stripe',
+      state: this.stateCode(),
+      country: context.existingPlan.countryname || 'India',
+      zip: context.existingPlan.zip || '',
+      city: context.existingPlan.cityName || '',
+      name: this.contactName(),
+      duration: this.duration(),
+      durationType: this.durationType(),
+      gstin: this.gstin(),
+      remark: 'Auto Mode',
+      action: context.suggestedAction,
+    }).subscribe({
+      next: (result) => {
+        this.pendingLegacyPaymentRecordId.set(result.paymentRecordId);
+        this.pendingLegacyOrderId.set(result.orderId || '');
+        if (this.selectedGateway() === 'razorpay' && result.orderId && result.publishableKey) {
+          this.launchLegacyRazorpay(result);
+          return;
+        }
+        this.toastService.success(result.message || this.t('billing.legacyPaymentStarted'));
+        this.processing.set(false);
+      },
+      error: (error) => {
+        this.toastService.error(error?.error?.message || this.t('billing.legacyPaymentStartFailed'));
+        this.processing.set(false);
+      },
+    });
+  }
+
+  confirmLegacyPayment(): void {
+    const context = this.legacyContext();
+    const paymentRecordId = this.pendingLegacyPaymentRecordId();
+    const orderId = this.pendingLegacyOrderId();
+    if (!context || !paymentRecordId || !orderId) {
+      this.toastService.warning('No pending legacy payment is available to confirm.');
+      return;
+    }
+
+    this.processing.set(true);
+    this.subscriptionService.legacyConfirm({
+      paymentRecordId,
+      orderId,
+      paymentStatus: 'Success',
+      paymentRzrId: `pay_${Date.now()}`,
+      nouser: this.billableUsers(),
+      duration: this.duration(),
+      durationType: this.durationType(),
+      action: context.suggestedAction,
+    }).subscribe({
+      next: (result) => {
+        this.generatedInvoice.set(result.invoice);
+        this.toastService.success(this.t('billing.legacyConfirmed'));
+        this.pendingLegacyPaymentRecordId.set(null);
+        this.pendingLegacyOrderId.set('');
+        this.processing.set(false);
+        this.loadAll();
+      },
+      error: (error) => {
+        this.toastService.error(error?.error?.message || this.t('billing.legacyConfirmFailed'));
+        this.processing.set(false);
+      },
+    });
+  }
+
   private launchLegacyRazorpay(result: any): void {
     const context = this.legacyContext();
     const RazorpayCtor = (window as any).Razorpay;
     if (!RazorpayCtor) {
-      this.toastService.warning('Razorpay checkout SDK is not available. You can still confirm payment manually.');
+      this.toastService.warning('Razorpay checkout SDK is not available.');
       this.processing.set(false);
       return;
     }
@@ -1202,7 +2021,7 @@ export class BillingComponent implements OnInit {
           orderId: response.razorpay_order_id || result.orderId,
           paymentStatus: 'Success',
           paymentRzrId: response.razorpay_payment_id,
-          nouser: this.nouser(),
+          nouser: this.billableUsers(),
           duration: this.duration(),
           durationType: this.durationType(),
           action: context?.suggestedAction || 'Buy',
@@ -1229,14 +2048,13 @@ export class BillingComponent implements OnInit {
       },
       prefill: {
         name: this.contactName(),
-        email: this.status()?.organization?.companyName ? undefined : undefined,
         contact: context?.existingPlan?.phoneNumber || '',
       },
       notes: {
         orgId: String(context?.existingPlan?.orgid || ''),
         action: context?.suggestedAction || 'Buy',
       },
-      theme: { color: '#0f172a' },
+      theme: { color: '#10b981' },
     });
 
     instance.open();
@@ -1298,9 +2116,14 @@ export class BillingComponent implements OnInit {
         plan: plan.slug,
         billingCycle: this.billingCycle(),
       },
-      theme: { color: '#0f172a' },
+      theme: { color: '#10b981' },
     });
 
     instance.open();
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

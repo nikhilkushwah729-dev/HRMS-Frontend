@@ -162,6 +162,7 @@ interface HolidayCalendarItem {
                 [reportees]="reportees()"
                 [currentUserName]="currentUserFullName()"
                 [managerName]="currentManagerName()"
+                [canViewEmployeeProfiles]="canAccess('/employees')"
                 (navigate)="navigateTo($event)"
                 class="min-h-[420px]">
               </app-ess-network-hub>
@@ -961,11 +962,21 @@ export class SelfServiceComponent implements OnInit {
     );
   }
 
+  canAccess(path: string): boolean {
+    return this.permissionService.canAccessRoute(this.currentUser(), path);
+  }
+
   navigateTo(path: string) {
+    if (!path) return;
+    if (!this.canAccess(path)) {
+      this.toastService.info('This workspace is not available in your current access scope.');
+      this.router.navigateByUrl('/dashboard');
+      return;
+    }
     this.router.navigateByUrl(path);
   }
 
   openSupport() {
-    this.router.navigateByUrl('/reports-center');
+    this.navigateTo('/reports-center');
   }
 }

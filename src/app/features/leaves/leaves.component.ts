@@ -1,6 +1,7 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   signal,
   inject,
   computed,
@@ -27,6 +28,8 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -223,6 +226,7 @@ Chart.register(...registerables);
                 Dashboard
               </button>
             </div>
+            @if (canRequestLeave()) {
             <button
               (click)="toggleForm()"
               class="btn-primary flex w-full items-center justify-center gap-2 rounded-md py-3 sm:w-auto sm:flex-none"
@@ -241,6 +245,7 @@ Chart.register(...registerables);
               </svg>
               Request Leave
             </button>
+            }
           </div>
         </div>
       </header>
@@ -712,12 +717,13 @@ Chart.register(...registerables);
   `,
   styles: [],
 })
-export class LeavesComponent implements OnInit {
+export class LeavesComponent implements OnInit, OnDestroy {
   private leaveService = inject(LeaveService);
   private authService = inject(AuthService);
   private permissionService = inject(PermissionService);
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
+  private route = inject(ActivatedRoute);
 
   leaves = signal<LeaveRequest[]>([]);
   leaveTypes = signal<LeaveTypeBalance[]>([]);
@@ -764,6 +770,7 @@ export class LeavesComponent implements OnInit {
 
   private distChart: any;
   private utilChart: any;
+  private routeSubscription?: Subscription;
 
   constructor() {
     effect(() => {
@@ -775,8 +782,20 @@ export class LeavesComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser.set(this.authService.getStoredUser());
+    this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
+      const view = params.get('view');
+      if (view === 'dashboard' || view === 'request') {
+        this.currentView.set(view);
+      }
+    });
     this.loadLeaveTypes();
     this.loadLeaves();
+  }
+
+  ngOnDestroy(): void {
+    this.routeSubscription?.unsubscribe();
+    this.distChart?.destroy();
+    this.utilChart?.destroy();
   }
 
   initCharts() {
@@ -992,6 +1011,7 @@ export class LeavesComponent implements OnInit {
   }
 
   toggleForm() {
+    if (!this.canRequestLeave()) return;
     this.showForm.set(!this.showForm());
     if (!this.showForm() && this.leaveTypes().length > 0) {
       this.editingLeaveId.set(null);
@@ -1055,6 +1075,13 @@ export class LeavesComponent implements OnInit {
       this.isApprover() &&
       leave.status === 'pending' &&
       !this.isOwnLeave(leave)
+    );
+  }
+
+  canRequestLeave(): boolean {
+    return (
+      this.permissionService.hasPermission(this.currentUser(), 'leave.apply') ||
+      this.permissionService.hasPermission(this.currentUser(), 'leave.create')
     );
   }
 

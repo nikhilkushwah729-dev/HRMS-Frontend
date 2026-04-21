@@ -48,19 +48,21 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'my-team',
+        loadComponent: () =>
+          import('@features/self-service/my-team.component').then(
+            (m) => m.MyTeamComponent,
+          ),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('@features/self-service/profile.component').then(
             (m) => m.ProfileComponent,
           ),
       },
-      {
-        path: 'billing',
-        loadComponent: () =>
-          import('./features/billing/billing.component').then(
-            (m) => m.BillingComponent,
-          ),
-      },
+      // Billing moved to top-level for full-screen experience
+
       {
         path: 'ess',
         redirectTo: 'dashboard',
@@ -153,6 +155,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/visit-management/visit-management.component').then(
             (m) => m.VisitManagementComponent,
+          ),
+      },
+      {
+        path: 'platform',
+        loadComponent: () =>
+          import('./features/platform/platform-control.component').then(
+            (m) => m.PlatformControlComponent,
           ),
       },
       {
@@ -262,6 +271,14 @@ export const routes: Routes = [
       },
       { path: '', redirectTo: '', pathMatch: 'full' },
     ],
+  },
+  {
+    path: 'billing',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/billing/billing.component').then(
+        (m) => m.BillingComponent,
+      ),
   },
   { path: '**', redirectTo: '' },
 ];

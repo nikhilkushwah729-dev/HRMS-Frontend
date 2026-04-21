@@ -734,6 +734,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     return this.faceRegistered();
   }
 
+  private currentOrgId(): number | null {
+    return Number(this.currentUser?.orgId ?? this.currentUser?.organizationId ?? 0) || null;
+  }
+
   // ==================== CHECK REGISTRATION ====================
 
   checkFaceRegistration() {
@@ -755,6 +759,9 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
   async startCamera() {
     try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API is not available in this browser.');
+      }
       this.stopCamera();
       this.stopAutoScan();
       this.autoRegisterTriggered = false;
@@ -773,9 +780,13 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       video.srcObject = this.mediaStream;
 
       await new Promise<void>((resolve) => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve();
+        video.onloadedmetadata = async () => {
+          try {
+            await video.play();
+            resolve();
+          } catch {
+            resolve();
+          }
         };
       });
 
@@ -919,7 +930,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       const res = await firstValueFrom(
         this.faceRecognitionService.registerFaceFromVideo(
           this.currentUser.id!,
-          this.currentUser.orgId!,
+          this.currentOrgId() ?? 0,
           video,
         ),
       );
@@ -1017,6 +1028,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
   registerFace() {
     if (!this.capturedImage() || !this.currentUser) return;
+    if (!this.currentOrgId()) {
+      this.toastService.error('Organization context missing. Please sign in again.');
+      return;
+    }
 
     this.isProcessing.set(true);
     this.registrationSuccess.set(false);
@@ -1027,7 +1042,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     this.faceRecognitionService
       .registerFace(
         this.currentUser.id!,
-        this.currentUser.orgId!,
+        this.currentOrgId() ?? 0,
         this.capturedImage()!,
       )
       .subscribe({
@@ -1084,6 +1099,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== TEST ATTENDANCE ====================
 
   testAttendance() {
+    if (!this.currentOrgId()) {
+      this.toastService.error('Organization context missing. Please sign in again.');
+      return;
+    }
     this.isProcessing.set(true);
 
     // Start camera and capture
@@ -1114,7 +1133,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       this.faceRecognitionService
         .verifyAndMarkAttendance(
           this.currentUser!.id!,
-          this.currentUser!.orgId!,
+          this.currentOrgId() ?? 0,
           imageData,
           'check_in',
         )
@@ -1150,10 +1169,11 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== EMPLOYEE MANAGEMENT ====================
 
   loadRegisteredEmployees() {
-    if (!this.currentUser?.orgId) return;
+    const orgId = this.currentOrgId();
+    if (!orgId) return;
 
     this.faceRecognitionService
-      .getEmployeesWithFaces(this.currentUser.orgId)
+      .getEmployeesWithFaces(orgId)
       .subscribe({
         next: (employees) => {
           this.registeredEmployees.set(employees);
