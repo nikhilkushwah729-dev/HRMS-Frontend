@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { OrganizationService } from '../../core/services/organization.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -259,6 +259,7 @@ interface AddonViewModel {
 export class AddOnsComponent implements OnInit {
   private readonly organizationService = inject(OrganizationService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly permissionService = inject(PermissionService);
   private readonly toastService = inject(ToastService);
@@ -298,7 +299,82 @@ export class AddOnsComponent implements OnInit {
     return visible[0] ?? this.filteredByTab()[0] ?? this.addons()[0] ?? null;
   });
 
+  private readonly defaultAddonCatalog = [
+    {
+      id: 507,
+      name: 'Face Recognition',
+      slug: 'face-recognition',
+      description: 'Employee authentication with face recognition for attendance and identity verification.',
+      route: '/face-registration',
+      permission: 'module507_view',
+      userPermission: 'module507_UserView',
+    },
+    {
+      id: 518,
+      name: 'Employee Tracking',
+      slug: 'employee-tracking',
+      description: 'Track employee location from phone or desktop and monitor live field attendance.',
+      route: '/attendance?view=tracking',
+      permission: 'module518_view',
+      userPermission: 'module518_UserView',
+    },
+    {
+      id: 516,
+      name: 'Manage Clients',
+      slug: 'manage-clients',
+      description: 'Manage client masters and visit-related client data from inside the attendance workflow.',
+      route: '/visit-management',
+      permission: 'module516_view',
+      userPermission: 'module516_UserView',
+    },
+    {
+      id: 517,
+      name: 'Track Visit',
+      slug: 'track-visit',
+      description: 'Track visit schedules, distance, and client visit activity for field employees.',
+      route: '/visit-management',
+      permission: 'module517_view',
+      userPermission: 'module517_UserView',
+    },
+    {
+      id: 5,
+      name: 'Payroll',
+      slug: 'payroll',
+      description: 'Enable payroll, salary, payslip, reimbursement, and finance workflows.',
+      route: '/payroll',
+    },
+    {
+      id: 6,
+      name: 'Leave',
+      slug: 'leave',
+      description: 'Enable leave applications, balances, short day leave, time off, and approvals.',
+      route: '/leaves',
+    },
+    {
+      id: 443,
+      name: 'Shift Planner',
+      slug: 'shift-planner',
+      description: 'Plan shifts, rosters, and employee scheduling from the attendance module.',
+      route: '/attendance?view=shift-planner',
+      permission: 'module443_view',
+      userPermission: 'module443_UserView',
+    },
+    {
+      id: 318,
+      name: 'Geo-Fence',
+      slug: 'geofence',
+      description: 'Configure geo-fence boundaries and location-based attendance compliance.',
+      route: '/attendance?view=geofence',
+      permission: 'module318_view',
+      userPermission: 'module318_UserView',
+    },
+  ];
+
   ngOnInit(): void {
+    const category = this.route.snapshot.queryParamMap.get('category') as AddonCategory | null;
+    if (category && this.categories.some((item) => item.id === category)) {
+      this.activeCategory.set(category);
+    }
     this.loadAddons();
   }
 
@@ -315,17 +391,121 @@ export class AddOnsComponent implements OnInit {
     this.loading.set(true);
     this.organizationService.getAddons().subscribe({
       next: (addons: any[]) => {
-        const mapped = (addons || []).map((addon) => this.toViewModel(addon));
+        const mapped = this.mergeAddonCatalog(addons || []).map((addon) => this.toViewModel(addon));
         this.addons.set(mapped);
-        this.featuredSlug.set(mapped[0]?.slug ?? null);
+        this.applyQueryFocus(mapped);
         this.loading.set(false);
       },
       error: () => {
-        this.addons.set([]);
-        this.featuredSlug.set(null);
+        const mapped = this.mergeAddonCatalog([]).map((addon) => this.toViewModel(addon));
+        this.addons.set(mapped);
+        this.applyQueryFocus(mapped);
         this.loading.set(false);
       },
     });
+  }
+
+  private applyQueryFocus(addons: AddonViewModel[]): void {
+    const focus = this.normalizeSlug(
+      this.route.snapshot.queryParamMap.get('addon') ||
+      this.route.snapshot.queryParamMap.get('focus') ||
+      '',
+    );
+    const attendanceFocus = focus === 'attendance';
+    const matchedAddon = addons.find((addon) =>
+      attendanceFocus
+        ? ['attendance', 'employee-tracking', 'geofence', 'shift-planner', 'face-recognition'].includes(addon.slug)
+        : addon.slug === focus,
+    );
+
+    if (matchedAddon) {
+      this.activeTab.set(matchedAddon.isActive ? 'active' : 'locked');
+      this.featuredSlug.set(matchedAddon.slug);
+      return;
+    }
+
+    this.featuredSlug.set(addons[0]?.slug ?? null);
+  }
+
+  private mergeAddonCatalog(apiAddons: any[]): any[] {
+    const normalizedApi = apiAddons.map((addon) => ({
+      ...addon,
+      slug: this.normalizeSlug(addon?.slug ?? addon?.name),
+    }));
+    const bySlug = new Map<string, any>();
+
+    this.defaultAddonCatalog.forEach((addon) => {
+      bySlug.set(this.normalizeSlug(addon.slug), {
+        ...addon,
+        isActive: this.isDefaultAddonActive(addon),
+      });
+    });
+
+    normalizedApi.forEach((addon) => {
+      const slug = this.normalizeSlug(addon.slug ?? addon.name);
+      const fallback = bySlug.get(slug);
+      bySlug.set(slug, {
+        ...fallback,
+        ...addon,
+        id: Number(addon?.id ?? fallback?.id ?? 0),
+        name: addon?.name ?? fallback?.name ?? 'Add-on',
+        slug,
+        description: addon?.description ?? fallback?.description,
+        route: addon?.route ?? fallback?.route,
+        isActive: Boolean(addon?.isActive ?? fallback?.isActive),
+      });
+    });
+
+    return Array.from(bySlug.values());
+  }
+
+  private isDefaultAddonActive(addon: { slug: string; route?: string; permission?: string; userPermission?: string }): boolean {
+    const user = this.authService.getStoredUser();
+    if (addon.permission && addon.userPermission) {
+      return this.hasRawPermission(user, addon.permission) && this.hasRawPermission(user, addon.userPermission);
+    }
+    if (addon.route) {
+      return this.permissionService.canAccessRoute(user, addon.route);
+    }
+    return this.organizationService.isModuleEnabled(addon.slug);
+  }
+
+  private hasRawPermission(user: any, key: string): boolean {
+    if (this.permissionService.isSuperAdminUser(user)) return true;
+
+    const sources = [
+      user?.permissions,
+      user?.permission,
+      user?.allUserPermissions?.permission,
+      user?.rawPermissions,
+      user?.userPermissions,
+    ];
+
+    return sources.some((source) => {
+      if (!source) return false;
+      if (Array.isArray(source)) {
+        return source.some((item) => {
+          if (typeof item === 'string') return item === key;
+          if (item?.key === key) return this.toBoolean(item?.allowed ?? item?.value ?? true);
+          if (item?.name === key) return this.toBoolean(item?.allowed ?? item?.value ?? true);
+          return false;
+        });
+      }
+      if (typeof source === 'object') {
+        return this.toBoolean(source[key]);
+      }
+      return false;
+    });
+  }
+
+  private toBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true' || normalized === 'yes';
+    }
+    return Boolean(value);
   }
 
   setFeature(addon: AddonViewModel): void {
@@ -381,7 +561,7 @@ export class AddOnsComponent implements OnInit {
   }
 
   private toViewModel(raw: any): AddonViewModel {
-    const slug = String(raw?.slug ?? '').trim().toLowerCase();
+    const slug = this.normalizeSlug(raw?.slug ?? raw?.name);
     const palettes: Record<string, Pick<AddonViewModel, 'accent' | 'iconBg' | 'iconColor' | 'category' | 'helper' | 'spotlight' | 'guideLabel'>> = {
       attendance: {
         accent: 'border-cyan-200 bg-cyan-50/60',
@@ -436,6 +616,42 @@ export class AddOnsComponent implements OnInit {
         helper: 'Location-aware attendance',
         spotlight: 'Guide users through geo-based attendance before moving into plan activation.',
         guideLabel: 'See Geo-fence Guide',
+      },
+      'employee-tracking': {
+        accent: 'border-cyan-200 bg-cyan-50/60',
+        iconBg: 'bg-cyan-100',
+        iconColor: 'text-cyan-600',
+        category: 'premium',
+        helper: 'Location tracking',
+        spotlight: 'Manage live employee movement and field attendance after activation.',
+        guideLabel: 'See Tracking Guide',
+      },
+      'shift-planner': {
+        accent: 'border-sky-200 bg-sky-50/60',
+        iconBg: 'bg-sky-100',
+        iconColor: 'text-sky-600',
+        category: 'premium',
+        helper: 'Roster and shift control',
+        spotlight: 'Enable shift planning when managers need roster control inside attendance.',
+        guideLabel: 'See Shift Guide',
+      },
+      'manage-clients': {
+        accent: 'border-amber-200 bg-amber-50/60',
+        iconBg: 'bg-amber-100',
+        iconColor: 'text-amber-600',
+        category: 'ops',
+        helper: 'Client visit masters',
+        spotlight: 'Use this when visit management needs client masters and assignment workflows.',
+        guideLabel: 'See Client Guide',
+      },
+      'track-visit': {
+        accent: 'border-amber-200 bg-amber-50/60',
+        iconBg: 'bg-amber-100',
+        iconColor: 'text-amber-600',
+        category: 'ops',
+        helper: 'Visit tracking',
+        spotlight: 'Let teams track scheduled visits, distance, and field movement.',
+        guideLabel: 'See Visit Guide',
       },
       'face-recognition': {
         accent: 'border-indigo-200 bg-indigo-50/60',
@@ -529,7 +745,7 @@ export class AddOnsComponent implements OnInit {
       slug,
       description: String(raw?.description ?? `Manage ${raw?.name ?? 'add-on'} module with a guided launch and buying flow.`),
       isActive: Boolean(raw?.isActive),
-      route: this.routeFor(slug),
+      route: raw?.route ?? this.routeFor(slug),
       accent: meta.accent,
       iconBg: meta.iconBg,
       iconColor: meta.iconColor,
@@ -543,21 +759,46 @@ export class AddOnsComponent implements OnInit {
   private routeFor(slug: string): string | null {
     const routes: Record<string, string> = {
       analytics: '/reports',
+      reports: '/reports',
+      reports_analytics: '/reports',
       payroll: '/payroll',
-      geofence: '/admin/geofence',
+      payroll_management: '/payroll',
+      geofence: '/attendance?view=geofence',
+      'employee-tracking': '/attendance?view=tracking',
+      'shift-planner': '/attendance?view=shift-planner',
+      'manage-clients': '/visit-management',
+      'track-visit': '/visit-management',
       'face-recognition': '/face-registration',
       face_recognition: '/face-registration',
       'visitor-management': '/visit-management',
       visitor_management: '/visit-management',
       visitormanagement: '/visit-management',
       attendance: '/attendance',
+      attendance_management: '/attendance',
+      attendancemanagement: '/attendance',
       leaves: '/leaves',
       leave: '/leaves',
+      leave_management: '/leaves',
+      leaves_management: '/leaves',
+      leavemanagement: '/leaves',
       projects: '/projects',
+      project_management: '/projects',
       expenses: '/expenses',
+      expense_management: '/expenses',
       timesheets: '/timesheets',
+      timesheet: '/timesheets',
+      timesheet_management: '/timesheets',
     };
 
     return routes[slug] ?? '/add-ons';
+  }
+
+  private normalizeSlug(value: unknown): string {
+    return String(value ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }

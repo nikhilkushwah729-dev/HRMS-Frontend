@@ -30,44 +30,73 @@ export class AccessContextService {
     if (!activeModules.length) {
       return true;
     }
-    return [slug, ...aliases].some((candidate) => activeModules.includes(candidate));
+    return [slug, ...aliases].some((candidate) => this.organizationService.isModuleEnabled(candidate));
   }
 
   buildAccessUser(user: User | null | undefined): AccessUser | null {
     if (!user) return null;
 
-    const role = typeof user.role === 'string' ? user.role : user.role?.name || 'employee';
+    const role = this.permissionService.getRoleKey(user);
+    const roleScope = this.permissionService.getAccessScope(user);
+    const organizationId = user.organizationId ?? user.orgId ?? undefined;
+    const employeeId = user.employeeId ?? user.id ?? undefined;
+    const reportingManagerId = user.reportingManagerId ?? user.managerId ?? undefined;
+    const subordinateIds = Array.isArray(user.subordinateIds) ? user.subordinateIds : [];
 
     return {
       ...user,
       role,
+      roleScope,
+      organizationId,
+      employeeId,
+      reportingManagerId,
+      subordinateIds,
       permissions: {
-        'dashboard.view': this.canAccessRoute(user, '/dashboard'),
-        'profile.view': this.canAccessRoute(user, '/profile'),
-        'billing.view': this.canAccessRoute(user, '/billing'),
-        'attendance.view': this.canAccessRoute(user, '/attendance'),
-        'leave.apply': this.canAccessRoute(user, '/leaves'),
-        'leave.view': this.canAccessRoute(user, '/leaves'),
-        'payroll.view': this.canAccessRoute(user, '/payroll'),
-        'timesheets.view': this.canAccessRoute(user, '/timesheets'),
-        'expenses.view': this.canAccessRoute(user, '/expenses'),
-        'projects.view': this.canAccessRoute(user, '/projects'),
-        'reports.view': this.canAccessRoute(user, '/reports'),
-        'employees.view': this.canAccessRoute(user, '/employees'),
-        'employees.invite': this.canAccessRoute(user, '/employees/invitations'),
-        'visitorManagement.view': this.canAccessRoute(user, '/visit-management'),
-        'settings.view': this.canAccessRoute(user, '/settings') || this.canAccessRoute(user, '/admin/settings'),
-        'addons.view': this.canAccessRoute(user, '/add-ons'),
-        'audit.view': this.canAccessRoute(user, '/admin/audit'),
-        'announcements.view': this.canAccessRoute(user, '/admin/announcements'),
-        'roles.view': this.canAccessRoute(user, '/admin/roles'),
-        'documents.view': this.canAccessRoute(user, '/admin/documents'),
-        'geofence.view': this.canAccessRoute(user, '/admin/geofence'),
-        'attendance.team.view': this.canAccessRoute(user, '/admin/team-attendance'),
-        'attendance.regularization.view': this.canAccessRoute(user, '/admin/regularization'),
-        'notifications.view': this.canAccessRoute(user, '/dashboard'),
-        'search.employees': this.canAccessRoute(user, '/employees'),
-        'search.projects': this.canAccessRoute(user, '/projects'),
+        'dashboard.view': this.permissionService.hasPermission(user, 'dashboard.view'),
+        'profile.view': this.permissionService.hasPermission(user, 'profile.view'),
+        'billing.view': this.permissionService.hasPermission(user, 'billing.view'),
+        'attendance.view': this.permissionService.hasPermission(user, 'attendance.view'),
+        'attendance.read': this.permissionService.hasPermission(user, 'attendance.read'),
+        'attendance.team.view': this.permissionService.hasPermission(user, 'attendance.team.view'),
+        'attendance.regularization.view': this.permissionService.hasPermission(user, 'attendance.regularization.view'),
+        'attendance.approve': this.permissionService.hasPermission(user, 'attendance.approve'),
+        'leave.view': this.permissionService.hasPermission(user, 'leave.view'),
+        'leave.read': this.permissionService.hasPermission(user, 'leave.read'),
+        'leave.apply': this.permissionService.hasPermission(user, 'leave.apply'),
+        'leave.create': this.permissionService.hasPermission(user, 'leave.create'),
+        'leave.approve': this.permissionService.hasPermission(user, 'leave.approve'),
+        'leave.balance.view': this.permissionService.hasPermission(user, 'leave.balance.view'),
+        'leave.shortDay.view': this.permissionService.hasPermission(user, 'leave.shortDay.view'),
+        'leave.timeOff.view': this.permissionService.hasPermission(user, 'leave.timeOff.view'),
+        'leave.compOff.view': this.permissionService.hasPermission(user, 'leave.compOff.view'),
+        'wfh.approve': this.permissionService.hasPermission(user, 'wfh.approve'),
+        'payroll.view': this.permissionService.hasPermission(user, 'payroll.view'),
+        'payroll.read': this.permissionService.hasPermission(user, 'payroll.read'),
+        'timesheets.view': this.permissionService.hasPermission(user, 'timesheets.view'),
+        'expenses.view': this.permissionService.hasPermission(user, 'expenses.view'),
+        'projects.view': this.permissionService.hasPermission(user, 'projects.view'),
+        'reports.view': this.permissionService.hasPermission(user, 'reports.view'),
+        'reports.read': this.permissionService.hasPermission(user, 'reports.read'),
+        'employees.view': this.permissionService.hasPermission(user, 'employees.view'),
+        'employee.read': this.permissionService.hasPermission(user, 'employee.read'),
+        'employee.create': this.permissionService.hasPermission(user, 'employee.create'),
+        'employee.update': this.permissionService.hasPermission(user, 'employee.update'),
+        'employee.delete': this.permissionService.hasPermission(user, 'employee.delete'),
+        'employees.invite': this.permissionService.hasPermission(user, 'employees.invite'),
+        'visitorManagement.view': this.permissionService.hasPermission(user, 'visitorManagement.view'),
+        'settings.view': this.permissionService.hasPermission(user, 'settings.view'),
+        'settings.manage': this.permissionService.hasPermission(user, 'settings.manage'),
+        'addons.view': this.permissionService.hasPermission(user, 'addons.view'),
+        'audit.view': this.permissionService.hasPermission(user, 'audit.view'),
+        'announcements.view': this.permissionService.hasPermission(user, 'announcements.view'),
+        'roles.view': this.permissionService.hasPermission(user, 'roles.view'),
+        'roles.assign': this.permissionService.hasPermission(user, 'roles.assign'),
+        'roles.manage': this.permissionService.hasPermission(user, 'roles.manage'),
+        'documents.view': this.permissionService.hasPermission(user, 'documents.view'),
+        'geofence.view': this.permissionService.hasPermission(user, 'geofence.view'),
+        'notifications.view': this.permissionService.hasPermission(user, 'notifications.view'),
+        'search.employees': this.permissionService.hasPermission(user, 'search.employees'),
+        'search.projects': this.permissionService.hasPermission(user, 'search.projects'),
       },
       addons: {
         attendance: this.hasAddon('attendance') || this.canAccessRoute(user, '/attendance'),
@@ -93,6 +122,14 @@ export class AccessContextService {
         paySlip: user.paySlip ?? 0,
         salarySlip: user.salarySlip ?? 0,
         shiftChangePerm: this.normalizeBoolean(user.shiftChangePerm) ? 1 : 0,
+        profileType: (user as any).profileType ?? 0,
+        hrSts: (user as any).hrSts ?? 0,
+        setupConfig: (user as any).setupConfig ?? 0,
+        esslSetupConfig: (user as any).esslSetupConfig ?? 0,
+        biometricMachinePermission: (user as any).biometricMachinePermission ?? 0,
+        addonDeviceVerification: (user as any).addonDeviceVerification ?? 0,
+        visitorManagementAddOn: (user as any).visitorManagementAddOn ?? 0,
+        settingPerm: (user as any).settingPerm ?? 0,
       },
     };
   }

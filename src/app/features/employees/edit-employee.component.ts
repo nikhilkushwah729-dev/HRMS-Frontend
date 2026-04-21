@@ -417,7 +417,7 @@ export class EditEmployeeComponent implements OnInit {
     { label: 'Employee', value: 5 },
     { label: 'Manager', value: 4 },
     { label: 'HR Manager', value: 3 },
-    { label: 'Administrator', value: 2 },
+    { label: 'Organization Admin', value: 2 },
   ];
   statusOptions: SelectOption[] = [
     { label: 'Active', value: 'active' },

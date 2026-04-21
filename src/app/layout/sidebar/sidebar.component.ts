@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Router, RouterModule } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { selectUser } from '../../core/state/auth/auth.selectors';
 import { LayoutService } from '../../core/services/layout.service';
@@ -28,7 +28,7 @@ import { LanguageService } from '../../core/services/language.service';
   template: `
     <div
       *ngIf="layoutService.sidebarOpen()"
-      (click)="layoutService.toggleSidebar()"
+      (click)="layoutService.closeSidebar()"
       class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
     ></div>
 
@@ -180,7 +180,7 @@ import { LanguageService } from '../../core/services/language.service';
             type="button"
             class="app-nav-section-trigger group"
             (click)="toggleSection('main')"
-            [attr.aria-expanded]="isSectionExpanded('main') | json"
+            [attr.aria-expanded]="isSectionExpanded('main')"
             aria-label="Toggle Self Service section"
           >
             <div class="flex items-center gap-3">
@@ -207,9 +207,12 @@ import { LanguageService } from '../../core/services/language.service';
               </svg>
             </div>
           </button>
-          @if (isSectionExpanded('main')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of selfServiceLinks(); track link.route) {
+          <div
+            class="app-nav-section-shell"
+            [class.app-nav-section-shell-open]="isSectionExpanded('main')"
+          >
+            <div class="app-nav-section-content space-y-0.5">
+              @for (link of selfServiceLinks(); track link.id + link.route) {
                 @if (link.isLocked) {
                   <button
                     type="button"
@@ -230,9 +233,10 @@ import { LanguageService } from '../../core/services/language.service';
                   </button>
                 } @else {
                   <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
+                    [routerLink]="routePath(link.route)"
+                    [queryParams]="routeQueryParams(link.route)"
+                    [class.app-nav-link-active]="isRouteActive(link.route)"
+                    (click)="onNavLinkClick('main')"
                     class="app-nav-link group justify-between"
                   >
                     <span class="flex items-center gap-3 min-w-0">
@@ -249,19 +253,172 @@ import { LanguageService } from '../../core/services/language.service';
                     </span>
                   </a>
                 }
+              } @empty {
+                <div class="app-nav-empty">No menu items available</div>
               }
             </div>
-          }
+          </div>
         </div>
 
-        @if (hasPeopleSection()) {
+        <!-- Attendance Module -->
+        <div>
+          <button
+            type="button"
+            class="app-nav-section-trigger group"
+            (click)="toggleSection('attendance')"
+            [attr.aria-expanded]="isSectionExpanded('attendance')"
+            aria-label="Toggle Attendance section"
+          >
+            <div class="flex items-center gap-3">
+              <span class="app-nav-section-title">{{ attendanceSectionLabel() }}</span>
+              <span
+                class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-[8px] font-black text-cyan-300 border border-cyan-500/20 uppercase tracking-tighter"
+                >Module</span
+              >
+            </div>
+            <div
+              class="app-nav-section-chevron transition-transform duration-300 opacity-30 group-hover:opacity-100"
+              [class.rotate-180]="isSectionExpanded('attendance')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
+          </button>
+          <div
+            class="app-nav-section-shell"
+            [class.app-nav-section-shell-open]="isSectionExpanded('attendance')"
+          >
+            <div class="app-nav-section-content space-y-0.5">
+              @for (link of attendanceLinks(); track link.id + link.route) {
+                @if (link.isLocked) {
+                  <button
+                    type="button"
+                    (click)="openLockedModule(link)"
+                    class="app-nav-link group w-full justify-between"
+                  >
+                    <span class="flex items-center gap-3 min-w-0">
+                      <div class="app-nav-icon">
+                        <span [innerHTML]="resolveIcon(link.icon)"></span>
+                      </div>
+                      <span class="truncate">{{ link.label }}</span>
+                    </span>
+                    <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
+                      {{ t('common.locked') }}
+                    </span>
+                  </button>
+                } @else {
+                  <a
+                    [routerLink]="routePath(link.route)"
+                    [queryParams]="routeQueryParams(link.route)"
+                    [class.app-nav-link-active]="isRouteActive(link.route)"
+                    (click)="onNavLinkClick('attendance')"
+                    class="app-nav-link group min-w-0"
+                  >
+                    <div class="app-nav-icon">
+                      <span [innerHTML]="resolveIcon(link.icon)"></span>
+                    </div>
+                    <span class="truncate">{{ link.label }}</span>
+                  </a>
+                }
+              } @empty {
+                <div class="app-nav-empty">No attendance menu available</div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Leave Module -->
+        <div>
+          <button
+            type="button"
+            class="app-nav-section-trigger group"
+            (click)="toggleSection('leave')"
+            [attr.aria-expanded]="isSectionExpanded('leave')"
+            aria-label="Toggle Leave section"
+          >
+            <div class="flex items-center gap-3">
+              <span class="app-nav-section-title">{{ leaveSectionLabel() }}</span>
+              <span
+                class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-[8px] font-black text-emerald-300 border border-emerald-500/20 uppercase tracking-tighter"
+                >Module</span
+              >
+            </div>
+            <div
+              class="app-nav-section-chevron transition-transform duration-300 opacity-30 group-hover:opacity-100"
+              [class.rotate-180]="isSectionExpanded('leave')"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </div>
+          </button>
+          <div
+            class="app-nav-section-shell"
+            [class.app-nav-section-shell-open]="isSectionExpanded('leave')"
+          >
+            <div class="app-nav-section-content space-y-0.5">
+              @for (link of leaveLinks(); track link.id + link.route) {
+                @if (link.isLocked) {
+                  <button
+                    type="button"
+                    (click)="openLockedModule(link)"
+                    class="app-nav-link group w-full justify-between"
+                  >
+                    <span class="flex items-center gap-3 min-w-0">
+                      <div class="app-nav-icon">
+                        <span [innerHTML]="resolveIcon(link.icon)"></span>
+                      </div>
+                      <span class="truncate">{{ link.label }}</span>
+                    </span>
+                    <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
+                      {{ t('common.locked') }}
+                    </span>
+                  </button>
+                } @else {
+                  <a
+                    [routerLink]="routePath(link.route)"
+                    [queryParams]="routeQueryParams(link.route)"
+                    [class.app-nav-link-active]="isRouteActive(link.route)"
+                    (click)="onNavLinkClick('leave')"
+                    class="app-nav-link group min-w-0"
+                  >
+                    <div class="app-nav-icon">
+                      <span [innerHTML]="resolveIcon(link.icon)"></span>
+                    </div>
+                    <span class="truncate">{{ link.label }}</span>
+                  </a>
+                }
+              } @empty {
+                <div class="app-nav-empty">No leave menu available</div>
+              }
+            </div>
+          </div>
+        </div>
+
         <!-- People Management -->
         <div>
           <button
             type="button"
             class="app-nav-section-trigger group"
             (click)="toggleSection('employees')"
-            [attr.aria-expanded]="isSectionExpanded('employees') | json"
+            [attr.aria-expanded]="isSectionExpanded('employees')"
             aria-label="Toggle People section"
           >
             <div class="flex items-center gap-3">
@@ -288,9 +445,12 @@ import { LanguageService } from '../../core/services/language.service';
               </svg>
             </div>
           </button>
-          @if (isSectionExpanded('employees')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of peopleLinks(); track link.route) {
+          <div
+            class="app-nav-section-shell"
+            [class.app-nav-section-shell-open]="isSectionExpanded('employees')"
+          >
+            <div class="app-nav-section-content space-y-0.5">
+              @for (link of peopleLinks(); track link.id + link.route) {
                 @if (link.isLocked) {
                   <button
                     type="button"
@@ -309,9 +469,10 @@ import { LanguageService } from '../../core/services/language.service';
                   </button>
                 } @else {
                   <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
+                    [routerLink]="routePath(link.route)"
+                    [queryParams]="routeQueryParams(link.route)"
+                    [class.app-nav-link-active]="isRouteActive(link.route)"
+                    (click)="onNavLinkClick('employees')"
                     class="app-nav-link group min-w-0"
                   >
                     <div class="app-nav-icon">
@@ -320,20 +481,20 @@ import { LanguageService } from '../../core/services/language.service';
                     <span class="truncate">{{ link.label }}</span>
                   </a>
                 }
+              } @empty {
+                <div class="app-nav-empty">No employee menu available</div>
               }
             </div>
-          }
+          </div>
         </div>
-        }
 
-        @if (hasSystemSection()) {
         <!-- System & Config -->
         <div>
           <button
             type="button"
             class="app-nav-section-trigger group"
             (click)="toggleSection('security')"
-            [attr.aria-expanded]="isSectionExpanded('security') | json"
+            [attr.aria-expanded]="isSectionExpanded('security')"
             aria-label="Toggle System section"
           >
             <div class="flex items-center gap-3">
@@ -360,9 +521,12 @@ import { LanguageService } from '../../core/services/language.service';
               </svg>
             </div>
           </button>
-          @if (isSectionExpanded('security')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of systemLinks(); track link.route) {
+          <div
+            class="app-nav-section-shell"
+            [class.app-nav-section-shell-open]="isSectionExpanded('security')"
+          >
+            <div class="app-nav-section-content space-y-0.5">
+              @for (link of systemLinks(); track link.id + link.route) {
                 @if (link.isLocked) {
                   <button
                     type="button"
@@ -381,9 +545,10 @@ import { LanguageService } from '../../core/services/language.service';
                   </button>
                 } @else {
                   <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
+                    [routerLink]="routePath(link.route)"
+                    [queryParams]="routeQueryParams(link.route)"
+                    [class.app-nav-link-active]="isRouteActive(link.route)"
+                    (click)="onNavLinkClick('security')"
                     class="app-nav-link group min-w-0"
                   >
                     <div class="app-nav-icon">
@@ -392,11 +557,12 @@ import { LanguageService } from '../../core/services/language.service';
                     <span class="truncate">{{ link.label }}</span>
                   </a>
                 }
+              } @empty {
+                <div class="app-nav-empty">No settings menu available</div>
               }
             </div>
-          }
+          </div>
         </div>
-        }
         <!-- ← closes the System section wrapper <div> -->
       </nav>
 
@@ -516,18 +682,52 @@ import { LanguageService } from '../../core/services/language.service';
         background: rgba(255, 255, 255, 0.02);
       }
 
-      .app-nav-section-content {
-        overflow: hidden;
-        transition:
-          max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 0.2s ease;
-        max-height: 0;
-        opacity: 0;
+      .app-nav-section-trigger[aria-expanded='true'] {
+        background: rgba(255, 255, 255, 0.035);
       }
 
-      .app-nav-section-content[open] {
-        max-height: 640px;
+      .app-nav-section-shell {
+        display: grid;
+        grid-template-rows: 0fr;
+        margin-top: 0;
+        opacity: 0;
+        transition:
+          grid-template-rows 260ms cubic-bezier(0.22, 1, 0.36, 1),
+          opacity 180ms ease,
+          margin-top 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .app-nav-section-shell-open {
+        grid-template-rows: 1fr;
+        margin-top: 6px;
         opacity: 1;
+      }
+
+      .app-nav-section-content {
+        min-height: 0;
+        overflow: hidden;
+        transform: translateY(-4px);
+        transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      .app-nav-section-shell-open .app-nav-section-content {
+        transform: translateY(0);
+      }
+
+      .app-nav-section-shell:not(.app-nav-section-shell-open) .app-nav-link,
+      .app-nav-section-shell:not(.app-nav-section-shell-open) .app-nav-empty {
+        pointer-events: none;
+      }
+
+      .app-nav-empty {
+        margin: 6px 4px 2px;
+        border: 1px dashed rgba(148, 163, 184, 0.18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.02);
+        padding: 9px 10px;
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
       }
 
       .app-nav-section-title {
@@ -553,6 +753,15 @@ import { LanguageService } from '../../core/services/language.service';
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: rgba(100, 116, 139, 1);
       }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-nav-section-shell,
+        .app-nav-section-content,
+        .app-nav-link,
+        .app-nav-section-chevron {
+          transition-duration: 1ms !important;
+        }
+      }
     `,
   ],
 })
@@ -572,14 +781,7 @@ export class SidebarComponent implements OnInit {
   orgLogo = signal<string>('');
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   hasOrgLogo = computed(() => Boolean(this.orgLogo().trim()));
-  private expandedSections = signal<Record<string, boolean>>({
-    main: true,
-    employees: false,
-    attendance: true,
-    payroll: false,
-    productivity: false,
-    security: false,
-  });
+  private expandedSection = signal<string>('main');
   public isUserLoading = signal(true);
   public isOrgLoading = signal(true);
   private store = inject(Store);
@@ -606,6 +808,13 @@ export class SidebarComponent implements OnInit {
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
     });
+
+    this.syncExpandedSectionWithRoute();
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.syncExpandedSectionWithRoute();
+      }
+    });
   }
 
   private setOrganizationBranding(org: Organization | null | undefined) {
@@ -629,15 +838,39 @@ export class SidebarComponent implements OnInit {
     this.orgLogo.set(resolvedLogo);
   }
 
+  private expandOnly(section: string) {
+    this.expandedSection.set(section);
+  }
+
+  private syncExpandedSectionWithRoute() {
+    this.expandOnly(this.sectionForCurrentRoute());
+  }
+
+  private sectionForCurrentRoute(): string {
+    const path = this.routePath(this.router.url || '/dashboard');
+
+    if (path.startsWith('/employees')) return 'employees';
+    if (path.startsWith('/attendance') || path.startsWith('/face-registration')) return 'attendance';
+    if (path.startsWith('/leaves')) return 'leave';
+    if (
+      path.startsWith('/settings') ||
+      path.startsWith('/admin') ||
+      path.startsWith('/add-ons') ||
+      path.startsWith('/visit-management') ||
+      path.startsWith('/reports')
+    ) {
+      return 'security';
+    }
+
+    return 'main';
+  }
+
   toggleSection(section: string) {
-    this.expandedSections.update((state) => ({
-      ...state,
-      [section]: !state[section],
-    }));
+    this.expandOnly(section);
   }
 
   isSectionExpanded(section: string): boolean {
-    return this.expandedSections()[section] ?? false;
+    return this.expandedSection() === section;
   }
 
   isModuleActive(slug: string): boolean {
@@ -736,6 +969,14 @@ export class SidebarComponent implements OnInit {
     return this.peopleLinks().length > 0;
   }
 
+  hasAttendanceSection(): boolean {
+    return this.attendanceLinks().length > 0;
+  }
+
+  hasLeaveSection(): boolean {
+    return this.leaveLinks().length > 0;
+  }
+
   hasSystemSection(): boolean {
     return this.systemLinks().length > 0;
   }
@@ -745,15 +986,19 @@ export class SidebarComponent implements OnInit {
   }
 
   peopleSectionLabel(): string {
-    if (this.isAdminRole()) return this.t('sidebar.organization');
-    if (this.isManagerRole()) return this.t('sidebar.team');
-    return this.t('sidebar.people');
+    return 'Employees';
+  }
+
+  attendanceSectionLabel(): string {
+    return 'Attendance';
+  }
+
+  leaveSectionLabel(): string {
+    return 'Leave';
   }
 
   systemSectionLabel(): string {
-    if (this.isAdminRole()) return this.t('common.settings');
-    if (this.roleId() === 4) return this.t('common.teamControls');
-    return this.t('sidebar.configuration');
+    return 'Settings & More';
   }
 
   userName(): string {
@@ -773,8 +1018,10 @@ export class SidebarComponent implements OnInit {
     switch (roleName) {
       case 'Super Admin':
         return this.t('sidebar.superAdmin');
-      case 'Admin':
+      case 'Organization Admin':
         return this.t('sidebar.admin');
+      case 'HR Manager':
+        return 'HR Manager';
       case 'Manager':
         return this.t('sidebar.manager');
       case 'Employee':
@@ -820,6 +1067,44 @@ export class SidebarComponent implements OnInit {
     }
   }
 
+  onNavLinkClick(section: string) {
+    this.expandOnly(section);
+    this.closeOnMobile();
+  }
+
+  routePath(route: string): string {
+    return route.split('?')[0] || route;
+  }
+
+  routeQueryParams(route: string): Record<string, string> | null {
+    const query = route.split('?')[1];
+    if (!query) return null;
+    const params: Record<string, string> = {};
+    new URLSearchParams(query).forEach((value, key) => {
+      params[key] = value;
+    });
+    return params;
+  }
+
+  isRouteActive(route: string): boolean {
+    const current = this.router.url || '';
+    const currentPath = this.routePath(current);
+    const targetPath = this.routePath(route);
+    if (currentPath !== targetPath) {
+      return false;
+    }
+
+    const currentQuery = this.routeQueryParams(current) ?? {};
+    const targetQuery = this.routeQueryParams(route) ?? {};
+    const targetQueryKeys = Object.keys(targetQuery);
+
+    if (targetQueryKeys.length === 0) {
+      return Object.keys(currentQuery).length === 0;
+    }
+
+    return targetQueryKeys.every((key) => currentQuery[key] === targetQuery[key]);
+  }
+
   resolveIcon(icon?: string): SafeHtml {
     const icons: Record<string, string> = {
       dashboard:
@@ -850,6 +1135,10 @@ export class SidebarComponent implements OnInit {
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6" /><path d="M23 11h-6" /></svg>',
       regularization:
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>',
+      geofence:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>',
+      'shift-planner':
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v4" /><path d="M16 2v4" /><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M3 10h18" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /></svg>',
       documents:
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 13h6" /><path d="M9 17h6" /></svg>',
       roles:
@@ -876,26 +1165,40 @@ export class SidebarComponent implements OnInit {
   }
 
   selfServiceLinks(): WorkspaceModuleView[] {
-    return this.workspaceCatalog.getSectionViews(
-      this.currentUser() ?? this.authService.getStoredUser(),
-      'self-service',
-      { includeLocked: true },
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return ['dashboard', 'self-service'].flatMap((sectionId) =>
+      this.workspaceCatalog.getSectionViews(user, sectionId, { includeLocked: true }),
     );
   }
 
   peopleLinks(): WorkspaceModuleView[] {
     return this.workspaceCatalog.getSectionViews(
       this.currentUser() ?? this.authService.getStoredUser(),
-      'people',
+      'employees',
+      { includeLocked: true },
+    );
+  }
+
+  attendanceLinks(): WorkspaceModuleView[] {
+    return this.workspaceCatalog.getSectionViews(
+      this.currentUser() ?? this.authService.getStoredUser(),
+      'attendance',
+      { includeLocked: true },
+    );
+  }
+
+  leaveLinks(): WorkspaceModuleView[] {
+    return this.workspaceCatalog.getSectionViews(
+      this.currentUser() ?? this.authService.getStoredUser(),
+      'leave',
       { includeLocked: true },
     );
   }
 
   systemLinks(): WorkspaceModuleView[] {
-    return this.workspaceCatalog.getSectionViews(
-      this.currentUser() ?? this.authService.getStoredUser(),
-      'system',
-      { includeLocked: true },
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return ['settings', 'addons', 'visitormanagement', 'organization', 'roles-permissions'].flatMap((sectionId) =>
+      this.workspaceCatalog.getSectionViews(user, sectionId, { includeLocked: true }),
     );
   }
 }

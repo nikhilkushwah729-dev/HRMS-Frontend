@@ -87,18 +87,58 @@ export class OrganizationService {
      * Check if a module is active (Helper)
      */
     isModuleEnabled(slug: string): boolean {
-        const normalized = (slug || '').trim().toLowerCase();
-        const aliases: Record<string, string[]> = {
-            leave: ['leave', 'leaves'],
-            leaves: ['leave', 'leaves'],
-            visitormanagement: ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            'visitor-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            'visit-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            face_recognition: ['face_recognition', 'face-recognition'],
-            'face-recognition': ['face_recognition', 'face-recognition']
+        const normalized = this.normalizeModuleSlug(slug);
+        if (!normalized) return true;
+        return this._activeModules().some((item) => item === normalized);
+    }
+
+    private normalizeModuleSlug(value: unknown): string {
+        const normalized = String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        const aliases: Record<string, string> = {
+            attendance: 'attendance',
+            attendance_management: 'attendance',
+            attendance_module: 'attendance',
+            leave: 'leave',
+            leaves: 'leave',
+            leave_management: 'leave',
+            leaves_management: 'leave',
+            payroll: 'payroll',
+            payroll_management: 'payroll',
+            visitormanagement: 'visitorManagement',
+            visitor_management: 'visitorManagement',
+            visit_management: 'visitorManagement',
+            projects: 'projects',
+            project: 'projects',
+            project_management: 'projects',
+            expenses: 'expenses',
+            expense: 'expenses',
+            expense_management: 'expenses',
+            timesheets: 'timesheets',
+            timesheet: 'timesheets',
+            reports: 'reports',
+            report: 'reports',
+            reports_analytics: 'reports',
+            analytics: 'reports',
+            settings: 'settings',
+            geofence: 'geofence',
+            geo_fence: 'geofence',
+            regularization: 'regularization',
+            documents: 'documents',
+            document: 'documents',
+            roles: 'roles',
+            role: 'roles',
+            audit: 'audit',
+            audit_logs: 'audit',
+            face_recognition: 'face-recognition',
         };
-        const accepted = aliases[normalized] ?? [normalized];
-        return this._activeModules().some((item) => accepted.includes(item));
+
+        return aliases[normalized] ?? normalized;
     }
 
     private resolveAssetUrl(value: any): string | null | undefined {
@@ -503,10 +543,11 @@ export class OrganizationService {
     getAddons(): Observable<any[]> {
         return this.http.get<any>(`${this.apiUrl}/addons`).pipe(
             map(res => {
-                const addons = res.data;
+                const addons = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 const activeSlugs = addons
                     .filter((a: any) => a.isActive)
-                    .map((a: any) => String(a.slug ?? '').trim().toLowerCase());
+                    .map((a: any) => this.normalizeModuleSlug(a.slug ?? a.name))
+                    .filter(Boolean);
                 this._activeModules.set(activeSlugs);
                 return addons;
             })

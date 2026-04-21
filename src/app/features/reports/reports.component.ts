@@ -7,6 +7,9 @@ import { OrganizationService, Department } from '../../core/services/organizatio
 import { ToastService } from '../../core/services/toast.service';
 import { UiSelectAdvancedComponent } from '../../core/components/ui/ui-select-advanced.component';
 import { computed } from '@angular/core';
+import { PermissionService } from '../../core/services/permission.service';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-reports',
@@ -93,14 +96,14 @@ import { computed } from '@angular/core';
 
           <!-- Export Buttons -->
           <div class="flex flex-wrap gap-2 lg:ml-auto">
-            <button (click)="exportExcel()" [disabled]="loading()"
+            <button *ngIf="canExportReports()" (click)="exportExcel()" [disabled]="loading()"
                     class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-all disabled:opacity-50 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/>
               </svg>
               Excel
             </button>
-            <button (click)="exportPdf()" [disabled]="loading()"
+            <button *ngIf="canExportReports()" (click)="exportPdf()" [disabled]="loading()"
                     class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-all disabled:opacity-50 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4 4 4-4"/>
@@ -342,6 +345,8 @@ export class ReportsComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private permissionService = inject(PermissionService);
+  private authService = inject(AuthService);
 
   // State signals
   loading = signal<boolean>(false);
@@ -353,6 +358,7 @@ export class ReportsComponent implements OnInit {
   lateReports = signal<LateArrivalReport[]>([]);
   absentReports = signal<AbsentReport[]>([]);
   departments = signal<Department[]>([]);
+  currentUser = signal<User | null>(null);
 
   departmentOptions = computed(() => {
     return [
@@ -371,6 +377,7 @@ export class ReportsComponent implements OnInit {
   monthYear = this.getCurrentMonthYear();
 
   ngOnInit() {
+    this.currentUser.set(this.authService.getStoredUser());
     this.loadDepartments();
     this.route.queryParamMap.subscribe((params) => {
       const preset = params.get('preset') as 'daily' | 'monthly' | 'late' | 'absent' | null;
@@ -531,6 +538,15 @@ export class ReportsComponent implements OnInit {
         this.toastService.error('Failed to export PDF file');
       }
     });
+  }
+
+  canExportReports(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.hasPermission(user, 'reports.export') ||
+      this.permissionService.hasPermission(user, 'reports.read') ||
+      this.permissionService.hasPermission(user, 'reports.view')
+    );
   }
 
   // Helper methods

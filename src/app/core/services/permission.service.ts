@@ -1,9 +1,58 @@
 import { Injectable, inject } from '@angular/core';
 import { User } from '../models/auth.model';
-import { Observable, catchError, firstValueFrom, of, shareReplay, tap } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  firstValueFrom,
+  of,
+  shareReplay,
+  tap,
+} from 'rxjs';
 import { RoleService, Permission as RolePermission } from './role.service';
 
 export type PermissionKey =
+  | 'organization.create'
+  | 'organization.read'
+  | 'organization.update'
+  | 'organization.delete'
+  | 'organization.analytics'
+  | 'admin.create'
+  | 'admin.read'
+  | 'admin.update'
+  | 'admin.delete'
+  | 'roles.assign'
+  | 'roles.manage'
+  | 'hierarchy.read'
+  | 'hierarchy.update'
+  | 'employee.read'
+  | 'employee.create'
+  | 'employee.update'
+  | 'employee.delete'
+  | 'attendance.read'
+  | 'attendance.create'
+  | 'attendance.update'
+  | 'attendance.approve'
+  | 'attendance.team.view'
+  | 'attendance.regularization.view'
+  | 'leave.read'
+  | 'leave.view'
+  | 'leave.apply'
+  | 'leave.create'
+  | 'leave.update'
+  | 'leave.approve'
+  | 'leave.reject'
+  | 'leave.process'
+  | 'wfh.read'
+  | 'wfh.create'
+  | 'wfh.approve'
+  | 'payroll.read'
+  | 'payroll.create'
+  | 'payroll.update'
+  | 'payroll.approve'
+  | 'reports.read'
+  | 'reports.export'
+  | 'settings.read'
+  | 'settings.manage'
   | 'dashboard.view'
   | 'profile.view'
   | 'billing.view'
@@ -49,9 +98,17 @@ export type PermissionKey =
   | 'reports_export'
   | 'settings_read'
   | 'settings_update'
-  | 'rbac_manage';
+  | 'rbac_manage'
+  | string;
 
 type RoleId = 1 | 2 | 3 | 4 | 5;
+export type RbacRoleKey =
+  | 'super_admin'
+  | 'organization_admin'
+  | 'hr_manager'
+  | 'manager'
+  | 'employee';
+export type RbacScope = 'global' | 'organization' | 'team' | 'self';
 
 type AccessSnapshot = {
   modules: Set<string>;
@@ -72,6 +129,7 @@ export class PermissionService {
     recruitment: ['employees'],
     payroll: ['payroll'],
     attendance: ['attendance'],
+    attendance_management: ['attendance'],
     settings: ['settings', 'roles'],
   };
 
@@ -143,9 +201,11 @@ export class PermissionService {
       'leaves.view',
       'leaves.approve',
       'reports.view',
+      'payroll.view',
       'projects.view',
       'expenses.view',
       'timesheets.view',
+      'settings.view',
       'notifications.view',
       'search.employees',
       'search.projects',
@@ -199,6 +259,7 @@ export class PermissionService {
     '/dashboard': { modules: ['dashboard'] },
     '/self-service': { modules: ['dashboard'] },
     '/ess': { modules: ['dashboard'] },
+    '/my-team': { modules: ['dashboard'] },
     '/billing': { keys: ['billing.view'] },
     '/add-ons': { modules: ['dashboard'], keys: ['addons.view'] },
     '/add-ons/guide': { modules: ['dashboard'], keys: ['addons.view'] },
@@ -213,7 +274,10 @@ export class PermissionService {
     '/leaves': { modules: ['leaves'] },
     '/reports': { modules: ['reports'] },
     '/reports-center': { modules: ['reports'] },
-    '/visit-management': { modules: ['visitorManagement'], keys: ['visitorManagement.view'] },
+    '/visit-management': {
+      modules: ['visitorManagement'],
+      keys: ['visitorManagement.view'],
+    },
     '/payroll': { modules: ['payroll'] },
     '/projects': { modules: ['projects'] },
     '/expenses': { modules: ['expenses'] },
@@ -233,6 +297,124 @@ export class PermissionService {
     PermissionKey,
     { modules?: string[]; keys?: string[] }
   > = {
+    'organization.create': { keys: ['rbac_manage'] },
+    'organization.read': { keys: ['settings.view'] },
+    'organization.update': { keys: ['settings.view', 'settings_update'] },
+    'organization.delete': { keys: ['rbac_manage'] },
+    'organization.analytics': {
+      modules: ['reports', 'audit'],
+      keys: ['reports.view', 'audit.view'],
+    },
+    'admin.create': { keys: ['rbac_manage', 'roles.assign'] },
+    'admin.read': { keys: ['roles.view'] },
+    'admin.update': { keys: ['rbac_manage', 'roles.manage'] },
+    'admin.delete': { keys: ['rbac_manage', 'roles.manage'] },
+    'roles.assign': { modules: ['roles'], keys: ['roles.view', 'rbac_manage'] },
+    'roles.manage': { modules: ['roles'], keys: ['roles.view', 'rbac_manage'] },
+    'hierarchy.read': {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read'],
+    },
+    'hierarchy.update': {
+      modules: ['employees', 'roles'],
+      keys: ['employee.update', 'rbac_manage'],
+    },
+    'employee.read': {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee_read'],
+    },
+    'employee.create': { modules: ['employees'], keys: ['employee_create'] },
+    'employee.update': { modules: ['employees'], keys: ['employee_update'] },
+    'employee.delete': { modules: ['employees'], keys: ['employee_delete'] },
+    'attendance.read': {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance_read'],
+    },
+    'attendance.create': {
+      modules: ['attendance'],
+      keys: ['attendance_create'],
+    },
+    'attendance.update': {
+      modules: ['attendance'],
+      keys: ['attendance_update'],
+    },
+    'attendance.approve': {
+      modules: ['attendance'],
+      keys: ['attendance_approve'],
+    },
+    'attendance.team.view': {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance_approve'],
+    },
+    'attendance.regularization.view': {
+      modules: ['regularization', 'attendance'],
+      keys: ['regularization.view', 'attendance_approve'],
+    },
+    'leave.read': {
+      modules: ['leaves'],
+      keys: ['leave_read', 'leaves.view', 'leave.view'],
+    },
+    'leave.view': {
+      modules: ['leaves'],
+      keys: ['leaves.view', 'leave_read', 'leave.read'],
+    },
+    'leave.apply': {
+      modules: ['leaves'],
+      keys: ['leave_create', 'leave.create'],
+    },
+    'leave.create': {
+      modules: ['leaves'],
+      keys: ['leave_create', 'leave.apply'],
+    },
+    'leave.update': { modules: ['leaves'], keys: ['leave_update'] },
+    'leave.approve': {
+      modules: ['leaves'],
+      keys: ['leave_approve', 'leaves.approve'],
+    },
+    'leave.reject': { modules: ['leaves'], keys: ['leave_reject'] },
+    'leave.process': { modules: ['leaves'], keys: ['leave_process'] },
+    'leave.balance.view': {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view', 'leave_read'],
+    },
+    'leave.shortDay.view': {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view', 'leave_read', 'leave_create'],
+    },
+    'leave.timeOff.view': {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view', 'leave_read', 'leave_create'],
+    },
+    'leave.compOff.view': {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view', 'leave_read'],
+    },
+    'wfh.read': { modules: ['attendance', 'leaves'] },
+    'wfh.create': { modules: ['attendance', 'leaves'] },
+    'wfh.approve': {
+      modules: ['attendance', 'leaves'],
+      keys: ['leave.approve', 'attendance.approve'],
+    },
+    'payroll.read': {
+      modules: ['payroll'],
+      keys: ['payroll.view', 'payroll_read'],
+    },
+    'payroll.create': { modules: ['payroll'], keys: ['payroll_process'] },
+    'payroll.update': { modules: ['payroll'], keys: ['payroll_process'] },
+    'payroll.approve': { modules: ['payroll'], keys: ['payroll_process'] },
+    'reports.read': {
+      modules: ['reports'],
+      keys: ['reports.view', 'reports_read'],
+    },
+    'reports.export': { modules: ['reports'], keys: ['reports_export'] },
+    'settings.read': {
+      modules: ['settings'],
+      keys: ['settings.view', 'settings_read'],
+    },
+    'settings.manage': {
+      modules: ['settings'],
+      keys: ['settings_update', 'settings.view'],
+    },
     'dashboard.view': { modules: ['dashboard'] },
     'profile.view': { modules: ['dashboard', 'profile'] },
     'billing.view': { modules: ['dashboard'] },
@@ -258,27 +440,303 @@ export class PermissionService {
     'documents.view': { modules: ['documents'] },
     'roles.view': { modules: ['roles'] },
     'announcements.view': { modules: ['settings'] },
-    employee_read: { modules: ['employees'], keys: ['employees.view'] },
-    employee_create: { modules: ['employees'] },
-    employee_update: { modules: ['employees'] },
-    employee_delete: { modules: ['employees'] },
-    attendance_read: { modules: ['attendance'], keys: ['attendance.view'] },
-    attendance_create: { modules: ['attendance'] },
-    attendance_update: { modules: ['attendance'] },
-    attendance_approve: { modules: ['attendance'] },
-    leave_read: { modules: ['leaves'], keys: ['leaves.view'] },
-    leave_create: { modules: ['leaves'] },
-    leave_update: { modules: ['leaves'] },
-    leave_approve: { modules: ['leaves'], keys: ['leaves.approve'] },
-    leave_reject: { modules: ['leaves'] },
-    leave_process: { modules: ['leaves'] },
-    payroll_read: { modules: ['payroll'], keys: ['payroll.view'] },
-    payroll_process: { modules: ['payroll'] },
-    reports_read: { modules: ['reports'], keys: ['reports.view'] },
-    reports_export: { modules: ['reports'] },
-    settings_read: { modules: ['settings'], keys: ['settings.view'] },
-    settings_update: { modules: ['settings'] },
-    rbac_manage: { modules: ['roles'], keys: ['roles.view'] },
+    employee_read: {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read'],
+    },
+    employee_create: { modules: ['employees'], keys: ['employee.create'] },
+    employee_update: { modules: ['employees'], keys: ['employee.update'] },
+    employee_delete: { modules: ['employees'], keys: ['employee.delete'] },
+    attendance_read: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read'],
+    },
+    attendance_create: { modules: ['attendance'], keys: ['attendance.create'] },
+    attendance_update: { modules: ['attendance'], keys: ['attendance.update'] },
+    attendance_approve: {
+      modules: ['attendance'],
+      keys: ['attendance.approve', 'attendance.team.view'],
+    },
+    leave_read: {
+      modules: ['leaves'],
+      keys: ['leaves.view', 'leave.read', 'leave.view'],
+    },
+    leave_create: {
+      modules: ['leaves'],
+      keys: ['leave.create', 'leave.apply'],
+    },
+    leave_update: { modules: ['leaves'], keys: ['leave.update'] },
+    leave_approve: {
+      modules: ['leaves'],
+      keys: ['leaves.approve', 'leave.approve'],
+    },
+    leave_reject: { modules: ['leaves'], keys: ['leave.reject'] },
+    leave_process: { modules: ['leaves'], keys: ['leave.process'] },
+    payroll_read: {
+      modules: ['payroll'],
+      keys: ['payroll.view', 'payroll.read'],
+    },
+    payroll_process: {
+      modules: ['payroll'],
+      keys: ['payroll.update', 'payroll.approve'],
+    },
+    reports_read: {
+      modules: ['reports'],
+      keys: ['reports.view', 'reports.read'],
+    },
+    reports_export: { modules: ['reports'], keys: ['reports.export'] },
+    settings_read: {
+      modules: ['settings'],
+      keys: ['settings.view', 'settings.read'],
+    },
+    settings_update: { modules: ['settings'], keys: ['settings.manage'] },
+    rbac_manage: {
+      modules: ['roles'],
+      keys: ['roles.view', 'roles.assign', 'roles.manage'],
+    },
+    module5_view: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read', 'attendance_read'],
+    },
+    module5_UserView: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read', 'attendance_read'],
+    },
+    module445_view: {
+      modules: ['attendance', 'regularization'],
+      keys: [
+        'attendance.view',
+        'attendance.regularization.view',
+        'regularization.view',
+      ],
+    },
+    module445_UserView: {
+      modules: ['attendance', 'regularization'],
+      keys: [
+        'attendance.view',
+        'attendance.regularization.view',
+        'regularization.view',
+      ],
+    },
+    module488_view: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read'],
+    },
+    module488_UserView: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read'],
+    },
+    module508_view: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.read'],
+    },
+    module443_view: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.team.view'],
+    },
+    module443_UserView: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.team.view'],
+    },
+    module518_view: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.team.view'],
+    },
+    module518_UserView: {
+      modules: ['attendance'],
+      keys: ['attendance.view', 'attendance.team.view'],
+    },
+    module305_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module517_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module519_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module516_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module516_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module318_view: {
+      modules: ['attendance', 'geofence'],
+      keys: ['attendance.view', 'geofence.view'],
+    },
+    module318_UserView: {
+      modules: ['attendance', 'geofence'],
+      keys: ['attendance.view', 'geofence.view'],
+    },
+    module42_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module42_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module502_view: {
+      modules: ['attendance', 'regularization'],
+      keys: ['attendance.view', 'regularization.view'],
+    },
+    module502_UserView: {
+      modules: ['attendance', 'regularization'],
+      keys: ['attendance.view', 'regularization.view'],
+    },
+    module507_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module507_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module511_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module511_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module512_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module512_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module546_view: { modules: ['attendance'], keys: ['attendance.view'] },
+    module546_UserView: { modules: ['attendance'], keys: ['attendance.view'] },
+    module18_view: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.read', 'leaves.view', 'leave_read'],
+    },
+    module18_UserView: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.read', 'leaves.view', 'leave_read'],
+    },
+    module18_add: {
+      modules: ['leaves'],
+      keys: ['leave.apply', 'leave.create', 'leave_create'],
+    },
+    module18_edit: {
+      modules: ['leaves'],
+      keys: ['leave.update', 'leave_update'],
+    },
+    module160_view: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.read', 'leaves.view'],
+    },
+    module160_UserView: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.read', 'leaves.view'],
+    },
+    module540_view: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.apply', 'leaves.view'],
+    },
+    module540_UserView: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.apply', 'leaves.view'],
+    },
+    module540_add: {
+      modules: ['leaves'],
+      keys: ['leave.create', 'leave.apply', 'leave_create'],
+    },
+    module540_edit: {
+      modules: ['leaves'],
+      keys: ['leave.update', 'leave_update'],
+    },
+    module179_view: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.apply', 'leaves.view'],
+    },
+    module179_UserView: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leave.apply', 'leaves.view'],
+    },
+    module179_add: {
+      modules: ['leaves'],
+      keys: ['leave.create', 'leave.apply', 'leave_create'],
+    },
+    module179_edit: {
+      modules: ['leaves'],
+      keys: ['leave.update', 'leave_update'],
+    },
+    module450_view: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view'],
+    },
+    module450_UserView: {
+      modules: ['leaves'],
+      keys: ['leave.view', 'leaves.view'],
+    },
+    module450_add: {
+      modules: ['leaves'],
+      keys: ['leave.create', 'leave.apply'],
+    },
+    module450_edit: { modules: ['leaves'], keys: ['leave.update'] },
+    module31_view: {
+      modules: ['leaves', 'settings'],
+      keys: ['leave.view', 'settings.view'],
+    },
+    module31_UserView: {
+      modules: ['leaves', 'settings'],
+      keys: ['leave.view', 'settings.view'],
+    },
+    module458_view: {
+      modules: ['payroll'],
+      keys: ['payroll.view', 'payroll.read', 'payroll_read'],
+    },
+    module491_view: {
+      modules: ['payroll'],
+      keys: ['payroll.view', 'payroll.read', 'payroll_read'],
+    },
+    module500_view: {
+      modules: ['payroll'],
+      keys: ['payroll.view', 'payroll.read', 'payroll_read'],
+    },
+    module40_view: { modules: ['payroll'], keys: ['payroll.view'] },
+    module40_UserView: { modules: ['payroll'], keys: ['payroll.view'] },
+    module292_view: { modules: ['payroll'], keys: ['payroll.view'] },
+    module292_UserView: { modules: ['payroll'], keys: ['payroll.view'] },
+    module449_view: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module449_UserView: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module170_view: { modules: ['expenses'], keys: ['expenses.view'] },
+    module170_UserView: { modules: ['expenses'], keys: ['expenses.view'] },
+    module454_view: { modules: ['payroll'], keys: ['payroll.view'] },
+    module454_UserView: { modules: ['payroll'], keys: ['payroll.view'] },
+    module481_view: { modules: ['payroll'], keys: ['payroll.view'] },
+    module481_UserView: { modules: ['payroll'], keys: ['payroll.view'] },
+    module486_view: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module486_UserView: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module490_view: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module490_UserView: {
+      modules: ['payroll', 'expenses'],
+      keys: ['payroll.view', 'expenses.view'],
+    },
+    module187_view: { modules: ['timesheets'], keys: ['timesheets.view'] },
+    module68_view: {
+      modules: ['reports'],
+      keys: ['reports.view', 'reports.read', 'reports_read'],
+    },
+    module19_view: {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read', 'employee_read'],
+    },
+    module19_add: {
+      modules: ['employees'],
+      keys: ['employees.invite', 'employee.create', 'employee_create'],
+    },
+    module64_view: {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read'],
+    },
+    module114_UserView: {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read'],
+    },
+    module115_UserView: {
+      modules: ['employees'],
+      keys: ['employees.view', 'employee.read'],
+    },
+    module10_view: {
+      modules: ['documents', 'employees'],
+      keys: ['documents.view', 'employee.read'],
+    },
+    module139_view: { modules: ['documents'], keys: ['documents.view'] },
+    module146_view: { modules: ['documents'], keys: ['documents.view'] },
+    module54_view: { modules: ['settings'], keys: ['settings.view'] },
+    module49_view: {
+      modules: ['settings'],
+      keys: ['announcements.view', 'settings.view'],
+    },
+    module71_view: { modules: ['settings'], keys: ['settings.view'] },
   };
 
   private readonly moduleFallbackRoutes: Record<string, string[]> = {
@@ -311,13 +769,35 @@ export class PermissionService {
 
   private resolveRoleId(user: User | null | undefined): RoleId | null {
     const rawRole = (user as any)?.roleId;
-    if (rawRole === null || rawRole === undefined) return null;
+    if (rawRole === null || rawRole === undefined) {
+      return this.inferRoleIdFromName(user);
+    }
     const parsed = Number(rawRole);
-    if (!Number.isFinite(parsed)) return null;
-    return parsed as RoleId;
+    if (!Number.isFinite(parsed)) return this.inferRoleIdFromName(user);
+    if (parsed >= 1 && parsed <= 5) return parsed as RoleId;
+    return this.inferRoleIdFromName(user);
+  }
+
+  private inferRoleIdFromName(user: User | null | undefined): RoleId | null {
+    const roleName = this.normalizeRoleName(this.resolveRoleName(user));
+    if (roleName.includes('super admin')) return 1;
+    if (
+      roleName.includes('organization admin') ||
+      roleName.includes('org admin') ||
+      roleName === 'admin'
+    ) {
+      return 2;
+    }
+    if (roleName.includes('hr manager') || roleName.includes('hr admin'))
+      return 3;
+    if (roleName.includes('manager')) return 4;
+    if (roleName.includes('employee') || roleName.includes('staff')) return 5;
+    return null;
   }
 
   private resolveRoleName(user: User | null | undefined): string {
+    if (!user) return '';
+
     const rawRole =
       typeof user?.role === 'string'
         ? user.role
@@ -325,7 +805,12 @@ export class PermissionService {
 
     if (rawRole) return rawRole;
 
-    const roleId = this.resolveRoleId(user);
+    // Direct property check instead of calling resolveRoleId to avoid infinite recursion
+    const rawRoleId = (user as any)?.roleId;
+    const roleId = Number.isFinite(Number(rawRoleId))
+      ? (Number(rawRoleId) as RoleId)
+      : null;
+
     const roleNames: Record<RoleId, string> = {
       1: 'Super Admin',
       2: 'Admin',
@@ -337,7 +822,8 @@ export class PermissionService {
     return roleId ? roleNames[roleId] : 'User';
   }
 
-  private normalizeRoleName(value: string): string {
+  private normalizeRoleName(value: string | null | undefined): string {
+    if (!value) return '';
     return value.trim().toLowerCase().replace(/\s+/g, ' ');
   }
 
@@ -350,25 +836,71 @@ export class PermissionService {
 
     if (normalizedRole.includes('super admin')) return 'Super Admin';
     if (
-      normalizedRole.includes('hr manager') ||
-      normalizedRole.includes('hr admin') ||
-      normalizedRole === 'admin' ||
-      normalizedRole.includes('(admin)')
+      normalizedRole.includes('organization admin') ||
+      normalizedRole.includes('org admin')
     ) {
-      return 'Admin';
+      return 'Organization Admin';
+    }
+    if (
+      normalizedRole.includes('hr manager') ||
+      normalizedRole.includes('hr admin')
+    ) {
+      return 'HR Manager';
+    }
+    if (normalizedRole === 'admin' || normalizedRole.includes('(admin)')) {
+      return 'Organization Admin';
     }
     if (normalizedRole.includes('manager')) return 'Manager';
-    if (normalizedRole.includes('staff') || normalizedRole.includes('employee')) {
+    if (
+      normalizedRole.includes('staff') ||
+      normalizedRole.includes('employee')
+    ) {
       return 'Employee';
     }
 
     const roleId = this.resolveRoleId(user);
     if (roleId === 1) return 'Super Admin';
-    if (roleId === 2 || roleId === 3) return 'Admin';
+    if (roleId === 2) return 'Organization Admin';
+    if (roleId === 3) return 'HR Manager';
     if (roleId === 4) return 'Manager';
     if (roleId === 5) return 'Employee';
 
     return this.resolveRoleName(user);
+  }
+
+  getRoleKey(user: User | null | undefined): RbacRoleKey {
+    const normalizedRole = this.getNormalizedRoleName(user);
+
+    if (normalizedRole.includes('super admin')) return 'super_admin';
+    if (
+      normalizedRole.includes('hr admin') ||
+      normalizedRole.includes('hr manager')
+    ) {
+      return 'hr_manager';
+    }
+    if (
+      normalizedRole === 'admin' ||
+      normalizedRole.includes('organization admin') ||
+      normalizedRole.includes('org admin') ||
+      normalizedRole.includes('(admin)')
+    ) {
+      return 'organization_admin';
+    }
+    if (normalizedRole.includes('manager')) return 'manager';
+
+    const roleId = this.resolveRoleId(user);
+    if (roleId === 1) return 'super_admin';
+    if (roleId === 2) return 'organization_admin';
+    if (roleId === 3) return 'hr_manager';
+    if (roleId === 4) return 'manager';
+    return 'employee';
+  }
+
+  getAccessScope(user: User | null | undefined): RbacScope {
+    if (this.isSuperAdminUser(user)) return 'global';
+    if (this.isAdminUser(user)) return 'organization';
+    if (this.isManagerialUser(user)) return 'team';
+    return 'self';
   }
 
   private normalizeRoute(route: string): string {
@@ -377,7 +909,9 @@ export class PermissionService {
     return cleanRoute === '/' ? '/' : cleanRoute.replace(/\/+$/, '');
   }
 
-  private getRouteRequirement(route: string): { modules?: string[]; keys?: PermissionKey[] } | null {
+  private getRouteRequirement(
+    route: string,
+  ): { modules?: string[]; keys?: PermissionKey[] } | null {
     const normalizedRoute = this.normalizeRoute(route);
     if (!normalizedRoute) return null;
 
@@ -386,7 +920,11 @@ export class PermissionService {
     }
 
     const matchingRoute = Object.keys(this.routeRequirements)
-      .filter((candidate) => normalizedRoute === candidate || normalizedRoute.startsWith(`${candidate}/`))
+      .filter(
+        (candidate) =>
+          normalizedRoute === candidate ||
+          normalizedRoute.startsWith(`${candidate}/`),
+      )
       .sort((a, b) => b.length - a.length)[0];
 
     return matchingRoute ? this.routeRequirements[matchingRoute] : null;
@@ -411,7 +949,7 @@ export class PermissionService {
           this.setLoadedPermissions([]);
           return of([] as RolePermission[]);
         }),
-        shareReplay(1)
+        shareReplay(1),
       );
     }
 
@@ -427,7 +965,9 @@ export class PermissionService {
   ): AccessSnapshot {
     const catalog = this.getPermissionCatalogSync();
     const permissionById = new Map<number, RolePermission>();
-    catalog.forEach((permission) => permissionById.set(permission.id, permission));
+    catalog.forEach((permission) =>
+      permissionById.set(permission.id, permission),
+    );
 
     const modules = new Set<string>();
     const keys = new Set<string>();
@@ -441,7 +981,7 @@ export class PermissionService {
 
       const moduleName = String(permission.module ?? '').trim();
       const permissionKey = String(
-        permission.permissionKey ?? permission.slug ?? ''
+        permission.permissionKey ?? permission.slug ?? '',
       ).trim();
 
       if (moduleName) {
@@ -452,8 +992,7 @@ export class PermissionService {
       }
       if (permissionKey) {
         keys.add(permissionKey);
-        const alias =
-          this.permissionAliases[permissionKey as PermissionKey];
+        const alias = this.permissionAliases[permissionKey as PermissionKey];
         alias?.keys?.forEach((key) => keys.add(key));
         alias?.modules?.forEach((module) => modules.add(module));
       }
@@ -512,7 +1051,10 @@ export class PermissionService {
     return { modules, keys };
   }
 
-  private cacheAccessForRole(roleId: number, rolePermissions: Array<number | string>) {
+  private cacheAccessForRole(
+    roleId: number,
+    rolePermissions: Array<number | string>,
+  ) {
     this.roleAccessCache.set(roleId, this.buildAccessSnapshot(rolePermissions));
   }
 
@@ -520,7 +1062,10 @@ export class PermissionService {
     const roleId = this.resolveRoleId(user);
     if (!roleId) return;
 
-    if (this.roleAccessCache.has(roleId) || this.roleAccessLoading.has(roleId)) {
+    if (
+      this.roleAccessCache.has(roleId) ||
+      this.roleAccessLoading.has(roleId)
+    ) {
       return;
     }
 
@@ -554,7 +1099,9 @@ export class PermissionService {
       });
   }
 
-  private getAccessSnapshot(user: User | null | undefined): AccessSnapshot | null {
+  private getAccessSnapshot(
+    user: User | null | undefined,
+  ): AccessSnapshot | null {
     const roleId = this.resolveRoleId(user);
     const explicitPermissions = Array.isArray((user as any)?.permissions)
       ? ((user as any).permissions as string[])
@@ -581,31 +1128,85 @@ export class PermissionService {
   isAdminUser(user: User | null | undefined): boolean {
     if (this.isSuperAdminUser(user)) return true;
 
-    const roleName = this.getNormalizedRoleName(user);
     const roleId = this.resolveRoleId(user);
     const scope = user?.accessScope;
 
     return (
       roleId === 2 ||
-      roleId === 3 ||
       scope === 'all' ||
-      roleName === 'admin' ||
-      roleName.includes('hr admin') ||
-      roleName.includes('hr manager') ||
-      roleName.includes('(admin)')
+      this.getRoleKey(user) === 'organization_admin'
     );
+  }
+
+  isOrganizationAdminUser(user: User | null | undefined): boolean {
+    return this.getRoleKey(user) === 'organization_admin';
+  }
+
+  isHrManagerUser(user: User | null | undefined): boolean {
+    return this.getRoleKey(user) === 'hr_manager';
   }
 
   isManagerialUser(user: User | null | undefined): boolean {
     if (this.isAdminUser(user)) return true;
 
-    const roleName = this.getNormalizedRoleName(user);
-    const roleId = this.resolveRoleId(user);
-    return roleId === 4 || roleName.includes('manager');
+    return this.isHrManagerUser(user) || this.getRoleKey(user) === 'manager';
   }
 
   isEmployeeUser(user: User | null | undefined): boolean {
     return !this.isManagerialUser(user);
+  }
+
+  canAccessOrganization(
+    user: User | null | undefined,
+    organizationId: number | null | undefined,
+  ): boolean {
+    if (this.isSuperAdminUser(user)) return true;
+    if (organizationId == null) return false;
+
+    const userOrganizationId = Number(user?.organizationId ?? user?.orgId ?? 0);
+    return (
+      userOrganizationId > 0 && userOrganizationId === Number(organizationId)
+    );
+  }
+
+  canAccessEmployee(
+    user: User | null | undefined,
+    targetEmployeeId: number | null | undefined,
+    organizationId?: number | null,
+  ): boolean {
+    if (this.isSuperAdminUser(user)) return true;
+    if (targetEmployeeId == null) return false;
+    if (
+      organizationId != null &&
+      !this.canAccessOrganization(user, organizationId)
+    )
+      return false;
+
+    if (this.isOrganizationAdminUser(user)) return true;
+
+    const currentEmployeeId = Number(user?.employeeId ?? user?.id ?? 0);
+    if (currentEmployeeId && currentEmployeeId === Number(targetEmployeeId))
+      return true;
+
+    const subordinateIds = Array.isArray(user?.subordinateIds)
+      ? user!.subordinateIds!
+      : [];
+    return subordinateIds.map(Number).includes(Number(targetEmployeeId));
+  }
+
+  canApproveForEmployee(
+    user: User | null | undefined,
+    targetEmployeeId: number | null | undefined,
+    permission: Extract<
+      PermissionKey,
+      'leave.approve' | 'attendance.approve' | 'wfh.approve'
+    >,
+    organizationId?: number | null,
+  ): boolean {
+    return (
+      this.hasPermission(user, permission) &&
+      this.canAccessEmployee(user, targetEmployeeId, organizationId)
+    );
   }
 
   hasPermission(
@@ -614,37 +1215,85 @@ export class PermissionService {
   ): boolean {
     if (this.isSuperAdminUser(user)) return true;
 
+    if (permission === 'billing.view' && this.isOrganizationAdminUser(user)) {
+      return true;
+    }
+
+    if (
+      (permission === 'attendance.view' || permission === 'attendance.read') &&
+      Number((user as any)?.shiftChangePerm ?? 0) === 1
+    ) {
+      return true;
+    }
+
+    if (
+      permission === 'addons.view' &&
+      Number((user as any)?.profileType ?? 0) !== 0 &&
+      Number((user as any)?.profileType ?? 0) !== 9
+    ) {
+      return true;
+    }
+
+    if (
+      permission === 'visitorManagement.view' &&
+      Number((user as any)?.visitorManagementAddOn ?? 0) === 1
+    ) {
+      return true;
+    }
+
+    if (
+      (permission === 'settings.view' || permission === 'settings.read') &&
+      (Number((user as any)?.settingPerm ?? 0) === 1 ||
+        Number((user as any)?.hrSts ?? 0) === 1 ||
+        Number((user as any)?.profileType ?? 0) === 1)
+    ) {
+      return true;
+    }
+
     const explicitUserPermissions = Array.isArray((user as any)?.permissions)
       ? ((user as any).permissions as string[])
-      : []
-    if (explicitUserPermissions.includes(permission)) return true
+      : [];
+    if (explicitUserPermissions.includes(permission)) return true;
 
     const roleId = this.resolveRoleId(user);
-    if (!roleId) return true;
-
     const cached = this.getAccessSnapshot(user);
     const alias = this.permissionAliases[permission];
 
     if (cached) {
       if (cached.keys.has(permission)) return true;
       if (alias?.keys?.some((key) => cached.keys.has(key))) return true;
-      if (alias?.modules?.some((module) => cached.modules.has(module))) return true;
+      if (alias?.modules?.some((module) => cached.modules.has(module)))
+        return true;
     }
 
+    if (!roleId) return false;
+
     const legacy = this.legacyRolePermissions[roleId];
-    if (!legacy) return true;
-    return legacy.includes(permission);
+    if (!legacy) return false;
+    if (legacy.includes(permission)) return true;
+
+    const legacySnapshot = this.buildLegacyAccessSnapshot(roleId);
+    if (alias?.keys?.some((key) => legacySnapshot.keys.has(key))) return true;
+    if (alias?.modules?.some((module) => legacySnapshot.modules.has(module)))
+      return true;
+
+    return false;
   }
 
   canAccessRoute(user: User | null | undefined, route: string): boolean {
     if (this.isSuperAdminUser(user)) return true;
 
+    if (
+      this.normalizeRoute(route) === '/billing' &&
+      this.isOrganizationAdminUser(user)
+    ) {
+      return true;
+    }
+
     const requirement = this.getRouteRequirement(route);
     if (!requirement) return true;
 
     const roleId = this.resolveRoleId(user);
-    if (!roleId) return true;
-
     const cached = this.getAccessSnapshot(user);
     if (cached) {
       if (requirement.keys?.some((key) => cached.keys.has(key))) return true;
@@ -653,9 +1302,15 @@ export class PermissionService {
       return false;
     }
 
+    if (!roleId) return false;
+
     const legacySnapshot = this.buildLegacyAccessSnapshot(roleId);
-    if (requirement.keys?.some((key) => legacySnapshot.keys.has(key))) return true;
-    if (requirement.modules?.some((module) => legacySnapshot.modules.has(module))) return true;
+    if (requirement.keys?.some((key) => legacySnapshot.keys.has(key)))
+      return true;
+    if (
+      requirement.modules?.some((module) => legacySnapshot.modules.has(module))
+    )
+      return true;
 
     const fallbackKey = requirement.keys?.[0];
     return fallbackKey ? this.hasPermission(user, fallbackKey) : false;
@@ -663,6 +1318,24 @@ export class PermissionService {
 
   canApproveLeaves(user: User | null | undefined): boolean {
     return this.hasPermission(user, 'leaves.approve');
+  }
+
+  canManageEmployees(user: User | null | undefined): boolean {
+    if (this.isAdminUser(user)) return true;
+
+    return (
+      this.hasPermission(user, 'employee_create') ||
+      this.hasPermission(user, 'employee_update') ||
+      this.hasPermission(user, 'employee_delete')
+    );
+  }
+
+  canManageSettings(user: User | null | undefined): boolean {
+    if (this.isAdminUser(user)) return true;
+    return (
+      this.canAccessRoute(user, '/settings') ||
+      this.canAccessRoute(user, '/admin/settings')
+    );
   }
 
   // Get accessible modules based on user permissions
@@ -847,7 +1520,9 @@ export class PermissionService {
       return allModules;
     }
 
-    return allModules.filter((module) => this.canAccessRoute(user, module.route));
+    return allModules.filter((module) =>
+      this.canAccessRoute(user, module.route),
+    );
   }
 
   // Get user role name

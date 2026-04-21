@@ -156,8 +156,10 @@ export const SETTINGS_ROUTES: Routes = [
       },
       {
         path: 'import-wizard',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['importWizard'] }
+        loadComponent: () =>
+          import('./system/import-wizard/import-wizard.component').then(
+            (m) => m.ImportWizardComponent,
+          ),
       }
     ]
   }

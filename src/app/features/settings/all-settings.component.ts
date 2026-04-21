@@ -213,37 +213,34 @@ import { LeaveService } from '../../core/services/leave.service';
         </div>
       </div>
 
-      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
-        <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500">Quick Actions</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-900">Shortcuts for admin work</h2>
+      @if (adminShortcuts().length > 0) {
+        <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+          <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500">Quick Actions</p>
+              <h2 class="mt-2 text-2xl font-black text-slate-900">Shortcuts for admin work</h2>
+            </div>
+            <p class="text-sm font-medium text-slate-500">Fast access for day-to-day configuration tasks.</p>
           </div>
-          <p class="text-sm font-medium text-slate-500">Fast access for day-to-day configuration tasks.</p>
-        </div>
-        
-        <div class="grid gap-4 md:grid-cols-2 lg:gap-5">
-          <a routerLink="approval-flow" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:-translate-y-1 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md sm:p-5">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm transition group-hover:bg-emerald-500 group-hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-            </div>
-            <div class="min-w-0 pt-1">
-              <p class="text-lg font-black text-slate-900">Approval Flow Center</p>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">Review rules and setup nested approval chains across your entire organization.</p>
-            </div>
-          </a>
-
-          <a routerLink="import-wizard" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md sm:p-5">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-500 shadow-sm transition group-hover:bg-indigo-500 group-hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            </div>
-            <div class="min-w-0 pt-1">
-              <p class="text-lg font-black text-slate-900">Import Master Wizard</p>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">Bring external policy references and core framework data directly into the system.</p>
-            </div>
-          </a>
-        </div>
-      </section>
+          
+          <div class="grid gap-4 md:grid-cols-2 lg:gap-5">
+            @for (shortcut of adminShortcuts(); track shortcut.route) {
+              <a [routerLink]="shortcut.route" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:-translate-y-1 hover:shadow-md sm:p-5"
+                 [ngClass]="shortcut.route === '/settings/approval-flow' ? 'hover:border-emerald-200 hover:bg-emerald-50' : 'hover:border-indigo-200 hover:bg-indigo-50'">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm transition"
+                     [ngClass]="shortcut.route === '/settings/approval-flow' ? 'text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white' : 'text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white'">
+                  <svg *ngIf="shortcut.route === '/settings/approval-flow'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                  <svg *ngIf="shortcut.route !== '/settings/approval-flow'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </div>
+                <div class="min-w-0 pt-1">
+                  <p class="text-lg font-black text-slate-900">{{ shortcut.label }}</p>
+                  <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">{{ shortcut.category }}</p>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
     </div>
   `
 })
@@ -383,6 +380,25 @@ export class AllSettingsComponent implements OnInit, OnDestroy {
 
   quickSearchTerms(): string[] {
     return this.quickTerms;
+  }
+
+  adminShortcuts(): Array<{ route: string; label: string; category: string }> {
+    const shortcuts = [
+      {
+        route: '/settings/approval-flow',
+        label: 'Approval Flow Center',
+        category: 'Review rules and setup nested approval chains across your entire organization.',
+      },
+      {
+        route: '/settings/import-wizard',
+        label: 'Import Master Wizard',
+        category: 'Bring external policy references and core framework data directly into the system.',
+      },
+    ];
+
+    return shortcuts.filter((shortcut) =>
+      this.allFlatRoutes.some((route) => route.route === shortcut.route),
+    );
   }
 
   applyQuickSearch(term: string): void {

@@ -96,7 +96,7 @@ import {
                 <select formControlName="target_id" class="app-field">
                   <option [ngValue]="null">Select Role</option>
                   <option [ngValue]="1">Super Admin</option>
-                  <option [ngValue]="2">Admin</option>
+                  <option [ngValue]="2">Organization Admin</option>
                   <option [ngValue]="3">HR Manager</option>
                   <option [ngValue]="4">Manager</option>
                   <option [ngValue]="5">Employee</option>
@@ -429,7 +429,7 @@ export class AnnouncementsComponent implements OnInit {
     if (announcement.target === 'role') {
       const roles: Record<number, string> = {
         1: 'Super Admin',
-        2: 'Admin',
+        2: 'Organization Admin',
         3: 'HR Manager',
         4: 'Manager',
         5: 'Employee',

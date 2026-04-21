@@ -21,6 +21,8 @@ import {
   AnnouncementService,
   type Announcement,
 } from '../../core/services/announcement.service';
+import { TrialBannerComponent } from './trial-banner/trial-banner.component';
+import { SubscriptionService } from '../../core/services/subscription.service';
 
 interface UpcomingHoliday {
   date: string;
@@ -56,9 +58,10 @@ interface ModuleCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TrialBannerComponent],
   template: `
     <div class="dashboard-page">
+      <app-trial-banner></app-trial-banner>
       <section class="hero">
         <div class="hero-copy">
           <p class="hero-eyebrow">{{ greeting() }}</p>
@@ -1509,6 +1512,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private attendanceService = inject(AttendanceService);
   private announcementService = inject(AnnouncementService);
   private languageService = inject(LanguageService);
+  private readonly subscriptionService = inject(SubscriptionService);
 
   currentUser = signal<User | null>(null);
   employees = signal<User[]>([]);
@@ -1570,7 +1574,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         title: 'My Documents',
         description:
           'Access pay slips, offer letters, and important documents.',
-        route: '/documents',
+        route: '/admin/documents',
         tone: 'tone-slate',
       },
       {
@@ -1677,6 +1681,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private clockInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
+    this.subscriptionService.getStatus().subscribe();
     this.currentUser.set(this.authService.getStoredUser());
     this.loadDashboardData();
     this.loadEmployees();
@@ -1926,10 +1931,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.languageService.t(key, params);
   }
 
-  attendanceTime(value?: string | null): string {
-    if (!value) return '--';
-    return new Date(value).toLocaleTimeString('en-US', {
-      hour: 'numeric',
+  attendanceTime(date: any): string {
+    if (!date) return '--:--';
+    return new Date(date).toLocaleTimeString([], {
+      hour: '2-digit',
       minute: '2-digit',
       hour12: true,
     });

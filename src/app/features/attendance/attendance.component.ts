@@ -10,7 +10,7 @@ import {
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, interval, forkJoin, firstValueFrom } from 'rxjs';
 import {
   AttendanceService,
@@ -23,9 +23,12 @@ import { FaceRecognitionService } from '../../core/services/face-recognition.ser
 import { AuthService } from '../../core/services/auth.service';
 import { User } from '../../core/models/auth.model';
 import { ToastService } from '../../core/services/toast.service';
+import { PermissionService } from '../../core/services/permission.service';
+import { OrganizationService } from '../../core/services/organization.service';
 import { GeofenceManagementComponent } from './components/geofence-management.component';
 import { EmployeeTrackingComponent } from './components/employee-tracking.component';
 import { ShiftPlannerComponent } from './components/shift-planner.component';
+import { CustomModalComponent } from '../../core/components/modal/custom-modal.component';
 import {
   UiSelectAdvancedComponent,
   SelectOption,
@@ -42,6 +45,7 @@ import {
     GeofenceManagementComponent,
     EmployeeTrackingComponent,
     ShiftPlannerComponent,
+    CustomModalComponent,
     UiSelectAdvancedComponent,
   ],
   template: `
@@ -70,6 +74,22 @@ import {
               Switch between punch, tracking, geofence, and planner views
               without leaving the module.
             </p>
+          </div>
+          <div class="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              (click)="openAttendanceAddons()"
+              class="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-100"
+            >
+              Attendance Add-ons
+            </button>
+            <button
+              type="button"
+              (click)="openAttendanceUpgrade('attendance')"
+              class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-amber-800 transition hover:border-amber-300 hover:bg-amber-100"
+            >
+              {{ attendanceAddonActive() ? 'Manage Plan' : 'Upgrade' }}
+            </button>
           </div>
           <div
             class="app-chip-switch max-w-full overflow-x-auto no-scrollbar whitespace-nowrap"
@@ -108,6 +128,7 @@ import {
               Statistics
             </button>
             <button
+              *ngIf="canAccessTrackingWorkspace()"
               (click)="setView('tracking')"
               [ngClass]="
                 currentView() === 'tracking'
@@ -119,6 +140,7 @@ import {
               Tracking
             </button>
             <button
+              *ngIf="canAccessGeofenceWorkspace()"
               (click)="setView('geofence')"
               [ngClass]="
                 currentView() === 'geofence'
@@ -130,6 +152,7 @@ import {
               Geofence
             </button>
             <button
+              *ngIf="canAccessShiftPlannerWorkspace()"
               (click)="setView('shift-planner')"
               [ngClass]="
                 currentView() === 'shift-planner'
@@ -197,6 +220,57 @@ import {
         </div>
       </section>
 
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+              Attendance Add-ons
+            </p>
+            <h2 class="mt-1 text-lg font-black text-slate-900">
+              Manage attendance modules like Angular Web
+            </h2>
+            <p class="mt-1 text-sm text-slate-500">
+              Active modules open directly. Suggested modules continue to the upgrade flow with the selected add-on.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="openAttendanceAddons()"
+            class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:bg-white"
+          >
+            View All Add-ons
+          </button>
+        </div>
+
+        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          @for (addon of attendanceAddonCards(); track addon.slug) {
+            <article class="flex min-h-[190px] flex-col rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-sm">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-xl" [ngClass]="addon.tone">
+                  <span class="text-lg font-black">{{ addon.short }}</span>
+                </div>
+                <span
+                  class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
+                  [ngClass]="addon.active ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
+                >
+                  {{ addon.active ? 'Subscribed' : 'Suggested' }}
+                </span>
+              </div>
+              <h3 class="mt-4 text-base font-black text-slate-900">{{ addon.name }}</h3>
+              <p class="mt-2 flex-1 text-sm leading-6 text-slate-500">{{ addon.description }}</p>
+              <button
+                type="button"
+                (click)="addon.active ? openAttendanceAddon(addon) : openAttendanceUpgrade(addon.slug)"
+                class="mt-4 rounded-lg px-4 py-2 text-sm font-black transition"
+                [ngClass]="addon.active ? 'border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50' : 'bg-slate-900 text-white hover:bg-slate-800'"
+              >
+                {{ addon.active ? 'Manage' : 'Upgrade' }}
+              </button>
+            </article>
+          }
+        </div>
+      </section>
+
       <!-- Attendance Suite Shortcuts -->
       <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <button
@@ -221,6 +295,7 @@ import {
         </button>
 
         <button
+          *ngIf="canAccessTrackingWorkspace()"
           type="button"
           (click)="setView('tracking')"
           class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-cyan-300 hover:shadow-md sm:p-5"
@@ -242,6 +317,7 @@ import {
         </button>
 
         <button
+          *ngIf="canAccessGeofenceWorkspace()"
           type="button"
           (click)="setView('geofence')"
           class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-purple-300 hover:shadow-md sm:p-5"
@@ -263,6 +339,7 @@ import {
         </button>
 
         <button
+          *ngIf="canAccessShiftPlannerWorkspace()"
           type="button"
           (click)="setView('shift-planner')"
           class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all"
@@ -284,6 +361,7 @@ import {
         </button>
 
         <a
+          *ngIf="canAccessTeamAttendanceRoute()"
           routerLink="/admin/team-attendance"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
         >
@@ -304,6 +382,7 @@ import {
         </a>
 
         <a
+          *ngIf="canAccessFaceRegistrationRoute()"
           routerLink="/face-registration"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all"
         >
@@ -324,6 +403,7 @@ import {
         </a>
 
         <a
+          *ngIf="canAccessRegularizationRoute()"
           routerLink="/admin/regularization"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-rose-300 transition-all"
         >
@@ -364,6 +444,7 @@ import {
         </a>
 
         <a
+          *ngIf="canAccessIntegrationsRoute()"
           routerLink="/attendance/integrations"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
         >
@@ -680,194 +761,60 @@ import {
               <!-- Camera Mode -->
               <div
                 *ngIf="checkInMode() === 'camera'"
-                class="w-full max-w-[240px]"
+                class="w-full max-w-sm text-center"
               >
-                <div
-                  class="relative aspect-square rounded-md overflow-hidden bg-slate-900 shadow-lg"
-                >
-                  <div
-                    *ngIf="!isCameraReady()"
-                    class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-2"
+                <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-cyan-100 bg-cyan-50">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="42"
+                    height="42"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    class="text-cyan-700"
                   >
-                    <svg
-                      class="animate-spin h-8 w-8"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                      ></circle>
-                      <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      ></path>
-                    </svg>
-                    <span class="text-xs font-medium">Initializing...</span>
-                  </div>
-                  <video
-                    #videoElement
-                    autoplay
-                    playsinline
-                    muted
-                    class="absolute inset-0 w-full h-full object-cover"
-                    [class.opacity-0]="!isCameraReady()"
-                  ></video>
-
-                  <img
-                    *ngIf="capturedPhotoData()"
-                    [src]="capturedPhotoData()"
-                    class="absolute inset-0 w-full h-full object-cover animate-in fade-in"
-                  />
-
-                  <div
-                    *ngIf="processing()"
-                    class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center"
-                  >
-                    <span
-                      class="text-white text-sm font-bold flex items-center gap-2"
-                    >
-                      <svg
-                        class="animate-spin h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          class="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          stroke-width="4"
-                        ></circle>
-                        <path
-                          class="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        ></path>
-                      </svg>
-                      Verifying...
-                    </span>
-                  </div>
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                    <circle cx="12" cy="13" r="3"/>
+                  </svg>
                 </div>
+                <p class="mt-4 text-sm font-bold text-slate-800">
+                  Selfie verification opens in a focused camera modal
+                </p>
+                <p class="mt-2 text-xs leading-5 text-slate-500">
+                  Open the camera only when you are ready to capture and submit attendance.
+                </p>
               </div>
 
               <!-- Face ID Mode -->
               <div
                 *ngIf="checkInMode() === 'face'"
-                class="w-full max-w-[240px]"
+                class="w-full max-w-sm text-center"
               >
-                <div
-                  class="relative aspect-square rounded-md overflow-hidden bg-slate-900 shadow-lg"
-                >
-                  <div
-                    *ngIf="!isCameraReady()"
-                    class="absolute inset-0 flex items-center justify-center text-slate-400"
+                <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-indigo-100 bg-indigo-50">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="42"
+                    height="42"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    class="text-indigo-700"
                   >
-                    <svg
-                      class="animate-spin h-8 w-8"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                      ></circle>
-                      <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      ></path>
-                    </svg>
-                  </div>
-                  <video
-                    #faceVideoElement
-                    autoplay
-                    playsinline
-                    muted
-                    class="absolute inset-0 w-full h-full object-cover"
-                    [class.opacity-0]="!isCameraReady()"
-                  ></video>
-
-                  <div
-                    *ngIf="isCameraReady()"
-                    class="absolute inset-0 flex items-center justify-center pointer-events-none"
-                  >
-                    <div
-                      class="w-3/4 h-3/4 border-2 border-primary-500/60 rounded-full relative"
-                    >
-                      <div
-                        class="absolute inset-0 bg-primary-500/10 rounded-full animate-pulse"
-                      ></div>
-                      <div
-                        class="scan-line absolute left-0 right-0 h-0.5 bg-primary-400"
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="mt-3 flex items-center justify-center gap-3">
-                  <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.5"
-                      fill="none"
-                      stroke="rgba(148,163,184,0.22)"
-                      stroke-width="3"
-                    ></circle>
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.5"
-                      fill="none"
-                      stroke="#4f46e5"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      stroke-dasharray="97.39"
-                      [attr.stroke-dashoffset]="97.39 - (97.39 * getFaceScanProgress() / 100)"
-                    ></circle>
+                    <path d="M7 3H5a2 2 0 0 0-2 2v2"/>
+                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
+                    <path d="M3 17v2a2 2 0 0 0 2 2h2"/>
+                    <path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/>
                   </svg>
-                  <div class="text-left">
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Scan progress
-                    </p>
-                    <p class="text-sm font-bold text-slate-700">
-                      {{ getFaceScanProgress() }}%
-                    </p>
-                  </div>
                 </div>
-                <div
-                  *ngIf="attendanceSuccess()"
-                  class="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  Attendance marked
-                </div>
-                <div class="mt-3 space-y-1 text-center">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Auto face scan
-                  </p>
-                  <p class="text-sm font-medium text-slate-600">
-                    {{ faceScanStatus() || 'Waiting for a clear face in the frame.' }}
-                  </p>
-                  <p class="text-xs text-slate-400">
-                    Attempts: {{ faceScanAttempts() }}/3
-                  </p>
-                </div>
+                <p class="mt-4 text-sm font-bold text-slate-800">
+                  Face attendance runs inside a guided scan modal
+                </p>
+                <p class="mt-2 text-xs leading-5 text-slate-500">
+                  We open the camera only for the scan session, then stop it right after verification.
+                </p>
               </div>
 
               <!-- Biometric Mode -->
@@ -989,10 +936,8 @@ import {
                 <!-- Clock In/Out Buttons -->
                 <button
                   *ngIf="!isClockedIn()"
-                  (click)="handlePunch('in')"
-                  [disabled]="
-                    processing() || (isCameraMode() && !isCameraReady())
-                  "
+                  (click)="onPunchAction('in')"
+                  [disabled]="processing()"
                   class="w-full bg-slate-900 text-white py-4 rounded-md font-black text-lg hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                 >
                   <svg
@@ -1035,10 +980,8 @@ import {
 
                 <button
                   *ngIf="isClockedIn() && !isClockedOut()"
-                  (click)="handlePunch('out')"
-                  [disabled]="
-                    processing() || (isCameraMode() && !isCameraReady())
-                  "
+                  (click)="onPunchAction('out')"
+                  [disabled]="processing()"
                   class="w-full bg-error text-white py-4 rounded-md font-black text-lg hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                 >
                   <svg
@@ -1098,6 +1041,231 @@ import {
             </div>
           </div>
         </div>
+
+        <app-custom-modal
+          [openModal]="showCameraModal()"
+          (closeModal)="closeCameraModal()"
+          [crossButton]="true"
+          maxWidth="max-w-3xl"
+        >
+          <div class="text-left">
+            <div class="flex flex-col gap-2 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                  {{ checkInMode() === 'face' ? 'Face Attendance' : 'Camera Attendance' }}
+                </p>
+                <h2 class="mt-2 text-2xl font-black text-slate-900">
+                  {{ pendingPunchAction() === 'out' ? 'Complete clock out with camera verification' : 'Complete clock in with camera verification' }}
+                </h2>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  {{ checkInMode() === 'face'
+                    ? 'Center your face in the frame, turn slightly, and return to center. Attendance submits automatically after a successful liveness match.'
+                    : 'Frame your face clearly and use the secure camera preview to capture attendance.' }}
+                </p>
+              </div>
+              <span
+                class="inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.16em]"
+                [ngClass]="checkInMode() === 'face' ? 'bg-indigo-100 text-indigo-700' : 'bg-cyan-100 text-cyan-700'"
+              >
+                {{ checkInMode() === 'face' ? 'Liveness Scan' : 'Selfie Capture' }}
+              </span>
+            </div>
+
+            <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+              <div class="rounded-2xl border border-slate-200 bg-slate-950 p-3 shadow-xl">
+                <div class="relative aspect-square overflow-hidden rounded-xl bg-slate-900">
+                  <div
+                    *ngIf="!isCameraReady()"
+                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-300"
+                  >
+                    <svg
+                      class="h-9 w-9 animate-spin"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
+                      ></path>
+                    </svg>
+                    <p class="text-sm font-semibold">
+                      Opening camera...
+                    </p>
+                  </div>
+
+                  <video
+                    #videoElement
+                    *ngIf="checkInMode() === 'camera'"
+                    autoplay
+                    playsinline
+                    muted
+                    class="absolute inset-0 h-full w-full object-cover"
+                    [class.opacity-0]="!isCameraReady()"
+                  ></video>
+
+                  <video
+                    #faceVideoElement
+                    *ngIf="checkInMode() === 'face'"
+                    autoplay
+                    playsinline
+                    muted
+                    class="absolute inset-0 h-full w-full object-cover"
+                    [class.opacity-0]="!isCameraReady()"
+                  ></video>
+
+                  <img
+                    *ngIf="capturedPhotoData()"
+                    [src]="capturedPhotoData()"
+                    class="absolute inset-0 h-full w-full object-cover animate-in fade-in"
+                  />
+
+                  <div
+                    *ngIf="checkInMode() === 'face' && isCameraReady()"
+                    class="pointer-events-none absolute inset-0 flex items-center justify-center"
+                  >
+                    <div class="relative h-3/4 w-3/4 rounded-full border-2 border-primary-500/60">
+                      <div class="absolute inset-0 rounded-full bg-primary-500/10 animate-pulse"></div>
+                      <div class="scan-line absolute left-0 right-0 h-0.5 bg-primary-400"></div>
+                    </div>
+                  </div>
+
+                  <div
+                    *ngIf="processing()"
+                    class="absolute inset-0 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm"
+                  >
+                    <span class="flex items-center gap-2 text-sm font-bold text-white">
+                      <svg
+                        class="h-4 w-4 animate-spin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        ></circle>
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
+                        ></path>
+                      </svg>
+                      {{ checkInMode() === 'face' ? 'Verifying face...' : 'Submitting capture...' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div *ngIf="checkInMode() === 'face'" class="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
+                  <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="rgba(148,163,184,0.22)"
+                      stroke-width="3"
+                    ></circle>
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="#4f46e5"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-dasharray="97.39"
+                      [attr.stroke-dashoffset]="97.39 - (97.39 * getFaceScanProgress() / 100)"
+                    ></circle>
+                  </svg>
+                  <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Scan progress
+                    </p>
+                    <p class="text-lg font-black text-slate-800">
+                      {{ getFaceScanProgress() }}%
+                    </p>
+                  </div>
+                </div>
+
+                <div *ngIf="attendanceSuccess()" class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Attendance marked
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Live status
+                  </p>
+                  <p class="mt-2 text-sm font-medium leading-6 text-slate-600">
+                    {{
+                      checkInMode() === 'face'
+                        ? (faceScanStatus() || 'Waiting for a clear face in the frame.')
+                        : (isCameraReady() ? 'Camera is ready. Use confirm to submit attendance.' : 'Allow camera access to continue.')
+                    }}
+                  </p>
+                  <p *ngIf="checkInMode() === 'face'" class="mt-2 text-xs text-slate-400">
+                    Attempts: {{ faceScanAttempts() }}/3
+                  </p>
+                </div>
+
+                <div class="rounded-xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm leading-6 text-slate-500">
+                  <p class="font-semibold text-slate-700">Before you continue</p>
+                  <p class="mt-2">Keep your face centered, remove strong backlight, and avoid moving the phone during verification.</p>
+                </div>
+
+                <div class="mt-auto flex flex-col gap-3">
+                  <button
+                    *ngIf="checkInMode() === 'camera'"
+                    type="button"
+                    (click)="submitCameraModalPunch()"
+                    [disabled]="processing() || !isCameraReady() || !pendingPunchAction()"
+                    class="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {{ processing() ? 'Submitting...' : (pendingPunchAction() === 'out' ? 'Confirm Clock Out' : 'Confirm Clock In') }}
+                  </button>
+
+                  <button
+                    *ngIf="checkInMode() === 'face'"
+                    type="button"
+                    (click)="restartFaceModalScan()"
+                    [disabled]="processing() || !showCameraModal()"
+                    class="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Restart Face Scan
+                  </button>
+
+                  <button
+                    type="button"
+                    (click)="closeCameraModal()"
+                    class="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <canvas #canvasElement class="hidden"></canvas>
+          </div>
+        </app-custom-modal>
 
         <!-- Right: History & Stats -->
         <div class="lg:col-span-7 flex flex-col gap-4">
@@ -1839,7 +2007,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   private faceRecognitionService = inject(FaceRecognitionService);
   private authService = inject(AuthService);
   private toastService = inject(ToastService);
+  private permissionService = inject(PermissionService);
+  private organizationService = inject(OrganizationService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('faceVideoElement')
@@ -1866,6 +2037,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   faceScanAttempts = signal<number>(0);
   facePresenceStreak = signal<number>(0);
   attendanceSuccess = signal<boolean>(false);
+  showCameraModal = signal<boolean>(false);
+  pendingPunchAction = signal<'in' | 'out' | null>(null);
   showManualModal = signal<boolean>(false);
   submitting = signal<boolean>(false);
 
@@ -1917,6 +2090,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // Polling
   private pollingSubscription?: Subscription;
   private clockSubscription?: Subscription;
+  private routeSubscription?: Subscription;
   private faceScanSubscription?: Subscription;
   private faceAutoTriggered = false;
   private faceScanBusy = false;
@@ -1983,6 +2157,45 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.manualRequests().filter((request) => request.status === 'pending')
         .length,
   );
+  attendanceAddonActive = computed(() => this.organizationService.isModuleEnabled('attendance'));
+  attendanceAddonCards = computed(() => [
+    {
+      name: 'Employee Tracking',
+      slug: 'employee-tracking',
+      short: 'ET',
+      tone: 'bg-cyan-100 text-cyan-700',
+      route: '/attendance?view=tracking',
+      active: this.canAccessTrackingWorkspace(),
+      description: 'Track employee location from phone or desktop and monitor live field movement.',
+    },
+    {
+      name: 'Geo-Fence',
+      slug: 'geofence',
+      short: 'GF',
+      tone: 'bg-violet-100 text-violet-700',
+      route: '/attendance?view=geofence',
+      active: this.canAccessGeofenceWorkspace(),
+      description: 'Enable location boundaries and attendance compliance for allowed zones.',
+    },
+    {
+      name: 'Shift Planner',
+      slug: 'shift-planner',
+      short: 'SP',
+      tone: 'bg-emerald-100 text-emerald-700',
+      route: '/attendance?view=shift-planner',
+      active: this.canAccessShiftPlannerWorkspace(),
+      description: 'Plan shifts, rosters, and scheduling visibility for managers.',
+    },
+    {
+      name: 'Face Recognition',
+      slug: 'face-recognition',
+      short: 'FR',
+      tone: 'bg-indigo-100 text-indigo-700',
+      route: '/face-registration',
+      active: this.canAccessFaceRegistrationRoute(),
+      description: 'Add face-based attendance authentication and employee identity verification.',
+    },
+  ]);
   viewMeta = computed(() => {
     const currentView = this.currentView();
     const meta: Record<
@@ -2026,7 +2239,14 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentUser = this.authService.getStoredUser();
+    this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
+      const view = params.get('view');
+      if (this.isAttendanceView(view)) {
+        this.setView(view);
+      }
+    });
     void this.faceRecognitionService.primeFaceEngine();
+    this.organizationService.getAddons().subscribe({ error: () => {} });
     this.startClock();
     this.loadInitialData();
     this.startPolling();
@@ -2035,6 +2255,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.stopPolling();
     this.stopClock();
+    this.routeSubscription?.unsubscribe();
     this.stopFaceAutoScan();
     this.stopCamera();
   }
@@ -2242,6 +2463,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       | 'geofence'
       | 'shift-planner',
   ) {
+    if (view === 'tracking' && !this.canAccessTrackingWorkspace()) return;
+    if (view === 'geofence' && !this.canAccessGeofenceWorkspace()) return;
+    if (view === 'shift-planner' && !this.canAccessShiftPlannerWorkspace()) return;
     this.currentView.set(view);
     if (view === 'stats') {
       this.loadStatsForPeriod(this.statsPeriod());
@@ -2251,9 +2475,131 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     }
   }
 
+  private isAttendanceView(
+    view: string | null,
+  ): view is
+    | 'punch'
+    | 'calendar'
+    | 'stats'
+    | 'tracking'
+    | 'geofence'
+    | 'shift-planner' {
+    return (
+      view === 'punch' ||
+      view === 'calendar' ||
+      view === 'stats' ||
+      view === 'tracking' ||
+      view === 'geofence' ||
+      view === 'shift-planner'
+    );
+  }
+
   setStatsPeriod(period: 'week' | 'month' | 'year') {
     this.statsPeriod.set(period);
     this.loadStatsForPeriod(period);
+  }
+
+  canAccessTrackingWorkspace(): boolean {
+    return this.hasRawPermission('module518_view') && this.hasRawPermission('module518_UserView');
+  }
+
+  canAccessGeofenceWorkspace(): boolean {
+    return this.hasRawPermission('module318_view') && this.hasRawPermission('module318_UserView');
+  }
+
+  canAccessShiftPlannerWorkspace(): boolean {
+    return (
+      (this.hasRawPermission('module443_view') && this.hasRawPermission('module443_UserView')) ||
+      (this.hasRawPermission('module508_view') && this.hasRawPermission('module508_UserView'))
+    );
+  }
+
+  private hasRawPermission(key: string): boolean {
+    const user: any = this.currentUser || this.authService.getStoredUser();
+    if (this.permissionService.isSuperAdminUser(user)) return true;
+
+    const sources = [
+      user?.permissions,
+      user?.permission,
+      user?.allUserPermissions?.permission,
+      user?.rawPermissions,
+      user?.userPermissions,
+    ];
+
+    return sources.some((source) => {
+      if (!source) return false;
+      if (Array.isArray(source)) {
+        return source.some((item) => {
+          if (typeof item === 'string') return item === key;
+          if (item?.key === key) return this.toBoolean(item?.allowed ?? item?.value ?? true);
+          if (item?.name === key) return this.toBoolean(item?.allowed ?? item?.value ?? true);
+          return false;
+        });
+      }
+      if (typeof source === 'object') {
+        return this.toBoolean(source[key]);
+      }
+      return false;
+    });
+  }
+
+  private toBoolean(value: unknown): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true' || normalized === 'yes';
+    }
+    return Boolean(value);
+  }
+
+  canAccessTeamAttendanceRoute(): boolean {
+    return this.permissionService.canAccessRoute(this.currentUser, '/admin/team-attendance');
+  }
+
+  canAccessRegularizationRoute(): boolean {
+    return this.permissionService.canAccessRoute(this.currentUser, '/admin/regularization');
+  }
+
+  canAccessFaceRegistrationRoute(): boolean {
+    return this.hasRawPermission('module507_view') && this.hasRawPermission('module507_UserView');
+  }
+
+  canAccessIntegrationsRoute(): boolean {
+    return this.permissionService.canAccessRoute(this.currentUser, '/attendance/integrations');
+  }
+
+  openAttendanceAddons(): void {
+    this.router.navigate(['/add-ons'], {
+      queryParams: {
+        category: 'premium',
+        focus: 'attendance',
+      },
+    });
+  }
+
+  openAttendanceUpgrade(addon: string): void {
+    this.router.navigate(['/billing'], {
+      queryParams: {
+        source: 'attendance',
+        addon,
+        mode: 'upgrade',
+      },
+    });
+  }
+
+  openAttendanceAddon(addon: { route: string; slug: string }): void {
+    const [path, query] = addon.route.split('?');
+    if (!query) {
+      this.router.navigateByUrl(path);
+      return;
+    }
+
+    const queryParams: Record<string, string> = {};
+    new URLSearchParams(query).forEach((value, key) => {
+      queryParams[key] = value;
+    });
+    this.router.navigate([path], { queryParams });
   }
 
   loadStatsForPeriod(period: 'week' | 'month' | 'year') {
@@ -2274,9 +2620,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
 
-    if (mode === 'camera' || mode === 'face') {
+    if ((mode === 'camera' || mode === 'face') && this.showCameraModal()) {
       this.startCamera(mode);
     } else {
+      this.showCameraModal.set(false);
+      this.pendingPunchAction.set(null);
       this.stopCamera();
       this.stopFaceAutoScan();
     }
@@ -2292,6 +2640,76 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return m === 'camera' || m === 'face';
   }
 
+  onPunchAction(action: 'in' | 'out') {
+    if (this.isCameraMode()) {
+      this.openCameraModal(action);
+      return;
+    }
+
+    void this.handlePunch(action);
+  }
+
+  openCameraModal(action: 'in' | 'out') {
+    if (!this.isCameraMode() || this.processing()) {
+      return;
+    }
+
+    this.pendingPunchAction.set(action);
+    this.showCameraModal.set(true);
+    this.capturedPhotoData.set(null);
+    this.faceScanStatus.set('');
+    this.faceScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.attendanceSuccess.set(false);
+    this.faceAutoTriggered = false;
+    const mode = this.checkInMode();
+    if (mode === 'camera' || mode === 'face') {
+      this.startCamera(mode);
+    }
+  }
+
+  closeCameraModal() {
+    this.showCameraModal.set(false);
+    this.pendingPunchAction.set(null);
+    this.capturedPhotoData.set(null);
+    this.faceScanStatus.set('');
+    this.faceScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.attendanceSuccess.set(false);
+    this.faceAutoTriggered = false;
+    this.stopFaceAutoScan();
+    this.stopCamera();
+  }
+
+  submitCameraModalPunch() {
+    const action = this.pendingPunchAction();
+    if (!action || this.checkInMode() !== 'camera') {
+      return;
+    }
+
+    void this.handlePunch(action);
+  }
+
+  restartFaceModalScan() {
+    if (this.checkInMode() !== 'face' || !this.showCameraModal()) {
+      return;
+    }
+
+    this.capturedPhotoData.set(null);
+    this.faceScanAttempts.set(0);
+    this.facePresenceStreak.set(0);
+    this.faceScanStatus.set('');
+    this.attendanceSuccess.set(false);
+    this.faceAutoTriggered = false;
+
+    if (!this.isCameraReady()) {
+      this.startCamera('face');
+      return;
+    }
+
+    this.startFaceAutoScan();
+  }
+
   // ============ CAMERA ============
 
   async startCamera(mode: 'camera' | 'face') {
@@ -2301,6 +2719,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.faceAutoTriggered = false;
 
     try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API is not available in this browser.');
+      }
       this.cameraStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
@@ -2317,8 +2738,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
             : this.videoElement?.nativeElement;
         if (video) {
           video.srcObject = this.cameraStream;
-          video.onloadedmetadata = () => {
-            video.play();
+          video.onloadedmetadata = async () => {
+            try {
+              await video.play();
+            } catch {
+              // Ignore autoplay timing issues; the video element still becomes usable.
+            }
             this.isCameraReady.set(true);
             if (mode === 'face') {
               this.startFaceAutoScan();
@@ -2329,6 +2754,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('Camera error:', err);
       this.toastService.error('Could not access camera');
+      this.faceScanStatus.set('Camera access failed. Please allow permission and try again.');
+      this.showCameraModal.set(false);
+      this.pendingPunchAction.set(null);
       this.setMode('web');
     }
   }
@@ -2511,6 +2939,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     let payload: any = { source: this.checkInMode() };
     const user = this.currentUser || this.authService.getStoredUser();
+    const orgId = Number(user?.orgId ?? user?.organizationId ?? 0) || 0;
 
     if (!user) {
       this.toastService.error('Please sign in again to mark attendance.');
@@ -2519,6 +2948,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     }
 
     if (this.checkInMode() === 'face') {
+      if (!orgId) {
+        this.toastService.error('Organization context missing. Please sign in again.');
+        this.processing.set(false);
+        return;
+      }
       try {
         const hasFace = await firstValueFrom(
           this.faceRecognitionService.hasRegisteredFace(user.id!),
@@ -2578,7 +3012,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
             ? await firstValueFrom(
                 this.faceRecognitionService.verifyAndMarkAttendanceFromVideo(
                   user.id!,
-                  user.orgId!,
+                  orgId,
                   video,
                   action === 'in' ? 'check_in' : 'check_out',
                 ),
@@ -2666,6 +3100,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.playSuccessTone();
         this.stopFaceAutoScan();
         this.stopCamera();
+        this.showCameraModal.set(false);
+        this.pendingPunchAction.set(null);
         this.refreshData();
         this.processing.set(false);
         this.capturedPhotoData.set(null);

@@ -5,6 +5,9 @@ import { ToastService } from '../../core/services/toast.service';
 import { VisitDashboardResponse, VisitManagementService, VisitRecord, VisitReferencesResponse, VisitStatus } from '../../core/services/visit-management.service';
 import { CustomModalComponent } from '../../core/components/modal/custom-modal.component';
 import { LanguageService } from '../../core/services/language.service';
+import { PermissionService } from '../../core/services/permission.service';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-visit-management',
@@ -18,8 +21,8 @@ import { LanguageService } from '../../core/services/language.service';
           <h1 class="app-module-title">{{ t('visit.controlCenter') }}</h1>
           <p class="app-module-text max-w-3xl">{{ t('visit.subtitle') }}</p>
           <div class="flex flex-wrap gap-3">
-            <button type="button" (click)="downloadReport('csv')" class="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">{{ t('common.exportCsv') }}</button>
-            <button type="button" (click)="downloadReport('json')" class="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.exportJson') }}</button>
+            <button *ngIf="canExportVisitReports()" type="button" (click)="downloadReport('csv')" class="rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">{{ t('common.exportCsv') }}</button>
+            <button *ngIf="canExportVisitReports()" type="button" (click)="downloadReport('json')" class="rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.exportJson') }}</button>
           </div>
         </div>
         <div class="mt-8 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -75,16 +78,16 @@ import { LanguageService } from '../../core/services/language.service';
             <form [formGroup]="visitForm" (ngSubmit)="saveVisit()" class="space-y-5 px-6 py-8">
               <div class="space-y-1.5">
                 <label class="app-field-label ml-1">{{ t('visit.title') }}</label>
-                <input formControlName="title" class="app-field" placeholder="e.g. QBR Review">
+                <input formControlName="title" class="app-field" placeholder="e.g. QBR Review" [readonly]="!canManageVisits()">
               </div>
               <div class="space-y-1.5">
                 <label class="app-field-label ml-1">{{ t('visit.purpose') }}</label>
-                <textarea formControlName="purpose" rows="3" class="app-field resize-none" placeholder="Primary objectives..."></textarea>
+                <textarea formControlName="purpose" rows="3" class="app-field resize-none" placeholder="Primary objectives..." [readonly]="!canManageVisits()"></textarea>
               </div>
                 <div class="grid gap-4">
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Client</label>
-                    <select formControlName="clientId" class="app-field">
+                    <select formControlName="clientId" class="app-field" [disabled]="!canManageVisits()">
                       <option [ngValue]="null">{{ t('visit.selectClient') }}</option>
                       @for (client of references().clients; track client.id) {
                         <option [ngValue]="client.id">{{ client.name }}</option>
@@ -93,7 +96,7 @@ import { LanguageService } from '../../core/services/language.service';
                   </div>
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Visitor</label>
-                    <select formControlName="visitorId" class="app-field">
+                    <select formControlName="visitorId" class="app-field" [disabled]="!canManageVisits()">
                       <option [ngValue]="null">{{ t('visit.selectVisitor') }}</option>
                       @for (visitor of references().visitors; track visitor.id) {
                         <option [ngValue]="visitor.id">{{ visitor.fullName }}</option>
@@ -104,7 +107,7 @@ import { LanguageService } from '../../core/services/language.service';
                 <div class="grid gap-4">
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Host</label>
-                    <select formControlName="hostEmployeeId" class="app-field">
+                    <select formControlName="hostEmployeeId" class="app-field" [disabled]="!canManageVisits()">
                       <option [ngValue]="null">{{ t('visit.selectHost') }}</option>
                       @for (employee of references().employees; track employee.id) {
                         <option [ngValue]="employee.id">{{ employee.fullName }}</option>
@@ -113,7 +116,7 @@ import { LanguageService } from '../../core/services/language.service';
                   </div>
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Approver</label>
-                    <select formControlName="approverEmployeeId" class="app-field">
+                    <select formControlName="approverEmployeeId" class="app-field" [disabled]="!canManageVisits()">
                       <option [ngValue]="null">{{ t('visit.selectApprover') }}</option>
                       @for (employee of references().employees; track employee.id) {
                         <option [ngValue]="employee.id">{{ employee.fullName }}</option>
@@ -124,23 +127,23 @@ import { LanguageService } from '../../core/services/language.service';
                 <div class="grid gap-4">
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Schedule Start</label>
-                    <input type="datetime-local" formControlName="scheduledStart" class="app-field">
+                    <input type="datetime-local" formControlName="scheduledStart" class="app-field" [readonly]="!canManageVisits()">
                   </div>
                   <div class="space-y-1.5">
                     <label class="app-field-label ml-1">Schedule End</label>
-                    <input type="datetime-local" formControlName="scheduledEnd" class="app-field">
+                    <input type="datetime-local" formControlName="scheduledEnd" class="app-field" [readonly]="!canManageVisits()">
                   </div>
                 </div>
               <div class="space-y-1.5">
                 <label class="app-field-label ml-1">{{ t('common.location') }}</label>
-                <input formControlName="locationName" class="app-field" placeholder="Meeting room or address">
+                <input formControlName="locationName" class="app-field" placeholder="Meeting room or address" [readonly]="!canManageVisits()">
               </div>
               <div class="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/50 p-4">
-                <input type="checkbox" formControlName="requiresApproval" class="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500">
+                <input type="checkbox" formControlName="requiresApproval" class="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500" [disabled]="!canManageVisits()">
                 <span class="text-sm font-bold text-slate-700">{{ t('visit.requiresFormalApproval') }}</span>
               </div>
               <div class="grid gap-3 pt-2">
-                <button type="submit" [disabled]="visitForm.invalid || savingVisit()" class="flex h-12 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-slate-800 disabled:opacity-50">
+                <button type="submit" [disabled]="visitForm.invalid || savingVisit() || !canManageVisits()" class="flex h-12 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white transition hover:-translate-y-px hover:bg-slate-800 disabled:opacity-50">
                   {{ savingVisit() ? t('visit.processing') : editingVisitId() ? t('common.update') + ' Schedule' : t('visit.scheduleVisit') }}
                 </button>
                 <button type="button" (click)="resetVisitForm()" class="flex h-12 items-center justify-center rounded-xl border border-slate-200 text-sm font-bold text-slate-500 transition hover:bg-slate-50">{{ t('common.cancel') }}</button>
@@ -165,7 +168,7 @@ import { LanguageService } from '../../core/services/language.service';
                   <input formControlName="name" class="app-field !py-2" placeholder="Client name">
                   <input formControlName="contactPerson" class="app-field !py-2" placeholder="Contact person">
                 </div>
-                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">{{ t('visit.registerClient') }}</button>
+                <button type="submit" [disabled]="!canManageVisits()" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">{{ t('visit.registerClient') }}</button>
               </form>
               <form [formGroup]="visitorForm" (ngSubmit)="saveVisitor()" class="space-y-4 border-t border-slate-100 pt-6">
                 <div class="flex items-center justify-between">
@@ -184,7 +187,7 @@ import { LanguageService } from '../../core/services/language.service';
                   </select>
                   <input formControlName="phone" class="app-field !py-2" placeholder="Phone number">
                 </div>
-                <button type="submit" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50">{{ t('visit.registerVisitor') }}</button>
+                <button type="submit" [disabled]="!canManageVisits()" class="w-full rounded-lg border border-slate-200 bg-white py-2 text-xs font-black uppercase tracking-widest text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">{{ t('visit.registerVisitor') }}</button>
               </form>
               <div class="grid gap-6 border-t border-slate-100 pt-6">
                 <div class="space-y-3">
@@ -603,6 +606,8 @@ export class VisitManagementComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly visitService = inject(VisitManagementService);
   private readonly languageService = inject(LanguageService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly authService = inject(AuthService);
 
   readonly statuses: VisitStatus[] = ['pending_approval', 'planned', 'in_progress', 'completed', 'rejected'];
   summary = computed(() => this.dashboard().summary);
@@ -628,6 +633,7 @@ export class VisitManagementComponent implements OnInit {
   selectedVisitId = signal<number | null>(null);
   showPassModal = signal(false);
   passVisit = signal<VisitRecord | null>(null);
+  currentUser = signal<User | null>(null);
   private visitPhotoBase64 = signal<string | null>(null);
   private notePhotoBase64 = signal<string | null>(null);
 
@@ -662,6 +668,7 @@ export class VisitManagementComponent implements OnInit {
   selectedVisit = computed(() => this.visits().find((visit: VisitRecord) => visit.id === this.selectedVisitId()) ?? null);
 
   ngOnInit(): void {
+    this.currentUser.set(this.authService.getStoredUser());
     this.refreshAll();
   }
 
@@ -678,6 +685,10 @@ export class VisitManagementComponent implements OnInit {
   }
 
   saveVisit(): void {
+    if (!this.canManageVisits()) {
+      this.toastService.error('You do not have permission to manage visits.');
+      return;
+    }
     if (this.visitForm.invalid) return;
     const value = this.visitForm.getRawValue();
     const payload = {
@@ -765,6 +776,10 @@ export class VisitManagementComponent implements OnInit {
   }
 
   saveClient(): void {
+    if (!this.canManageVisits()) {
+      this.toastService.error('You do not have permission to manage clients.');
+      return;
+    }
     if (this.clientForm.invalid) return;
     const request$ = this.editingClientId() ? this.visitService.updateClient(this.editingClientId()!, this.clientForm.getRawValue()) : this.visitService.createClient(this.clientForm.getRawValue());
     request$.subscribe({
@@ -774,6 +789,10 @@ export class VisitManagementComponent implements OnInit {
   }
 
   saveVisitor(): void {
+    if (!this.canManageVisits()) {
+      this.toastService.error('You do not have permission to manage visitors.');
+      return;
+    }
     if (this.visitorForm.invalid) return;
     const request$ = this.editingVisitorId() ? this.visitService.updateVisitor(this.editingVisitorId()!, this.visitorForm.getRawValue()) : this.visitService.createVisitor(this.visitorForm.getRawValue());
     request$.subscribe({
@@ -864,6 +883,10 @@ export class VisitManagementComponent implements OnInit {
   }
 
   downloadReport(format: 'csv' | 'json'): void {
+    if (!this.canExportVisitReports()) {
+      this.toastService.error('You do not have permission to export visit reports.');
+      return;
+    }
     this.visitService.exportReports(format, {
       status: this.filterStatus() || undefined,
       search: this.visitSearch() || undefined,
@@ -889,6 +912,25 @@ export class VisitManagementComponent implements OnInit {
 
   captureImageFile(event: Event): void {
     this.readImageFile(event, (value) => this.visitPhotoBase64.set(value));
+  }
+
+  canManageVisits(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.isAdminUser(user) ||
+      this.permissionService.isHrManagerUser(user) ||
+      this.permissionService.isManagerialUser(user)
+    );
+  }
+
+  canExportVisitReports(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.hasPermission(user, 'reports.export') ||
+      this.permissionService.hasPermission(user, 'reports.read') ||
+      this.permissionService.hasPermission(user, 'reports.view') ||
+      this.canManageVisits()
+    );
   }
 
   private parseUrls(value?: string | null): string[] {

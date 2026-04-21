@@ -9,6 +9,7 @@ import {
 } from './access.models';
 
 type PermissionMap = Record<string, boolean>;
+type RoleAlias = 'admin' | 'non_super_admin';
 
 @Injectable({
   providedIn: 'root',
@@ -50,6 +51,27 @@ export class AccessControlService {
   private normalizeList(input?: string | string[]): string[] {
     if (!input) return [];
     return Array.isArray(input) ? input.filter(Boolean) : [input].filter(Boolean);
+  }
+
+  private satisfiesRole(
+    user: AccessUser | null | undefined,
+    roles?: string | string[],
+  ): boolean {
+    const allowedRoles = this.normalizeList(roles);
+    if (allowedRoles.length === 0) return true;
+    if (!user) return false;
+
+    const userRole = user.role;
+    return allowedRoles.some((role) => {
+      const normalized = role as RoleAlias | string;
+      if (normalized === 'admin') {
+        return userRole === 'organization_admin' || userRole === 'hr_manager' || userRole === 'admin';
+      }
+      if (normalized === 'non_super_admin') {
+        return userRole !== 'super_admin';
+      }
+      return userRole === normalized;
+    });
   }
 
   private readUserInfoValue(
@@ -97,9 +119,11 @@ export class AccessControlService {
   ): boolean {
     if (!permission) return true;
     if (!user) return false;
+    if (user.role === 'super_admin' || user.roleScope === 'global') return true;
 
     const permissionMap = this.normalizePermissionMap(user.permissions);
-    return this.normalizeList(permission).every((key) => Boolean(permissionMap[key]));
+    const permissionKeys = this.normalizeList(permission);
+    return permissionKeys.length === 0 || permissionKeys.some((key) => Boolean(permissionMap[key]));
   }
 
   hasAddon(
@@ -152,17 +176,19 @@ export class AccessControlService {
     const condition = module as AccessCondition;
     const blockedBy: AccessBlockReason[] = [];
     const hasAddonRequirement = this.normalizeList(condition.addon ?? []).length > 0;
+    const hasRole = this.satisfiesRole(user, condition.roles);
     const hasPermissions = this.canAccess(user, condition.permission ?? []);
     const hasTabs = this.hasTab(user, condition.tab ?? []);
     const hasUserInfo = this.satisfiesUserInfo(user.userInfo, condition.userInfo);
     const hasAddons = this.hasAddon(user, condition.addon ?? []);
 
+    if (!hasRole) blockedBy.push('role' as AccessBlockReason);
     if (!hasPermissions) blockedBy.push('permission');
     if (!hasTabs) blockedBy.push('tab');
     if (!hasUserInfo) blockedBy.push('userInfo');
     if (!hasAddons) blockedBy.push('addon');
 
-    const discoverable = hasPermissions && hasTabs && hasUserInfo;
+    const discoverable = hasRole && hasPermissions && hasTabs && hasUserInfo;
     const lockedByAddon = discoverable && hasAddonRequirement && !hasAddons;
 
     return {

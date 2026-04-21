@@ -25,11 +25,7 @@ export const getSettingMenu = (
 ): Record<string, SettingCategory> => {
   const user = authService.getStoredUser();
   
-  const hasAccess =
-    permissionService.hasPermission(user, 'settings.view') ||
-    permissionService.getRoleName(user) === 'Super Admin' ||
-    permissionService.getRoleName(user) === 'Admin' ||
-    permissionService.getRoleName(user) === 'HR Manager';
+  const hasAccess = permissionService.canManageSettings(user);
 
   return {
     attendance: {

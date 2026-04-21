@@ -277,8 +277,10 @@ export class ViewEmployeeComponent implements OnInit {
     switch (label) {
       case 'Super Admin':
         return this.t('sidebar.superAdmin');
-      case 'Admin':
+      case 'Organization Admin':
         return this.t('sidebar.admin');
+      case 'HR Manager':
+        return 'HR Manager';
       case 'Manager':
         return this.t('sidebar.manager');
       case 'Employee':

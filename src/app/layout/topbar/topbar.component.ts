@@ -1,5 +1,5 @@
 import { Component, HostListener, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { NavigationEnd, Router } from '@angular/router';
 import { selectUser } from '../../core/state/auth/auth.selectors';
@@ -65,12 +65,72 @@ type GuidePreview = {
   imports: [CommonModule],
   template: `
     <header class="app-topbar-surface sticky top-0 z-50 w-full border-b border-white/40 px-2 sm:px-3 lg:px-4">
+      @if (showSearchPanel()) {
+      <div class="flex min-h-[58px] items-center py-2 md:min-h-[66px]">
+        <div class="relative flex w-full items-center gap-2">
+          <div class="search-expanded-bar">
+            <button type="button" (click)="closeAll()" class="search-expanded-close" aria-label="Back">
+              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
+            </button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input
+              type="text"
+              [value]="searchQuery()"
+              (input)="onSearchInput(($any($event.target).value || '').toString())"
+              placeholder="Search anything..."
+              class="w-full bg-transparent text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none"
+              autofocus
+            >
+            <span class="search-launcher-key hidden lg:inline-flex">Ctrl K</span>
+          </div>
+
+          <div class="search-expanded-results">
+            <div class="max-h-[min(55vh,22rem)] overflow-y-auto">
+              @if (searchResults().length === 0) {
+                <div class="px-4 py-8 text-center">
+                  <p class="text-sm font-semibold text-slate-400">No matching results</p>
+                  <p class="text-xs text-slate-400 mt-1">Try employee name, project, or module name</p>
+                </div>
+              } @else {
+                @for (result of searchResults(); track result.route + result.title) {
+                  <button
+                    (click)="goToSearchResult(result.route)"
+                    class="w-full text-left px-4 py-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-900 truncate">{{ result.title }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ result.subtitle }}</p>
+                      </div>
+                      <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md"
+                            [ngClass]="result.tone">
+                        {{ result.category }}
+                      </span>
+                    </div>
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+      } @else {
       <div class="flex min-h-[58px] items-center justify-between gap-3 py-2 md:min-h-[66px]">
-      <div class="flex min-w-0 flex-1 flex-col gap-1">
-        <div class="flex min-w-0 items-center gap-2 sm:gap-2.5 lg:gap-3">
+      <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 lg:gap-3">
         <button (click)="layoutService.toggleSidebar()" class="lg:hidden p-1.5 text-slate-600 hover:bg-white/80 rounded-md transition-colors border border-stone-200/70 shadow-sm">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
         </button>
+
+        @if (showBackButton()) {
+          <button
+            type="button"
+            (click)="goBack()"
+            class="topbar-back-btn"
+            aria-label="Go back"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
+          </button>
+        }
 
         <div class="min-w-0 flex-1 lg:hidden">
           <p class="truncate text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ headerKicker() }}</p>
@@ -80,81 +140,49 @@ type GuidePreview = {
         <div class="hidden lg:flex min-w-0 flex-col flex-1">
           <span class="app-page-kicker">{{ headerKicker() }}</span>
           <h1 class="app-page-title truncate max-w-[12rem] xl:max-w-[16rem]">{{ headerTitle() }}</h1>
-          <p class="app-page-subtitle truncate hidden xl:block">{{ headerSubtitle() }}</p>
         </div>
 
-        <div class="relative hidden md:block">
+        <div class="relative hidden md:flex md:items-center">
           <button
             type="button"
             (click)="openSearch()"
-            class="search-launcher"
+            class="search-icon-btn"
             aria-label="Open search"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <span class="hidden lg:inline text-[10px] font-black tracking-[0.16em]">Search</span>
-            <span class="search-launcher-key">Ctrl K</span>
           </button>
-
-          @if (showSearchPanel()) {
-            <div class="absolute left-0 right-0 mt-3 bg-white rounded-md shadow-2xl border border-stone-100 overflow-hidden z-[70] w-[min(28rem,calc(100vw-2rem))]">
-              <div class="px-4 py-3 border-b border-stone-100 bg-gradient-to-r from-amber-50/80 via-white to-teal-50/70 flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <input
-                  type="text"
-                  [value]="searchQuery()"
-                  (input)="onSearchInput(($any($event.target).value || '').toString())"
-                  placeholder="Search anything..."
-                  class="w-full bg-transparent text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                  autofocus
-                >
-                <span class="search-launcher-key">Ctrl K</span>
-              </div>
-              <div class="max-h-[min(55vh,22rem)] overflow-y-auto">
-                @if (searchResults().length === 0) {
-                  <div class="px-4 py-8 text-center">
-                    <p class="text-sm font-semibold text-slate-400">No matching results</p>
-                    <p class="text-xs text-slate-400 mt-1">Try employee name, project, or module name</p>
-                  </div>
-                } @else {
-                  @for (result of searchResults(); track result.route + result.title) {
-                    <button
-                      (click)="goToSearchResult(result.route)"
-                      class="w-full text-left px-4 py-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors"
-                    >
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                          <p class="text-sm font-bold text-slate-900 truncate">{{ result.title }}</p>
-                          <p class="text-xs text-slate-500 truncate">{{ result.subtitle }}</p>
-                        </div>
-                        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md"
-                              [ngClass]="result.tone">
-                          {{ result.category }}
-                        </span>
-                      </div>
-                    </button>
-                  }
-                }
-              </div>
-            </div>
-          }
         </div>
-
-        </div>
-
         <div class="hidden lg:flex items-center relative">
           <button type="button" (click)="toggleModuleSwitcher()" class="module-switcher-btn" [class.module-switcher-btn-active]="showModuleSwitcher()">
-            <span class="module-switcher-dot" [ngClass]="activeModuleAccent()"></span>
-            <span class="hidden xl:inline">{{ activeWorkspaceLabel() }}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="opacity-70"><path d="m6 9 6 6 6-6"/></svg>
+            <span class="module-switcher-icon-shell">
+              <span class="module-switcher-grid">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </span>
+            <span class="hidden xl:flex xl:min-w-0 xl:flex-col xl:items-start xl:leading-none">
+              <span class="module-switcher-label">Quick Actions</span>
+              <span class="module-switcher-value">{{ quickActionsSummary() }}</span>
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="module-switcher-chevron"><path d="m6 9 6 6 6-6"/></svg>
           </button>
 
           @if (showModuleSwitcher()) {
             <div class="absolute left-0 top-full mt-3 w-[min(32rem,calc(100vw-4rem))] rounded-2xl border border-slate-100 bg-white shadow-2xl z-[70] overflow-hidden">
+              <div class="module-switcher-panel-header">
+                <div class="module-switcher-panel-copy">
+                  <p class="module-switcher-panel-kicker">Quick Actions</p>
+                  <h3 class="module-switcher-panel-title">Commonly used tools and essential shift controls</h3>
+                </div>
+                <span class="module-switcher-panel-badge">{{ quickActionsBadge() }}</span>
+              </div>
               <div class="grid gap-0 md:grid-cols-2">
                 <div class="p-3 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/60">
                   <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Self Service</p>
                   <div class="space-y-1">
-                    @for (module of selfServiceTabs(); track module.route) {
+                    @for (module of selfServiceTabs(); track module.label + module.route) {
                       <button
                         type="button"
                         (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
@@ -175,7 +203,7 @@ type GuidePreview = {
                 <div class="p-3 bg-white">
                   <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Admin & HR</p>
                   <div class="space-y-1">
-                    @for (module of adminTabs(); track module.route) {
+                    @for (module of adminTabs(); track module.label + module.route) {
                       <button
                         type="button"
                         (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
@@ -204,7 +232,7 @@ type GuidePreview = {
           <button
             type="button"
             class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            (click)="goToSearchResult('/add-ons')"
+            (click)="toggleAddonsPanel()"
           >
             <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">+</span>
             <span>Add-ons</span>
@@ -212,68 +240,71 @@ type GuidePreview = {
           </button>
 
           @if (showAddonsPanel()) {
-            <div class="absolute right-0 top-full mt-3 w-[min(62rem,calc(100vw-4rem))] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl z-[70]">
-              <div class="grid lg:grid-cols-[1.2fr_0.8fr]">
-                <div class="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 lg:border-b-0 lg:border-r">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="max-w-xl">
-                      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Module Launcher</p>
-                      <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Open add-ons, see suggestions, and learn before buying</h3>
+            <div class="fixed left-1/2 top-3 z-[70] max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1rem)] -translate-x-1/2 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl sm:top-[5.25rem] sm:max-h-[calc(100vh-6.5rem)] sm:w-[min(62rem,calc(100vw-1.5rem))] sm:rounded-[28px]">
+              <div class="max-h-[calc(100vh-1.5rem)] overflow-y-auto overscroll-contain sm:max-h-[calc(100vh-6.5rem)]">
+                <div class="grid lg:grid-cols-[1.2fr_0.8fr]">
+                  <div class="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 lg:border-b-0 lg:border-r">
+                    <div class="sticky top-0 z-10 -mx-5 -mt-5 border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 pt-5 pb-4">
+                      <div class="flex items-start justify-between gap-4">
+                      <div class="max-w-xl">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Module Launcher</p>
+                        <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Open add-ons, see suggestions, and learn before buying</h3>
                       <p class="mt-2 text-sm leading-6 text-slate-500">
                         This launcher keeps active modules, premium suggestions, and guided walkthroughs together so users do not have to jump across many screens.
                       </p>
                     </div>
-                    <button type="button" (click)="closeAll()" class="rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50">Close</button>
-                  </div>
+                      <button type="button" (click)="closeAll()" class="rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50">Close</button>
+                      </div>
 
-                  <div class="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active</p>
-                      <p class="mt-2 text-2xl font-black text-emerald-900">{{ activeAddonCount() }}</p>
-                    </div>
-                    <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Suggested</p>
-                      <p class="mt-2 text-2xl font-black text-amber-900">{{ lockedAddonCount() }}</p>
-                    </div>
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Guides</p>
-                      <p class="mt-2 text-2xl font-black text-slate-900">{{ moduleGuides().length }}</p>
-                    </div>
-                  </div>
+                      <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active</p>
+                          <p class="mt-2 text-2xl font-black text-emerald-900">{{ activeAddonCount() }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Suggested</p>
+                          <p class="mt-2 text-2xl font-black text-amber-900">{{ lockedAddonCount() }}</p>
+                        </div>
+                        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Guides</p>
+                          <p class="mt-2 text-2xl font-black text-slate-900">{{ moduleGuides().length }}</p>
+                        </div>
+                      </div>
 
-                  <div class="mt-5 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('all')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('active')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      Active
-                    </button>
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('learn')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'learn' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      Learn & Buy
-                    </button>
-                    <div class="flex flex-wrap gap-2 lg:ml-auto">
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">ESS</span>
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">HR Ops</span>
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Billing Ready</span>
+                      <div class="mt-5 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('all')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('active')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          Active
+                        </button>
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('learn')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'learn' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          Learn & Buy
+                        </button>
+                        <div class="flex flex-wrap gap-2 lg:ml-auto">
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">ESS</span>
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">HR Ops</span>
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Billing Ready</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="mt-6 space-y-4">
+  
+                    <div class="mt-6 space-y-4">
                     <div>
                       <div class="flex items-center justify-between gap-3">
                         <h4 class="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
@@ -361,6 +392,7 @@ type GuidePreview = {
                     }
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           }
@@ -459,6 +491,12 @@ type GuidePreview = {
                 <div class="min-w-0">
                   <p class="text-[13px] font-bold text-slate-900 truncate">{{ user.firstName }} {{ user.lastName }}</p>
                   <p class="text-[11px] font-medium text-slate-500 truncate mt-0.5">{{ user.email }}</p>
+                  <div class="mt-1.5 flex flex-wrap gap-1.5">
+                    <span class="topbar-meta-chip">{{ userRoleLabel() }}</span>
+                    @if (userOrganizationLabel()) {
+                      <span class="topbar-meta-chip topbar-meta-chip-muted">{{ userOrganizationLabel() }}</span>
+                    }
+                  </div>
                 </div>
               </div>
               <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
@@ -508,6 +546,7 @@ type GuidePreview = {
         </div>
       </div>
       </div>
+      }
     </header>
 
     <!-- Click outside overlay to close dropdowns -->
@@ -521,8 +560,9 @@ type GuidePreview = {
       .module-switcher-btn {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        padding: 7px 10px;
+        gap: 10px;
+        min-height: 40px;
+        padding: 6px 11px 6px 7px;
         border-radius: 9999px;
         border: 1px solid rgba(226, 232, 240, 0.95);
         background: rgba(255, 255, 255, 0.88);
@@ -547,6 +587,112 @@ type GuidePreview = {
 
       .module-switcher-btn svg {
         flex: 0 0 auto;
+      }
+
+      .module-switcher-icon-shell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        border-radius: 9999px;
+        background: rgba(148, 163, 184, 0.12);
+      }
+
+      .module-switcher-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px;
+        width: 12px;
+        height: 12px;
+      }
+
+      .module-switcher-grid span {
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+        background: currentColor;
+        opacity: 0.82;
+      }
+
+      .module-switcher-label {
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+
+      .module-switcher-value {
+        max-width: 9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: inherit;
+      }
+
+      .module-switcher-chevron {
+        opacity: 0.68;
+      }
+
+      .module-switcher-btn-active .module-switcher-icon-shell {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .module-switcher-btn-active .module-switcher-label {
+        color: rgba(226, 232, 240, 0.72);
+      }
+
+      .module-switcher-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid rgba(241, 245, 249, 0.95);
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(255, 255, 255, 1) 100%);
+      }
+
+      .module-switcher-panel-copy {
+        min-width: 0;
+      }
+
+      .module-switcher-panel-kicker {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+
+      .module-switcher-panel-title {
+        margin-top: 6px;
+        max-width: 24rem;
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+      }
+
+      .module-switcher-panel-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: #334155;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .module-switcher-dot {
@@ -590,12 +736,128 @@ type GuidePreview = {
         background: rgba(148, 163, 184, 0.12);
         color: #64748b;
       }
+
+      .search-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.9);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      }
+
+      .search-icon-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+      }
+
+      .topbar-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.9);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      }
+
+      .topbar-back-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+      }
+
+      .search-inline-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: min(22rem, 30vw);
+        min-height: 40px;
+        padding: 0 10px 0 12px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.28);
+      }
+
+      .search-inline-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 9999px;
+        color: #64748b;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .search-inline-close:hover {
+        background: rgba(241, 245, 249, 0.9);
+        color: #0f172a;
+      }
+
+      .search-expanded-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 46px;
+        padding: 0 14px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.28);
+      }
+
+      .search-expanded-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        color: #64748b;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .search-expanded-close:hover {
+        background: rgba(241, 245, 249, 0.95);
+        color: #0f172a;
+      }
+
+      .search-expanded-results {
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 0;
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(231, 235, 239, 1);
+        background: #ffffff;
+        box-shadow: 0 28px 48px -32px rgba(15, 23, 42, 0.32);
+        overflow: hidden;
+        z-index: 70;
+      }
+
+      .app-page-title {
+        white-space: nowrap;
+      }
+
     `,
   ]
 })
 export class TopbarComponent implements OnInit {
   private store = inject(Store);
   private router = inject(Router);
+  private location = inject(Location);
   private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
   private projectService = inject(ProjectService);
@@ -621,6 +883,8 @@ export class TopbarComponent implements OnInit {
   readonly currentLanguage = this.languageService.currentLanguage;
   readonly languageOptions = this.languageService.languages;
   private currentPath = signal('/');
+  private readonly routeHistoryStorageKey = 'hrms_topbar_route_history';
+  private readonly previousRouteStorageKey = 'hrms_topbar_previous_route';
   private employeeCache = signal<User[]>([]);
   private projectCache = signal<Project[]>([]);
   private designations = signal<Designation[]>([]);
@@ -667,21 +931,23 @@ export class TopbarComponent implements OnInit {
     },
   ]);
   readonly selfServiceTabs = computed<ModuleTab[]>(() => {
-    return this.workspaceCatalog
-      .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), 'self-service', {
-        includeLocked: true,
-      })
-      .map((module) => ({
-        label: module.label,
-        route: module.route,
-        accent: module.accent ?? 'bg-slate-400',
-        isLocked: module.isLocked,
-        description: module.description,
-        lockReason: module.lockReason,
-      }));
+    return ['dashboard', 'self-service', 'attendance', 'leave'].flatMap((sectionId) =>
+      this.workspaceCatalog
+        .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
+          includeLocked: true,
+        })
+        .map((module) => ({
+          label: module.label,
+          route: module.route,
+          accent: module.accent ?? 'bg-slate-400',
+          isLocked: module.isLocked,
+          description: module.description,
+          lockReason: module.lockReason,
+        })),
+    );
   });
   readonly adminTabs = computed<ModuleTab[]>(() => {
-    return ['people', 'system'].flatMap((sectionId) =>
+    return ['employees', 'settings', 'addons', 'visitormanagement', 'organization', 'roles-permissions'].flatMap((sectionId) =>
       this.workspaceCatalog
         .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
           includeLocked: true,
@@ -709,13 +975,21 @@ export class TopbarComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.currentPath.set(this.router.url || '/');
+    const initialRoute = this.router.url || '/';
+    this.currentPath.set(initialRoute);
+    this.seedRouteHistory(initialRoute);
     this.currentUser.set(this.authService.getStoredUser());
     this.permissionService.syncForUser(this.currentUser());
     this.updateRoleLabel(this.currentUser());
     
     this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
-      this.currentPath.set(event.urlAfterRedirects || event.url || '/');
+      const nextRoute = event.urlAfterRedirects || event.url || '/';
+      const previousRoute = this.currentPath();
+      if (previousRoute && previousRoute !== nextRoute) {
+        this.writePreviousRoute(previousRoute);
+      }
+      this.currentPath.set(nextRoute);
+      this.pushRouteToHistory(nextRoute);
       this.closeAll();
     });
 
@@ -795,14 +1069,13 @@ export class TopbarComponent implements OnInit {
   }
 
   openSearch() {
-    if (!this.canUseSearch()) return;
     this.showDropdown = false;
     this.showNotifications.set(false);
     this.showModuleSwitcher.set(false);
     this.showAddonsPanel.set(false);
     this.showSearchPanel.set(true);
     if (!this.searchQuery().trim()) {
-      this.searchResults.set(this.getVisibleQuickLinks().slice(0, 8));
+      this.searchResults.set(this.getInitialSearchResults());
     }
   }
 
@@ -812,7 +1085,7 @@ export class TopbarComponent implements OnInit {
     const query = value.trim().toLowerCase();
     const visibleQuickLinks = this.getVisibleQuickLinks();
     if (!query) {
-      this.searchResults.set(visibleQuickLinks.slice(0, 8));
+      this.searchResults.set(this.getInitialSearchResults());
       return;
     }
 
@@ -851,7 +1124,39 @@ export class TopbarComponent implements OnInit {
 
   goToSearchResult(route: string) {
     this.closeAll();
+    if (!this.canAccess(route)) {
+      this.router.navigateByUrl('/dashboard');
+      return;
+    }
     this.router.navigateByUrl(route);
+  }
+
+  goBack() {
+    this.closeAll();
+    const storedPreviousRoute = this.readPreviousRoute();
+    if (storedPreviousRoute && storedPreviousRoute !== this.currentPath()) {
+      this.router.navigateByUrl(storedPreviousRoute);
+      return;
+    }
+
+    const routeHistory = this.readRouteHistory();
+    if (routeHistory.length > 1) {
+      routeHistory.pop();
+      const previousRoute = routeHistory[routeHistory.length - 1];
+      this.writeRouteHistory(routeHistory);
+      if (previousRoute && previousRoute !== this.currentPath()) {
+        this.router.navigateByUrl(previousRoute);
+        return;
+      }
+    }
+
+    const fallbackRoute = this.getFallbackBackRoute();
+    if (fallbackRoute !== this.currentPath()) {
+      this.router.navigateByUrl(fallbackRoute);
+      return;
+    }
+
+    this.location.back();
   }
 
   openLockedModule(module: ModuleTab) {
@@ -952,7 +1257,22 @@ export class TopbarComponent implements OnInit {
 
   canAccess(route: string): boolean {
     const user = this.currentUser() ?? this.authService.getStoredUser();
-    return this.permissionService.canAccessRoute(user, route);
+    const targetRoute = this.normalizeRouteForAccess(route);
+    const menuAllowsRoute = this.workspaceCatalog
+      .getAllViews(user, { includeLocked: true })
+      .some((item) => {
+        const itemRoute = this.normalizeRouteForAccess(item.route);
+        const matches = targetRoute === itemRoute || targetRoute.startsWith(`${itemRoute}/`);
+        return matches && !item.isLocked && item.isAccessible;
+      });
+
+    return menuAllowsRoute || this.permissionService.canAccessRoute(user, route);
+  }
+
+  private normalizeRouteForAccess(route: string): string {
+    const cleanRoute = (route || '').split('?')[0].split('#')[0].trim();
+    if (!cleanRoute) return '';
+    return cleanRoute === '/' ? '/' : cleanRoute.replace(/\/+$/, '');
   }
 
   canViewNotifications(): boolean {
@@ -974,7 +1294,6 @@ export class TopbarComponent implements OnInit {
     }
 
     const currentUser = this.currentUser() ?? this.authService.getStoredUser();
-    const roleId = this.getRoleId();
 
     if (this.permissionService.isAdminUser(currentUser)) {
       if (this.canAccess('/admin/roles')) {
@@ -988,7 +1307,19 @@ export class TopbarComponent implements OnInit {
       }
     }
 
-    if (roleId === 4) {
+    if (this.permissionService.isHrManagerUser(currentUser)) {
+      if (this.canAccess('/admin/documents')) {
+        return { route: '/admin/documents', label: 'HR Controls' };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: 'HR Controls' };
+      }
+      if (this.canAccess('/admin/regularization')) {
+        return { route: '/admin/regularization', label: 'HR Controls' };
+      }
+    }
+
+    if (this.permissionService.isManagerialUser(currentUser) && !this.permissionService.isAdminUser(currentUser)) {
       if (this.canAccess('/admin/team-attendance')) {
         return { route: '/admin/team-attendance', label: this.languageService.t('common.teamControls') };
       }
@@ -1008,21 +1339,48 @@ export class TopbarComponent implements OnInit {
   }
 
   canUseSearch(): boolean {
-    return this.getVisibleQuickLinks().length > 0;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return (
+      this.getVisibleQuickLinks().length > 0 ||
+      this.permissionService.hasPermission(user, 'search.employees') ||
+      this.permissionService.hasPermission(user, 'search.projects')
+    );
   }
 
   activeModuleAccent(): string {
-    const currentRoute = this.currentPath();
+    const currentRoute = this.currentPath().split('?')[0];
     const allTabs = [...this.selfServiceTabs(), ...this.adminTabs()];
-    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route))
+    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route.split('?')[0]))
       ?.accent ?? 'bg-slate-400';
   }
 
   activeWorkspaceLabel(): string {
-    const currentRoute = this.currentPath();
+    const currentRoute = this.currentPath().split('?')[0];
     const allTabs = [...this.selfServiceTabs(), ...this.adminTabs()];
-    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route))
+    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route.split('?')[0]))
       ?.label ?? 'Workspace';
+  }
+
+  quickActionsSummary(): string {
+    const path = this.currentPath();
+    if (path.startsWith('/employees') || path.startsWith('/admin')) return 'People & controls';
+    if (path.startsWith('/attendance') || path.startsWith('/leaves') || path.startsWith('/self-service')) return 'Shift & ESS tools';
+    if (path.startsWith('/reports') || path.startsWith('/projects') || path.startsWith('/expenses')) return 'Daily work tools';
+    return 'Tools & controls';
+  }
+
+  quickActionsBadge(): string {
+    const path = this.currentPath();
+    if (path.startsWith('/employees')) return 'People Ops';
+    if (path.startsWith('/attendance') || path.startsWith('/leaves') || path.startsWith('/self-service')) return 'ESS';
+    if (path.startsWith('/admin') || path.startsWith('/settings')) return 'Admin';
+    if (path.startsWith('/reports') || path.startsWith('/projects') || path.startsWith('/expenses')) return 'Workspace';
+    return 'Quick Access';
+  }
+
+  showBackButton(): boolean {
+    const path = this.currentPath();
+    return !(path === '/' || path === '/dashboard' || path === '/self-service');
   }
 
   currentDateLabel(): string {
@@ -1031,6 +1389,14 @@ export class TopbarComponent implements OnInit {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  private getFallbackBackRoute(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    if (this.permissionService.isAdminUser(user) || this.permissionService.isManagerialUser(user)) {
+      return '/dashboard';
+    }
+    return '/self-service';
   }
 
   billingChipLabel(): string {
@@ -1071,6 +1437,7 @@ export class TopbarComponent implements OnInit {
     if (this.currentPath() === '/' || this.currentPath() === '/dashboard' || this.currentPath() === '/self-service') {
       const user = this.currentUser() ?? this.authService.getStoredUser();
       if (this.permissionService.isAdminUser(user)) return 'Operations Command Center';
+      if (this.permissionService.isHrManagerUser(user)) return 'HR Operations Hub';
       if (this.permissionService.isManagerialUser(user)) return 'Team Workspace';
       return 'Self-Service Workspace';
     }
@@ -1101,6 +1468,9 @@ export class TopbarComponent implements OnInit {
       if (this.permissionService.isAdminUser(user)) {
           return 'Monitor workforce operations, approvals, compliance, and system controls from one workspace.';
       }
+      if (this.permissionService.isHrManagerUser(user)) {
+          return 'Handle employee operations, attendance issues, approvals, and daily HR workflows from one place.';
+      }
       if (this.permissionService.isManagerialUser(user)) {
           return 'Track team attendance, review requests, and keep daily operations close at hand.';
       }
@@ -1114,18 +1484,13 @@ export class TopbarComponent implements OnInit {
     return 'Everything important stays organized, fast, and easier to operate.';
   }
 
+  userOrganizationLabel(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return user?.organizationName || user?.companyName || '';
+  }
+
   roleLabel(): string {
-    let userRef: User | null | undefined = this.currentUser();
-
-    if (!userRef) {
-      this.user$.subscribe((user) => {
-        if (user) {
-          userRef = user;
-        }
-      }).unsubscribe();
-    }
-
-    return this.resolveRoleLabel(userRef ?? this.authService.getStoredUser());
+    return this.resolveRoleLabel(this.currentUser() ?? this.authService.getStoredUser());
   }
 
   private getRoleId(): number | undefined {
@@ -1133,14 +1498,15 @@ export class TopbarComponent implements OnInit {
   }
 
   isActiveRoute(route: string): boolean {
-    const currentPath = this.currentPath();
+    const currentPath = this.currentPath().split('?')[0];
+    const targetPath = route.split('?')[0];
     if (route === '/dashboard') {
       return currentPath === '/' || currentPath === '/dashboard' || currentPath === '/self-service';
     }
-    if (route === '/settings') {
+    if (targetPath === '/settings') {
       return currentPath.startsWith('/settings') || currentPath.startsWith('/admin');
     }
-    return currentPath === route || currentPath.startsWith(`${route}/`);
+    return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
   }
 
   private getVisibleQuickLinks(): SearchResult[] {
@@ -1153,6 +1519,91 @@ export class TopbarComponent implements OnInit {
         category: 'Quick Link' as const,
         tone: item.quickLinkTone ?? 'bg-slate-100 text-slate-700',
       }));
+  }
+
+  private getInitialSearchResults(): SearchResult[] {
+    const quickLinks = this.getVisibleQuickLinks().slice(0, 8);
+
+    if (quickLinks.length > 0) {
+      return quickLinks;
+    }
+
+    const employeeHints = this.employeeCache()
+      .slice(0, 4)
+      .map((emp) => ({
+        title: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.email,
+        subtitle: emp.email,
+        route: '/employees',
+        category: 'Employee' as const,
+        tone: 'bg-blue-50 text-blue-700',
+      }));
+
+    const projectHints = this.projectCache()
+      .slice(0, 4)
+      .map((project) => ({
+        title: project.name,
+        subtitle: project.description || 'Project',
+        route: '/projects',
+        category: 'Project' as const,
+        tone: 'bg-purple-50 text-purple-700',
+      }));
+
+    return [...employeeHints, ...projectHints].slice(0, 8);
+  }
+
+  private seedRouteHistory(initialRoute: string) {
+    const history = this.readRouteHistory();
+    if (history.length === 0) {
+      this.writeRouteHistory([initialRoute]);
+      return;
+    }
+
+    const lastRoute = history[history.length - 1];
+    if (lastRoute !== initialRoute) {
+      this.writeRouteHistory([...history, initialRoute].slice(-20));
+    }
+  }
+
+  private pushRouteToHistory(route: string) {
+    const history = this.readRouteHistory();
+    const lastRoute = history[history.length - 1];
+    if (lastRoute === route) return;
+    this.writeRouteHistory([...history, route].slice(-20));
+  }
+
+  private readRouteHistory(): string[] {
+    try {
+      const rawHistory = sessionStorage.getItem(this.routeHistoryStorageKey);
+      if (!rawHistory) return [];
+      const parsed = JSON.parse(rawHistory);
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string' && !!item) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeRouteHistory(history: string[]) {
+    try {
+      sessionStorage.setItem(this.routeHistoryStorageKey, JSON.stringify(history));
+    } catch {
+      // Ignore storage failures and fall back to router/browser behavior.
+    }
+  }
+
+  private readPreviousRoute(): string | null {
+    try {
+      return sessionStorage.getItem(this.previousRouteStorageKey);
+    } catch {
+      return null;
+    }
+  }
+
+  private writePreviousRoute(route: string) {
+    try {
+      sessionStorage.setItem(this.previousRouteStorageKey, route);
+    } catch {
+      // Ignore storage failures and fall back to other route resolution.
+    }
   }
 
   private loadAddonLauncher() {
@@ -1185,11 +1636,22 @@ export class TopbarComponent implements OnInit {
       visitor_management: '/visit-management',
       visitormanagement: '/visit-management',
       attendance: '/attendance',
+      attendance_management: '/attendance',
+      attendancemanagement: '/attendance',
       leave: '/leaves',
       leaves: '/leaves',
+      leave_management: '/leaves',
+      leaves_management: '/leaves',
+      leavemanagement: '/leaves',
       projects: '/projects',
+      project_management: '/projects',
       expenses: '/expenses',
+      expense_management: '/expenses',
       timesheets: '/timesheets',
+      timesheet: '/timesheets',
+      timesheet_management: '/timesheets',
+      reports: '/reports',
+      reports_analytics: '/reports',
     };
 
     return routes[slug] ?? '/add-ons';

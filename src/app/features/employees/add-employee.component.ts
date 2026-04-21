@@ -388,9 +388,10 @@ export class AddEmployeeComponent implements OnInit {
     this.designations().map((d) => ({ label: d.name, value: d.id })),
   );
   roleOptions: SelectOption[] = [
-    { label: 'Employee', value: 4 },
+    { label: 'Employee', value: 5 },
+    { label: 'Manager', value: 4 },
     { label: 'HR Manager', value: 3 },
-    { label: 'Administrator', value: 2 },
+    { label: 'Organization Admin', value: 2 },
   ];
   statusOptions: SelectOption[] = [
     { label: 'Active', value: 'active' },
@@ -408,7 +409,7 @@ export class AddEmployeeComponent implements OnInit {
     employeeCode: ['', [Validators.required]],
     departmentId: [''],
     designationId: [''],
-    roleId: [4, [Validators.required]],
+    roleId: [5, [Validators.required]],
     status: ['active', [Validators.required]],
     joinDate: [''],
     emergencyContact: [''],

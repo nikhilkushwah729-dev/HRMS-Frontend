@@ -17,9 +17,11 @@ import { LanguageService } from '../../../../core/services/language.service';
           <button (click)="teammateTab.set('teammates')" 
             [ngClass]="teammateTab() === 'teammates' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
             class="px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-md transition-all">{{ t('selfService.network.teammates') }}</button>
-          <button (click)="teammateTab.set('reportees')" 
-            [ngClass]="teammateTab() === 'reportees' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-            class="px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-md transition-all">{{ t('selfService.network.reportees') }}</button>
+          @if (hasReportees()) {
+            <button (click)="teammateTab.set('reportees')" 
+              [ngClass]="teammateTab() === 'reportees' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+              class="px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-md transition-all">{{ t('selfService.network.reportees') }}</button>
+          }
         </div>
       </div>
       
@@ -155,7 +157,7 @@ import { LanguageService } from '../../../../core/services/language.service';
                   <p class="mt-1 text-xs font-medium text-slate-500">{{ reporteeHierarchyLabel() }}</p>
                 </div>
               </div>
-              @if (hasValidEmployeeId(rep?.id)) {
+              @if (canViewEmployeeProfiles() && hasValidEmployeeId(rep?.id)) {
                 <button (click)="openEmployeeProfile(rep?.id)" class="text-xs font-extrabold text-indigo-600 px-3 py-1.5 rounded-md bg-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity">{{ t('selfService.network.viewPortfolio') }}</button>
               }
             </div>
@@ -181,11 +183,16 @@ export class EssNetworkHubComponent {
   reportees = input<any[]>([]);
   currentUserName = input<string>('');
   managerName = input<string>('');
+  canViewEmployeeProfiles = input<boolean>(false);
   teammateTab = signal<'teammates' | 'reportees'>('teammates');
 
   navigate = output<string>();
   readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
     this.languageService.t(key, params);
+
+  hasReportees(): boolean {
+    return this.reportees().length > 0;
+  }
 
   hasValidEmployeeId(value: unknown): boolean {
     const id = Number(value);
@@ -239,6 +246,10 @@ export class EssNetworkHubComponent {
   }
 
   openEmployeeProfile(value: unknown): void {
+    if (!this.canViewEmployeeProfiles()) {
+      return;
+    }
+
     const id = Number(value);
     if (!Number.isInteger(id) || id <= 0) {
       return;

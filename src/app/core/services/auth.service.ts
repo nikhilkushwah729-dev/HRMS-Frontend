@@ -112,9 +112,52 @@ export class AuthService {
             ...raw?.organization,
             ...raw?.company,
             ...candidate,
+            allUserPermissions: raw?.allUserPermissions ?? candidate?.allUserPermissions,
+            userPermissions: raw?.userPermissions ?? candidate?.userPermissions,
+            tabsPermission: raw?.tabsPermission ?? candidate?.tabsPermission,
+            anonymousPermission: raw?.anonymousPermission ?? candidate?.anonymousPermission,
             organization: raw?.organization ?? candidate?.organization,
             company: raw?.company ?? candidate?.company
         });
+    }
+
+    private normalizePermissions(raw: any): string[] {
+        const source = raw?.permissions ?? raw?.permission ?? raw?.allUserPermissions?.permission;
+        const nestedSources = [
+            raw?.allUserPermissions?.permission,
+            raw?.userPermissions?.permission,
+            raw?.tabsPermission?.permission,
+            raw?.anonymousPermission?.permission,
+        ];
+
+        const fromObject = (value: any): string[] => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+            return Object.entries(value)
+                .filter(([, allowed]) => allowed === true || allowed === 1 || allowed === '1' || allowed === 'true')
+                .map(([key]) => key);
+        };
+
+        if (Array.isArray(source)) {
+            return [
+                ...source.map((item: any) => String(item)),
+                ...nestedSources.flatMap(fromObject),
+            ];
+        }
+
+        if (source && typeof source === 'object') {
+            return [...fromObject(source), ...nestedSources.flatMap(fromObject)];
+        }
+
+        return nestedSources.flatMap(fromObject);
+    }
+
+    private normalizeNumberFlag(value: any): number | undefined {
+        if (value === undefined || value === null || value === '') return undefined;
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+        if (value === true || value === 'true') return 1;
+        if (value === false || value === 'false') return 0;
+        return undefined;
     }
 
     private normalizeUser(raw: any): User {
@@ -156,9 +199,26 @@ export class AuthService {
             phoneVerified: Boolean(raw?.phoneVerified ?? raw?.phone_verified ?? false),
             emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
             isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
+            employeeId: Number(raw?.employeeId ?? raw?.employee_id ?? raw?.empId ?? raw?.emp_id ?? raw?.id ?? 0) || undefined,
+            reportingManagerId: Number(raw?.reportingManagerId ?? raw?.reporting_manager_id ?? raw?.managerId ?? raw?.manager_id ?? 0) || undefined,
+            paySlip: this.normalizeNumberFlag(raw?.paySlip ?? raw?.pay_slip),
+            salarySlip: this.normalizeNumberFlag(raw?.salarySlip ?? raw?.salary_slip),
+            shiftChangePerm: this.normalizeNumberFlag(raw?.shiftChangePerm ?? raw?.shift_change_perm),
+            profileType: this.normalizeNumberFlag(raw?.profileType ?? raw?.profile_type),
+            hrSts: this.normalizeNumberFlag(raw?.hrSts ?? raw?.hr_sts),
+            setupConfig: this.normalizeNumberFlag(raw?.setupConfig ?? raw?.setup_config),
+            esslSetupConfig: this.normalizeNumberFlag(raw?.esslSetupConfig ?? raw?.essl_setup_config),
+            biometricMachinePermission: this.normalizeNumberFlag(raw?.biometricMachinePermission ?? raw?.biometric_machine_permission),
+            addonDeviceVerification: this.normalizeNumberFlag(raw?.addonDeviceVerification ?? raw?.addon_device_verification),
+            visitorManagementAddOn: this.normalizeNumberFlag(
+                raw?.visitorManagementAddOn ??
+                raw?.visitor_management_add_on ??
+                raw?.anonymousPermission?.permission?.visitorManagementAddOn
+            ),
+            settingPerm: this.normalizeNumberFlag(raw?.settingPerm ?? raw?.setting_perm ?? raw?.anonymousPermission?.permission?.settingPerm),
             department: raw?.department ? { id: Number(raw.department.id), name: raw.department.name } : undefined,
             designation: raw?.designation ? { id: Number(raw.designation.id), name: raw.designation.name } : undefined,
-            permissions: Array.isArray(raw?.permissions) ? raw.permissions.map((item: any) => String(item)) : [],
+            permissions: this.normalizePermissions(raw),
             accessScope: raw?.accessScope ?? raw?.access_scope
         };
     }
