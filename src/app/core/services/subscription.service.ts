@@ -139,6 +139,9 @@ export class SubscriptionService {
     name: string;
     duration: number;
     durationType: string;
+    subtotal?: number;
+    tax?: number;
+    paymentAmount?: number;
     gstin?: string;
     remark?: string;
     action: 'Buy' | 'Upgrade';
