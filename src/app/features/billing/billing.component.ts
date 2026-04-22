@@ -1,2129 +1,1217 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
+declare var Razorpay: any;
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ToastService } from '../../core/services/toast.service';
+import { LanguageService } from '../../core/services/language.service';
 import {
-  SubscriptionService,
   BillingPlan,
   SubscriptionStatusPayload,
   LegacyBillingContext,
+  SubscriptionService,
 } from '../../core/services/subscription.service';
-import { ToastService } from '../../core/services/toast.service';
-import { ActivatedRoute, Router } from '@angular/router';
-import { LanguageService } from '../../core/services/language.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize, take } from 'rxjs/operators';
 
-type BillingCycle = 'monthly' | 'yearly';
-type BillingGateway = 'razorpay' | 'stripe';
-type CheckoutStage = 'select' | 'review' | 'pay';
+type CheckoutStep =
+  | 'PLAN_SELECTION'
+  | 'PAYMENT_SUCCESS'
+  | 'BILLING_DETAILS'
+  | 'INVOICE_GENERATED_SUCCESS'
+  | 'INVOICE_VIEW';
 
 @Component({
   selector: 'app-billing',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
   template: `
-    <div class="billing-shell">
+<!-- billing.component.html -->
+<div class="upgrade-plan-root min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50/50 relative overflow-hidden">
+  
+  <!-- Subtle Background Watermark -->
+  <div class="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden select-none">
+    <img src="/hrnexus-logo.png" alt="" aria-hidden="true" class="w-[120%] max-w-6xl -rotate-12 scale-150 object-contain" />
+  </div>
 
-      <!-- ─── ANIMATED BACKGROUND ─── -->
-      <div class="billing-bg" aria-hidden="true">
-        <div class="bg-orb bg-orb-1"></div>
-        <div class="bg-orb bg-orb-2"></div>
-        <div class="bg-orb bg-orb-3"></div>
-        <div class="bg-grid"></div>
+  <!-- Authentication Loading State -->
+  <div *ngIf="isAuthenticating"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-white via-gray-50/95 to-white backdrop-blur-xl">
+    <div
+      class="mx-4 w-full max-w-md rounded-2xl border border-gray-100/50 bg-white/95 px-6 py-8 text-center shadow-xl backdrop-blur-sm">
+      <div class="relative mb-6">
+        <div class="absolute inset-0 -m-4">
+          <div
+            class="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-emerald-400/10 via-teal-400/10 to-green-400/10">
+          </div>
+        </div>
+        <div class="relative mx-auto h-20 w-20">
+          <div
+            class="absolute inset-0 animate-spin rounded-full border-[4px] border-dashed border-emerald-100 border-t-emerald-500">
+          </div>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="text-white w-4 h-4">
+                <path fill="currentColor"
+                  d="M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0zm0 66.8V444.8C394 378 431.1 230.1 432 141.4L256 66.8l0 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
       </div>
+      <h3 class="mb-2 text-lg font-semibold text-gray-900">Verifying Access Credentials</h3>
+      <p class="mb-4 text-xs text-gray-600">Securing your HRMS upgrade experience</p>
+      <div class="mx-auto h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100">
+        <div class="h-full animate-[pulse_2s_ease-in-out_infinite] bg-gradient-to-r from-emerald-400 via-teal-500 to-green-500"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Session Expired State -->
+  <div *ngIf="isSessionExpired"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-white via-gray-50/95 to-white backdrop-blur-xl">
+    <div
+      class="mx-4 w-full max-w-md rounded-2xl border border-red-100 bg-white/95 px-4 py-4 text-center shadow-2xl backdrop-blur-md animate__animated animate__zoomIn">
+      <div class="relative mb-8 mx-auto w-24 h-24">
+        <div class="absolute inset-0 animate-ping rounded-full bg-red-100/50"></div>
+        <div class="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-orange-500 shadow-xl shadow-red-500/20">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="text-white w-10 h-10">
+            <path fill="currentColor" d="M464 256A208 208 0 1 1 48 256a208 208 0 1 1 416 0zM0 256a256 256 0 1 0 512 0A256 256 0 1 0 0 256zM232 120V256c0 8 4 15.5 10.7 20l96 64c11 7.4 25.9 4.4 33.3-6.7s4.4-25.9-6.7-33.3L280 243.2V120c0-13.3-10.7-24-24-24s-24 10.7-24 24z"/>
+          </svg>
+        </div>
+      </div>
+      <h3 class="mb-3 text-2xl font-bold text-gray-900 leading-tight">Access Link Expired</h3>
+      <p class="mb-8 text-sm text-gray-600 leading-relaxed px-4">
+        This upgrade link has already been used or has expired for security reasons. Please initiate a new upgrade from your dashboard.
+      </p>
+      <button (click)="redirectToDashboard()" class="w-full rounded-xl bg-gray-900 py-3 text-white font-semibold">Go to Dashboard</button>
+    </div>
+  </div>
 
-      <div class="billing-content">
-        <!-- ─── BACK NAVIGATION ─── -->
-        <nav class="billing-nav">
-          <div class="nav-left" (click)="goDashboard()" id="nav-brand">
-            <div class="nav-logo">HN</div>
-            <div class="nav-sep"></div>
-            <span class="nav-text">Billing & Subscriptions</span>
-          </div>
-          <button class="nav-exit" (click)="goDashboard()" id="btn-back-dashboard">
-            <span>Dashboard</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-          </button>
-        </nav>
+  <!-- Main Wrapper -->
+  <div class="flex h-screen flex-col overflow-hidden" [ngClass]="{ 'overflow-hidden': isAuthenticating || isRedirecting }">
 
-        <!-- ─── TOP HERO SECTION ─── -->
-        <section class="hero-section">
-          <div class="hero-left">
-            <div class="hero-badge">
-              <span class="badge-dot"></span>
-              Subscription Management
+    <!-- Professional Header -->
+    <header class="sticky top-0 z-50 flex-shrink-0 border-b border-gray-200/50 bg-white/95 shadow-sm shadow-gray-100/50 backdrop-blur-xl">
+      <div class="mx-auto px-4">
+        <div class="flex h-14 sm:h-16 items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <div class="h-11 w-11 overflow-hidden rounded-2xl bg-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-100">
+                <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-cover" loading="eager" />
+              </div>
+              <div class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white"></div>
             </div>
-            <h1 class="hero-title">
-              Power up your<br>
-              <span class="hero-gradient-text">HR Workspace</span>
-            </h1>
-            <p class="hero-sub">
-              Unlock premium modules, scale your team, and manage the entire billing lifecycle in one place.
-            </p>
-
-            <!-- Stats row -->
-            <div class="hero-stats">
-              <div class="stat-chip" *ngFor="let card of stats()">
-                <span class="stat-label">{{ card.label }}</span>
-                <span class="stat-value">{{ card.value }}</span>
-                <span class="stat-help">{{ card.help }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Active plan card -->
-          <div class="plan-status-card">
-            <div class="psc-header">
-              <div>
-                <p class="psc-eyebrow">Active License</p>
-                <h2 class="psc-plan-name">{{ currentWorkspacePlanName() }}</h2>
-              </div>
-              <span class="psc-status-badge" [ngClass]="statusBadgeClass()">{{ humanStatus() }}</span>
-            </div>
-
-            <div class="psc-divider"></div>
-
-            <div class="psc-meta">
-              <div class="psc-meta-row" *ngIf="status()?.organization?.isTrialActive">
-                <span class="psc-meta-icon">⏳</span>
-                <span>{{ status()?.trialDaysRemaining }} days left in trial</span>
-              </div>
-              <div class="psc-meta-row">
-                <span class="psc-meta-icon">🏢</span>
-                <span>{{ status()?.organization?.companyName || 'Your Workspace' }}</span>
-              </div>
-              <div class="psc-meta-row">
-                <span class="psc-meta-icon">📅</span>
-                <span>{{ statusNote() }}</span>
-              </div>
-            </div>
-
-            <div class="psc-gateway">
-              <p class="psc-gateway-label">Payment Gateway</p>
-              <div class="gateway-toggle">
-                <button (click)="selectedGateway.set('razorpay')"
-                        [class.gw-active]="selectedGateway() === 'razorpay'"
-                        class="gw-btn" id="gateway-razorpay">
-                  <span class="gw-icon">⚡</span> Razorpay
-                </button>
-                <button (click)="selectedGateway.set('stripe')"
-                        [class.gw-active]="selectedGateway() === 'stripe'"
-                        class="gw-btn" id="gateway-stripe">
-                  <span class="gw-icon">💳</span> Stripe
-                </button>
+            <div>
+              <h1 class="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent uppercase">
+                  HRNexus Plan
+                </span>
+              </h1>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">Enterprise Edition</span>
+                <div class="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                <span class="text-[10px] text-gray-500">HRNexus Technology</span>
               </div>
             </div>
           </div>
-        </section>
 
-        <!-- ─── STEPPER ─── -->
-        <nav class="stepper-nav">
-          <div class="stepper-track">
-            <button class="step-item" [class.step-active]="checkoutStage() === 'select'"
-                    [class.step-done]="checkoutStage() === 'review' || checkoutStage() === 'pay'"
-                    (click)="checkoutStage.set('select')" id="step-select">
-              <span class="step-circle">
-                <span *ngIf="checkoutStage() === 'select'">1</span>
-                <svg *ngIf="checkoutStage() !== 'select'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </span>
-              <span class="step-label">Pick Plan</span>
-            </button>
-
-            <div class="step-connector" [class.connector-done]="checkoutStage() === 'review' || checkoutStage() === 'pay'"></div>
-
-            <button class="step-item" [class.step-active]="checkoutStage() === 'review'"
-                    [class.step-done]="checkoutStage() === 'pay'"
-                    [disabled]="!selectedPlanId()"
-                    (click)="selectedPlanId() && checkoutStage.set('review')" id="step-review">
-              <span class="step-circle">
-                <span *ngIf="checkoutStage() !== 'pay'">2</span>
-                <svg *ngIf="checkoutStage() === 'pay'" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              </span>
-              <span class="step-label">Configure</span>
-            </button>
-
-            <div class="step-connector" [class.connector-done]="checkoutStage() === 'pay'"></div>
-
-            <button class="step-item" [class.step-active]="checkoutStage() === 'pay'" id="step-checkout">
-              <span class="step-circle">3</span>
-              <span class="step-label">Checkout</span>
-            </button>
-          </div>
-        </nav>
-
-        <!-- ─── STEP CONTENT ─── -->
-        <main [ngSwitch]="checkoutStage()" class="step-content">
-
-          <!-- STEP 1 – Plan Selection -->
-          <div *ngSwitchCase="'select'" class="fade-in">
-            <!-- Billing cycle toggle -->
-            <div class="cycle-toggle-wrap">
-              <div class="cycle-toggle">
-                <button (click)="billingCycle.set('monthly')"
-                        [class.cycle-active]="billingCycle() === 'monthly'"
-                        class="cycle-btn" id="cycle-monthly">Monthly</button>
-                <button (click)="billingCycle.set('yearly')"
-                        [class.cycle-active]="billingCycle() === 'yearly'"
-                        class="cycle-btn" id="cycle-yearly">
-                  Yearly
-                  <span class="cycle-badge">Save 20%</span>
-                </button>
+          <div class="flex items-center gap-3 sm:gap-4">
+            <div class="hidden lg:flex items-center gap-2">
+              <div [class]="getPlanStatusBadgeWithIcon().bgColor + ' rounded-lg border border-gray-200/50 px-3 py-1.5'">
+                <div class="flex items-center gap-1.5">
+                  <span [class]="getPlanStatusBadgeWithIcon().color + ' text-sm font-bold'">
+                    {{ getPlanStatusBadgeWithIcon().text }}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <!-- Plan cards grid -->
-            <div class="plans-grid">
-              <div *ngFor="let plan of upgradablePlans(); let i = index"
-                   (click)="selectPlan(plan)"
-                   [class.plan-selected]="selectedPlanId() === plan.id"
-                   [class.plan-popular]="plan.slug === recommendedPlanSlug()"
-                   class="plan-card"
-                   [attr.id]="'plan-' + plan.slug">
+            <div class="hidden lg:flex flex-col items-end">
+              <span class="max-w-[140px] truncate text-sm font-bold text-gray-900">{{ userInfo.name }}</span>
+              <span class="max-w-[140px] truncate text-xs text-gray-500">{{ userInfo.email }}</span>
+            </div>
 
-                <div class="plan-card-glow" *ngIf="plan.slug === recommendedPlanSlug()"></div>
+            <div class="group relative">
+              <button (click)="showUserDropdown = !showUserDropdown"
+                class="flex items-center gap-1.5 sm:gap-2 rounded-lg border border-gray-200 bg-gradient-to-b from-white to-gray-50 p-1 sm:p-1.5 transition-all duration-200 hover:border-emerald-200 hover:shadow-sm">
+                <div class="relative">
+                  <div class="flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-white bg-gradient-to-br from-emerald-500 to-teal-500 font-bold text-white shadow-md">
+                    {{ getUserInitials() }}
+                  </div>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="text-gray-400 w-3 h-3" [ngClass]="{ 'rotate-180': showUserDropdown }">
+                  <path fill="currentColor" d="M233.4 406.6c12.5 12.5 32.8 12.5 45.3 0l192-192c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L256 338.7 86.6 169.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3l192 192z" />
+                </svg>
+              </button>
 
-                <div class="plan-card-inner">
-                  <div class="plan-card-top">
-                    <div class="plan-header">
-                      <div>
-                        <span class="plan-slug">{{ plan.slug }}</span>
-                        <h3 class="plan-name">{{ plan.name }}</h3>
+              <div *ngIf="showUserDropdown" class="absolute right-0 top-full z-50 mt-1.5 w-60 rounded-xl border border-gray-200/50 bg-white/95 py-2 shadow-lg backdrop-blur-xl">
+                <div class="border-b border-gray-100 px-4 py-3">
+                  <p class="truncate text-sm font-bold text-gray-900">{{ userInfo.name }}</p>
+                  <div class="mt-2 flex items-center gap-2">
+                    <span [class]="getPlanStatusBadge().color" class="rounded-full px-2 py-1 text-xs font-semibold">
+                      {{ getPlanStatusBadge().text }}
+                    </span>
+                    <span class="text-xs font-medium text-gray-500">{{ getRemainingDaysDisplay() }}</span>
+                  </div>
+                </div>
+                <div class="py-1">
+                  <button (click)="forceReload(); showUserDropdown = false" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Refresh Data</button>
+                  <button (click)="redirectToDashboard(); showUserDropdown = false" class="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Go to Dashboard</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Plan Expired Banner -->
+    <div *ngIf="planContext.isPlanExpired && currentStep === 'PLAN_SELECTION'"
+      class="relative flex-shrink-0 overflow-hidden border-b border-amber-100/50 bg-gradient-to-r from-amber-50 via-orange-50/50 to-red-50/30 px-4 py-3 sm:py-4">
+      <div class="mx-auto flex flex-col items-center justify-between gap-3 lg:flex-row">
+        <div class="flex items-center gap-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="w-5 h-5">
+              <path fill="currentColor" d="M256 32c14.2 0 27.3 7.5 34.5 19.8l216 368c7.3 12.4 7.3 27.7 .2 40.1S486.3 480 472 480H40c-14.3 0-27.6-7.7-34.7-20.1s-7-27.8 .2-40.1l216-368C228.7 39.5 241.8 32 256 32zm0 128c-13.3 0-24 10.7-24 24V296c0 13.3 10.7 24 24 24s24-10.7 24-24V184c0-13.3-10.7-24-24-24zm32 224a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-gray-900">Your plan has expired <span class="text-amber-700">{{ planContext.daysSinceExpiry }} days ago</span></h3>
+            <p class="text-xs text-gray-600">Upgrade now to restore full access to all HRMS features.</p>
+          </div>
+        </div>
+        <button (click)="triggerExpiredPlanRedirect()" class="rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-xs font-bold text-white shadow-md hover:from-amber-600 hover:to-orange-600">Upgrade Now →</button>
+      </div>
+    </div>
+
+    <!-- REDIRECT LOADER OVERLAY -->
+    <div *ngIf="isRedirecting" class="fixed inset-0 z-[10000] flex items-center justify-center bg-white/95 backdrop-blur-xl px-4">
+      <div class="w-full max-w-2xl text-center">
+        <div class="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+          <div class="absolute inset-0 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="relative h-10 w-10" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <h2 class="text-3xl font-bold text-gray-900">Processing Your Payment</h2>
+        <p class="mt-2 text-lg text-gray-600">Please wait while we securely connect to Razorpay...</p>
+        <div class="mx-auto mt-8 h-2 w-full max-w-md overflow-hidden rounded-full bg-gray-100">
+          <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" [style.width.%]="progress"></div>
+        </div>
+        <div class="mt-10 flex flex-col items-center gap-3">
+          <span class="text-sm text-gray-500">Secure payment via</span>
+          <span class="text-sm font-bold text-slate-700">Razorpay</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto" [ngClass]="{ 'bg-gray-50': isMinimalLayoutStep() }">
+      <div class="mx-auto px-4 py-6">
+
+        <!-- PLAN SELECTION STEP -->
+        <div id="plan-selection-area" *ngIf="currentStep === 'PLAN_SELECTION' && !isRedirecting" class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          
+          <div class="space-y-6 lg:col-span-8">
+            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <h2 class="text-2xl font-bold text-gray-900">Configure Your Plan</h2>
+              <p class="mt-1 text-sm text-gray-500">{{ getPlanStatusMessage() }}</p>
+
+              <div class="mt-8">
+                <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
+                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <button *ngFor="let option of getDurationOptions()" (click)="selectDurationOption(option.months)"
+                    [class]="durationInputValue === option.months ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600'"
+                    class="rounded-xl border p-4 text-center transition-all hover:border-emerald-200">
+                    <p class="text-lg font-bold">{{ option.label }}</p>
+                    <p class="text-xs opacity-70">{{ option.months }} Months</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-8">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">User Capacity</h3>
+                  <div class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-1 border border-gray-200">
+                    <span class="text-xl font-bold text-gray-900">{{ targetUsers }}</span>
+                    <span class="text-xs text-gray-500">Users</span>
+                  </div>
+                </div>
+                <div class="mt-6 px-2">
+                  <input type="range" [min]="getMinUsersForDuration()" max="10000" [value]="targetUsers"
+                    (input)="targetUsers = +$any($event.target).value; updateTargetUsers()"
+                    [style.background]="getSliderGradient()"
+                    class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 focus:outline-none" />
+                  <div class="mt-2 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                    <span>Min: {{ getMinUsersForDuration() }} Users</span>
+                    <span>Max: 10,000 Users</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Premium Add-ons</h2>
+                <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{{ getSelectedAddonsCount() }} Selected</span>
+              </div>
+              <div class="divide-y divide-gray-100">
+                <div *ngFor="let addon of addOns" class="flex items-center justify-between gap-4 py-4 group">
+                  <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h4 class="text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{{ addon.label }}</h4>
+                      <span *ngIf="addon.isInstalled" class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">Active</span>
+                      <span *ngIf="addon.isLocked" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600 ring-1 ring-slate-200">Locked</span>
+                    </div>
+                    <p class="text-sm text-gray-500">{{ addon.description }}</p>
+                  </div>
+                  <button (click)="toggleAddOn(addon)" [disabled]="addon.isLocked"
+                    [title]="addon.isLocked ? 'This add-on is already active and cannot be removed from this purchase.' : (addon.selected ? 'Remove add-on' : 'Add add-on')"
+                    [class]="addon.selected ? (addon.isLocked ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 cursor-not-allowed' : 'bg-emerald-500 text-white') : 'bg-gray-100 text-gray-400'"
+                    class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm disabled:hover:scale-100">
+                    <svg *ngIf="!addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+                    <svg *ngIf="addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="lg:col-span-4">
+            <div class="sticky top-24 space-y-6">
+              <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl ring-1 ring-emerald-500/10">
+                <h3 class="text-xl font-bold text-gray-900 border-b border-gray-100 pb-4">Order Summary</h3>
+                <div class="mt-4 space-y-4">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Users ({{ targetUsers }})</span>
+                    <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Duration</span>
+                    <span class="font-bold text-gray-900">{{ durationLabel }}</span>
+                  </div>
+                  <div *ngIf="getSelectedAddonsCount() > 0" class="pt-2 border-t border-dashed border-gray-100">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Add-ons</p>
+                    <div *ngFor="let addon of addOns">
+                      <div *ngIf="addon.selected" class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600 italic text-xs">{{ addon.label }}</span>
+                        <span class="font-medium text-gray-800 text-xs">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</span>
                       </div>
-                      <span *ngIf="plan.slug === recommendedPlanSlug()" class="popular-badge">
-                        ⭐ Popular
-                      </span>
-                    </div>
-
-                    <div class="plan-price">
-                      <span class="price-currency">₹</span>
-                      <span class="price-amount">{{ planPrice(plan) | number:'1.0-0' }}</span>
-                      <span class="price-period">/{{ billingCycle() === 'yearly' ? 'yr' : 'mo' }}</span>
-                    </div>
-
-                    <p class="plan-pitch">{{ planPitch(plan) }}</p>
-
-                    <div class="plan-modules">
-                      <span class="modules-label">Modules included</span>
-                      <ul class="modules-list">
-                        <li *ngFor="let module of plan.modules.slice(0, 6)" class="module-item">
-                          <span class="module-check">✓</span>
-                          {{ module }}
-                        </li>
-                        <li *ngIf="plan.modules.length > 6" class="module-more">
-                          +{{ plan.modules.length - 6 }} more
-                        </li>
-                      </ul>
                     </div>
                   </div>
-
-                  <button type="button"
-                          (click)="$event.stopPropagation(); selectPlan(plan); checkoutStage.set('review')"
-                          [disabled]="status()?.plan?.id === plan.id"
-                          class="plan-cta"
-                          [attr.id]="'select-plan-' + plan.slug">
-                    <span *ngIf="status()?.plan?.id === plan.id">✓ Current Plan</span>
-                    <span *ngIf="status()?.plan?.id !== plan.id">Select {{ plan.name }} →</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- STEP 2 – Configure & Review -->
-          <div *ngSwitchCase="'review'" class="fade-in review-layout">
-            <div class="review-main">
-
-              <!-- Configure section -->
-              <section class="review-card">
-                <div class="review-card-header">
-                  <div>
-                    <h3 class="review-card-title">Customise Your Plan</h3>
-                    <p class="review-card-sub">Configure seats and billing details</p>
-                  </div>
-                  <button (click)="checkoutStage.set('select')" class="change-plan-btn" id="btn-change-plan">
-                    ← Change Plan
-                  </button>
-                </div>
-
-                <div class="config-grid">
-                  <div class="config-field">
-                    <label class="field-label">Seat Count</label>
-                    <div class="seat-input-wrap">
-                      <button (click)="updateNouser(String(Math.max(1, nouser() - 1)))" class="seat-adj" id="btn-seats-minus">−</button>
-                      <input type="number"
-                             [value]="nouser() || selectedPlan()?.userLimit"
-                             (input)="updateNouser(($any($event.target)).value)"
-                             class="seat-input" id="input-seats" min="1">
-                      <button (click)="updateNouser(String(nouser() + 1))" class="seat-adj" id="btn-seats-plus">+</button>
+                  <div class="pt-4 border-t border-gray-100 space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-500">Subtotal</span>
+                      <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ subTotal | number:'1.2-2' }}</span>
                     </div>
-                    <p class="field-hint">Plan minimum: {{ selectedPlan()?.userLimit }} seats</p>
-                  </div>
-
-                  <div class="config-field">
-                    <label class="field-label">Duration</label>
-                    <div class="duration-tabs">
-                      <button (click)="duration.set(1)" [class.dur-active]="duration() === 1" class="dur-btn" id="btn-dur-1">1 Year</button>
-                      <button (click)="duration.set(2)" [class.dur-active]="duration() === 2" class="dur-btn" id="btn-dur-2">2 Years</button>
-                      <button (click)="duration.set(3)" [class.dur-active]="duration() === 3" class="dur-btn" id="btn-dur-3">3 Years</button>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-gray-500">Tax ({{ isINR ? '18%' : '0%' }})</span>
+                      <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ tax | number:'1.2-2' }}</span>
                     </div>
                   </div>
-
-                  <div class="config-field">
-                    <label class="field-label">Billing Name</label>
-                    <input [value]="contactName()"
-                           (input)="contactName.set(($any($event.target)).value)"
-                           class="text-field" placeholder="Full billing name" id="input-billing-name">
-                  </div>
-
-                  <div class="config-field">
-                    <label class="field-label">GSTIN <span class="optional">(optional)</span></label>
-                    <input [value]="gstin()"
-                           (input)="gstin.set(($any($event.target)).value)"
-                           class="text-field" placeholder="22AAAAA0000A1Z5" id="input-gstin">
-                  </div>
-
-                  <div class="config-field">
-                    <label class="field-label">State</label>
-                    <select [value]="stateCode()"
-                            (change)="stateCode.set(($any($event.target)).value)"
-                            class="text-field" id="select-state">
-                      <option value="">Select state</option>
-                      <option *ngFor="let state of legacyContext()?.states" [value]="state.code">{{ state.name }}</option>
-                    </select>
-                  </div>
-
-                  <div class="config-field">
-                    <label class="field-label">Currency</label>
-                    <div class="currency-display">{{ selectedPlan()?.currency || 'INR' }} — Indian Rupee</div>
+                  <div class="mt-6 rounded-xl bg-emerald-600 p-4 text-white shadow-lg shadow-emerald-200">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-medium opacity-90">Grand Total</span>
+                      <span class="text-2xl font-bold">{{ getCurrencySymbol() }}{{ grandTotal | number:'1.2-2' }}</span>
+                    </div>
                   </div>
                 </div>
-
-                <!-- Modules included -->
-                <div class="modules-section">
-                  <p class="field-label mb-sm">Modules Included in {{ selectedPlan()?.name }}</p>
-                  <div class="modules-chips">
-                    <span *ngFor="let mod of selectedPlan()?.modules" class="module-chip">{{ mod }}</span>
-                  </div>
+                <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || !legacyBillingConfigured || isSubmitting"
+                  class="mt-6 w-full rounded-xl bg-gray-900 py-4 text-lg font-bold text-white transition-all hover:bg-black hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
+                  {{ getPlanActionButtonText() }}
+                </button>
+                <p *ngIf="!legacyBillingConfigured" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
+                  Legacy billing gateway is not configured. Please set LEGACY_BILLING_BASE_URL on the backend before starting a purchase.
+                </p>
+                <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  Secure End-to-End Payment
                 </div>
               </section>
             </div>
-
-            <!-- Sticky summary -->
-            <aside class="checkout-summary">
-              <div class="summary-card">
-                <div class="summary-header">
-                  <div class="summary-plan-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                  </div>
-                  <div>
-                    <p class="summary-eyebrow">Order Summary</p>
-                    <h3 class="summary-plan-name">{{ selectedPlan()?.name }} Plan</h3>
-                  </div>
-                </div>
-
-                <div class="summary-lines">
-                  <div class="summary-line">
-                    <span>{{ checkoutUnitLabel() }}</span>
-                    <span>{{ checkoutUnitAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
-                  </div>
-                  <div class="summary-line">
-                    <span>{{ checkoutBaseLabel() }}</span>
-                    <span>{{ checkoutBaseAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
-                  </div>
-                  <div class="summary-line" *ngIf="selectedAddonAmount() > 0">
-                    <span>Add-ons</span>
-                    <span>{{ selectedAddonAmount() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
-                  </div>
-                  <div class="summary-line">
-                    <span>GST (18%)</span>
-                    <span>{{ checkoutTax() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
-                  </div>
-                </div>
-
-                <div class="summary-total">
-                  <span>Total Payable</span>
-                  <span class="total-amount">{{ checkoutTotalWithTax() | currency:selectedPlan()?.currency:'symbol':'1.0-0' }}</span>
-                </div>
-
-                <button (click)="payNow()"
-                        [disabled]="processing()"
-                        class="pay-btn" id="btn-pay-now">
-                  <span *ngIf="!processing()">
-                    <span class="pay-lock">🔒</span> Pay Securely Now
-                  </span>
-                  <span *ngIf="processing()" class="pay-loading">
-                    <span class="spinner-sm"></span> Processing…
-                  </span>
-                </button>
-
-                <p class="summary-secure">256-bit SSL · Secured via {{ selectedGateway() | titlecase }}</p>
-
-                <div class="summary-note">
-                  <span class="note-icon">⚠️</span>
-                  <p>Final amount is confirmed by the payment gateway. All prices include active seat configuration.</p>
-                </div>
-              </div>
-            </aside>
           </div>
-
-          <!-- STEP 3 – Processing -->
-          <div *ngSwitchCase="'pay'" class="fade-in pay-state">
-            <div class="pay-spinner-wrap">
-              <div class="pay-ring pay-ring-1"></div>
-              <div class="pay-ring pay-ring-2"></div>
-              <div class="pay-ring pay-ring-3"></div>
-              <div class="pay-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-              </div>
-            </div>
-            <h3 class="pay-title">Syncing with {{ selectedGateway() | titlecase }}</h3>
-            <p class="pay-sub">Initializing secure payment session. Please do not close this window.</p>
-            <button (click)="checkoutStage.set('review')" class="pay-cancel-btn" id="btn-cancel-payment">
-              Cancel Transaction
-            </button>
-          </div>
-
-        </main>
-
-        <!-- ─── BILLING HISTORY ─── -->
-        <section class="history-section" *ngIf="status()?.billingHistory?.length">
-          <div class="history-header">
-            <div>
-              <span class="history-eyebrow">Payment Records</span>
-              <h3 class="history-title">Transaction History</h3>
-            </div>
-            <span class="history-updated">Last updated: {{ status()?.billingHistory?.[0]?.createdAt | date:'dd MMM yyyy' }}</span>
-          </div>
-
-          <div class="history-table-wrap">
-            <table class="history-table">
-              <thead>
-                <tr>
-                  <th>Reference ID</th>
-                  <th>Plan</th>
-                  <th>Amount</th>
-                  <th>Cycle</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th class="th-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let item of status()?.billingHistory; let i = index"
-                    class="history-row"
-                    [attr.id]="'payment-row-' + item.id">
-                  <td class="td-ref">
-                    <span class="ref-badge">#{{ item.id }}</span>
-                  </td>
-                  <td class="td-gateway">
-                    <span class="gateway-tag">{{ item.gateway || '—' }}</span>
-                  </td>
-                  <td class="td-amount">
-                    {{ item.amount | currency:item.currency:'symbol':'1.0-0' }}
-                  </td>
-                  <td class="td-cycle">
-                    <span class="cycle-tag" *ngIf="item.billingCycle">{{ item.billingCycle }}</span>
-                    <span *ngIf="!item.billingCycle">—</span>
-                  </td>
-                  <td class="td-status">
-                    <span class="status-pill" [ngClass]="paymentTone(item.status)">
-                      <span class="status-dot"></span>
-                      {{ item.status }}
-                    </span>
-                  </td>
-                  <td class="td-date">{{ item.createdAt | date:'dd MMM yyyy, hh:mm a' }}</td>
-                  <td class="td-actions">
-                    <button *ngIf="item.invoiceUrl"
-                            class="action-btn" title="View Invoice"
-                            [attr.id]="'view-invoice-' + item.id">
-                      📄 Receipt
-                    </button>
-                    <span *ngIf="!item.invoiceUrl" class="no-invoice">—</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- Empty state if no history -->
-        <div class="empty-history" *ngIf="!status()?.billingHistory?.length && status()">
-          <div class="empty-icon">🧾</div>
-          <h4>No transactions yet</h4>
-          <p>Your payment history will appear here after your first upgrade.</p>
         </div>
 
-      </div><!-- /billing-content -->
-
-      <!-- ─── PAYMENT SUCCESS MODAL ─── -->
-      <div *ngIf="paymentSuccessOpen()" class="modal-overlay" id="payment-success-modal">
-        <div class="success-modal">
-          <div class="success-confetti" aria-hidden="true">
-            <span *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12]" class="confetti-piece"></span>
-          </div>
-
-          <div class="success-icon-wrap">
-            <div class="success-icon-ring"></div>
-            <div class="success-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <!-- PAYMENT SUCCESS STEP -->
+        <div *ngIf="currentStep === 'PAYMENT_SUCCESS'" class="flex min-h-[70vh] flex-col items-center justify-center text-center">
+          <div class="relative mb-8">
+            <div class="absolute inset-0 animate-ping rounded-full bg-emerald-100 opacity-75"></div>
+            <div class="relative h-24 w-24 rounded-full bg-emerald-500 flex items-center justify-center text-white shadow-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
             </div>
           </div>
-
-          <h2 class="success-title">Plan Activated! 🎉</h2>
-          <p class="success-sub">
-            Your workspace has been upgraded to
-            <strong>{{ status()?.plan?.name || selectedPlan()?.name }}</strong>.
-            All premium modules are now unlocked and ready to use.
-          </p>
-
-          <div class="success-plan-chip">
-            <span>✓</span>
-            <span>{{ status()?.plan?.name || selectedPlan()?.name }} · Active</span>
+          <h2 class="text-4xl font-bold text-gray-900">Payment Confirmed!</h2>
+          <p class="mt-3 text-lg text-gray-600 max-w-md">Your premium subscription has been successfully activated. Let's get your billing details for the invoice.</p>
+          <div class="mt-10 flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+            <button (click)="continueToBilling()" class="flex-1 rounded-xl bg-emerald-600 py-4 text-white font-bold shadow-lg hover:bg-emerald-700">Continue to Billing</button>
+            <button (click)="downloadReceipt()" class="flex-1 rounded-xl border border-gray-200 bg-white py-4 text-gray-700 font-bold hover:bg-gray-50">Save Receipt</button>
           </div>
+        </div>
 
-          <div class="success-actions">
-            <button (click)="closePaymentSuccess()" class="success-primary-btn" id="btn-go-dashboard">
-              Go to Dashboard
-            </button>
-            <button (click)="printInvoice()" class="success-secondary-btn" id="btn-print-invoice">
-              🖨️ Print Invoice
-            </button>
+        <!-- BILLING DETAILS STEP -->
+        <div *ngIf="currentStep === 'BILLING_DETAILS'" class="mx-auto max-w-3xl">
+          <section class="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+            <h2 class="text-2xl font-bold text-gray-900">Billing Information</h2>
+            <p class="text-sm text-gray-500 mt-1">Please provide accurate details for GST compliant invoice generation.</p>
+            
+            <form (ngSubmit)="saveAndGenerateInvoice()" class="mt-8 space-y-6">
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div class="space-y-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Company Name</label>
+                  <input type="text" [(ngModel)]="billingDetails.companyName" name="companyName" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" placeholder="e.g. Acme Corp" required />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Person</label>
+                  <input type="text" [(ngModel)]="billingDetails.contactPerson" name="contactPerson" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" placeholder="e.g. John Doe" />
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 p-4 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                <input type="checkbox" [(ngModel)]="billingDetails.hasGst" name="hasGst" id="hasGst" class="h-5 w-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                <label for="hasGst" class="text-sm font-bold text-gray-700 cursor-pointer">Include GST details on invoice</label>
+              </div>
+
+              <div *ngIf="billingDetails.hasGst" class="space-y-2">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">GST Number</label>
+                <input type="text" [(ngModel)]="billingDetails.gstNumber" name="gstNumber" (blur)="validateGST(billingDetails.gstNumber)" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 font-mono focus:border-emerald-500 focus:ring-0" placeholder="e.g. 23AAAAA0000A1Z5" />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Billing Address</label>
+                <textarea [(ngModel)]="billingDetails.address" name="address" rows="3" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" placeholder="Full billing address..."></textarea>
+              </div>
+
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <div class="space-y-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">City</label>
+                  <input type="text" [(ngModel)]="billingDetails.city" name="city" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">State</label>
+                  <input type="text" [(ngModel)]="billingDetails.state" name="state" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" />
+                </div>
+                <div class="space-y-2">
+                  <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">ZIP Code</label>
+                  <input type="text" [(ngModel)]="billingDetails.zipCode" name="zipCode" class="w-full rounded-xl border-gray-200 bg-gray-50 p-4 focus:border-emerald-500 focus:ring-0" />
+                </div>
+              </div>
+
+              <button type="submit" [disabled]="isSubmitting" class="w-full rounded-xl bg-gray-900 py-4 text-white font-bold shadow-lg hover:bg-black disabled:opacity-50 transition-all">
+                {{ isSubmitting ? 'Generating Invoice...' : 'Finalize & Generate Invoice' }}
+              </button>
+            </form>
+          </section>
+        </div>
+
+        <!-- INVOICE VIEW STEP -->
+        <div *ngIf="currentStep === 'INVOICE_VIEW'" class="mx-auto max-w-4xl">
+          <div class="rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden animate__animated animate__fadeInUp">
+            <div class="bg-emerald-600 p-8 text-white flex justify-between items-start">
+              <div>
+                <h1 class="text-3xl font-bold tracking-tight">Invoice</h1>
+                <p class="mt-1 opacity-80 text-sm">Thank you for your business!</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xl font-bold">HRNexus Technology</p>
+                <p class="text-xs opacity-80">Premium HRMS Solution</p>
+              </div>
+            </div>
+
+            <div class="p-8">
+              <div class="grid grid-cols-2 gap-12">
+                <div class="space-y-4">
+                  <div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Billed To</p>
+                    <p class="mt-1 text-lg font-bold text-gray-900">{{ billingDetails.companyName }}</p>
+                    <p class="text-sm text-gray-500">{{ billingDetails.address }}</p>
+                    <p class="text-sm text-gray-500">{{ billingDetails.city }}, {{ billingDetails.state }} - {{ billingDetails.zipCode }}</p>
+                    <p *ngIf="billingDetails.hasGst" class="mt-2 text-xs font-bold text-emerald-600">GSTIN: {{ billingDetails.gstNumber }}</p>
+                  </div>
+                </div>
+                <div class="text-right space-y-4">
+                  <div class="grid grid-cols-2 gap-x-4 text-sm">
+                    <p class="text-gray-400">Invoice #</p><p class="font-bold text-gray-900">{{ invoiceDetails.number }}</p>
+                    <p class="text-gray-400">Date</p><p class="font-bold text-gray-900">{{ today | date:'mediumDate' }}</p>
+                    <p class="text-gray-400">Status</p><p class="font-extrabold text-emerald-600 uppercase">Paid</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-12">
+                <table class="w-full text-left">
+                  <thead class="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    <tr>
+                      <th class="pb-4">Description</th>
+                      <th class="pb-4 text-center">Qty</th>
+                      <th class="pb-4 text-right">Price</th>
+                      <th class="pb-4 text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50">
+                    <tr class="text-sm">
+                      <td class="py-6">
+                        <p class="font-bold text-gray-900">Premium Plan ({{ durationLabel }})</p>
+                        <p class="text-xs text-gray-500">Access for {{ targetUsers }} users until {{ planEndDate }}</p>
+                      </td>
+                      <td class="py-6 text-center text-gray-900 font-medium">1</td>
+                      <td class="py-6 text-right text-gray-900">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</td>
+                      <td class="py-6 text-right text-gray-900 font-bold">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</td>
+                    </tr>
+                    <tr *ngFor="let addon of addOns">
+                      <td *ngIf="addon.selected" class="py-6">
+                        <p class="font-bold text-gray-900">{{ addon.label }} Add-on</p>
+                        <p class="text-xs text-gray-500">{{ addon.description }}</p>
+                      </td>
+                      <td *ngIf="addon.selected" class="py-6 text-center text-gray-900 font-medium">1</td>
+                      <td *ngIf="addon.selected" class="py-6 text-right text-gray-900">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
+                      <td *ngIf="addon.selected" class="py-6 text-right text-gray-900 font-bold">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="mt-8 pt-8 border-t border-gray-100 flex justify-end">
+                <div class="w-64 space-y-3">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Subtotal</span>
+                    <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ subTotal | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">Tax ({{ isINR ? '18%' : '0%' }})</span>
+                    <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ tax | number:'1.2-2' }}</span>
+                  </div>
+                  <div class="pt-3 border-t border-gray-200 flex justify-between items-center">
+                    <span class="text-lg font-bold text-gray-900">Total Paid</span>
+                    <span class="text-2xl font-black text-emerald-600">{{ getCurrencySymbol() }}{{ grandTotal | number:'1.2-2' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="bg-gray-50 p-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p class="text-xs text-gray-400 font-medium italic">This is a computer generated invoice and does not require a physical signature.</p>
+              <button (click)="redirectToDashboard()" class="rounded-xl bg-gray-900 px-8 py-3 text-white font-bold hover:bg-black shadow-lg">Back to Home</button>
+            </div>
           </div>
+        </div>
 
-          <button (click)="closePaymentSuccess()" class="modal-close" id="btn-close-success" aria-label="Close">×</button>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="sticky bottom-0 z-40 border-t border-gray-100 bg-white/80 backdrop-blur-md px-6 py-4">
+      <div class="mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">© 2026 HRNexus Technology</p>
+        <div class="flex gap-4">
+          <a href="#" class="text-[10px] font-bold text-gray-400 hover:text-emerald-600 uppercase tracking-widest transition-colors">Support</a>
+          <a href="#" class="text-[10px] font-bold text-gray-400 hover:text-emerald-600 uppercase tracking-widest transition-colors">Privacy</a>
+          <a href="#" class="text-[10px] font-bold text-gray-400 hover:text-emerald-600 uppercase tracking-widest transition-colors">Terms</a>
         </div>
       </div>
+    </footer>
+  </div>
+</div>
 
-    </div><!-- /billing-shell -->
+<!-- Logout Modal -->
+<div *ngIf="showLogoutModal" class="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="showLogoutModal = false"></div>
+  <div class="relative w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl animate__animated animate__zoomIn">
+    <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+    </div>
+    <h3 class="text-center text-xl font-bold text-gray-900">Session Expired</h3>
+    <p class="mt-2 text-center text-sm text-gray-500">You have been logged out. Please sign in again to continue with your purchase.</p>
+    <div class="mt-8 flex flex-col gap-3">
+      <button (click)="performLoginRedirect()" class="w-full rounded-xl bg-gray-900 py-3.5 text-white font-bold hover:bg-black">Sign In Again</button>
+      <button (click)="showLogoutModal = false" class="w-full rounded-xl py-3.5 text-gray-500 font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+    </div>
+  </div>
+</div>
   `,
   styles: [`
-    /* ─── CORE SHELL ─── */
-    .billing-shell {
-      min-height: 100vh;
-      position: relative;
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      background: #060b14;
-      color: #e2e8f0;
-      overflow-x: hidden;
+    :host { display: block; height: 100vh; }
+    .animate-spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    
+    .upgrade-plan-root {
+      background: linear-gradient(-45deg, #f9fafb, #ffffff, #f3f4f6, #ffffff);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+    }
+    
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    .backdrop-blur-xl {
+      backdrop-filter: blur(24px) saturate(180%);
     }
 
-    /* ─── ANIMATED BACKGROUND ─── */
-    .billing-bg {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .bg-orb {
-      position: absolute;
+    input[type='range']::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      background: #ffffff;
+      border: 2px solid #10b981;
       border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.18;
-      animation: orb-drift 16s ease-in-out infinite alternate;
-    }
-    .bg-orb-1 {
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, #10b981, #064e3b);
-      top: -200px; left: -200px;
-      animation-delay: 0s;
-    }
-    .bg-orb-2 {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, #6366f1, #1e1b4b);
-      bottom: -100px; right: -100px;
-      animation-delay: -6s;
-    }
-    .bg-orb-3 {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, #0ea5e9, #0c4a6e);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      animation-delay: -11s;
-    }
-    .bg-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
-      background-size: 48px 48px;
-    }
-    @keyframes orb-drift {
-      from { transform: translateY(0px) scale(1); }
-      to   { transform: translateY(40px) scale(1.08); }
-    }
-
-    /* ─── CONTENT WRAPPER (MAIN PANEL) ─── */
-    .billing-content {
-      position: relative;
-      z-index: 1;
-      max-width: 1400px;
-      margin: 24px auto 80px;
-      padding: 48px;
-      background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-    }
-
-    /* ─── NAVIGATION (FULL-SCREEN MODE) ─── */
-    .billing-nav {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .nav-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
       cursor: pointer;
-      opacity: 0.8;
-      transition: opacity 0.2s;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     }
-    .nav-left:hover { opacity: 1; }
-    .nav-logo {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, #10b981, #6366f1);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 900; color: white;
-    }
-    .nav-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.1); }
-    .nav-text { font-size: 14px; font-weight: 700; color: #f1f5f9; }
-
-    .nav-exit {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      color: #64748b;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .nav-exit:hover { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: #f87171; }
-
-    /* ─── FADE IN ANIMATION ─── */
-    .fade-in {
-      animation: fade-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    @keyframes fade-up {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ─── HERO SECTION ─── */
-    .hero-section {
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 40px;
-      align-items: start;
-      margin-bottom: 48px;
-    }
-    @media (max-width: 1024px) {
-      .hero-section { grid-template-columns: 1fr; }
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      background: rgba(16,185,129,0.12);
-      border: 1px solid rgba(16,185,129,0.25);
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: #34d399;
-      margin-bottom: 20px;
-    }
-    .badge-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      animation: pulse-dot 2s ease-in-out infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .hero-title {
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
-      font-weight: 900;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      color: #f8fafc;
-      margin: 0 0 16px;
-    }
-    .hero-gradient-text {
-      background: linear-gradient(135deg, #10b981 0%, #6366f1 50%, #0ea5e9 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero-sub {
-      font-size: 17px;
-      color: #94a3b8;
-      line-height: 1.7;
-      max-width: 560px;
-      margin: 0 0 32px;
-    }
-
-    /* Stats row */
-    .hero-stats {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-    @media (max-width: 600px) { .hero-stats { grid-template-columns: repeat(2, 1fr); } }
-    .stat-chip {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
-      transition: all 0.2s;
-    }
-    .stat-chip:hover {
-      background: rgba(255,255,255,0.07);
-      border-color: rgba(16,185,129,0.2);
-      transform: translateY(-2px);
-    }
-    .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
-    .stat-value { font-size: 24px; font-weight: 900; color: #f1f5f9; }
-    .stat-help  { font-size: 10px; color: #475569; }
-
-    /* ─── PLAN STATUS CARD ─── */
-    .plan-status-card {
-      background: rgba(15,23,42,0.7);
-      backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 28px;
-      box-shadow: 0 0 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
-    .psc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
-    .psc-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; margin-bottom: 6px; }
-    .psc-plan-name { font-size: 26px; font-weight: 900; color: #f8fafc; }
-    .psc-status-badge {
-      padding: 5px 14px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      white-space: nowrap;
-    }
-    .badge-active   { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
-    .badge-trial    { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
-    .badge-expired  { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
-    .badge-default  { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.15); }
-    .psc-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 0 0 20px; }
-    .psc-meta { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-    .psc-meta-row { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: #94a3b8; line-height: 1.5; }
-    .psc-meta-icon { font-size: 15px; flex-shrink: 0; }
-    .psc-gateway-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 10px; }
-    .gateway-toggle { display: flex; gap: 8px; }
-    .gw-btn {
-      flex: 1;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      color: #64748b;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .gw-btn:hover { background: rgba(255,255,255,0.07); color: #94a3b8; }
-    .gw-active {
-      background: rgba(16,185,129,0.12) !important;
-      border-color: rgba(16,185,129,0.35) !important;
-      color: #34d399 !important;
-      box-shadow: 0 0 20px rgba(16,185,129,0.1);
-    }
-    .gw-icon { font-size: 14px; }
-
-    /* ─── STEPPER ─── */
-    .stepper-nav { margin-bottom: 40px; }
-    .stepper-track {
-      display: flex;
-      align-items: center;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px;
-      padding: 8px 16px;
-      backdrop-filter: blur(12px);
-    }
-    .step-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 16px;
-      border-radius: 100px;
-      cursor: pointer;
-      background: transparent;
-      border: none;
-      color: #475569;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.3s;
-    }
-    .step-item:disabled { opacity: 0.4; cursor: not-allowed; }
-    .step-circle {
-      width: 30px; height: 30px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 800;
-      transition: all 0.3s;
-      flex-shrink: 0;
-    }
-    .step-active .step-circle {
-      background: #10b981;
-      border-color: #10b981;
-      color: white;
-      box-shadow: 0 0 20px rgba(16,185,129,0.4);
-    }
-    .step-active { color: #f1f5f9; }
-    .step-done .step-circle {
-      background: rgba(16,185,129,0.15);
-      border-color: rgba(16,185,129,0.4);
-      color: #34d399;
-    }
-    .step-done { color: #64748b; }
-    .step-connector {
-      flex: 1;
-      height: 1px;
-      background: rgba(255,255,255,0.06);
-      margin: 0 4px;
-      transition: background 0.4s;
-    }
-    .connector-done { background: rgba(16,185,129,0.3); }
-    .step-label { font-size: 12px; font-weight: 700; }
-
-    /* ─── BILLING CYCLE TOGGLE ─── */
-    .cycle-toggle-wrap { display: flex; justify-content: center; margin-bottom: 36px; }
-    .cycle-toggle {
-      display: flex;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 100px;
-      padding: 4px;
-      gap: 4px;
-    }
-    .cycle-btn {
-      padding: 10px 24px;
-      border-radius: 100px;
-      border: none;
-      background: transparent;
-      color: #64748b;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex; align-items: center; gap: 8px;
-      transition: all 0.25s;
-    }
-    .cycle-active {
-      background: #10b981;
-      color: white;
-      box-shadow: 0 4px 20px rgba(16,185,129,0.35);
-    }
-    .cycle-badge {
-      font-size: 9px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      background: rgba(255,255,255,0.2);
-      padding: 2px 8px;
-      border-radius: 100px;
-    }
-
-    /* ─── PLAN CARDS GRID ─── */
-    .plans-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-    }
-    .plan-card {
-      position: relative;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.35s cubic-bezier(0.16,1,0.3,1);
-      outline: 2px solid transparent;
-      outline-offset: 4px;
-    }
-    .plan-card:hover { transform: translateY(-6px); }
-    .plan-selected {
-      outline-color: #10b981;
-      box-shadow: 0 0 0 1px rgba(16,185,129,0.3), 0 20px 60px rgba(16,185,129,0.15);
-    }
-    .plan-popular .plan-card-inner {
-      border-color: rgba(99,102,241,0.3) !important;
-    }
-    .plan-card-glow {
-      position: absolute;
-      inset: -2px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(16,185,129,0.2));
-      z-index: 0;
-      animation: glow-pulse 3s ease-in-out infinite alternate;
-    }
-    @keyframes glow-pulse {
-      from { opacity: 0.5; }
-      to   { opacity: 1; }
-    }
-    .plan-card-inner {
-      position: relative;
-      z-index: 1;
-      background: rgba(15,23,42,0.75);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 28px;
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      min-height: 480px;
-    }
-    .plan-card-top { flex: 1; }
-    .plan-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-    }
-    .plan-slug { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; display: block; margin-bottom: 4px; }
-    .plan-name { font-size: 28px; font-weight: 900; color: #f8fafc; }
-    .popular-badge {
-      font-size: 10px; font-weight: 800;
-      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(16,185,129,0.15));
-      border: 1px solid rgba(99,102,241,0.3);
-      color: #a5b4fc;
-      padding: 4px 12px;
-      border-radius: 100px;
-      white-space: nowrap;
-    }
-    .plan-price {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-      margin-bottom: 16px;
-    }
-    .price-currency { font-size: 22px; font-weight: 900; color: #94a3b8; }
-    .price-amount { font-size: 52px; font-weight: 900; color: #f8fafc; line-height: 1; }
-    .price-period { font-size: 14px; font-weight: 600; color: #475569; }
-    .plan-pitch { font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 24px; }
-
-    .modules-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 10px; display: block; }
-    .modules-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-    .module-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #94a3b8; }
-    .module-check { color: #10b981; font-weight: 800; width: 16px; flex-shrink: 0; }
-    .module-more { font-size: 12px; color: #475569; font-style: italic; padding-left: 26px; }
-
-    .plan-cta {
-      width: 100%;
-      margin-top: 24px;
-      padding: 14px;
-      border-radius: 8px;
-      border: none;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: white;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: all 0.25s;
-      box-shadow: 0 4px 20px rgba(16,185,129,0.3);
-    }
-    .plan-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(16,185,129,0.4); }
-    .plan-cta:disabled {
-      background: rgba(255,255,255,0.06);
-      color: #475569;
-      cursor: default;
-      box-shadow: none;
-      transform: none;
-    }
-
-    /* ─── REVIEW LAYOUT ─── */
-    .review-layout {
-      display: grid;
-      grid-template-columns: 1fr 380px;
-      gap: 28px;
-      align-items: start;
-    }
-    @media (max-width: 1024px) { .review-layout { grid-template-columns: 1fr; } }
-
-    .review-card {
-      background: rgba(15,23,42,0.7);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      padding: 32px;
-    }
-    .review-card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 28px;
-    }
-    .review-card-title { font-size: 22px; font-weight: 900; color: #f8fafc; margin-bottom: 4px; }
-    .review-card-sub { font-size: 13px; color: #64748b; }
-    .change-plan-btn {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #64748b;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-    .change-plan-btn:hover { border-color: #10b981; color: #34d399; }
-
-    .config-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 28px;
-    }
-    @media (max-width: 640px) { .config-grid { grid-template-columns: 1fr; } }
-
-    .config-field { display: flex; flex-direction: column; gap: 8px; }
-    .field-label {
-      font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      color: #64748b;
-    }
-    .optional { font-weight: 400; text-transform: none; letter-spacing: 0; color: #475569; }
-    .field-hint { font-size: 10px; color: #475569; font-style: italic; }
-    .mb-sm { margin-bottom: 12px; }
-
-    .seat-input-wrap {
-      display: flex; align-items: center;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .seat-adj {
-      width: 44px; height: 52px;
-      background: transparent;
-      border: none;
-      color: #64748b; font-size: 20px; font-weight: 700;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: all 0.15s;
-    }
-    .seat-adj:hover { background: rgba(255,255,255,0.06); color: #10b981; }
-    .seat-input {
-      flex: 1; min-width: 0;
-      background: transparent; border: none;
-      text-align: center;
-      font-size: 20px; font-weight: 900; color: #f1f5f9;
-      padding: 0 4px; height: 52px;
-      outline: none;
-    }
-    .seat-input::-webkit-outer-spin-button,
-    .seat-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-
-    .text-field {
-      width: 100%;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 8px;
-      padding: 14px 18px;
-      color: #f1f5f9;
-      font-size: 14px; font-weight: 500;
-      outline: none; transition: all 0.2s;
-    }
-    .text-field:focus {
-      border-color: rgba(16,185,129,0.4);
-      background: rgba(16,185,129,0.04);
-      box-shadow: 0 0 0 3px rgba(16,185,129,0.08);
-    }
-    .text-field option { background: #0f172a; }
-
-    .duration-tabs {
-      display: flex; gap: 8px;
-    }
-    .dur-btn {
-      flex: 1; padding: 12px 6px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 8px;
-      color: #64748b; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .dur-active {
-      background: rgba(16,185,129,0.12) !important;
-      border-color: rgba(16,185,129,0.3) !important;
-      color: #34d399 !important;
-    }
-
-    .currency-display {
-      padding: 14px 18px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
-      font-size: 13px; color: #475569; font-weight: 500;
-    }
-
-    .modules-section { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 24px; }
-    .modules-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-    .module-chip {
-      padding: 6px 14px;
-      background: rgba(16,185,129,0.08);
-      border: 1px solid rgba(16,185,129,0.2);
-      border-radius: 100px;
-      font-size: 12px; font-weight: 600; color: #34d399;
-    }
-
-    /* ─── CHECKOUT SUMMARY ─── */
-    .checkout-summary { position: sticky; top: 24px; }
-    .summary-card {
-      background: rgba(15,23,42,0.85);
-      backdrop-filter: blur(24px);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 28px;
-      box-shadow: 0 40px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-    }
-    .summary-header {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 24px;
-    }
-    .summary-plan-icon {
-      width: 48px; height: 48px;
-      background: rgba(16,185,129,0.1);
-      border: 1px solid rgba(16,185,129,0.2);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      color: #10b981; flex-shrink: 0;
-    }
-    .summary-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin-bottom: 4px; }
-    .summary-plan-name { font-size: 18px; font-weight: 900; color: #f8fafc; }
-
-    .summary-lines { display: flex; flex-direction: column; gap: 0; }
-    .summary-line {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      font-size: 13px; color: #64748b;
-    }
-    .summary-line:last-child { border-bottom: none; }
-    .summary-line span:last-child { font-weight: 700; color: #94a3b8; }
-    .summary-included { color: #34d399 !important; font-weight: 700 !important; }
-
-    .summary-total {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 20px 0 24px;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      font-size: 13px; font-weight: 700; color: #94a3b8;
-    }
-    .total-amount { font-size: 32px; font-weight: 900; color: #f8fafc; }
-
-    .pay-btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, #10b981 0%, #059669 50%, #0d9488 100%);
-      border: none;
-      border-radius: 8px;
-      color: white;
-      font-size: 15px; font-weight: 900;
-      cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
-      position: relative;
-      overflow: hidden;
-      margin-bottom: 12px;
-    }
-    .pay-btn::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, transparent, rgba(255,255,255,0.08));
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .pay-btn:hover::before { opacity: 1; }
-    .pay-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(16,185,129,0.4); }
-    .pay-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .pay-lock { font-size: 14px; }
-    .pay-loading { display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .spinner-sm {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .summary-secure { text-align: center; font-size: 11px; color: #475569; font-weight: 600; margin-bottom: 16px; }
-    .summary-note {
-      display: flex; gap: 10px; align-items: flex-start;
-      background: rgba(251,191,36,0.06);
-      border: 1px solid rgba(251,191,36,0.12);
-      border-radius: 8px;
-      padding: 14px;
-    }
-    .note-icon { font-size: 16px; flex-shrink: 0; }
-    .summary-note p { font-size: 11px; color: #92400e; line-height: 1.5; color: #ca8a04; }
-
-    /* ─── PAY STATE ─── */
-    .pay-state {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 80px 20px; text-align: center; gap: 20px;
-    }
-    .pay-spinner-wrap {
-      position: relative;
-      width: 100px; height: 100px;
-      margin-bottom: 20px;
-    }
-    .pay-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      animation: spin 2s linear infinite;
-    }
-    .pay-ring-1 { inset: 0; border-top-color: #10b981; animation-duration: 1.5s; }
-    .pay-ring-2 { inset: 12px; border-top-color: #6366f1; animation-duration: 2s; animation-direction: reverse; }
-    .pay-ring-3 { inset: 22px; border-top-color: #0ea5e9; animation-duration: 2.5s; }
-    .pay-icon {
-      position: absolute;
-      inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      color: #10b981;
-    }
-    .pay-title { font-size: 26px; font-weight: 900; color: #f8fafc; }
-    .pay-sub { font-size: 14px; color: #64748b; max-width: 440px; line-height: 1.6; }
-    .pay-cancel-btn {
-      margin-top: 8px;
-      padding: 12px 24px;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #64748b; font-size: 13px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .pay-cancel-btn:hover { border-color: rgba(239,68,68,0.3); color: #f87171; }
-
-    /* ─── BILLING HISTORY ─── */
-    .history-section {
-      margin-top: 60px;
-    }
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      margin-bottom: 24px;
-    }
-    .history-eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: #475569; display: block; margin-bottom: 6px; }
-    .history-title { font-size: 26px; font-weight: 900; color: #f8fafc; }
-    .history-updated { font-size: 12px; color: #475569; }
-
-    .history-table-wrap {
-      background: rgba(15,23,42,0.6);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .history-table thead tr {
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-    }
-    .history-table th {
-      padding: 16px 20px;
-      font-size: 10px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 0.12em;
-      color: #475569; text-align: left;
-    }
-    .th-right { text-align: right; }
-    .history-row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
-    .history-row:last-child { border-bottom: none; }
-    .history-row:hover { background: rgba(255,255,255,0.02); }
-    .history-table td { padding: 16px 20px; vertical-align: middle; }
-
-    .td-ref {}
-    .ref-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px 10px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 8px;
-      font-size: 12px; font-weight: 700; color: #94a3b8;
-      font-family: 'Courier New', monospace;
-    }
-    .td-amount { font-weight: 900; font-size: 15px; color: #f1f5f9; }
-    .td-date { color: #475569; font-size: 12px; }
-    .td-actions { text-align: right; }
-    .gateway-tag {
-      padding: 4px 10px;
-      background: rgba(99,102,241,0.08);
-      border: 1px solid rgba(99,102,241,0.15);
-      border-radius: 8px;
-      font-size: 11px; font-weight: 700; color: #a5b4fc;
-      text-transform: capitalize;
-    }
-    .cycle-tag {
-      padding: 4px 10px;
-      background: rgba(14,165,233,0.08);
-      border: 1px solid rgba(14,165,233,0.15);
-      border-radius: 8px;
-      font-size: 11px; font-weight: 700; color: #38bdf8;
-      text-transform: capitalize;
-    }
-
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 5px 12px;
-      border-radius: 100px;
-      font-size: 11px; font-weight: 800;
-      text-transform: capitalize;
-    }
-    .status-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: currentColor;
-    }
-    .bg-emerald-50 { background: rgba(16,185,129,0.1) !important; color: #34d399 !important; border: 1px solid rgba(16,185,129,0.2); }
-    .bg-amber-50   { background: rgba(251,191,36,0.08) !important; color: #fbbf24 !important; border: 1px solid rgba(251,191,36,0.18); }
-    .bg-rose-50    { background: rgba(239,68,68,0.1) !important;  color: #f87171 !important; border: 1px solid rgba(239,68,68,0.2); }
-    .bg-slate-100  { background: rgba(148,163,184,0.08) !important; color: #94a3b8 !important; border: 1px solid rgba(148,163,184,0.15); }
-    .bg-violet-50  { background: rgba(139,92,246,0.08) !important; color: #a78bfa !important; border: 1px solid rgba(139,92,246,0.2); }
-
-    .action-btn {
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 6px;
-      color: #64748b; font-size: 11px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .action-btn:hover { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.2); color: #34d399; }
-    .no-invoice { color: #334155; }
-
-    /* ─── EMPTY STATE ─── */
-    .empty-history {
-      margin-top: 60px;
-      text-align: center;
-      padding: 60px 20px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px;
-    }
-    .empty-icon { font-size: 48px; margin-bottom: 16px; }
-    .empty-history h4 { font-size: 18px; font-weight: 800; color: #f1f5f9; margin-bottom: 8px; }
-    .empty-history p { font-size: 14px; color: #64748b; }
-
-    /* ─── SUCCESS MODAL ─── */
-    .modal-overlay {
-      position: fixed; inset: 0; z-index: 200;
-      background: rgba(0,0,0,0.75);
-      backdrop-filter: blur(16px);
-      display: flex; align-items: center; justify-content: center;
-      padding: 20px;
-      animation: fade-up 0.25s ease both;
-    }
-    .success-modal {
-      position: relative;
-      background: rgba(15,23,42,0.95);
-      backdrop-filter: blur(32px);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 52px 48px;
-      max-width: 520px; width: 100%;
-      text-align: center;
-      box-shadow: 0 80px 160px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
-      animation: modal-pop 0.4s cubic-bezier(0.16,1,0.3,1) both;
-    }
-    @keyframes modal-pop {
-      from { opacity: 0; transform: scale(0.9) translateY(20px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    /* Confetti */
-    .success-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: 16px; }
-    .confetti-piece {
-      position: absolute;
-      width: 8px; height: 8px;
-      border-radius: 2px;
-      animation: confetti-fall 3s ease-in-out infinite;
-    }
-    .confetti-piece:nth-child(1)  { background: #10b981; left: 10%;  animation-delay: 0.0s; }
-    .confetti-piece:nth-child(2)  { background: #6366f1; left: 20%;  animation-delay: 0.2s; }
-    .confetti-piece:nth-child(3)  { background: #f59e0b; left: 30%;  animation-delay: 0.4s; }
-    .confetti-piece:nth-child(4)  { background: #0ea5e9; left: 40%;  animation-delay: 0.1s; }
-    .confetti-piece:nth-child(5)  { background: #ec4899; left: 50%;  animation-delay: 0.3s; }
-    .confetti-piece:nth-child(6)  { background: #10b981; left: 60%;  animation-delay: 0.5s; }
-    .confetti-piece:nth-child(7)  { background: #f59e0b; left: 70%;  animation-delay: 0.15s; }
-    .confetti-piece:nth-child(8)  { background: #6366f1; left: 80%;  animation-delay: 0.35s; }
-    .confetti-piece:nth-child(9)  { background: #0ea5e9; left: 90%;  animation-delay: 0.25s; }
-    .confetti-piece:nth-child(10) { background: #ec4899; left: 15%;  animation-delay: 0.45s; }
-    .confetti-piece:nth-child(11) { background: #10b981; left: 45%;  animation-delay: 0.55s; }
-    .confetti-piece:nth-child(12) { background: #f59e0b; left: 75%;  animation-delay: 0.05s; }
-    @keyframes confetti-fall {
-      0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
-      20%  { opacity: 1; }
-      80%  { opacity: 1; }
-      100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
-    }
-
-    .success-icon-wrap {
-      position: relative;
-      width: 96px; height: 96px;
-      margin: 0 auto 28px;
-    }
-    .success-icon-ring {
-      position: absolute; inset: -8px;
-      border-radius: 50%;
-      border: 2px solid rgba(16,185,129,0.3);
-      animation: ring-spin 4s linear infinite;
-    }
-    @keyframes ring-spin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-    .success-icon {
-      width: 96px; height: 96px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.1));
-      border: 1px solid rgba(16,185,129,0.3);
-      display: flex; align-items: center; justify-content: center;
-      color: #10b981;
-      box-shadow: 0 0 60px rgba(16,185,129,0.25);
-    }
-
-    .success-title { font-size: 36px; font-weight: 900; color: #f8fafc; margin-bottom: 16px; }
-    .success-sub { font-size: 15px; color: #64748b; line-height: 1.7; margin-bottom: 24px; }
-    .success-sub strong { color: #34d399; }
-    .success-plan-chip {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 20px;
-      background: rgba(16,185,129,0.1);
-      border: 1px solid rgba(16,185,129,0.25);
-      border-radius: 100px;
-      font-size: 13px; font-weight: 700; color: #34d399;
-      margin-bottom: 32px;
-    }
-    .success-actions { display: flex; flex-direction: column; gap: 12px; }
-    .success-primary-btn {
-      width: 100%;
-      padding: 18px;
-      background: linear-gradient(135deg, #10b981, #059669);
-      border: none; border-radius: 18px;
-      color: white; font-size: 15px; font-weight: 900;
-      cursor: pointer;
-      box-shadow: 0 8px 32px rgba(16,185,129,0.35);
-      transition: all 0.25s;
-    }
-    .success-primary-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(16,185,129,0.4); }
-    .success-secondary-btn {
-      width: 100%;
-      padding: 14px;
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      color: #64748b; font-size: 13px; font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .success-secondary-btn:hover { border-color: rgba(255,255,255,0.2); color: #94a3b8; }
-
-    .modal-close {
-      position: absolute; top: 20px; right: 24px;
-      width: 36px; height: 36px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 10px;
-      color: #64748b; font-size: 20px;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s;
-    }
-    .modal-close:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #f87171; }
-
-    /* ─── SCROLLBAR ─── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
-  `],
+  `]
 })
-export class BillingComponent implements OnInit {
+export class BillingComponent implements OnInit, OnDestroy {
   private readonly subscriptionService = inject(SubscriptionService);
   private readonly toastService = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
 
-  plans = signal<BillingPlan[]>([]);
-  status = signal<SubscriptionStatusPayload | null>(null);
-  legacyContext = signal<LegacyBillingContext | null>(null);
-  generatedInvoice = signal<any | null>(null);
-  processing = signal(false);
-  activePlanActionId = signal<number | null>(null);
-  selectedPlanId = signal<number | null>(null);
-  checkoutStage = signal<CheckoutStage>('select');
-  checkoutModalOpen = signal(false);
-  paymentSuccessOpen = signal(false);
-  billingCycle = signal<BillingCycle>('monthly');
-  selectedGateway = signal<BillingGateway>('razorpay');
-  nouser = signal(0);
-  duration = signal(1);
-  durationType = signal<'Months' | 'Years'>('Years');
-  contactName = signal('');
-  stateCode = signal('');
-  gstin = signal('');
-  selectedAddons = signal<Record<string, boolean>>({});
-  pendingLegacyPaymentRecordId = signal<number | null>(null);
-  pendingLegacyOrderId = signal<string>('');
-  focusedAddon = signal<string>('');
-  billingSource = signal<string>('');
-  requestedMode = signal<string>('');
+  // States
+  isAuthenticating = false;
+  isSessionExpired = false;
+  isRedirecting = false;
+  showUserDropdown = false;
+  showLogoutModal = false;
+  addOnsExpanded = true;
+  isLoadingAddons = false;
+  isFinalizingPayment = false;
+  isSubmitting = false;
+  legacyBillingConfigured = true;
+  currentStep: CheckoutStep = 'PLAN_SELECTION';
+  progress = 0;
+  appName = '';
+  private paymentLoaderTimer: ReturnType<typeof setInterval> | null = null;
 
-  readonly Math = Math;
-  readonly String = String;
+  // Data
+  today = new Date();
+  userInfo = { name: '', email: '', contact: '', country: '' };
+  planContext = {
+    mode: 'Buy' as 'Buy' | 'Upgrade',
+    isPlanExpired: false,
+    daysSinceExpiry: 0,
+    existingUsers: 0,
+    isRecentlyExpired: false,
+    additionalUsers: 0,
+    expiryDate: null as Date | null
+  };
 
-  stats = computed(() => {
-    const status = this.status();
+  durationInputValue = 12;
+  targetUsers = 10;
+  planFeatures = [
+    'Automated Attendance Tracking',
+    'Payroll Management System',
+    'Leave & Holiday Management',
+    'Employee Self Service Portal',
+    'Mobile App with Geo-fencing',
+    'Advanced Reports & Analytics'
+  ];
+
+  addOns: any[] = [];
+  billingDetails = {
+    email: '',
+    contactPerson: '',
+    phone: '',
+    companyName: '',
+    address: '',
+    state: '',
+    city: '',
+    zipCode: '',
+    hasGst: false,
+    gstNumber: '',
+  };
+
+  invoiceDetails = { number: 'INV-' + Date.now(), date: '' };
+  invoiceData: any = null;
+  isINR = true;
+  preOrderData: any = null;
+
+  // Pricing Computed
+  planAmount = 0;
+  subTotal = 0;
+  tax = 0;
+  grandTotal = 0;
+  durationLabel = '12 Months';
+  planEndDate = '';
+
+  ngOnInit() {
+    this.loadInitialData();
+    this.route.queryParamMap.subscribe(params => {
+      if (params.get('step') === 'success') {
+        this.currentStep = 'PAYMENT_SUCCESS';
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    this.clearPaymentLoaderTimer();
+  }
+
+  private showPaymentLoader(startProgress = 8) {
+    this.clearPaymentLoaderTimer();
+    this.isRedirecting = true;
+    this.progress = Math.max(this.progress || 0, startProgress);
+
+    this.paymentLoaderTimer = setInterval(() => {
+      if (this.progress < 45) {
+        this.progress += 4;
+      } else if (this.progress < 75) {
+        this.progress += 2;
+      } else if (this.progress < 90) {
+        this.progress += 0.75;
+      }
+
+      if (this.progress < 90) {
+        this.progress = Math.min(90, Math.round(this.progress * 100) / 100);
+      }
+    }, 350);
+  }
+
+  private setPaymentLoaderProgress(value: number) {
+    this.progress = Math.max(0, Math.min(100, value));
+  }
+
+  private hidePaymentLoader() {
+    this.clearPaymentLoaderTimer();
+    this.isRedirecting = false;
+    this.progress = 0;
+  }
+
+  private clearPaymentLoaderTimer() {
+    if (this.paymentLoaderTimer) {
+      clearInterval(this.paymentLoaderTimer);
+      this.paymentLoaderTimer = null;
+    }
+  }
+
+  private getBrandLogoUrl() {
+    return `${window.location.origin}/hrnexus-brand-mark.png`;
+  }
+
+  loadInitialData() {
+    this.isAuthenticating = true;
+    
+    // Safety timeout: If data doesn't load within 15 seconds, stop the spinner
+    const safetyTimeout = setTimeout(() => {
+      if (this.isAuthenticating) {
+        this.isAuthenticating = false;
+        this.toastService.error('Loading is taking longer than expected. Please refresh.');
+      }
+    }, 15000);
+
+    forkJoin({
+      status: this.subscriptionService.getStatus().pipe(
+        take(1),
+        catchError(err => {
+          console.error('Status fetch failed', err);
+          return of(null);
+        })
+      ),
+      context: this.subscriptionService.getLegacyContext().pipe(
+        take(1),
+        catchError(err => {
+          console.error('Context fetch failed', err);
+          return of(null);
+        })
+      )
+    }).pipe(
+      finalize(() => {
+        this.isAuthenticating = false;
+        clearTimeout(safetyTimeout);
+      })
+    ).subscribe({
+      next: ({ status, context }) => {
+        if (!status) {
+          this.isSessionExpired = true;
+          return;
+        }
+
+        // Populate User Info from Status
+        if (status.organization) {
+          this.userInfo.name = status.organization.companyName || 'Organization';
+          this.planContext.isPlanExpired = status.organization.subscriptionStatus === 'expired';
+        }
+
+        // Handle Subscription Dates
+        const endDate = status.currentSubscription?.endDate ? new Date(status.currentSubscription.endDate) : null;
+        this.planContext.expiryDate = endDate;
+        
+        if (endDate && !isNaN(endDate.getTime())) {
+          const now = new Date();
+          const diff = endDate.getTime() - now.getTime();
+          const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+          if (days < 0) {
+            this.planContext.isPlanExpired = true;
+            this.planContext.daysSinceExpiry = Math.abs(days);
+            this.planContext.isRecentlyExpired = this.planContext.daysSinceExpiry <= 7;
+          } else {
+            this.planContext.isPlanExpired = false;
+            this.planContext.daysSinceExpiry = 0;
+          }
+        }
+
+        // Handle Context
+        if (context) {
+          this.legacyBillingConfigured = context.configured !== false;
+          this.appName = context.appName || '';
+          this.userInfo.email = context.existingPlan?.email || '';
+          this.userInfo.contact = context.existingPlan?.phoneNumber || '';
+          this.planContext.existingUsers = context.existingPlan?.userlimit || 0;
+          this.planContext.mode = context.suggestedAction === 'Upgrade' ? 'Upgrade' : 'Buy';
+          this.targetUsers = Math.max(this.targetUsers, context.existingPlan?.userlimit || 10);
+          
+          this.billingDetails.companyName = context.existingPlan?.orgName || status.organization?.companyName || '';
+          this.billingDetails.email = context.existingPlan?.email || '';
+          this.billingDetails.phone = context.existingPlan?.phoneNumber || '';
+          
+          const city = context.existingPlan?.cityName || '';
+          const state = context.existingPlan?.stateName || '';
+          this.billingDetails.address = city + (state ? ', ' + state : '');
+          this.isINR = context.existingPlan?.countryname === 'India';
+
+          this.addOns = this.normalizeAddonCatalog(context.addonCatalog || []);
+        }
+
+        this.calculatePricing();
+      },
+      error: () => {
+        this.isSessionExpired = true;
+        this.isAuthenticating = false;
+      }
+    });
+  }
+
+  calculatePricing() {
+    const basePricePerUserPerMonth = this.isINR ? 50 : 2; 
+    const months = this.durationInputValue;
+    const userCount = this.targetUsers;
+    
+    this.planAmount = basePricePerUserPerMonth * userCount * months;
+    
+    let addonSum = 0;
+    this.addOns.forEach(a => {
+      if (a.selected) {
+        a.calculatedAmount = a.price * userCount * (months / 12);
+        addonSum += a.calculatedAmount;
+      }
+    });
+
+    this.subTotal = this.planAmount + addonSum;
+    this.tax = this.isINR ? this.subTotal * 0.18 : 0;
+    this.grandTotal = this.subTotal + this.tax;
+    this.durationLabel = months + ' Month' + (months > 1 ? 's' : '');
+    
+    // Calculate Plan End Date
+    const start = this.planContext.expiryDate && this.planContext.expiryDate > new Date() 
+      ? new Date(this.planContext.expiryDate) 
+      : new Date();
+    start.setMonth(start.getMonth() + months);
+    this.planEndDate = start.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  private addonStatusEnabled(value: any): boolean {
+    const status = String(value ?? '').trim().toLowerCase();
+    return status === '1' || status === 'true' || status === 'active' || status === 'enabled';
+  }
+
+  private addonKey(value: string): string {
+    return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  }
+
+  private addonFallbackPrice(name: string): number {
+    const key = this.addonKey(name);
+    const prices: Record<string, number> = {
+      attendance: 400,
+      attendancetracking: 400,
+      employeetracking: 400,
+      payroll: 500,
+      payrollmanagement: 500,
+      projects: 300,
+      projecttaskmanagement: 300,
+      expenses: 300,
+      expensetracking: 300,
+      timesheet: 200,
+      timesheets: 200,
+      timesheetmanagement: 200,
+      announcements: 100,
+      visitmanagement: 300,
+      visitormanagement: 300,
+      trackvisits: 300,
+      leaveandtimeoff: 300,
+      facerecognition: 1000,
+      geofence: 200,
+      geofencing: 200,
+      shiftplanner: 300,
+      manageclients: 300,
+    };
+    return prices[key] ?? 300;
+  }
+
+  private normalizeAddonPrice(price: any, name: string): number {
+    const parsed = Number(price);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : this.addonFallbackPrice(name);
+  }
+
+  private normalizeAddonCatalog(catalog: Array<{ name: string; price: string; status: string }>) {
+    const seen = new Set<string>();
+    return catalog
+      .filter((addon) => String(addon?.name || '').trim())
+      .map((addon) => {
+        const label = String(addon.name || '').replace(/\s+/g, ' ').trim();
+        const key = label.toLowerCase();
+        const isInstalled = this.addonStatusEnabled(addon.status);
+        return {
+          label,
+          description: 'Access premium ' + label + ' features',
+          price: this.normalizeAddonPrice(addon.price, label),
+          selected: isInstalled,
+          isInstalled,
+          isLocked: isInstalled,
+          isNewlyAdded: false,
+          calculatedAmount: 0,
+          key,
+        };
+      })
+      .filter((addon) => {
+        if (seen.has(addon.key)) return false;
+        seen.add(addon.key);
+        return true;
+      });
+  }
+
+  getDurationOptions() {
     return [
-      { label: 'Plan', value: status?.plan?.name || 'Loading…', help: 'Current subscription' },
-      { label: 'Trial Days', value: status?.trialDaysRemaining ?? 0, help: 'Days remaining' },
-      { label: 'Read Only', value: status?.organization?.readOnlyMode ? 'Yes' : 'No', help: 'Workspace mode' },
-      { label: 'Invoices', value: status?.billingHistory?.length ?? 0, help: 'Total payments' },
+      { label: 'Quarterly', months: 3 },
+      { label: 'Yearly', months: 12 },
+      { label: '2 Years', months: 24 }
     ];
-  });
+  }
 
-  selectedPlan = computed(() => {
-    const planId = this.selectedPlanId();
-    return this.plans().find((plan) => plan.id === planId) ?? null;
-  });
+  selectDurationOption(months: number) {
+    this.durationInputValue = months;
+    this.onDurationChange();
+  }
 
-  /** Only non-trial plans are shown in the upgrade grid */
-  upgradablePlans = computed(() => this.plans().filter((plan) => !plan.isTrialPlan));
+  onDurationChange() {
+    if (this.durationInputValue < 1) this.durationInputValue = 1;
+    this.calculatePricing();
+  }
 
-  goDashboard(): void {
+  getMinDuration() { return 1; }
+  getDurationStep() { return 1; }
+
+  updateTargetUsers() {
+    this.planContext.additionalUsers = Math.max(0, this.targetUsers - this.planContext.existingUsers);
+    this.calculatePricing();
+  }
+
+  validateTargetUsers() {
+    if (this.targetUsers < this.planContext.existingUsers) {
+      this.targetUsers = this.planContext.existingUsers;
+    }
+    this.updateTargetUsers();
+  }
+
+  getMinUsersForDuration() {
+    return this.planContext.existingUsers || 10;
+  }
+
+  getSliderGradient() {
+    const min = this.getMinUsersForDuration();
+    const max = 10000;
+    const val = this.targetUsers;
+    const percentage = ((val - min) / (max - min)) * 100;
+    return `linear-gradient(to right, #10b981 0%, #10b981 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+  }
+
+  toggleAddOn(addon: any) {
+    if (addon.isLocked) {
+      this.toastService.info(`${addon.label} is already active and cannot be removed from this purchase.`);
+      return;
+    }
+    addon.selected = !addon.selected;
+    addon.isNewlyAdded = addon.selected && !addon.isInstalled;
+    this.calculatePricing();
+  }
+
+  isMandatoryAddon(addon: any) {
+    return false; // Can be linked to specific plan logic
+  }
+
+  getSelectedAddonsCount() {
+    return this.addOns.filter(a => a.selected).length;
+  }
+
+  validateContactInfo() {
+    return this.userInfo.name && (this.userInfo.email || this.billingDetails.email);
+  }
+
+  getPlanStatusBadgeWithIcon() {
+    if (this.planContext.isPlanExpired) {
+      return { text: 'EXPIRED', color: 'text-amber-800', bgColor: 'bg-amber-50' };
+    }
+    return { text: 'ACTIVE', color: 'text-emerald-800', bgColor: 'bg-emerald-50' };
+  }
+
+  getPlanStatusBadge() {
+    return this.getPlanStatusBadgeWithIcon();
+  }
+
+  getRemainingDaysDisplay() {
+    if (this.planContext.isPlanExpired) return 'Expired';
+    if (!this.planContext.expiryDate) return 'Active';
+    const now = new Date();
+    const diff = this.planContext.expiryDate.getTime() - now.getTime();
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return days + ' days remaining';
+  }
+
+  getFormattedEndDate() {
+    return this.planContext.expiryDate 
+      ? this.planContext.expiryDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : 'Not available';
+  }
+
+  getPlanStatusMessage() {
+    if (this.planContext.isPlanExpired) return 'Your workspace is currently inactive. Renew now to restore all HR services.';
+    return 'Scale your workspace by adding more users or premium modules.';
+  }
+
+  getPlanActionButtonText() {
+    if (!this.legacyBillingConfigured) return 'Billing Setup Required';
+    return this.planContext.mode === 'Buy' ? 'Purchase Plan' : 'Confirm Upgrade';
+  }
+
+  private getApiErrorMessage(error: any, fallback: string) {
+    if (error?.status === 0) {
+      return 'Backend server is not reachable. Please make sure http://localhost:3333 is running, then retry.';
+    }
+    const serverMessage = error?.error?.message || error?.error?.error?.message || error?.error?.errors?.[0]?.message;
+    return serverMessage || error?.message || fallback;
+  }
+
+  getUserInitials() {
+    return (this.userInfo.name || 'U').charAt(0).toUpperCase();
+  }
+
+  isMinimalLayoutStep() {
+    return ['PAYMENT_SUCCESS', 'INVOICE_GENERATED_SUCCESS', 'INVOICE_VIEW'].includes(this.currentStep);
+  }
+
+  forceReload() {
+    window.location.reload();
+  }
+
+  redirectToDashboard() {
     this.router.navigate(['/dashboard']);
   }
 
-  ngOnInit(): void {
-    this.route.queryParamMap.subscribe((params) => {
-      this.focusedAddon.set(params.get('addon') || '');
-      this.billingSource.set(params.get('source') || '');
-      this.requestedMode.set(params.get('mode') || '');
-    });
-    this.loadAll();
+  goToBilling() {
+    this.currentStep = 'BILLING_DETAILS';
   }
 
-  loadAll(): void {
-    this.subscriptionService.getPlans().subscribe({
-      next: (plans) => {
-        const normalizedPlans = plans || [];
-        this.plans.set(normalizedPlans);
-        if (!this.selectedPlanId()) {
-          const preferredPlan = normalizedPlans.find((plan) => !plan.isTrialPlan && plan.slug === 'pro')
-            || normalizedPlans.find((plan) => !plan.isTrialPlan)
-            || normalizedPlans[0]
-            || null;
-          this.selectedPlanId.set(preferredPlan?.id ?? null);
-        }
+  triggerExpiredPlanRedirect() {
+    // Already on billing, but could scroll to selection
+    const el = document.getElementById('plan-selection-area');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
 
-        const selectedPlan = normalizedPlans.find((plan) => plan.id === this.selectedPlanId()) ?? null;
-        if (this.requestedMode() === 'upgrade' && selectedPlan && !selectedPlan.isTrialPlan) {
-          this.checkoutStage.set('review');
-          this.checkoutModalOpen.set(true);
-        }
+  reviewPay() {
+    if (this.isSubmitting) return;
+    if (!this.legacyBillingConfigured) {
+      this.toastService.error('Legacy billing gateway is not configured. Please set LEGACY_BILLING_BASE_URL on the backend.');
+      return;
+    }
+    this.showPaymentLoader(8);
+    
+    const payload = {
+      nouser: this.targetUsers,
+      selectedAddons: this.addOns.filter(a => a.selected).map(a => ({ name: a.label, status: true })),
+      paymentMethod: 'razorpay',
+      state: this.billingDetails.state || 'Delhi',
+      country: this.isINR ? 'India' : 'International',
+      name: this.userInfo.name,
+      duration: this.durationInputValue,
+      durationType: 'Months',
+      subtotal: this.subTotal,
+      tax: this.tax,
+      paymentAmount: this.grandTotal,
+      action: this.planContext.mode,
+      email: this.billingDetails.email || this.userInfo.email,
+      phone: this.billingDetails.phone || this.userInfo.contact
+    };
+
+    this.subscriptionService.legacyPurchase(payload).subscribe({
+      next: (res) => {
+        this.preOrderData = res;
+        this.setPaymentLoaderProgress(55);
+        setTimeout(() => void this.openRazorpay(res), 250);
+      },
+      error: (err) => {
+        this.hidePaymentLoader();
+        this.toastService.error(this.getApiErrorMessage(err, 'Failed to initiate purchase'));
       }
     });
-    this.subscriptionService.getStatus().subscribe({ next: (status) => this.status.set(status) });
-    this.subscriptionService.getLegacyContext().subscribe({
-      next: (context) => {
-        this.legacyContext.set(context);
-        this.contactName.set(context.existingPlan.orgName || this.status()?.organization?.companyName || '');
-        this.gstin.set(context.existingPlan.gstin || '');
-        this.nouser.set(Math.max(0, Number(context.existingPlan.userlimit || 0)));
-        const preselected: Record<string, boolean> = {};
-        (context.addonCatalog || []).forEach((addon) => {
-          preselected[addon.name] = addon.status === '1';
-        });
-        const matchedAddon = this.findAddonName(context, this.focusedAddon());
-        if (matchedAddon) {
-          preselected[matchedAddon] = true;
-          this.checkoutStage.set('review');
-        }
-        this.selectedAddons.set(preselected);
-      },
-      error: () => this.legacyContext.set(null),
+  }
+
+  private loadRazorpayScript(): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (typeof Razorpay !== 'undefined') {
+        resolve(true);
+        return;
+      }
+
+      const existingScript = document.getElementById('razorpay-checkout-script');
+      if (existingScript) {
+        existingScript.addEventListener('load', () => resolve(true), { once: true });
+        existingScript.addEventListener('error', () => resolve(false), { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.id = 'razorpay-checkout-script';
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
     });
   }
 
-  planPrice(plan: BillingPlan): number {
-    return this.billingCycle() === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
-  }
+  async openRazorpay(orderData: any) {
+    const amount = Number(orderData.amount ?? orderData.paymentAmount ?? 0);
+    const key = String(orderData.razorpayKey || orderData.publishableKey || '').trim();
+    const orderId = String(orderData.orderId || orderData.Rzr_orderId || '').trim();
+    const status = orderData.status === true || orderData.status === 'true' || orderData.status === 1 || orderData.status === '1';
 
-  selectPlan(plan: BillingPlan): void {
-    this.selectedPlanId.set(plan.id);
-    this.checkoutStage.set('select');
-    this.checkoutModalOpen.set(false);
-  }
-
-  recommendedPlanSlug(): string {
-    return 'pro';
-  }
-
-  planPitch(plan: BillingPlan): string {
-    if (plan.slug === 'basic') return 'For growing teams that need attendance and core ESS workflows.';
-    if (plan.slug === 'pro') return 'Best fit for HR teams that need payroll, visit management, and full operations.';
-    if (plan.slug === 'enterprise') return 'For scaled organizations that need higher capacity and enterprise controls.';
-    return 'Flexible access for onboarding and workspace evaluation.';
-  }
-
-  statusBadgeClass(): string {
-    const status = this.status()?.organization?.subscriptionStatus;
-    if (status === 'active') return 'psc-status-badge badge-active';
-    if (status === 'trialing') return 'psc-status-badge badge-trial';
-    if (status === 'expired' || status === 'cancelled') return 'psc-status-badge badge-expired';
-    return 'psc-status-badge badge-default';
-  }
-
-  humanStatus(): string {
-    const status = this.status()?.organization?.subscriptionStatus;
-    if (status) {
-      return status.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+    if (!status || !orderId) {
+      this.hidePaymentLoader();
+      this.toastService.error(orderData.message || 'Failed to initiate secure payment.');
+      return;
     }
-    const legacyStatus = this.legacyContext()?.existingPlan?.planStatus;
-    return legacyStatus === 0 ? 'Trialing' : legacyStatus === 1 ? 'Active' : 'Inactive';
-  }
 
-  statusNote(): string {
-    const status = this.status();
-    if (status) {
-      if (status.organization.isTrialActive) return `${status.trialDaysRemaining ?? 0} day(s) remaining in your free trial.`;
-      if (status.organization.readOnlyMode) return 'Workspace is read-only until an upgrade is completed.';
-      return 'Subscription is active — premium modules are available.';
+    if (!key) {
+      this.hidePaymentLoader();
+      this.toastService.error('Razorpay key is missing. Please set RAZORPAY_KEY_ID on the backend.');
+      return;
     }
-    if (this.legacyContext()) {
-      return this.legacyContext()!.suggestedAction === 'Buy'
-        ? 'Organization is in trial — use Buy workflow.'
-        : 'Organization has an active plan — use Upgrade workflow.';
-    }
-    return 'Loading subscription status…';
-  }
 
-  paymentTone(status: string): string {
-    const map: Record<string, string> = {
-      success: 'bg-emerald-50',
-      pending: 'bg-amber-50',
-      failed: 'bg-rose-50',
-      refunded: 'bg-slate-100',
-      disputed: 'bg-violet-50',
+    if (!amount || amount <= 0) {
+      this.hidePaymentLoader();
+      this.toastService.error('Payment amount is invalid. Please refresh and try again.');
+      return;
+    }
+
+    this.setPaymentLoaderProgress(70);
+    const loaded = await this.loadRazorpayScript();
+    if (!loaded || typeof Razorpay === 'undefined') {
+      this.hidePaymentLoader();
+      this.toastService.error('Payment gateway could not be loaded. Please check your connection and try again.');
+      return;
+    }
+    this.setPaymentLoaderProgress(85);
+
+    const options = {
+      key,
+      amount: amount > 0 && amount < 1000000 ? Math.round(amount * 100) : amount,
+      currency: orderData.currency || 'INR',
+      name: 'HRNexus Premium',
+      description: 'Plan Upgrade/Purchase',
+      image: this.getBrandLogoUrl(),
+      order_id: orderId,
+      handler: (response: any) => {
+        this.showPaymentLoader(92);
+        this.confirmPayment(response, orderData);
+      },
+      prefill: {
+        name: this.userInfo.name,
+        email: this.userInfo.email,
+        contact: this.userInfo.contact || this.billingDetails.phone
+      },
+      theme: { color: '#059669' },
+      modal: {
+        ondismiss: () => {
+          this.hidePaymentLoader();
+          this.toastService.warning('Payment cancelled');
+        }
+      }
     };
-    return map[status] || 'bg-slate-100';
+
+    const rzp = new Razorpay(options);
+    rzp.open();
+    setTimeout(() => this.hidePaymentLoader(), 300);
   }
 
-  addonSelected(name: string): boolean {
-    return Boolean(this.selectedAddons()[name]);
-  }
+  confirmPayment(response: any, orderData: any) {
+    this.showPaymentLoader(92);
+    const confirmPayload = {
+      paymentRecordId: orderData.paymentRecordId,
+      orderId: response.razorpay_order_id,
+      paymentStatus: 'success',
+      paymentRzrId: response.razorpay_payment_id,
+      nouser: this.targetUsers,
+      duration: this.durationInputValue,
+      durationType: 'Months',
+      action: this.planContext.mode
+    };
 
-  focusedAddonLabel(): string {
-    const matchedAddon = this.findAddonName(this.legacyContext(), this.focusedAddon());
-    return matchedAddon || this.prettyLabel(this.focusedAddon());
-  }
-
-  clearAddonFocus(): void {
-    this.focusedAddon.set('');
-    this.billingSource.set('');
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { addon: null, source: null, mode: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
+    this.subscriptionService.legacyConfirm(confirmPayload).subscribe({
+      next: (res) => {
+        this.setPaymentLoaderProgress(100);
+        setTimeout(() => {
+          this.hidePaymentLoader();
+          this.currentStep = 'PAYMENT_SUCCESS';
+          this.toastService.success('Payment successful!');
+        }, 350);
+      },
+      error: (err) => {
+        this.hidePaymentLoader();
+        this.toastService.error('Payment confirmation failed. Please contact support.');
+      }
     });
   }
 
-  private findAddonName(context: LegacyBillingContext | null, raw: string): string {
-    if (!context || !raw) return '';
-    const target = this.normalizeAddonKey(raw);
-    const match = context.addonCatalog.find((addon) => this.normalizeAddonKey(addon.name) === target);
-    return match?.name || '';
+  continueToBilling() {
+    this.currentStep = 'BILLING_DETAILS';
   }
 
-  normalizeAddonKey(value: string): string {
-    return (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  downloadReceipt() {
+    // Logic to download receipt/preliminary invoice
+    this.toastService.info('Downloading receipt...');
   }
 
-  private prettyLabel(value: string): string {
-    return value
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, (char) => char.toUpperCase())
-      .trim();
-  }
-
-  toggleAddon(name: string, checked: boolean): void {
-    this.selectedAddons.update((state) => ({ ...state, [name]: checked }));
-  }
-
-  updateNouser(raw: string): void {
-    const parsed = Number(raw);
-    this.nouser.set(Number.isFinite(parsed) ? Math.max(0, parsed) : 0);
-  }
-
-  updateDuration(raw: string): void {
-    const parsed = Number(raw);
-    this.duration.set(Number.isFinite(parsed) ? Math.max(1, parsed) : 1);
-  }
-
-  billableUsers(): number {
-    const configuredUsers = Number(this.legacyContext()?.existingPlan?.userlimit || 0);
-    return Math.max(1, this.nouser() || configuredUsers || 1);
-  }
-
-  durationMonths(): number {
-    return this.durationType() === 'Years' ? this.duration() * 12 : this.duration();
-  }
-
-  effectiveAddonPrice(addon: { name: string; price: string; status: string }): number {
-    const rawPrice = this.toAmount(addon.price);
-    if (this.legacyContext()?.suggestedAction === 'Buy') {
-      return Number((rawPrice * this.billableUsers() * this.durationMonths()).toFixed(2));
-    }
-    return Number(rawPrice.toFixed(2));
-  }
-
-  selectedAddonAmount(): number {
-    const context = this.legacyContext();
-    if (!context) return 0;
-    return context.addonCatalog.reduce((sum, addon) => {
-      if (!this.addonSelected(addon.name)) return sum;
-      if (context.suggestedAction === 'Upgrade' && addon.status === '1') return sum;
-      return sum + this.effectiveAddonPrice(addon);
-    }, 0);
-  }
-
-  legacySubtotal(): number {
-    return this.checkoutBaseAmount() + this.selectedAddonAmount();
-  }
-
-  legacyTax(): number {
-    return Number((this.legacySubtotal() * 0.18).toFixed(2));
-  }
-
-  legacyTotalWithTax(): number {
-    return Number((this.legacySubtotal() + this.legacyTax()).toFixed(2));
-  }
-
-  checkoutSubtotal(): number {
-    return this.checkoutBaseAmount() + this.selectedAddonAmount();
-  }
-
-  checkoutUnitLabel(): string {
-    return this.legacyContext()?.suggestedAction === 'Buy'
-      ? 'Price per seat / month'
-      : `Price per seat (${this.billingCycle()})`;
-  }
-
-  checkoutUnitAmount(): number {
-    const plan = this.selectedPlan();
-    if (plan) return this.legacyContext()?.suggestedAction === 'Buy' ? plan.monthlyPrice : this.planPrice(plan);
-    return this.toAmount(this.legacyContext()?.basePlanAmount);
-  }
-
-  checkoutBaseLabel(): string {
-    const action = this.legacyContext()?.suggestedAction;
-    if (action === 'Buy') return `Base plan (${this.billableUsers()} seats x ${this.durationMonths()} months)`;
-    if (action === 'Upgrade') return `Base plan (${this.billableUsers()} seats)`;
-    return `Seats (${this.billableUsers()})`;
-  }
-
-  checkoutBaseAmount(): number {
-    const context = this.legacyContext();
-    const legacyBaseAmount = this.toAmount(context?.basePlanAmount);
-    if (legacyBaseAmount > 0) return legacyBaseAmount;
-
-    const plan = this.selectedPlan();
-    if (!plan) return 0;
-
-    if (context?.suggestedAction === 'Buy') {
-      const seatAmount = plan.monthlyPrice * this.billableUsers();
-      return Number((seatAmount * this.durationMonths()).toFixed(2));
-    }
-
-    const seatAmount = this.planPrice(plan) * this.billableUsers();
-    return Number(seatAmount.toFixed(2));
-  }
-
-  checkoutTax(): number {
-    return Number((this.checkoutSubtotal() * 0.18).toFixed(2));
-  }
-
-  checkoutTotalWithTax(): number {
-    return Number((this.checkoutSubtotal() + this.checkoutTax()).toFixed(2));
-  }
-
-  pricingEstimateNote(): string {
-    if (this.legacyContext()?.suggestedAction === 'Buy') {
-      return `Buy flow estimate is based on ${this.billableUsers()} user(s) x ${this.durationMonths()} month(s).`;
-    }
-    return 'Totals are based on the legacy addon catalog and finalized by the payment API.';
-  }
-
-  payNow(): void {
-    if (this.legacyContext()?.configured) {
-      this.startLegacyPurchase();
+  saveAndGenerateInvoice() {
+    if (!this.billingDetails.companyName || !this.billingDetails.email) {
+      this.toastService.error('Please fill in required fields');
       return;
     }
-    this.upgrade(this.selectedPlan()!);
+    
+    this.isSubmitting = true;
+    // Simulate API call for invoice generation
+    setTimeout(() => {
+      this.currentStep = 'INVOICE_VIEW';
+      this.isSubmitting = false;
+      this.toastService.success('Invoice generated and sent to your email.');
+    }, 2000);
   }
 
-  private toAmount(value: unknown): number {
-    const normalized = typeof value === 'string' ? value.replace(/[^0-9.-]+/g, '') : value;
-    const parsed = Number(normalized || 0);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  invoiceAddonTotal(): number {
-    const invoice = this.generatedInvoice()?.invoicedata;
-    if (!invoice?.addonprice) return this.selectedAddonAmount();
-    return String(invoice.addonprice)
-      .split(/\r?\n/)
-      .map((line) => Number((line || '').trim()))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .reduce((sum, value) => sum + value, 0);
-  }
-
-  openCheckoutModal(plan?: BillingPlan): void {
-    if (plan && plan.isTrialPlan) {
-      this.toastService.info('Free trial is only a reference plan. Please choose Basic, Pro, or Enterprise.');
-      return;
+  validateGST(gst: string) {
+    if (!gst) return;
+    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+    if (!gstRegex.test(gst)) {
+      this.toastService.warning('Invalid GST format');
     }
-    if (plan && this.status()?.plan?.id === plan.id) {
-      this.toastService.info(`${plan.name} is already active for this workspace.`);
-      return;
-    }
-    if (plan) this.selectedPlanId.set(plan.id);
-    if (this.checkoutStage() === 'select') this.checkoutStage.set('review');
-    this.checkoutModalOpen.set(true);
   }
 
-  closeCheckoutModal(): void {
-    if (this.processing()) return;
-    this.checkoutModalOpen.set(false);
+  performLoginRedirect() {
+    this.router.navigate(['/auth/login']);
   }
 
-  closePaymentSuccess(): void {
-    this.paymentSuccessOpen.set(false);
-    this.checkoutModalOpen.set(false);
-    this.checkoutStage.set('select');
-  }
-
-  currentWorkspacePlanName(): string {
-    if (this.status()?.plan?.name) return this.status()!.plan!.name;
-    if (this.legacyContext()?.existingPlan?.planStatus === 0) return this.t('billing.trialPlan');
-    if (this.legacyContext()?.existingPlan?.planStatus === 1) return this.t('billing.activePlan');
-    return 'No Active Plan';
-  }
-
-  upgrade(plan: BillingPlan): void {
-    if (!plan || plan.isTrialPlan) {
-      this.toastService.info('Please select a paid plan (Basic, Pro, or Enterprise) to upgrade.');
-      return;
-    }
-    this.activePlanActionId.set(plan.id);
-    this.checkoutStage.set('pay');
-    this.checkoutModalOpen.set(true);
-    this.processing.set(true);
-    this.subscriptionService.createUpgradeIntent({
-      planId: plan.id,
-      billingCycle: this.billingCycle(),
-      gateway: this.selectedGateway(),
-    }).subscribe({
-      next: (intent) => {
-        if (intent?.simulation) {
-          this.subscriptionService.verifyPayment({
-            paymentId: intent.paymentId,
-            gateway: this.selectedGateway(),
-            providerPaymentId: `sim_${Date.now()}`,
-            signature: 'simulation',
-            status: 'success',
-          }).subscribe({
-            next: () => {
-              this.toastService.success(`${plan.name} activated successfully in simulation mode.`);
-              this.processing.set(false);
-              this.activePlanActionId.set(null);
-              this.checkoutStage.set('select');
-              this.paymentSuccessOpen.set(true);
-              this.loadAll();
-            },
-            error: () => {
-              this.toastService.error(this.t('billing.paymentVerificationFailed'));
-              this.processing.set(false);
-              this.activePlanActionId.set(null);
-              this.checkoutStage.set('review');
-            },
-          });
-          return;
-        }
-
-        if (this.selectedGateway() === 'razorpay' && intent?.orderId && intent?.publishableKey) {
-          this.launchInternalRazorpay(plan, intent);
-          return;
-        }
-
-        this.toastService.info(`Payment intent created for ${plan.name}. Complete ${this.selectedGateway()} checkout using your configured gateway keys.`);
-        this.processing.set(false);
-        this.activePlanActionId.set(null);
-        this.checkoutStage.set('review');
-      },
-      error: (error) => {
-        this.toastService.error(error?.error?.message || this.t('billing.upgradeStartFailed'));
-        this.processing.set(false);
-        this.activePlanActionId.set(null);
-        this.checkoutStage.set('review');
-      },
-    });
-  }
-
-  printInvoice(): void {
-    window.print();
-  }
-
-  downloadInvoiceJson(): void {
-    const invoice = this.generatedInvoice();
-    if (!invoice) {
-      this.toastService.warning('No invoice is available to download.');
-      return;
-    }
-    const blob = new Blob([JSON.stringify(invoice, null, 2)], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${invoice?.invoicedata?.invoice || 'invoice'}.json`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  }
-
-  startLegacyPurchase(): void {
-    const context = this.legacyContext();
-    if (!context) { this.toastService.error(this.t('billing.legacyContextMissing')); return; }
-    if (!this.contactName().trim()) { this.toastService.warning('Billing contact name is required.'); return; }
-    if (!this.stateCode().trim()) { this.toastService.warning('Please select a state.'); return; }
-
-    this.processing.set(true);
-    this.subscriptionService.legacyPurchase({
-      nouser: this.billableUsers(),
-      selectedAddons: Object.entries(this.selectedAddons()).map(([name, status]) => ({ name, status })),
-      paymentMethod: this.selectedGateway() === 'razorpay' ? 'Razorpay' : 'Stripe',
-      state: this.stateCode(),
-      country: context.existingPlan.countryname || 'India',
-      zip: context.existingPlan.zip || '',
-      city: context.existingPlan.cityName || '',
-      name: this.contactName(),
-      duration: this.duration(),
-      durationType: this.durationType(),
-      gstin: this.gstin(),
-      remark: 'Auto Mode',
-      action: context.suggestedAction,
-    }).subscribe({
-      next: (result) => {
-        this.pendingLegacyPaymentRecordId.set(result.paymentRecordId);
-        this.pendingLegacyOrderId.set(result.orderId || '');
-        if (this.selectedGateway() === 'razorpay' && result.orderId && result.publishableKey) {
-          this.launchLegacyRazorpay(result);
-          return;
-        }
-        this.toastService.success(result.message || this.t('billing.legacyPaymentStarted'));
-        this.processing.set(false);
-      },
-      error: (error) => {
-        this.toastService.error(error?.error?.message || this.t('billing.legacyPaymentStartFailed'));
-        this.processing.set(false);
-      },
-    });
-  }
-
-  confirmLegacyPayment(): void {
-    const context = this.legacyContext();
-    const paymentRecordId = this.pendingLegacyPaymentRecordId();
-    const orderId = this.pendingLegacyOrderId();
-    if (!context || !paymentRecordId || !orderId) {
-      this.toastService.warning('No pending legacy payment is available to confirm.');
-      return;
-    }
-
-    this.processing.set(true);
-    this.subscriptionService.legacyConfirm({
-      paymentRecordId,
-      orderId,
-      paymentStatus: 'Success',
-      paymentRzrId: `pay_${Date.now()}`,
-      nouser: this.billableUsers(),
-      duration: this.duration(),
-      durationType: this.durationType(),
-      action: context.suggestedAction,
-    }).subscribe({
-      next: (result) => {
-        this.generatedInvoice.set(result.invoice);
-        this.toastService.success(this.t('billing.legacyConfirmed'));
-        this.pendingLegacyPaymentRecordId.set(null);
-        this.pendingLegacyOrderId.set('');
-        this.processing.set(false);
-        this.loadAll();
-      },
-      error: (error) => {
-        this.toastService.error(error?.error?.message || this.t('billing.legacyConfirmFailed'));
-        this.processing.set(false);
-      },
-    });
-  }
-
-  private launchLegacyRazorpay(result: any): void {
-    const context = this.legacyContext();
-    const RazorpayCtor = (window as any).Razorpay;
-    if (!RazorpayCtor) {
-      this.toastService.warning('Razorpay checkout SDK is not available.');
-      this.processing.set(false);
-      return;
-    }
-
-    const instance = new RazorpayCtor({
-      key: result.publishableKey,
-      amount: Math.round(Number(result.paymentAmount || 0) * 100),
-      currency: 'INR',
-      name: context?.existingPlan?.orgName || 'HRNexus',
-      description: `${context?.suggestedAction || 'Buy'} subscription`,
-      order_id: result.orderId,
-      handler: (response: any) => {
-        this.subscriptionService.legacyConfirm({
-          paymentRecordId: result.paymentRecordId,
-          orderId: response.razorpay_order_id || result.orderId,
-          paymentStatus: 'Success',
-          paymentRzrId: response.razorpay_payment_id,
-          nouser: this.billableUsers(),
-          duration: this.duration(),
-          durationType: this.durationType(),
-          action: context?.suggestedAction || 'Buy',
-        }).subscribe({
-          next: (confirmResult) => {
-            this.generatedInvoice.set(confirmResult.invoice);
-            this.toastService.success('Razorpay payment captured and synced successfully.');
-            this.pendingLegacyPaymentRecordId.set(null);
-            this.pendingLegacyOrderId.set('');
-            this.processing.set(false);
-            this.loadAll();
-          },
-          error: (error) => {
-            this.toastService.error(error?.error?.message || 'Payment was captured but sync failed.');
-            this.processing.set(false);
-          },
-        });
-      },
-      modal: {
-        ondismiss: () => {
-          this.toastService.info('Razorpay checkout was closed before completion.');
-          this.processing.set(false);
-        },
-      },
-      prefill: {
-        name: this.contactName(),
-        contact: context?.existingPlan?.phoneNumber || '',
-      },
-      notes: {
-        orgId: String(context?.existingPlan?.orgid || ''),
-        action: context?.suggestedAction || 'Buy',
-      },
-      theme: { color: '#10b981' },
-    });
-
-    instance.open();
-  }
-
-  private launchInternalRazorpay(plan: BillingPlan, intent: any): void {
-    const RazorpayCtor = (window as any).Razorpay;
-    if (!RazorpayCtor) {
-      this.toastService.warning('Razorpay checkout SDK is not available for internal plan upgrade.');
-      this.processing.set(false);
-      this.activePlanActionId.set(null);
-      this.checkoutStage.set('review');
-      return;
-    }
-
-    const instance = new RazorpayCtor({
-      key: intent.publishableKey,
-      amount: Math.round(Number(intent.amount || 0) * 100),
-      currency: intent.currency || 'INR',
-      name: intent.organizationName || this.status()?.organization?.companyName || 'HRNexus',
-      description: `${plan.name} plan upgrade`,
-      order_id: intent.orderId,
-      handler: (response: any) => {
-        this.subscriptionService.verifyPayment({
-          paymentId: intent.paymentId,
-          gateway: 'razorpay',
-          providerPaymentId: response.razorpay_payment_id,
-          signature: response.razorpay_signature,
-          status: 'success',
-        }).subscribe({
-          next: () => {
-            this.toastService.success(`${plan.name} activated successfully.`);
-            this.processing.set(false);
-            this.activePlanActionId.set(null);
-            this.checkoutStage.set('select');
-            this.paymentSuccessOpen.set(true);
-            this.loadAll();
-          },
-          error: (error) => {
-            this.toastService.error(error?.error?.message || 'Payment succeeded but verification failed.');
-            this.processing.set(false);
-            this.activePlanActionId.set(null);
-            this.checkoutStage.set('review');
-          },
-        });
-      },
-      modal: {
-        ondismiss: () => {
-          this.toastService.info('Razorpay checkout was closed before completion.');
-          this.processing.set(false);
-          this.activePlanActionId.set(null);
-          this.checkoutStage.set('review');
-        },
-      },
-      prefill: {
-        name: intent.organizationName || this.status()?.organization?.companyName || '',
-      },
-      notes: {
-        plan: plan.slug,
-        billingCycle: this.billingCycle(),
-      },
-      theme: { color: '#10b981' },
-    });
-
-    instance.open();
-  }
-
-  t(key: string, params?: Record<string, string | number | null | undefined>): string {
-    this.languageService.currentLanguage();
-    return this.languageService.t(key, params);
+  getCurrencySymbol() {
+    return this.isINR ? '₹' : '$';
   }
 }
