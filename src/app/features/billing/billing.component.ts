@@ -27,7 +27,7 @@ type CheckoutStep =
   imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
   template: `
 <!-- billing.component.html -->
-<div class="upgrade-plan-root min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50/50 relative overflow-hidden">
+<div class="upgrade-plan-root min-h-screen bg-slate-50 relative overflow-hidden">
   
   <!-- Subtle Background Watermark -->
   <div class="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden select-none">
@@ -323,7 +323,7 @@ type CheckoutStep =
                   {{ getPlanActionButtonText() }}
                 </button>
                 <p *ngIf="!legacyBillingConfigured" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
-                  Legacy billing gateway is not configured. Please set LEGACY_BILLING_BASE_URL on the backend before starting a purchase.
+                  Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway before starting a purchase.
                 </p>
                 <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
@@ -536,15 +536,10 @@ type CheckoutStep =
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     
     .upgrade-plan-root {
-      background: linear-gradient(-45deg, #f9fafb, #ffffff, #f3f4f6, #ffffff);
-      background-size: 400% 400%;
-      animation: gradient 15s ease infinite;
-    }
-    
-    @keyframes gradient {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
+      background:
+        radial-gradient(circle at top left, rgba(16, 185, 129, 0.05), transparent 18rem),
+        radial-gradient(circle at top right, rgba(14, 165, 233, 0.05), transparent 20rem),
+        linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
     }
     
     .backdrop-blur-xl {
@@ -1023,7 +1018,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   reviewPay() {
     if (this.isSubmitting) return;
     if (!this.legacyBillingConfigured) {
-      this.toastService.error('Legacy billing gateway is not configured. Please set LEGACY_BILLING_BASE_URL on the backend.');
+      this.toastService.error('Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway.');
       return;
     }
     this.showPaymentLoader(8);

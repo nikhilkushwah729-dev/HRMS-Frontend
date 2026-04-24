@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import {
   RegularizationService,
   RegularizationRequest,
@@ -350,6 +350,7 @@ import {
 export class RegularizationComponent implements OnInit {
   private regularizationService = inject(RegularizationService);
   private toastService = inject(ToastService);
+  private route = inject(ActivatedRoute);
 
   regularizations: RegularizationRequest[] = [];
   loading = false;
@@ -403,6 +404,10 @@ export class RegularizationComponent implements OnInit {
   ];
 
   ngOnInit() {
+    const filterType = this.route.snapshot.data['filterType'];
+    if (filterType) {
+      this.filters.type = filterType;
+    }
     this.loadRegularizations();
   }
 

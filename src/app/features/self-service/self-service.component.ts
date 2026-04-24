@@ -114,29 +114,42 @@ interface HolidayCalendarItem {
     EssTeamEngagementComponent
   ],
   template: `
-    <div class="min-h-full">
-      <div class="mx-auto w-full max-w-[1680px] space-y-5">
-        <section class="app-module-hero overflow-hidden rounded-md border border-white/70 bg-gradient-to-br from-white via-indigo-50/60 to-sky-50/70 shadow-[0_24px_80px_-36px_rgba(79,70,229,0.35)] ring-1 ring-slate-200/60">
-          <div class="absolute inset-y-0 right-0 hidden w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.18),transparent_58%)] lg:block"></div>
-          <div class="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div class="max-w-3xl">
-              <p class="app-module-kicker">{{ t('selfService.workspace') }}</p>
-              <h1 class="app-module-title mt-3 max-w-4xl">{{ t('selfService.heroTitle') }}</h1>
-              <p class="app-module-text mt-3 max-w-2xl text-slate-600">{{ t('selfService.heroSubtitle') }}</p>
+    <div class="ess-clean-panel min-h-full bg-[#f8fafc]">
+      <div class="mx-auto w-full max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
+        <!-- Header Section -->
+        <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              </span>
+              <span class="text-xs font-black uppercase tracking-widest text-slate-400">{{ t('selfService.workspace') }}</span>
             </div>
-            <div class="app-module-highlight min-w-[280px] rounded-md border border-white/20 bg-slate-950/88 shadow-2xl shadow-slate-900/25">
-              <span class="app-module-highlight-label">{{ t('selfService.todayFocus') }}</span>
-              <div class="app-module-highlight-value mt-3">
-                {{ todayStatus()?.is_clocked_in ? t('selfService.attendanceActive') : t('selfService.readyToStart') }}
-              </div>
-              <p class="mt-3 text-sm leading-6 text-white/80">
-                {{ t('selfService.pendingRequestsLabel', { count: pendingRequests() }) }}
-                <span class="mx-2 text-white/40">•</span>
-                {{ t('selfService.leaveBalanceLabel', { count: totalLeaveBalance() }) }}
-              </p>
-            </div>
+            <h1 class="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{{ t('selfService.heroTitle') }}</h1>
+            <p class="text-sm font-bold text-slate-500">{{ t('selfService.heroSubtitle') }}</p>
           </div>
-        </section>
+
+          <div class="flex flex-wrap items-center gap-3">
+             <div class="flex items-center gap-3 rounded-xl bg-white p-2 pr-4 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><line x1="10" x2="8" y1="9" y2="9"></line></svg>
+                </div>
+                <div>
+                   <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Requests</p>
+                   <p class="text-sm font-black text-slate-900">{{ pendingRequests() }}</p>
+                </div>
+             </div>
+             <div class="flex items-center gap-3 rounded-xl bg-white p-2 pr-4 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
+                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                </div>
+                <div>
+                   <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Leave Balance</p>
+                   <p class="text-sm font-black text-slate-900">{{ totalLeaveBalance() }}</p>
+                </div>
+             </div>
+          </div>
+        </header>
 
         <app-ess-greeting 
           [user]="currentUser()" 
@@ -227,7 +240,7 @@ interface HolidayCalendarItem {
             </div>
 
             <!-- Right Column: Personal & Team Context (4/12) - STICKY -->
-            <div class="min-w-0 space-y-5 xl:col-span-4 xl:sticky xl:top-5">
+            <div class="min-w-0 space-y-5 xl:sticky xl:top-24 xl:col-span-4">
               
               <!-- Real-time Web Clock -->
               <app-ess-attendance-center [todayStatus]="todayStatus()" class="min-h-[400px]"></app-ess-attendance-center>
@@ -251,6 +264,28 @@ interface HolidayCalendarItem {
       </div>
     </div>
   `,
+  styles: [`
+    :host { display: block; }
+
+    :host ::ng-deep .ess-clean-panel .app-surface-card,
+    :host ::ng-deep .ess-clean-panel .app-glass-card {
+      background: #ffffff !important;
+      border: 0 !important;
+      border-radius: 0.75rem !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+      --tw-ring-color: transparent !important;
+    }
+
+    :host ::ng-deep .ess-clean-panel .app-surface-card:hover,
+    :host ::ng-deep .ess-clean-panel .app-glass-card:hover {
+      transform: none !important;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+    }
+
+    :host ::ng-deep .ess-clean-panel .hover\\:-translate-y-1:hover {
+      transform: none !important;
+    }
+  `],
 })
 export class SelfServiceComponent implements OnInit {
   private authService = inject(AuthService);
@@ -468,7 +503,7 @@ export class SelfServiceComponent implements OnInit {
   quickActions = computed<QuickAction[]>(() => [
     { title: this.t('selfService.actions.clockInNow'), description: this.t('selfService.actions.startYourShift'), route: '/attendance', icon: 'clock-3', tone: 'primary' },
     { title: this.t('selfService.actions.applyLeave'), description: this.t('selfService.actions.requestTimeOff'), route: '/leaves', icon: 'calendar-plus', tone: 'success' },
-    { title: this.t('selfService.actions.myRequests'), description: this.t('selfService.actions.trackApprovals'), route: '/leaves', icon: 'layout-grid', tone: 'warning' },
+    { title: this.t('selfService.actions.myRequests'), description: this.t('selfService.actions.trackApprovals'), route: '/self-service/requests', icon: 'layout-grid', tone: 'warning' },
     { title: this.t('selfService.actions.timesheets'), description: this.t('selfService.actions.logProjectHours'), route: '/timesheets', icon: 'clock-3', tone: 'slate' },
     { title: this.t('selfService.actions.myProfile'), description: this.t('selfService.actions.updatePersonalDetails'), route: '/profile', icon: 'spark', tone: 'warning' },
     { title: this.t('selfService.actions.openReports'), description: this.t('selfService.actions.insightsHistory'), route: '/reports-center', icon: 'chart-column', tone: 'slate' },
@@ -482,10 +517,11 @@ export class SelfServiceComponent implements OnInit {
     if (isAdmin) {
       list.push({ key: 'rev', title: this.t('selfService.workflow.reviewEmployees'), description: this.t('selfService.workflow.reviewEmployeesHelp'), route: '/employees', tone: 'border-indigo-100 bg-indigo-50/50', badge: 'ADMIN' });
       list.push({ key: 'att', title: this.t('selfService.workflow.teamAttendance'), description: this.t('selfService.workflow.teamAttendanceHelp'), route: '/admin/team-attendance', tone: 'border-emerald-100 bg-emerald-50/50', badge: 'LEAD' });
+      list.push({ key: 'apr', title: 'Approval Center', description: 'Review pending leave, attendance regularization, and expense queues.', route: '/admin/approvals', tone: 'border-sky-100 bg-sky-50/50', badge: 'QUEUE' });
     }
 
     list.push({ key: 'his', title: this.t('selfService.workflow.activityHistory'), description: this.t('selfService.workflow.activityHistoryHelp'), route: '/reports-center', tone: 'border-slate-100 bg-slate-50/50', badge: 'SELF' });
-    list.push({ key: 'req', title: this.t('selfService.workflow.requestCenter'), description: this.t('selfService.workflow.requestCenterHelp'), route: '/leaves', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
+    list.push({ key: 'req', title: this.t('selfService.workflow.requestCenter'), description: this.t('selfService.workflow.requestCenterHelp'), route: '/self-service/requests', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
     return list;
   });
 

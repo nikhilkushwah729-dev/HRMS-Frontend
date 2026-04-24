@@ -49,44 +49,60 @@ import {
     UiSelectAdvancedComponent,
   ],
   template: `
-    <div class="mx-auto flex max-w-7xl flex-col gap-4 pb-8 sm:gap-5 lg:gap-6 lg:pb-10">
+    <div class="attendance-clean-panel mx-auto flex max-w-7xl flex-col gap-4 pb-8 sm:gap-5 lg:gap-6 lg:pb-10">
       <!-- Header -->
       <header
-        class="app-module-hero flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between"
+        class="sticky top-3 z-30 rounded-lg border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5"
       >
-        <div class="max-w-2xl">
-          <p class="app-module-kicker">Attendance Operations</p>
-          <h1 class="app-module-title mt-3">
-            Daily punch, tracking, and compliance views
-          </h1>
-          <p class="app-module-text mt-3">
-            Track check-ins, review time patterns, manage geofence rules, and
-            keep attendance actions organized in one operational workspace.
-          </p>
-        </div>
-        <div class="flex flex-col gap-3 xl:items-end">
-          <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">Today's status</span>
-            <div class="app-module-highlight-value mt-3">
-              {{ todayAttendance()?.is_clocked_in ? 'Checked in' : 'Pending' }}
-            </div>
-            <p class="mt-2 text-sm text-white/80">
-              Switch between punch, tracking, geofence, and planner views
-              without leaving the module.
+        <div class="grid grid-cols-12 items-center gap-4">
+          <div class="col-span-12 xl:col-span-5">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-teal-600">
+              {{ isSelfServiceWorkspace() ? 'My Attendance' : 'Attendance Management' }}
+            </p>
+            <h1 class="mt-1 text-2xl font-semibold text-slate-900 max-sm:text-lg">
+              {{
+                isSelfServiceWorkspace()
+                  ? 'Check-in, history, working hours, and today status'
+                  : 'Register, tracking, shift, and compliance workspaces'
+              }}
+            </h1>
+            <p class="mt-1 max-w-3xl text-sm font-medium text-slate-500">
+              {{
+                isSelfServiceWorkspace()
+                  ? 'This attendance workspace is focused on your own punches, shift timing, history, overtime, and regularization requests.'
+                  : 'This admin workspace is focused on attendance operations, employee tracking, shift planning, and compliance controls.'
+              }}
             </p>
           </div>
-          <div class="flex flex-wrap justify-end gap-2">
+          <div class="col-span-12 grid grid-cols-1 gap-2 sm:grid-cols-3 xl:col-span-4">
+            <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+              <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Today's status</p>
+              <p class="mt-1 text-sm font-black text-slate-900">
+                {{ todayAttendance()?.is_clocked_in ? 'Checked in' : 'Pending' }}
+              </p>
+            </div>
+            <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+              <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-500">Mode</p>
+              <p class="mt-1 text-sm font-black text-emerald-700">{{ currentView() }}</p>
+            </div>
+            <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2">
+              <p class="text-[10px] font-bold uppercase tracking-wide text-cyan-500">Hours</p>
+              <p class="mt-1 text-sm font-black text-cyan-700">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</p>
+            </div>
+          </div>
+          <div class="col-span-12 flex flex-col gap-3 xl:col-span-3 xl:items-end">
+            <div *ngIf="isAdminAttendanceWorkspace()" class="flex flex-wrap justify-end gap-2">
             <button
               type="button"
               (click)="openAttendanceAddons()"
-              class="rounded-full border border-cyan-200 bg-cyan-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-100"
+              class="rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-black text-cyan-700 transition hover:border-cyan-300 hover:bg-cyan-100"
             >
               Attendance Add-ons
             </button>
             <button
               type="button"
               (click)="openAttendanceUpgrade('attendance')"
-              class="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-amber-800 transition hover:border-amber-300 hover:bg-amber-100"
+              class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800 transition hover:border-amber-300 hover:bg-amber-100"
             >
               {{ attendanceAddonActive() ? 'Manage Plan' : 'Upgrade' }}
             </button>
@@ -129,6 +145,7 @@ import {
             </button>
             <button
               *ngIf="canAccessTrackingWorkspace()"
+              [disabled]="isSelfServiceWorkspace()"
               (click)="setView('tracking')"
               [ngClass]="
                 currentView() === 'tracking'
@@ -141,6 +158,7 @@ import {
             </button>
             <button
               *ngIf="canAccessGeofenceWorkspace()"
+              [disabled]="isSelfServiceWorkspace()"
               (click)="setView('geofence')"
               [ngClass]="
                 currentView() === 'geofence'
@@ -153,6 +171,7 @@ import {
             </button>
             <button
               *ngIf="canAccessShiftPlannerWorkspace()"
+              [disabled]="isSelfServiceWorkspace()"
               (click)="setView('shift-planner')"
               [ngClass]="
                 currentView() === 'shift-planner'
@@ -163,6 +182,7 @@ import {
             >
               Shift Planner
             </button>
+          </div>
           </div>
         </div>
       </header>
@@ -197,13 +217,17 @@ import {
             <div>
               <p class="text-sm font-semibold text-slate-700">
                 {{
-                  todayAttendance()?.is_clocked_in
-                    ? 'You are active for today'
-                    : 'Ready for your next check-in'
+                  isSelfServiceWorkspace()
+                    ? (todayAttendance()?.is_clocked_in ? 'You are active for today' : 'Ready for your next check-in')
+                    : (todayAttendance()?.is_clocked_in ? 'Attendance operations are live right now' : 'Management workspace is ready for review')
                 }}
               </p>
               <p class="text-xs text-slate-500 mt-1">
-                Switch views anytime without losing your attendance state.
+                {{
+                  isSelfServiceWorkspace()
+                    ? 'Switch between punch, calendar, and statistics without losing your attendance state.'
+                    : 'Switch between management views without mixing employee self-service workflows.'
+                }}
               </p>
             </div>
             <span
@@ -220,7 +244,7 @@ import {
         </div>
       </section>
 
-      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <section *ngIf="isAdminAttendanceWorkspace()" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
@@ -295,7 +319,51 @@ import {
         </button>
 
         <button
-          *ngIf="canAccessTrackingWorkspace()"
+          *ngIf="isSelfServiceWorkspace()"
+          type="button"
+          (click)="setView('calendar')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-sky-300 hover:shadow-md sm:p-5"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                My history
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Attendance History</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                Review your own present days, late marks, working hours, and daily attendance records.
+              </p>
+            </div>
+            <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+              History
+            </span>
+          </div>
+        </button>
+
+        <button
+          *ngIf="isSelfServiceWorkspace()"
+          type="button"
+          (click)="setView('stats')"
+          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md sm:p-5"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                My summary
+              </p>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Work Hours & Late Marks</h3>
+              <p class="mt-2 text-sm text-slate-500">
+                See your overtime, punctuality, average hours, and attendance trends for the selected period.
+              </p>
+            </div>
+            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+              Stats
+            </span>
+          </div>
+        </button>
+
+        <button
+          *ngIf="isAdminAttendanceWorkspace() && canAccessTrackingWorkspace()"
           type="button"
           (click)="setView('tracking')"
           class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-cyan-300 hover:shadow-md sm:p-5"
@@ -317,7 +385,7 @@ import {
         </button>
 
         <button
-          *ngIf="canAccessGeofenceWorkspace()"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessGeofenceWorkspace()"
           type="button"
           (click)="setView('geofence')"
           class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-purple-300 hover:shadow-md sm:p-5"
@@ -339,7 +407,7 @@ import {
         </button>
 
         <button
-          *ngIf="canAccessShiftPlannerWorkspace()"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessShiftPlannerWorkspace()"
           type="button"
           (click)="setView('shift-planner')"
           class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all"
@@ -361,8 +429,8 @@ import {
         </button>
 
         <a
-          *ngIf="canAccessTeamAttendanceRoute()"
-          routerLink="/admin/team-attendance"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessTeamAttendanceRoute()"
+          routerLink="/admin/attendance/register"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
         >
           <div class="flex items-start justify-between gap-4">
@@ -382,7 +450,7 @@ import {
         </a>
 
         <a
-          *ngIf="canAccessFaceRegistrationRoute()"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessFaceRegistrationRoute()"
           routerLink="/face-registration"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all"
         >
@@ -403,8 +471,8 @@ import {
         </a>
 
         <a
-          *ngIf="canAccessRegularizationRoute()"
-          routerLink="/admin/regularization"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessRegularizationRoute()"
+          routerLink="/admin/attendance/regularizations"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-rose-300 transition-all"
         >
           <div class="flex items-start justify-between gap-4">
@@ -424,6 +492,7 @@ import {
         </a>
 
         <a
+          *ngIf="isSelfServiceWorkspace()"
           routerLink="/timesheets"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
         >
@@ -444,8 +513,8 @@ import {
         </a>
 
         <a
-          *ngIf="canAccessIntegrationsRoute()"
-          routerLink="/attendance/integrations"
+          *ngIf="isAdminAttendanceWorkspace() && canAccessIntegrationsRoute()"
+          routerLink="/admin/attendance/integrations"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
         >
           <div class="flex items-start justify-between gap-4">
@@ -685,6 +754,7 @@ import {
             <button
               *ngFor="let mode of modes"
               (click)="setModeFromTemplate(mode.id)"
+              [disabled]="mode.id === 'biometric' && !canUseBiometricMode()"
               class="flex-1 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all"
               [ngClass]="
                 checkInMode() === mode.id
@@ -868,7 +938,12 @@ import {
                     </svg>
                   </div>
                 </div>
-                <p class="text-slate-500 font-medium">Place finger on sensor</p>
+                <p class="text-slate-500 font-medium">
+                  {{ biometricPromptText() }}
+                </p>
+                <p class="mt-2 max-w-sm text-xs leading-5 text-slate-400">
+                  {{ biometricSupportMessage() }}
+                </p>
               </div>
 
               <canvas #canvasElement class="hidden"></canvas>
@@ -1983,6 +2058,38 @@ import {
         animation: scan 2s cubic-bezier(0.53, 0.21, 0.29, 0.67) infinite
           alternate;
       }
+      :host ::ng-deep .attendance-clean-panel .card,
+      :host ::ng-deep .attendance-clean-panel .app-surface-card,
+      :host ::ng-deep .attendance-clean-panel .app-glass-card {
+        background: #ffffff !important;
+        border: 0 !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+        --tw-ring-color: transparent !important;
+      }
+      :host ::ng-deep .attendance-clean-panel section,
+      :host ::ng-deep .attendance-clean-panel article,
+      :host ::ng-deep .attendance-clean-panel a.group,
+      :host ::ng-deep .attendance-clean-panel button.group {
+        border-radius: 0.5rem !important;
+      }
+      :host ::ng-deep .attendance-clean-panel .hover\\:-translate-y-0\\.5:hover,
+      :host ::ng-deep .attendance-clean-panel .hover\\:-translate-y-1:hover {
+        transform: none !important;
+      }
+      :host ::ng-deep .attendance-clean-panel .shadow-2xl,
+      :host ::ng-deep .attendance-clean-panel .shadow-xl {
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+      }
+      :host ::ng-deep .attendance-clean-panel .app-chip-switch {
+        border-radius: 0.5rem !important;
+        background: rgb(248 250 252 / 1) !important;
+        box-shadow: none !important;
+      }
+      :host ::ng-deep .attendance-clean-panel .app-chip-button {
+        border-radius: 0.375rem !important;
+        letter-spacing: 0 !important;
+      }
       @keyframes scan {
         0% {
           top: 10%;
@@ -2098,6 +2205,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   private cameraStream: MediaStream | null = null;
   private currentUser: User | null = null;
+  workspaceMode = signal<'self' | 'admin'>('self');
+  isSelfServiceWorkspace = computed(() => this.workspaceMode() === 'self');
+  isAdminAttendanceWorkspace = computed(() => this.workspaceMode() === 'admin');
+  biometricAvailability = signal<'checking' | 'available' | 'unsupported' | 'restricted'>('checking');
+  biometricConfiguredForUser = signal(false);
 
   modes: {
     id: 'web' | 'camera' | 'face' | 'biometric';
@@ -2164,7 +2276,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       slug: 'employee-tracking',
       short: 'ET',
       tone: 'bg-cyan-100 text-cyan-700',
-      route: '/attendance?view=tracking',
+      route: '/admin/attendance/workspace?view=tracking',
       active: this.canAccessTrackingWorkspace(),
       description: 'Track employee location from phone or desktop and monitor live field movement.',
     },
@@ -2173,7 +2285,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       slug: 'geofence',
       short: 'GF',
       tone: 'bg-violet-100 text-violet-700',
-      route: '/attendance?view=geofence',
+      route: '/admin/attendance/geofence',
       active: this.canAccessGeofenceWorkspace(),
       description: 'Enable location boundaries and attendance compliance for allowed zones.',
     },
@@ -2182,7 +2294,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       slug: 'shift-planner',
       short: 'SP',
       tone: 'bg-emerald-100 text-emerald-700',
-      route: '/attendance?view=shift-planner',
+      route: '/admin/attendance/workspace?view=shift-planner',
       active: this.canAccessShiftPlannerWorkspace(),
       description: 'Plan shifts, rosters, and scheduling visibility for managers.',
     },
@@ -2239,12 +2351,15 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentUser = this.authService.getStoredUser();
+    this.workspaceMode.set(this.resolveWorkspaceMode());
+    this.currentView.set(this.isAdminAttendanceWorkspace() ? 'stats' : 'punch');
     this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (this.isAttendanceView(view)) {
         this.setView(view);
       }
     });
+    void this.detectBiometricSupport();
     void this.faceRecognitionService.primeFaceEngine();
     this.organizationService.getAddons().subscribe({ error: () => {} });
     this.startClock();
@@ -2463,6 +2578,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       | 'geofence'
       | 'shift-planner',
   ) {
+    if (this.isSelfServiceWorkspace() && this.isAdminOnlyView(view)) return;
     if (view === 'tracking' && !this.canAccessTrackingWorkspace()) return;
     if (view === 'geofence' && !this.canAccessGeofenceWorkspace()) return;
     if (view === 'shift-planner' && !this.canAccessShiftPlannerWorkspace()) return;
@@ -2492,6 +2608,18 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       view === 'geofence' ||
       view === 'shift-planner'
     );
+  }
+
+  private isAdminOnlyView(
+    view:
+      | 'punch'
+      | 'calendar'
+      | 'stats'
+      | 'tracking'
+      | 'geofence'
+      | 'shift-planner',
+  ): boolean {
+    return view === 'tracking' || view === 'geofence' || view === 'shift-planner';
   }
 
   setStatsPeriod(period: 'week' | 'month' | 'year') {
@@ -2554,11 +2682,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   canAccessTeamAttendanceRoute(): boolean {
-    return this.permissionService.canAccessRoute(this.currentUser, '/admin/team-attendance');
+    return this.permissionService.canAccessRoute(this.currentUser, '/admin/attendance/register');
   }
 
   canAccessRegularizationRoute(): boolean {
-    return this.permissionService.canAccessRoute(this.currentUser, '/admin/regularization');
+    return this.permissionService.canAccessRoute(this.currentUser, '/admin/attendance/regularizations');
   }
 
   canAccessFaceRegistrationRoute(): boolean {
@@ -2566,7 +2694,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   canAccessIntegrationsRoute(): boolean {
-    return this.permissionService.canAccessRoute(this.currentUser, '/attendance/integrations');
+    return this.permissionService.canAccessRoute(this.currentUser, '/admin/attendance/integrations');
   }
 
   openAttendanceAddons(): void {
@@ -2612,6 +2740,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   setMode(mode: 'web' | 'camera' | 'biometric' | 'face') {
     if (this.processing()) return;
+
+    if (mode === 'biometric' && !this.canUseBiometricMode()) {
+      this.toastService.error(this.biometricSupportMessage());
+      this.checkInMode.set('web');
+      return;
+    }
+
     this.checkInMode.set(mode);
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
@@ -3001,6 +3136,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       payload.shiftId = this.selectedShiftId();
     }
 
+    if (this.checkInMode() === 'biometric' && !this.canUseBiometricMode()) {
+      this.toastService.error(this.biometricSupportMessage());
+      this.processing.set(false);
+      return;
+    }
+
     if (this.isCameraMode()) {
       if (this.checkInMode() === 'face') {
         try {
@@ -3075,9 +3216,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         await new Promise((r) => setTimeout(r, 800));
       }
     } else if (this.checkInMode() === 'biometric') {
-      await new Promise((r) => setTimeout(r, 2000));
-      payload.biometricRef =
-        'BIO-' + Math.random().toString(36).substring(7).toUpperCase();
+      const biometricRef = await this.prepareBiometricRef();
+      if (!biometricRef) {
+        this.processing.set(false);
+        return;
+      }
+      payload.biometricRef = biometricRef;
     } else {
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -3124,6 +3268,107 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         }
       },
     });
+  }
+
+  canUseBiometricMode(): boolean {
+    return (
+      this.biometricConfiguredForUser() &&
+      this.biometricAvailability() === 'available'
+    );
+  }
+
+  biometricPromptText(): string {
+    return this.canUseBiometricMode()
+      ? 'Use your laptop fingerprint or Windows Hello sensor'
+      : 'Biometric attendance is not ready on this device';
+  }
+
+  biometricSupportMessage(): string {
+    if (!this.biometricConfiguredForUser()) {
+      return 'Biometric attendance is not enabled for your account or organization yet.';
+    }
+
+    switch (this.biometricAvailability()) {
+      case 'available':
+        return 'Platform biometric support detected. We can use Windows Hello or the built-in fingerprint flow when your browser supports it.';
+      case 'restricted':
+        return 'This browser can detect biometric capability, but direct fingerprint verification still needs configured WebAuthn or native device integration.';
+      case 'unsupported':
+        return 'This browser or device does not expose a supported biometric authenticator for web attendance.';
+      default:
+        return 'Checking biometric support for this device...';
+    }
+  }
+
+  private resolveWorkspaceMode(): 'self' | 'admin' {
+    const routeMode = this.route.snapshot.data['attendanceMode'];
+    if (routeMode === 'admin' || routeMode === 'self') {
+      return routeMode;
+    }
+
+    const currentPath = this.router.url.split('?')[0];
+    return currentPath.startsWith('/admin/attendance') ? 'admin' : 'self';
+  }
+
+  private async detectBiometricSupport(): Promise<void> {
+    const user = this.currentUser ?? this.authService.getStoredUser();
+    const configured = Boolean(
+      user?.biometricMachinePermission || user?.addonDeviceVerification,
+    );
+    this.biometricConfiguredForUser.set(configured);
+
+    if (!configured) {
+      this.biometricAvailability.set('restricted');
+      return;
+    }
+
+    const credentialApi =
+      typeof window !== 'undefined'
+        ? (window as Window & {
+            PublicKeyCredential?: {
+              isUserVerifyingPlatformAuthenticatorAvailable?: () => Promise<boolean>;
+            };
+          }).PublicKeyCredential
+        : undefined;
+
+    if (!credentialApi?.isUserVerifyingPlatformAuthenticatorAvailable) {
+      this.biometricAvailability.set('unsupported');
+      return;
+    }
+
+    try {
+      const isAvailable =
+        await credentialApi.isUserVerifyingPlatformAuthenticatorAvailable();
+      this.biometricAvailability.set(isAvailable ? 'available' : 'unsupported');
+    } catch {
+      this.biometricAvailability.set('restricted');
+    }
+  }
+
+  private async prepareBiometricRef(): Promise<string | null> {
+    if (!this.biometricConfiguredForUser()) {
+      this.toastService.error(
+        'Biometric attendance is not enabled for your account yet.',
+      );
+      return null;
+    }
+
+    if (this.biometricAvailability() === 'unsupported') {
+      this.toastService.error(
+        'This browser cannot access a supported laptop biometric authenticator.',
+      );
+      return null;
+    }
+
+    if (this.biometricAvailability() === 'restricted') {
+      this.toastService.info(
+        'Direct fingerprint validation is limited in browsers. Using verified device availability as the biometric attendance reference.',
+      );
+    }
+
+    await new Promise((r) => setTimeout(r, 700));
+    const userId = this.currentUser?.id ?? this.authService.getStoredUser()?.id ?? 'user';
+    return `BIO-${userId}-${Date.now()}`;
   }
 
   async handleBreak() {

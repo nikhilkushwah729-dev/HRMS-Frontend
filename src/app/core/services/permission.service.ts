@@ -258,6 +258,14 @@ export class PermissionService {
   > = {
     '/dashboard': { modules: ['dashboard'] },
     '/self-service': { modules: ['dashboard'] },
+    '/self-service/attendance': {
+      modules: ['attendance'],
+      keys: ['attendance.view'],
+    },
+    '/employee/attendance': {
+      modules: ['attendance'],
+      keys: ['attendance.view'],
+    },
     '/ess': { modules: ['dashboard'] },
     '/my-team': { modules: ['dashboard'] },
     '/billing': { keys: ['billing.view'] },
@@ -270,6 +278,38 @@ export class PermissionService {
     '/employees/view': { modules: ['employees'] },
     '/attendance': { modules: ['attendance'] },
     '/attendance/integrations': { modules: ['attendance'] },
+    '/hr/attendance': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/admin/attendance': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/admin/attendance/register': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/admin/attendance/workspace': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/admin/attendance/integrations': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/admin/attendance/geofence': {
+      modules: ['attendance', 'geofence'],
+      keys: ['geofence.view', 'attendance.team.view'],
+    },
+    '/admin/attendance/regularizations': {
+      modules: ['attendance', 'regularization'],
+      keys: ['regularization.view', 'attendance.regularization.view'],
+    },
+    '/admin/attendance/reports': {
+      modules: ['reports'],
+      keys: ['reports.view'],
+    },
     '/face-registration': { modules: ['attendance'] },
     '/leaves': { modules: ['leaves'] },
     '/reports': { modules: ['reports'] },

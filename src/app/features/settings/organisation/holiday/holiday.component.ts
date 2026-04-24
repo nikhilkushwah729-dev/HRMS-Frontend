@@ -42,9 +42,12 @@ import { LanguageService } from '../../../../core/services/language.service';
           <div class="app-module-highlight">
             <p class="app-module-highlight-label">Attendance sync</p>
             <p class="mt-3 app-module-highlight-value">Live calendar</p>
-            <p class="mt-3 text-sm leading-6 text-white/80">These holiday records directly support attendance reporting and the self-service dashboard experience.</p>
-            <div class="mt-4 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+            <p class="mt-3 text-sm leading-6 text-slate-600">These holiday records directly support attendance reporting and the self-service dashboard experience.</p>
+            <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
               {{ editingId() ? 'Editing a live holiday record' : 'Ready to add a new calendar event' }}
+            </div>
+            <div class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
+              Published holidays stay visible across attendance, leave planning, and employee self service.
             </div>
           </div>
         </div>

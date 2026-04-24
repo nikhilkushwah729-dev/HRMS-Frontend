@@ -596,19 +596,23 @@ interface ModuleCard {
         display: grid;
         grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
-        padding: 1.5rem;
-        border-radius: 32px;
+        padding: 1.25rem;
+        border-radius: 14px;
         border: 1px solid rgba(148, 163, 184, 0.18);
-        background: linear-gradient(135deg, #fff8ed 0%, #f8fafc 52%, #ecfeff 100%);
-        box-shadow: 0 28px 60px -40px rgba(15, 23, 42, 0.34);
+        background: #ffffff;
+        box-shadow: 0 18px 42px -28px rgba(15, 23, 42, 0.18);
         align-items: stretch;
+        position: sticky;
+        top: 0.75rem;
+        z-index: 20;
+        backdrop-filter: blur(12px);
       }
 
       .hero-copy,
       .hero-panel,
       .panel,
       .stat-card {
-        border-radius: 28px;
+        border-radius: 12px;
         min-width: 0;
       }
 
@@ -624,7 +628,7 @@ interface ModuleCard {
         font-weight: 800;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #b45309;
+        color: #2563eb;
       }
 
       .panel-eyebrow-dark {
@@ -669,24 +673,16 @@ interface ModuleCard {
         justify-content: center;
         min-height: 3rem;
         padding: 0.9rem 1.15rem;
-        border-radius: 18px;
+        border-radius: 10px;
         font-weight: 700;
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease;
-      }
-
-      .hero-btn:hover,
-      .hero-wide-action:hover,
-      .quick-link:hover {
-        transform: translateY(-1px);
+        transition: box-shadow 0.2s ease, background-color 0.2s ease;
       }
 
       .hero-btn-primary,
       .hero-wide-action {
-        background: linear-gradient(135deg, #0f766e, #115e59);
+        background: #0f172a;
         color: #fff;
-        box-shadow: 0 18px 34px -24px rgba(15, 118, 110, 0.55);
+        box-shadow: 0 8px 18px -14px rgba(15, 23, 42, 0.35);
       }
 
       .hero-btn-secondary {
@@ -707,10 +703,8 @@ interface ModuleCard {
       .stat-card {
         padding: 1.35rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
-        background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 22px 46px -34px rgba(15, 23, 42, 0.28);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: #ffffff;
+        box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.14);
       }
 
       .hero-panel-top {
@@ -761,12 +755,8 @@ interface ModuleCard {
 
       .hero-meta-card {
         padding: 0.9rem;
-        border-radius: 20px;
-        background: linear-gradient(
-          180deg,
-          rgba(248, 250, 252, 0.96),
-          rgba(241, 245, 249, 0.96)
-        );
+        border-radius: 10px;
+        background: #f8fafc;
         border: 1px solid rgba(148, 163, 184, 0.14);
       }
 
@@ -809,19 +799,19 @@ interface ModuleCard {
 
       .org-node {
         padding: 1rem 1.05rem;
-        border-radius: 22px;
+        border-radius: 12px;
         border: 1px solid rgba(148, 163, 184, 0.16);
-        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.92));
+        background: #ffffff;
       }
 
       .org-node-top {
         border-color: rgba(245, 158, 11, 0.2);
-        background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 247, 237, 0.94));
+        background: #fffbeb;
       }
 
       .org-node-center {
         border-color: rgba(20, 184, 166, 0.2);
-        background: linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(240, 253, 250, 0.94));
+        background: #ecfdf5;
       }
 
       .org-node strong {
@@ -862,7 +852,7 @@ interface ModuleCard {
 
       .org-chip {
         padding: 0.65rem 0.75rem;
-        border-radius: 16px;
+        border-radius: 10px;
         background: rgba(255, 255, 255, 0.72);
         border: 1px solid rgba(148, 163, 184, 0.14);
       }

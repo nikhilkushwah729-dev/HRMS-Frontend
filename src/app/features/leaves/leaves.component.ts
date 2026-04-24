@@ -18,6 +18,9 @@ import {
   LeaveService,
   LeaveRequest,
   LeaveTypeBalance,
+  LeaveDashboard,
+  MonthlyLeaveUsage,
+  UpcomingHoliday,
 } from '../../core/services/leave.service';
 import { AuthService } from '../../core/services/auth.service';
 import { User } from '../../core/models/auth.model';
@@ -28,7 +31,7 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
 Chart.register(...registerables);
@@ -152,280 +155,207 @@ Chart.register(...registerables);
         </div>
       }
 
-      <header
-        class="app-module-hero mb-6 flex flex-col items-start justify-between gap-5 xl:mb-8 xl:flex-row xl:items-end"
-      >
-        <div class="max-w-2xl">
-          <p class="app-module-kicker">Leave Workspace</p>
-          <h1 class="app-module-title mt-3">
-            Balances, requests, and approval movement
-          </h1>
-          <p class="app-module-text mt-3">
-            Review your leave balances, request history, analytics, and
-            policy-facing time-off actions in one place.
-          </p>
-        </div>
-        <div class="flex flex-col gap-3 w-full xl:w-auto xl:items-end">
-          <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">Pending requests</span>
-            <div class="app-module-highlight-value mt-3">
-              {{ pendingLeaves().length }}
-            </div>
-            <p class="mt-2 text-sm text-white/80">
-              Open leave items waiting for action or recent submission tracking.
+      <header class="sticky top-3 z-30 mb-4 rounded-lg border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
+        <div class="grid grid-cols-12 items-center gap-4">
+          <div class="col-span-12 md:col-span-5">
+            <h1 class="text-2xl font-semibold text-slate-900 max-sm:text-lg">
+              Leave Dashboard
+            </h1>
+            <p class="mt-1 text-sm font-medium text-slate-500 max-sm:text-xs">
+              {{ formattedToday() }}
             </p>
           </div>
-          <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <div class="app-chip-switch w-full overflow-x-auto no-scrollbar sm:w-auto">
+          <div class="col-span-12 flex flex-col gap-3 md:col-span-7 md:flex-row md:items-center md:justify-end">
+            <div class="inline-flex w-full rounded-lg border border-slate-200 bg-slate-50 p-1 sm:w-auto">
               <button
-                (click)="currentView.set('request')"
-                [class.bg-slate-900]="currentView() === 'request'"
-                [class.text-white]="currentView() === 'request'"
-                class="app-chip-button text-xs flex items-center gap-2"
+                type="button"
+                (click)="currentView.set('dashboard')"
+                class="flex-1 rounded-md px-4 py-2 text-xs font-black transition md:flex-none"
+                [ngClass]="currentView() === 'dashboard' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <path d="M8 2v4" />
-                  <path d="M16 2v4" />
-                  <rect width="18" height="18" x="3" y="4" rx="2" />
-                  <path d="M3 10h18" />
-                  <path d="M8 14h.01" />
-                  <path d="M12 14h.01" />
-                  <path d="M16 14h.01" />
-                  <path d="M8 18h.01" />
-                  <path d="M12 18h.01" />
-                  <path d="M16 18h.01" />
-                </svg>
-                Requests
+                Dashboard
               </button>
               <button
-                (click)="currentView.set('dashboard')"
-                [class.bg-slate-900]="currentView() === 'dashboard'"
-                [class.text-white]="currentView() === 'dashboard'"
-                class="app-chip-button text-xs flex items-center gap-2"
+                type="button"
+                (click)="currentView.set('request')"
+                class="flex-1 rounded-md px-4 py-2 text-xs font-black transition md:flex-none"
+                [ngClass]="currentView() === 'request' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                >
-                  <path d="M3 3v18h18" />
-                  <path d="m19 9-5 5-4-4-3 3" />
-                </svg>
-                Dashboard
+                Requests
               </button>
             </div>
             @if (canRequestLeave()) {
-            <button
-              (click)="toggleForm()"
-              class="btn-primary flex w-full items-center justify-center gap-2 rounded-md py-3 sm:w-auto sm:flex-none"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
+              <button
+                type="button"
+                (click)="toggleForm()"
+                class="btn-primary flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-xs sm:w-auto"
               >
-                <path d="M5 12h14" />
-                <path d="M12 5v14" />
-              </svg>
-              Request Leave
-            </button>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+                Request Leave
+              </button>
             }
           </div>
         </div>
       </header>
 
+      @if (isLoadingDashboard()) {
+        <div class="rounded-lg bg-white p-4 text-sm font-semibold text-slate-500 shadow-sm">
+          Loading leave dashboard...
+        </div>
+      }
+
+      @if (dashboardError()) {
+        <div class="flex flex-col gap-3 rounded-lg bg-red-50 p-4 text-sm text-red-700 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <span class="font-semibold">{{ dashboardError() }}</span>
+          <button
+            type="button"
+            (click)="loadDashboard()"
+            class="rounded-md bg-white px-3 py-2 text-xs font-black text-red-700 shadow-sm"
+          >
+            Retry
+          </button>
+        </div>
+      }
+
       @if (currentView() === 'dashboard') {
-        <div
-          class="grid grid-cols-1 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 lg:grid-cols-3 lg:gap-8"
-        >
-          <!-- Analytics Charts -->
-          <div class="space-y-6 lg:col-span-2 lg:space-y-8">
-            <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8">
-              <div
-                class="card border-slate-100 bg-white/50 p-5 backdrop-blur-md sm:p-6"
-              >
-                <h3
-                  class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2"
-                >
-                  <span class="w-2 h-2 rounded-full bg-primary-500"></span>
-                  Leave Distribution
-                </h3>
-                <div class="h-64 relative flex items-center justify-center">
-                  <canvas id="leaveDistChart"></canvas>
-                </div>
-              </div>
-              <div class="card border-slate-100 bg-white/50 p-5 backdrop-blur-md sm:p-6">
-                <h3
-                  class="text-sm font-black text-slate-800 uppercase tracking-widest mb-6 flex items-center gap-2"
-                >
-                  <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
-                  Monthly Utilization
-                </h3>
-                <div class="h-64 relative flex items-center justify-center">
-                  <canvas id="leaveUtilChart"></canvas>
-                </div>
-              </div>
-            </div>
-
-            <!-- Summary Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div
-                class="card p-6 bg-gradient-to-br from-white to-slate-50 border-slate-100 shadow-sm"
-              >
-                <p
-                  class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1"
-                >
-                  Total Entitlement
-                </p>
-                <h4 class="text-2xl font-black text-slate-900">
-                  {{ totalEntitlement() }} Days
-                </h4>
-                <div
-                  class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"
-                >
-                  <div
-                    class="h-full bg-primary-500 rounded-full"
-                    [style.width.%]="100"
-                  ></div>
-                </div>
-              </div>
-              <div
-                class="card p-6 bg-gradient-to-br from-white to-slate-50 border-slate-100 shadow-sm"
-              >
-                <p
-                  class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1"
-                >
-                  Days Used
-                </p>
-                <h4 class="text-2xl font-black text-slate-900">
-                  {{ totalUsed() }} Days
-                </h4>
-                <div
-                  class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"
-                >
-                  <div
-                    class="h-full bg-indigo-500 rounded-full"
-                    [style.width.%]="(totalUsed() / totalEntitlement()) * 100"
-                  ></div>
-                </div>
-              </div>
-              <div
-                class="card p-6 bg-gradient-to-br from-white to-slate-50 border-slate-100 shadow-sm"
-              >
-                <p
-                  class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1"
-                >
-                  Balance
-                </p>
-                <h4 class="text-2xl font-black text-primary-600">
-                  {{ totalRemaining() }} Days
-                </h4>
-                <div
-                  class="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"
-                >
-                  <div
-                    class="h-full bg-emerald-500 rounded-full"
-                    [style.width.%]="
-                      (totalRemaining() / totalEntitlement()) * 100
-                    "
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Holiday Calendar sidebar -->
-          <div class="space-y-6">
-            <div
-              class="card p-6 border-slate-100 bg-slate-900 text-white shadow-xl shadow-slate-900/10"
+        <div class="grid grid-cols-12 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          @for (card of dashboardCards(); track card.label) {
+            <button
+              type="button"
+              (click)="openDashboardCard(card.target)"
+              class="group col-span-6 cursor-pointer rounded-lg border border-l-4 bg-white p-4 text-left shadow-sm transition hover:shadow-md md:col-span-4"
+              [ngClass]="card.border"
             >
-              <h3 class="text-sm font-black uppercase tracking-widest mb-6">
-                Upcoming Holidays
-              </h3>
-              <div class="space-y-6">
-                @for (holiday of upcomingHolidays(); track holiday.name) {
-                  <div class="flex items-start gap-4 group cursor-default">
-                    <div
-                      class="flex flex-col items-center justify-center w-12 h-12 rounded-md bg-white/10 border border-white/10 group-hover:bg-white/20 transition-all"
-                    >
-                      <span
-                        class="text-[10px] font-black uppercase text-slate-400 leading-none"
-                        >{{ holiday.date | date: 'MMM' }}</span
-                      >
-                      <span class="text-lg font-black leading-none mt-1">{{
-                        holiday.date | date: 'dd'
-                      }}</span>
+              <div class="flex h-20 items-center gap-4">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full" [ngClass]="card.bg">
+                  <span class="text-sm font-black" [ngClass]="card.text">{{ card.icon }}</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-[11px] font-bold uppercase tracking-wide text-slate-500">{{ card.label }}</p>
+                  <p class="mt-1 text-2xl font-black leading-none text-slate-900">{{ card.value }}</p>
+                </div>
+              </div>
+            </button>
+          }
+
+          <section class="col-span-12 rounded-lg bg-white p-4 shadow-sm">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-slate-900">Leave Statistics</h3>
+                <p class="mt-1 text-xs font-medium text-slate-500">
+                  {{ fromDate() | date: 'dd MMM' }} - {{ toDate() | date: 'dd MMM yyyy' }}
+                </p>
+              </div>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-center">
+                <label class="flex flex-col gap-1">
+                  <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">From</span>
+                  <input type="date" [value]="fromDate()" (change)="setFromDate($event)" class="min-w-[150px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100" />
+                </label>
+                <label class="flex flex-col gap-1">
+                  <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">To</span>
+                  <input type="date" [value]="toDate()" (change)="setToDate($event)" class="min-w-[150px] rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100" />
+                </label>
+                <button type="button" (click)="applyDashboardRange()" class="btn-primary mt-4 rounded-md px-5 py-2.5 text-xs sm:mt-5">Apply</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="col-span-12 overflow-hidden rounded-lg bg-white shadow-sm md:col-span-6">
+            <div class="border-b border-slate-100 px-5 py-4">
+              <h3 class="text-base font-semibold text-slate-900">Leave Type</h3>
+              <p class="mt-1 text-xs text-slate-500">Approved leave distribution by type.</p>
+            </div>
+            <div class="relative flex h-[300px] items-center justify-center p-5">
+              @if (hasLeaveTypeUsage()) {
+                <canvas id="leaveTypeChart"></canvas>
+              } @else {
+                <div class="rounded-md border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-500">No leave type data for selected range.</div>
+              }
+            </div>
+          </section>
+
+          <section class="col-span-12 overflow-hidden rounded-lg bg-white shadow-sm md:col-span-6">
+            <div class="border-b border-slate-100 px-5 py-4">
+              <h3 class="text-base font-semibold text-slate-900">Leave</h3>
+              <p class="mt-1 text-xs text-slate-500">Paid and unpaid approved leave count.</p>
+            </div>
+            <div class="relative flex h-[300px] items-center justify-center p-5">
+              @if (hasPaidUnpaidData()) {
+                <canvas id="paidUnpaidChart"></canvas>
+              } @else {
+                <div class="rounded-md border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-500">No paid/unpaid data for selected range.</div>
+              }
+            </div>
+          </section>
+
+          <section class="col-span-12 overflow-hidden rounded-lg bg-white shadow-sm md:col-span-6">
+            <div class="border-b border-slate-100 px-5 py-4">
+              <h3 class="text-base font-semibold text-slate-900">Annual Leave Utilization By Month</h3>
+              <p class="mt-1 text-xs text-slate-500">Paid and unpaid leave trend for {{ toDate() | date: 'yyyy' }}.</p>
+            </div>
+            <div class="relative flex h-[300px] items-center justify-center p-5">
+              @if (hasMonthlyUsage()) {
+                <canvas id="leaveUtilChart"></canvas>
+              } @else {
+                <div class="rounded-md border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-500">No monthly movement yet.</div>
+              }
+            </div>
+          </section>
+
+          <section class="col-span-12 overflow-hidden rounded-lg bg-white shadow-sm md:col-span-6">
+            <div class="border-b border-slate-100 px-5 py-4">
+              <h3 class="text-base font-semibold text-slate-900">Employee On Leave By Department Annually</h3>
+              <p class="mt-1 text-xs text-slate-500">Department-wise approved leave volume.</p>
+            </div>
+            <div class="relative flex h-[300px] items-center justify-center p-5">
+              @if (hasDepartmentAnnual()) {
+                <canvas id="departmentLeaveChart"></canvas>
+              } @else {
+                <div class="rounded-md border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center text-sm font-semibold text-slate-500">No department leave data for this year.</div>
+              }
+            </div>
+          </section>
+
+          <section class="col-span-12 overflow-hidden rounded-lg bg-white shadow-sm">
+            <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 class="text-base font-semibold text-slate-900">Leave Calendar</h3>
+                <p class="mt-1 text-xs text-slate-500">Upcoming holidays and active leave windows</p>
+              </div>
+              <span class="rounded-md bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">{{ upcomingHolidays().length }} upcoming holidays</span>
+            </div>
+            @if (upcomingHolidays().length) {
+              <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                @for (holiday of upcomingHolidays(); track holiday.id || holiday.name) {
+                  <div class="group flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3 shadow-sm transition hover:shadow-md">
+                    <div class="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-slate-50">
+                      <span class="text-[10px] font-black uppercase leading-none text-slate-400">{{ holiday.date | date: 'MMM' }}</span>
+                      <span class="text-lg font-black text-slate-900">{{ holiday.date | date: 'dd' }}</span>
                     </div>
-                    <div class="flex-1">
-                      <h4 class="text-sm font-bold leading-tight">
-                        {{ holiday.name }}
-                      </h4>
-                      <p class="text-xs text-slate-400 mt-1">
-                        {{ holiday.date | date: 'EEEE' }}
-                      </p>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold text-slate-900">{{ holiday.name }}</p>
+                      <p class="text-xs text-slate-500">{{ holiday.date | date: 'EEEE' }}</p>
                     </div>
                   </div>
                 }
               </div>
-              <button
-                class="w-full mt-8 py-3 rounded-md border border-white/10 hover:bg-white/5 transition-all text-xs font-bold text-slate-300"
-              >
-                View Full Calendar
-              </button>
-            </div>
-
-            <!-- Policy Shortcut -->
-            <div
-              class="card p-6 border-slate-100 bg-white shadow-sm border-l-4 border-l-primary-500"
-            >
-              <h3
-                class="text-xs font-black text-slate-900 uppercase tracking-widest mb-2"
-              >
-                Leave Policy
-              </h3>
-              <p class="text-xs text-slate-500 leading-relaxed mb-4">
-                Review the latest leave policies, carry-forward rules, and
-                encashment terms.
-              </p>
-              <a
-                href="#"
-                class="text-primary-600 text-xs font-black hover:underline inline-flex items-center gap-1"
-              >
-                View Policy PDF
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                >
-                  <path
-                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                  />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </a>
-            </div>
-          </div>
+            } @else {
+              <div class="m-5 rounded-md border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+                No upcoming holidays configured.
+              </div>
+            }
+          </section>
         </div>
       }
 
@@ -433,29 +363,29 @@ Chart.register(...registerables);
         <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
           <!-- Leave Balances -->
           <div
-            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            class="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"
           >
             @for (bal of leaveBalances(); track bal.id) {
               <div
-                class="card p-6 flex flex-col justify-between border-slate-100 hover:shadow-md transition-all group"
+                class="group flex min-h-[112px] flex-col justify-between rounded-lg border border-l-4 bg-white p-4 shadow-sm transition hover:shadow-md"
                 [style.border-left]="'4px solid ' + bal.color"
               >
-                <div class="flex justify-between items-start mb-4">
+                <div class="mb-4 flex items-start justify-between gap-3">
                   <span
-                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest"
+                    class="text-[11px] font-bold uppercase tracking-wide text-slate-500"
                     >{{ bal.type }}</span
                   >
                   <span
-                    class="text-[9px] font-black px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors"
+                    class="rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-400 transition-colors group-hover:bg-primary-50 group-hover:text-primary-600"
                     >{{ bal.year }}</span
                   >
                 </div>
                 <div class="flex items-end gap-2">
                   <span
-                    class="text-3xl font-black text-slate-900 tracking-tight"
+                    class="text-3xl font-black tracking-tight text-slate-900"
                     >{{ bal.remaining }}</span
                   >
-                  <span class="text-slate-400 font-bold mb-1 text-xs"
+                  <span class="mb-1 text-xs font-bold text-slate-400"
                     >/ {{ bal.total }} Days</span
                   >
                 </div>
@@ -464,10 +394,10 @@ Chart.register(...registerables);
           </div>
 
           <!-- Requests Table -->
-          <div class="card overflow-hidden h-fit">
-            <div class="p-6 border-b border-slate-50">
+          <div class="h-fit overflow-hidden rounded-lg bg-white shadow-sm">
+            <div class="border-b border-slate-100 p-5">
               <div class="flex items-center justify-between gap-3">
-                <h3 class="font-bold text-slate-900">
+                <h3 class="text-base font-semibold text-slate-900">
                   {{
                     activeModule() === 'approval'
                       ? 'Approval Module'
@@ -508,41 +438,41 @@ Chart.register(...registerables);
             <div class="overflow-x-auto">
               <table class="w-full text-left">
                 <thead>
-                  <tr class="bg-slate-50">
+                  <tr class="bg-slate-50/80">
                     @if (isApprover() && activeModule() === 'approval') {
                       <th
-                        class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                        class="px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                       >
                         Requested By
                       </th>
                     }
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                      class="px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Leave Type
                     </th>
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                      class="px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Duration
                     </th>
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap"
+                      class="whitespace-nowrap px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Reason
                     </th>
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                      class="px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Pending With
                     </th>
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                      class="px-6 py-4 text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Status
                     </th>
                     <th
-                      class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
+                      class="px-6 py-4 text-right text-[10px] font-bold uppercase tracking-wide text-slate-400"
                     >
                       Action
                     </th>
@@ -724,15 +654,23 @@ export class LeavesComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private toastService = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   leaves = signal<LeaveRequest[]>([]);
   leaveTypes = signal<LeaveTypeBalance[]>([]);
   leaveBalances = signal<LeaveTypeBalance[]>([]);
+  leaveDashboard = signal<LeaveDashboard | null>(null);
+  monthlyUsage = signal<MonthlyLeaveUsage[]>([]);
+  upcomingHolidays = signal<UpcomingHoliday[]>([]);
+  fromDate = signal<string>(this.toDateInputValue(this.addDays(new Date(), -45)));
+  toDate = signal<string>(this.toDateInputValue(new Date()));
+  isLoadingDashboard = signal<boolean>(false);
+  dashboardError = signal<string>('');
   showForm = signal<boolean>(false);
   processing = signal<boolean>(false);
   statusUpdatingId = signal<number | null>(null);
   currentUser = signal<User | null>(null);
-  currentView = signal<'request' | 'dashboard'>('request');
+  currentView = signal<'request' | 'dashboard'>('dashboard');
   activeModule = signal<'approval' | 'request'>('request');
   editingLeaveId = signal<number | null>(null);
 
@@ -753,13 +691,41 @@ export class LeavesComponent implements OnInit, OnDestroy {
   pendingLeaves = computed(() =>
     this.leaves().filter((leave) => leave.status === 'pending'),
   );
-
-  upcomingHolidays = signal([
-    { name: 'Diwali Break', date: '2026-11-01' },
-    { name: 'Gurunanak Jayanti', date: '2026-11-25' },
-    { name: 'Christmas Day', date: '2026-12-25' },
-    { name: 'New Year Eve', date: '2026-12-31' },
-  ]);
+  dashboardCards = computed(() => {
+    const summary = this.leaveDashboard()?.summary;
+    return [
+      {
+        label: 'Total Employees',
+        value: summary?.totalEmployees ?? 0,
+        icon: 'T',
+        bg: 'bg-green-50',
+        text: 'text-green-600',
+        border: 'border-green-400',
+        accent: 'bg-green-400',
+        target: 'employees' as const,
+      },
+      {
+        label: 'On Leave',
+        value: summary?.onLeave ?? 0,
+        icon: 'L',
+        bg: 'bg-red-50',
+        text: 'text-red-600',
+        border: 'border-red-400',
+        accent: 'bg-red-400',
+        target: 'on-leave' as const,
+      },
+      {
+        label: 'Pending Request',
+        value: summary?.pending ?? 0,
+        icon: 'P',
+        bg: 'bg-yellow-50',
+        text: 'text-yellow-600',
+        border: 'border-yellow-400',
+        accent: 'bg-yellow-400',
+        target: 'pending' as const,
+      },
+    ];
+  });
 
   leaveForm: FormGroup = this.fb.group({
     leaveTypeId: [null, [Validators.required]],
@@ -769,12 +735,23 @@ export class LeavesComponent implements OnInit, OnDestroy {
   });
 
   private distChart: any;
+  private leaveTypeChart: any;
+  private paidUnpaidChart: any;
   private utilChart: any;
+  private departmentChart: any;
   private routeSubscription?: Subscription;
 
   constructor() {
     effect(() => {
-      if (this.leaves().length > 0 || this.leaveBalances().length > 0) {
+      if (
+        this.currentView() === 'dashboard' &&
+        (
+          this.hasLeaveTypeUsage() ||
+          this.hasPaidUnpaidData() ||
+          this.hasMonthlyUsage() ||
+          this.hasDepartmentAnnual()
+        )
+      ) {
         setTimeout(() => this.initCharts(), 0);
       }
     });
@@ -787,20 +764,50 @@ export class LeavesComponent implements OnInit, OnDestroy {
       if (view === 'dashboard' || view === 'request') {
         this.currentView.set(view);
       }
+
+      const mode = params.get('mode');
+      if (mode === 'approval' && this.isApprover()) {
+        this.currentView.set('request');
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (mode === 'request') {
+        this.currentView.set('request');
+        this.activeModule.set('request');
+        return;
+      }
+
+      const currentUrl = this.router.url || '';
+      if (currentUrl.includes('/admin/approvals/leave') && this.isApprover()) {
+        this.currentView.set('request');
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (currentUrl.includes('/self-service/requests/leave')) {
+        this.currentView.set('request');
+        this.activeModule.set('request');
+      }
     });
-    this.loadLeaveTypes();
-    this.loadLeaves();
+    this.loadDashboard();
   }
 
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
     this.distChart?.destroy();
+    this.leaveTypeChart?.destroy();
+    this.paidUnpaidChart?.destroy();
     this.utilChart?.destroy();
+    this.departmentChart?.destroy();
   }
 
   initCharts() {
     this.initDistChart();
+    this.initLeaveTypeChart();
+    this.initPaidUnpaidChart();
     this.initUtilChart();
+    this.initDepartmentChart();
   }
 
   initDistChart() {
@@ -810,6 +817,7 @@ export class LeavesComponent implements OnInit, OnDestroy {
     if (this.distChart) this.distChart.destroy();
 
     const data = this.leaveBalances();
+    if (!this.hasDistributionData()) return;
     this.distChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -836,39 +844,104 @@ export class LeavesComponent implements OnInit, OnDestroy {
     });
   }
 
+  initLeaveTypeChart() {
+    const ctx = document.getElementById('leaveTypeChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    if (this.leaveTypeChart) this.leaveTypeChart.destroy();
+    if (!this.hasLeaveTypeUsage()) return;
+
+    const data = this.leaveDashboard()?.leaveTypeUsage ?? [];
+    const total = data.reduce((sum, item) => sum + item.totalLeaveCount, 0);
+    this.leaveTypeChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: data.map((item) => item.leaveName),
+        datasets: [
+          {
+            data: data.map((item) => item.totalLeaveCount),
+            backgroundColor: data.map((item, index) => item.color || this.chartColors[index % this.chartColors.length]),
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { usePointStyle: true, font: { weight: 'bold', size: 10 } },
+          },
+          tooltip: {
+            callbacks: {
+              footer: () => `Total Leaves: ${total}`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  initPaidUnpaidChart() {
+    const ctx = document.getElementById('paidUnpaidChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    if (this.paidUnpaidChart) this.paidUnpaidChart.destroy();
+    if (!this.hasPaidUnpaidData()) return;
+
+    const summary = this.leaveDashboard()?.paidUnpaidSummary ?? { paidCount: 0, unPaidCount: 0 };
+    this.paidUnpaidChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Unpaid Count', 'Paid Count'],
+        datasets: [
+          {
+            label: 'Count',
+            data: [summary.unPaidCount, summary.paidCount],
+            backgroundColor: ['#f43f5e', '#22c55e'],
+            borderRadius: 8,
+            maxBarThickness: 72,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+        },
+        plugins: {
+          legend: { display: false },
+        },
+      },
+    });
+  }
+
   initUtilChart() {
     const ctx = document.getElementById('leaveUtilChart') as HTMLCanvasElement;
     if (!ctx) return;
 
     if (this.utilChart) this.utilChart.destroy();
 
+    if (!this.hasMonthlyUsage()) return;
+    const usage = this.monthlyUsage();
     this.utilChart = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
-        ],
+        labels: usage.map((item) => item.month),
         datasets: [
           {
             label: 'Paid',
-            data: [2, 1, 0, 3, 2, 1, 4, 1, 2, 0, 1, 2],
+            data: usage.map((item) => item.paid),
             backgroundColor: '#6366f1',
             borderRadius: 6,
           },
           {
             label: 'Unpaid',
-            data: [0, 0, 1, 0, 1, 0, 0, 2, 0, 0, 0, 1],
+            data: usage.map((item) => item.unpaid),
             backgroundColor: '#cbd5e1',
             borderRadius: 6,
           },
@@ -891,123 +964,161 @@ export class LeavesComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadLeaveTypes() {
-    this.leaveService.getLeaveTypes().subscribe({
-      next: (response) => {
-        this.leaveTypes.set(response.data);
-        this.leaveBalances.set(response.data);
-        if (response.data.length > 0) {
-          this.leaveForm.patchValue({ leaveTypeId: response.data[0].id });
-        }
+  initDepartmentChart() {
+    const ctx = document.getElementById('departmentLeaveChart') as HTMLCanvasElement;
+    if (!ctx) return;
+
+    if (this.departmentChart) this.departmentChart.destroy();
+    if (!this.hasDepartmentAnnual()) return;
+
+    const data = this.leaveDashboard()?.departmentAnnual ?? [];
+    this.departmentChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((item) => item.department),
+        datasets: [
+          {
+            label: 'Leaves',
+            data: data.map((item) => item.leaveCount),
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.14)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3,
+          },
+        ],
       },
-      error: () => {
-        // MOCK DATA for perfect UI
-        const mockTypes: any[] = [
-          {
-            id: 1,
-            typeName: 'Annual Leave',
-            total: 20,
-            used: 5,
-            remaining: 15,
-            color: '#6366f1',
-            type: 'Annual Leave',
-            year: 2026,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { display: false }, ticks: { maxRotation: 45, minRotation: 0 } },
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { usePointStyle: true, font: { weight: 'bold', size: 10 } },
           },
-          {
-            id: 2,
-            typeName: 'Sick Leave',
-            total: 10,
-            used: 2,
-            remaining: 8,
-            color: '#f59e0b',
-            type: 'Sick Leave',
-            year: 2026,
-          },
-          {
-            id: 3,
-            typeName: 'Casual Leave',
-            total: 5,
-            used: 0,
-            remaining: 5,
-            color: '#10b981',
-            type: 'Casual Leave',
-            year: 2026,
-          },
-          {
-            id: 4,
-            typeName: 'Maternity/Paternity',
-            total: 90,
-            used: 0,
-            remaining: 90,
-            color: '#ec4899',
-            type: 'Maternity/Paternity',
-            year: 2026,
-          },
-        ];
-        this.leaveTypes.set(mockTypes as any);
-        this.leaveBalances.set(mockTypes as any);
-        this.leaveForm.patchValue({ leaveTypeId: 1 });
+        },
       },
     });
   }
 
-  loadLeaves() {
-    this.leaveService.getLeaveHistory().subscribe({
-      next: (data) => this.leaves.set(data),
-      error: () => {
-        // MOCK DATA for perfect UI
-        const today = new Date();
-        const nextWeek = new Date();
-        nextWeek.setDate(today.getDate() + 10);
-        const lastMonth = new Date();
-        lastMonth.setMonth(today.getMonth() - 1);
+  loadDashboard() {
+    this.isLoadingDashboard.set(true);
+    this.dashboardError.set('');
 
-        const mockLeaves: any[] = [
-          {
-            id: 1,
-            employeeId: this.currentUser()?.id || 0,
-            leaveTypeId: 1,
-            startDate: nextWeek.toISOString().split('T')[0],
-            endDate: new Date(nextWeek.getTime() + 86400000 * 3)
-              .toISOString()
-              .split('T')[0],
-            reason: 'Annual family vacation to the mountains.',
-            status: 'pending',
-            leaveType: { typeName: 'Annual Leave' } as any,
-          },
-          {
-            id: 2,
-            employeeId: this.currentUser()?.id || 0,
-            leaveTypeId: 2,
-            startDate: lastMonth.toISOString().split('T')[0],
-            endDate: new Date(lastMonth.getTime() + 86400000)
-              .toISOString()
-              .split('T')[0],
-            reason: 'Severe seasonal flu.',
-            status: 'approved',
-            leaveType: { typeName: 'Sick Leave' } as any,
-          },
-          {
-            id: 3,
-            employeeId: 99, // Someone else for approval view
-            leaveTypeId: 1,
-            startDate: today.toISOString().split('T')[0],
-            endDate: new Date(today.getTime() + 86400000 * 2)
-              .toISOString()
-              .split('T')[0],
-            reason: 'Urgent personal work in hometown.',
-            status: 'pending',
-            employee: {
-              firstName: 'Aditya',
-              lastName: 'Verma',
-              fullName: 'Aditya Verma',
-            } as any,
-            leaveType: { typeName: 'Casual Leave' } as any,
-          },
-        ];
-        this.leaves.set(mockLeaves as any);
+    this.leaveService.getLeaveDashboard(new Date(this.toDate()).getFullYear(), this.fromDate(), this.toDate()).subscribe({
+      next: (dashboard) => {
+        this.leaveDashboard.set(dashboard);
+        this.leaveTypes.set(dashboard.leaveTypes);
+        this.leaveBalances.set(dashboard.balances);
+        this.leaves.set(dashboard.requests);
+        this.monthlyUsage.set(dashboard.monthlyUsage);
+        this.upcomingHolidays.set(dashboard.upcomingHolidays);
+        if (dashboard.range?.from) this.fromDate.set(dashboard.range.from);
+        if (dashboard.range?.to) this.toDate.set(dashboard.range.to);
+
+        if (dashboard.leaveTypes.length > 0 && !this.leaveForm.value.leaveTypeId) {
+          this.leaveForm.patchValue({ leaveTypeId: dashboard.leaveTypes[0].id });
+        }
       },
+      error: () => {
+        this.leaveDashboard.set(null);
+        this.leaveTypes.set([]);
+        this.leaveBalances.set([]);
+        this.leaves.set([]);
+        this.monthlyUsage.set([]);
+        this.upcomingHolidays.set([]);
+        this.dashboardError.set('Unable to load leave dashboard. Please try again.');
+        this.toastService.show('Unable to load leave dashboard. Please try again.', 'error');
+      },
+      complete: () => this.isLoadingDashboard.set(false),
     });
+  }
+
+  usagePercent(): number {
+    return this.percent(this.totalUsed(), this.totalEntitlement());
+  }
+
+  remainingPercent(): number {
+    return this.percent(this.totalRemaining(), this.totalEntitlement());
+  }
+
+  hasDistributionData(): boolean {
+    return this.leaveBalances().some((item) => Number(item.used) > 0);
+  }
+
+  hasMonthlyUsage(): boolean {
+    return this.monthlyUsage().some((item) => Number(item.paid) > 0 || Number(item.unpaid) > 0);
+  }
+
+  hasLeaveTypeUsage(): boolean {
+    return (this.leaveDashboard()?.leaveTypeUsage ?? []).some((item) => item.totalLeaveCount > 0);
+  }
+
+  hasPaidUnpaidData(): boolean {
+    const summary = this.leaveDashboard()?.paidUnpaidSummary;
+    return !!summary && (summary.paidCount > 0 || summary.unPaidCount > 0);
+  }
+
+  hasDepartmentAnnual(): boolean {
+    return (this.leaveDashboard()?.departmentAnnual ?? []).some((item) => item.leaveCount > 0);
+  }
+
+  setFromDate(event: Event): void {
+    this.fromDate.set((event.target as HTMLInputElement).value);
+  }
+
+  setToDate(event: Event): void {
+    this.toDate.set((event.target as HTMLInputElement).value);
+  }
+
+  applyDashboardRange(): void {
+    if (this.fromDate() && this.toDate() && this.fromDate() > this.toDate()) {
+      this.toastService.show('From date cannot be after to date.', 'error');
+      return;
+    }
+    this.loadDashboard();
+  }
+
+  formattedToday(): string {
+    return new Date().toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  openDashboardCard(target: 'employees' | 'on-leave' | 'pending'): void {
+    if (target === 'employees') {
+      this.router.navigate(['/employees']);
+      return;
+    }
+    if (target === 'pending') {
+      this.currentView.set('request');
+      this.activeModule.set(this.isApprover() ? 'approval' : 'request');
+      return;
+    }
+    this.currentView.set('request');
+  }
+
+  private percent(value: number, total: number): number {
+    if (!total) return 0;
+    return Math.min(100, Math.max(0, (value / total) * 100));
+  }
+
+  private readonly chartColors = ['#54c682', '#f6b05d', '#4190ff', '#f74e57', '#808080', '#8b5cf6'];
+
+  private addDays(date: Date, days: number): Date {
+    const next = new Date(date);
+    next.setDate(next.getDate() + days);
+    return next;
+  }
+
+  private toDateInputValue(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   toggleForm() {
@@ -1027,7 +1138,7 @@ export class LeavesComponent implements OnInit, OnDestroy {
 
       request$.subscribe({
         next: () => {
-          this.loadLeaves();
+          this.loadDashboard();
           this.processing.set(false);
           this.editingLeaveId.set(null);
           this.toggleForm();
@@ -1050,7 +1161,7 @@ export class LeavesComponent implements OnInit, OnDestroy {
       this.statusUpdatingId.set(id);
       this.leaveService.updateLeaveStatus(id, status, rejectionNote).subscribe({
         next: () => {
-          this.loadLeaves();
+          this.loadDashboard();
           this.toastService.show(
             `Leave request ${status} successfully.`,
             'success',
@@ -1097,8 +1208,13 @@ export class LeavesComponent implements OnInit, OnDestroy {
     return this.permissionService.canApproveLeaves(this.currentUser());
   }
 
+  private currentEmployeeId(): number | undefined {
+    const user = this.currentUser();
+    return user?.employeeId ?? user?.id;
+  }
+
   private isOwnLeave(leave: LeaveRequest): boolean {
-    return leave.employeeId === this.currentUser()?.id;
+    return leave.employeeId === this.currentEmployeeId();
   }
 
   isOwnLeavePublic(leave: LeaveRequest): boolean {
