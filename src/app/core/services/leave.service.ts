@@ -54,6 +54,72 @@ export type LeaveTypeBalance = {
     remaining: number;
 };
 
+export type MonthlyLeaveUsage = {
+    month: string;
+    monthIndex: number;
+    paid: number;
+    unpaid: number;
+    pending: number;
+    approved: number;
+};
+
+export type LeaveDashboardSummary = {
+    entitlement: number;
+    used: number;
+    remaining: number;
+    totalEmployees: number;
+    onLeave: number;
+    totalRequests: number;
+    ownRequests: number;
+    approvalQueue: number;
+    pending: number;
+    approved: number;
+    rejected: number;
+    cancelled: number;
+};
+
+export type LeaveTypeUsage = {
+    leaveName: string;
+    leaveShortName: string;
+    totalLeaveCount: number;
+    color?: string;
+};
+
+export type PaidUnpaidSummary = {
+    paidCount: number;
+    unPaidCount: number;
+};
+
+export type DepartmentLeaveAnnual = {
+    department: string;
+    leaveCount: number;
+};
+
+export type UpcomingHoliday = {
+    id?: number;
+    name: string;
+    date: string;
+    type?: string;
+};
+
+export type LeaveDashboard = {
+    year: number;
+    canApprove: boolean;
+    balances: LeaveTypeBalance[];
+    leaveTypes: LeaveTypeBalance[];
+    requests: LeaveRequest[];
+    monthlyUsage: MonthlyLeaveUsage[];
+    leaveTypeUsage: LeaveTypeUsage[];
+    paidUnpaidSummary: PaidUnpaidSummary;
+    departmentAnnual: DepartmentLeaveAnnual[];
+    upcomingHolidays: UpcomingHoliday[];
+    summary: LeaveDashboardSummary;
+    range?: {
+        from: string;
+        to: string;
+    };
+};
+
 export type LeavesTypesResponse = {
     status: 'success';
     data: LeaveTypeBalance[];
@@ -87,8 +153,10 @@ export class LeaveService {
     private normalizeLeaveType(raw: any): LeaveTypeBalance {
         const typeName = raw.typeName || raw.type_name || raw.name || 'Unknown';
         const daysAllowed = Number(raw.daysAllowed ?? raw.days_allowed ?? 0);
-        const used = Number(raw.used ?? 0);
-        const remaining = Math.max(daysAllowed - used, 0);
+        const total = Number(raw.total ?? raw.totalDays ?? raw.total_days ?? daysAllowed);
+        const used = Number(raw.used ?? raw.usedDays ?? raw.used_days ?? 0);
+        const remaining = Number(raw.remaining ?? raw.remainingDays ?? raw.remaining_days ?? Math.max(total - used, 0));
+        const paidValue = raw.isPaid ?? raw.is_paid ?? true;
 
         return {
             id: Number(raw.id),
@@ -97,12 +165,12 @@ export class LeaveService {
             daysAllowed,
             carryForward: Boolean(raw.carryForward ?? raw.carry_forward),
             maxCarryDays: Number(raw.maxCarryDays ?? raw.max_carry_days ?? 0),
-            isPaid: Boolean(raw.isPaid ?? raw.is_paid),
+            isPaid: paidValue === true || paidValue === 1 || paidValue === '1' || paidValue === 'true',
             requiresDoc: Boolean(raw.requiresDoc ?? raw.requires_doc),
             type: typeName,
-            color: this.getLeaveTypeColor(typeName),
-            year: new Date().getFullYear(),
-            total: daysAllowed,
+            color: raw.color || this.getLeaveTypeColor(typeName),
+            year: Number(raw.year ?? new Date().getFullYear()),
+            total,
             used,
             remaining
         };
@@ -198,6 +266,83 @@ export class LeaveService {
         return this.http.get<any>(`${this.apiUrl}/leaves`).pipe(
             map((res) => this.extractList<any>(res).map((item) => this.normalizeLeaveRequest(item)))
         );
+    }
+
+    getLeaveDashboard(year?: number, from?: string, to?: string): Observable<LeaveDashboard> {
+        const params = new URLSearchParams();
+        if (year) params.set('year', String(year));
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.http.get<any>(`${this.apiUrl}/leaves/dashboard${query}`).pipe(
+            map((res) => {
+                const data = res?.data ?? res ?? {};
+                const balances = this.extractList<any>(data.balances ?? data.leaveTypes ?? []).map((item) => this.normalizeLeaveType(item));
+                const requests = this.extractList<any>(data.requests ?? []).map((item) => this.normalizeLeaveRequest(item));
+                const summary = data.summary ?? {};
+
+                return {
+                    year: Number(data.year ?? year ?? new Date().getFullYear()),
+                    canApprove: Boolean(data.canApprove),
+                    range: data.range,
+                    balances,
+                    leaveTypes: balances,
+                    requests,
+                    monthlyUsage: this.normalizeMonthlyUsage(data.monthlyUsage),
+                    leaveTypeUsage: this.extractList<any>(data.leaveTypeUsage).map((item) => ({
+                        leaveName: String(item.leaveName ?? item.leave_name ?? 'Unknown'),
+                        leaveShortName: String(item.leaveShortName ?? item.leave_short_name ?? ''),
+                        totalLeaveCount: Number(item.totalLeaveCount ?? item.total_leave_count ?? 0),
+                        color: item.color,
+                    })),
+                    paidUnpaidSummary: {
+                        paidCount: Number(data.paidUnpaidSummary?.paidCount ?? data.paidUnpaidSummary?.paid_count ?? 0),
+                        unPaidCount: Number(data.paidUnpaidSummary?.unPaidCount ?? data.paidUnpaidSummary?.un_paid_count ?? 0),
+                    },
+                    departmentAnnual: this.extractList<any>(data.departmentAnnual).map((item) => ({
+                        department: String(item.department ?? 'Unassigned'),
+                        leaveCount: Number(item.leaveCount ?? item.leave_count ?? 0),
+                    })),
+                    upcomingHolidays: this.extractList<any>(data.upcomingHolidays).map((holiday) => ({
+                        id: holiday.id ? Number(holiday.id) : undefined,
+                        name: String(holiday.name ?? 'Holiday'),
+                        date: holiday.date ?? holiday.holidayDate ?? holiday.holiday_date,
+                        type: holiday.type,
+                    })),
+                    summary: {
+                        entitlement: Number(summary.entitlement ?? balances.reduce((sum, item) => sum + item.total, 0)),
+                        used: Number(summary.used ?? balances.reduce((sum, item) => sum + item.used, 0)),
+                        remaining: Number(summary.remaining ?? balances.reduce((sum, item) => sum + item.remaining, 0)),
+                        totalEmployees: Number(summary.totalEmployees ?? summary.total_employees ?? 0),
+                        onLeave: Number(summary.onLeave ?? summary.on_leave ?? 0),
+                        totalRequests: Number(summary.totalRequests ?? requests.length),
+                        ownRequests: Number(summary.ownRequests ?? 0),
+                        approvalQueue: Number(summary.approvalQueue ?? 0),
+                        pending: Number(summary.pending ?? requests.filter((item) => item.status === 'pending').length),
+                        approved: Number(summary.approved ?? requests.filter((item) => item.status === 'approved').length),
+                        rejected: Number(summary.rejected ?? requests.filter((item) => item.status === 'rejected').length),
+                        cancelled: Number(summary.cancelled ?? requests.filter((item) => item.status === 'cancelled').length),
+                    }
+                };
+            })
+        );
+    }
+
+    private normalizeMonthlyUsage(raw: any): MonthlyLeaveUsage[] {
+        const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const source = Array.isArray(raw) ? raw : [];
+
+        return monthLabels.map((month, index) => {
+            const item = source.find((entry: any) => Number(entry.monthIndex ?? entry.month_index) === index + 1) ?? source[index] ?? {};
+            return {
+                month: String(item.month ?? month),
+                monthIndex: index + 1,
+                paid: Number(item.paid ?? 0),
+                unpaid: Number(item.unpaid ?? 0),
+                pending: Number(item.pending ?? 0),
+                approved: Number(item.approved ?? 0),
+            };
+        });
     }
 
     applyLeave(request: { leaveTypeId: number; startDate: string; endDate: string; reason: string }): Observable<LeaveRequest> {

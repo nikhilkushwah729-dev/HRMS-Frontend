@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -565,6 +566,8 @@ export class ExpensesComponent implements OnInit {
   private permissionService = inject(PermissionService);
   private fb = inject(FormBuilder);
   private languageService = inject(LanguageService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   currentUser = signal<User | null>(null);
   expenses = signal<any[]>([]);
@@ -603,9 +606,34 @@ export class ExpensesComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser());
-    if (this.isApprover()) {
-      this.activeModule.set('approval');
-    }
+    this.route.queryParamMap.subscribe((params) => {
+      const mode = params.get('mode');
+      const currentUrl = this.router.url || '';
+
+      if (mode === 'mine') {
+        this.activeModule.set('mine');
+        return;
+      }
+
+      if (mode === 'approval' && this.isApprover()) {
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (currentUrl.includes('/admin/approvals/expense') && this.isApprover()) {
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (currentUrl.includes('/self-service/requests/expense')) {
+        this.activeModule.set('mine');
+        return;
+      }
+
+      if (this.isApprover()) {
+        this.activeModule.set('approval');
+      }
+    });
     this.loadExpenses();
   }
 

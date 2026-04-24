@@ -1,5 +1,6 @@
-import { Component, HostListener, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, HostListener, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Store } from '@ngrx/store';
 import { NavigationEnd, Router } from '@angular/router';
 import { selectUser } from '../../core/state/auth/auth.selectors';
@@ -59,6 +60,14 @@ type GuidePreview = {
   steps: string[];
 };
 
+type TopNavItem = {
+  label: string;
+  route: string;
+  icon: string;
+  isLocked: boolean;
+  lockReason?: string | null;
+};
+
 @Component({
   selector: 'app-topbar',
   standalone: true,
@@ -115,132 +124,122 @@ type GuidePreview = {
         </div>
       </div>
       } @else {
-      <div class="flex min-h-[58px] items-center justify-between gap-3 py-2 md:min-h-[66px]">
-      <div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-2.5 lg:gap-3">
-        <button (click)="layoutService.toggleSidebar()" class="lg:hidden p-1.5 text-slate-600 hover:bg-white/80 rounded-md transition-colors border border-stone-200/70 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-        </button>
-
-        @if (showBackButton()) {
-          <button
-            type="button"
-            (click)="goBack()"
-            class="topbar-back-btn"
-            aria-label="Go back"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
-          </button>
-        }
-
-        <div class="min-w-0 flex-1 lg:hidden">
-          <p class="truncate text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ headerKicker() }}</p>
-          <h1 class="truncate text-sm font-black tracking-tight text-slate-900">{{ headerTitle() }}</h1>
-        </div>
-
-        <div class="hidden lg:flex min-w-0 flex-col flex-1">
-          <span class="app-page-kicker">{{ headerKicker() }}</span>
-          <h1 class="app-page-title truncate max-w-[12rem] xl:max-w-[16rem]">{{ headerTitle() }}</h1>
-        </div>
-
-        <div class="relative hidden md:flex md:items-center">
-          <button
-            type="button"
-            (click)="openSearch()"
-            class="search-icon-btn"
-            aria-label="Open search"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          </button>
-        </div>
-        <div class="hidden lg:flex items-center relative">
-          <button type="button" (click)="toggleModuleSwitcher()" class="module-switcher-btn" [class.module-switcher-btn-active]="showModuleSwitcher()">
-            <span class="module-switcher-icon-shell">
-              <span class="module-switcher-grid">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </span>
-            <span class="hidden xl:flex xl:min-w-0 xl:flex-col xl:items-start xl:leading-none">
-              <span class="module-switcher-label">Quick Actions</span>
-              <span class="module-switcher-value">{{ quickActionsSummary() }}</span>
-            </span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="module-switcher-chevron"><path d="m6 9 6 6 6-6"/></svg>
+      <div class="flex h-[64px] items-center justify-between gap-4 px-4 md:h-[72px]">
+        <!-- Left Section: Menu & Title -->
+        <div class="flex min-w-0 items-center gap-3">
+          <button (click)="handleSidebarToggle()" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-900 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
           </button>
 
-          @if (showModuleSwitcher()) {
-            <div class="absolute left-0 top-full mt-3 w-[min(32rem,calc(100vw-4rem))] rounded-2xl border border-slate-100 bg-white shadow-2xl z-[70] overflow-hidden">
-              <div class="module-switcher-panel-header">
-                <div class="module-switcher-panel-copy">
-                  <p class="module-switcher-panel-kicker">Quick Actions</p>
-                  <h3 class="module-switcher-panel-title">Commonly used tools and essential shift controls</h3>
-                </div>
-                <span class="module-switcher-panel-badge">{{ quickActionsBadge() }}</span>
-              </div>
-              <div class="grid gap-0 md:grid-cols-2">
-                <div class="p-3 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/60">
-                  <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Self Service</p>
-                  <div class="space-y-1">
-                    @for (module of selfServiceTabs(); track module.label + module.route) {
-                      <button
-                        type="button"
-                        (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
-                        class="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
-                        [ngClass]="module.isLocked ? 'cursor-not-allowed bg-rose-50 text-rose-700' : (isActiveRoute(module.route) ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-white hover:text-slate-900')"
-                      >
-                        <span class="h-2.5 w-2.5 rounded-full" [ngClass]="module.accent"></span>
-                        <span class="truncate min-w-0 flex-1">{{ module.label }}</span>
-                        @if (module.isLocked) {
-                          <span class="ml-auto rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                            Lock
-                          </span>
-                        }
-                      </button>
-                    }
-                  </div>
-                </div>
-                <div class="p-3 bg-white">
-                  <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Admin & HR</p>
-                  <div class="space-y-1">
-                    @for (module of adminTabs(); track module.label + module.route) {
-                      <button
-                        type="button"
-                        (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
-                        class="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
-                        [ngClass]="module.isLocked ? 'cursor-not-allowed bg-rose-50 text-rose-700' : (isActiveRoute(module.route) ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900')"
-                      >
-                        <span class="h-2.5 w-2.5 rounded-full" [ngClass]="module.accent"></span>
-                        <span class="truncate min-w-0 flex-1">{{ module.label }}</span>
-                        @if (module.isLocked) {
-                          <span class="ml-auto rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                            Lock
-                          </span>
-                        }
-                      </button>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
+          @if (showBackButton()) {
+            <button type="button" (click)="goBack()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
+            </button>
           }
-        </div>
-      </div>
 
-      <div class="flex shrink-0 items-center gap-1.5 sm:gap-3 md:gap-4">
-        <div class="relative hidden lg:block">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            (click)="toggleAddonsPanel()"
-          >
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">+</span>
-            <span>Add-ons</span>
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] text-slate-600">{{ addonLauncherItems().length }}</span>
-          </button>
+          <div class="min-w-0 flex-1 lg:max-w-[20rem]">
+            <p class="truncate text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 leading-none">{{ headerKicker() }}</p>
+            <h1 class="mt-1 truncate text-sm font-black tracking-tight text-slate-900 md:text-base" style="font-family: 'Sora', sans-serif;">{{ headerTitle() }}</h1>
+          </div>
+        </div>
+
+        <!-- Center Section: Navigation (Hidden on smaller screens) -->
+        <div class="hidden min-w-0 flex-1 justify-center lg:flex">
+          <div class="relative flex max-w-[min(48rem,calc(100vw-40rem))] min-w-0 items-center px-2">
+            
+            <!-- Left Edge Fade & Arrow -->
+            <div 
+              class="absolute left-0 z-20 flex h-full items-center bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent pr-8 transition-opacity duration-300 pointer-events-none"
+              [class.opacity-0]="!canScrollLeft()"
+              [class.opacity-100]="canScrollLeft()"
+            >
+              <button 
+                (click)="scrollNav(-240)"
+                class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-lg shadow-slate-200/50 backdrop-blur-md transition hover:bg-slate-900 hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Scroll left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+            </div>
+
+            <div 
+              #navScrollContainer
+              (scroll)="updateScrollVisibility()"
+              class="flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-xl border border-slate-200/60 bg-white/40 p-1.5 backdrop-blur-md hidescrollbar scroll-smooth"
+            >
+              @for (item of topNavigationTabs(); track item.route) {
+                <button
+                  type="button"
+                  (click)="item.isLocked ? openLockedTopNav(item) : goToSearchResult(item.route)"
+                  class="group relative inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-300"
+                  [ngClass]="item.isLocked ? 'text-rose-600 hover:bg-rose-50' : (isActiveRoute(item.route) ? 'bg-slate-900 text-white shadow-[0_8px_20px_rgba(15,23,42,0.15)]' : 'text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm')"
+                >
+                  <span class="top-nav-icon transition-transform group-hover:scale-110" [innerHTML]="topNavIcon(item.icon)"></span>
+                  <span class="truncate">{{ item.label }}</span>
+                  @if (isActiveRoute(item.route)) {
+                    <span class="absolute -bottom-1 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-slate-900/20 lg:hidden"></span>
+                  }
+                </button>
+              }
+            </div>
+
+            <!-- Right Edge Fade & Arrow -->
+            <div 
+              class="absolute right-0 z-20 flex h-full items-center bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent pl-8 transition-opacity duration-300 pointer-events-none"
+              [class.opacity-0]="!canScrollRight()"
+              [class.opacity-100]="canScrollRight()"
+            >
+              <button 
+                (click)="scrollNav(240)"
+                class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-lg shadow-slate-200/50 backdrop-blur-md transition hover:bg-slate-900 hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Scroll right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Section: Actions -->
+        <div class="flex shrink-0 items-center gap-2 md:gap-3">
+          <!-- Dynamic Primary Action -->
+          @if (layoutService.primaryAction(); as action) {
+            @if (action.isVisible) {
+              <button
+                (click)="action.onClick()"
+                class="hidden md:inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                @if (action.icon) { <span [innerHTML]="action.icon" class="flex h-4 w-4"></span> }
+                {{ action.label }}
+              </button>
+            }
+          }
+
+          <div class="relative flex items-center">
+            <button
+              type="button"
+              (click)="openSearch()"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
+              aria-label="Open search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+          </div>
+
+          <div class="relative hidden sm:block">
+            <button
+              type="button" 
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
+              [class.bg-slate-900]="showAddonsPanel()"
+              [class.text-white]="showAddonsPanel()"
+              (click)="toggleAddonsPanel()"
+              aria-label="Open add-ons"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </button>
 
           @if (showAddonsPanel()) {
-            <div class="fixed left-1/2 top-3 z-[70] max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1rem)] -translate-x-1/2 overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl sm:top-[5.25rem] sm:max-h-[calc(100vh-6.5rem)] sm:w-[min(62rem,calc(100vw-1.5rem))] sm:rounded-[28px]">
+            <div class="fixed left-1/2 top-3 z-[70] max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:top-[5.25rem] sm:max-h-[calc(100vh-6.5rem)] sm:w-[min(62rem,calc(100vw-1.5rem))] sm:rounded-2xl">
               <div class="max-h-[calc(100vh-1.5rem)] overflow-y-auto overscroll-contain sm:max-h-[calc(100vh-6.5rem)]">
                 <div class="grid lg:grid-cols-[1.2fr_0.8fr]">
                   <div class="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 lg:border-b-0 lg:border-r">
@@ -257,15 +256,15 @@ type GuidePreview = {
                       </div>
 
                       <div class="mt-5 grid gap-3 sm:grid-cols-3">
-                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
+                        <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4">
                           <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active</p>
                           <p class="mt-2 text-2xl font-black text-emerald-900">{{ activeAddonCount() }}</p>
                         </div>
-                        <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4">
+                        <div class="rounded-md border border-amber-100 bg-amber-50 px-4 py-4">
                           <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Suggested</p>
                           <p class="mt-2 text-2xl font-black text-amber-900">{{ lockedAddonCount() }}</p>
                         </div>
-                        <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
                           <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Guides</p>
                           <p class="mt-2 text-2xl font-black text-slate-900">{{ moduleGuides().length }}</p>
                         </div>
@@ -314,7 +313,7 @@ type GuidePreview = {
                       </div>
                       <div class="mt-3 grid gap-3 md:grid-cols-2">
                         @for (addon of featuredLauncherAddons(); track addon.id) {
-                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm">
+                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-md border border-slate-200 bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm">
                             <div class="flex items-center justify-between gap-3">
                               <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="addon.accent">{{ addon.isActive ? 'Live' : 'Premium' }}</span>
                               <span class="text-xs font-bold text-slate-400">{{ addon.route }}</span>
@@ -334,7 +333,7 @@ type GuidePreview = {
                       <h4 class="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Suggested Upgrades</h4>
                       <div class="mt-3 grid gap-3 md:grid-cols-2">
                         @for (addon of lockedAddons(); track addon.id) {
-                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm">
+                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-md border border-amber-200 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm">
                             <div class="flex items-center justify-between gap-3">
                               <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Upgrade</span>
                               <span class="text-xs font-bold text-amber-600">Billing</span>
@@ -363,7 +362,7 @@ type GuidePreview = {
 
                   <div class="mt-5 space-y-3">
                     @for (guide of moduleGuides(); track guide.key) {
-                      <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
                         <div class="flex items-start justify-between gap-3">
                           <div>
                             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{{ guide.duration }} demo</p>
@@ -379,32 +378,28 @@ type GuidePreview = {
                               <span>{{ step }}</span>
                             </div>
                           }
-                        </div>
-                        <div class="mt-4 flex gap-2">
-                          <button type="button" (click)="watchGuideDemo(guide)" class="rounded-full bg-slate-900 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800">
-                            Watch Demo
-                          </button>
-                          <button type="button" (click)="openGuideBilling(guide)" class="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50">
-                            Buy Flow
-                          </button>
-                        </div>
+                                                </div>
                       </article>
                     }
+                    </div>
                   </div>
                 </div>
-              </div>
               </div>
             </div>
           }
         </div>
-
+        
         <button
           type="button"
-          class="hidden lg:inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+          class="hidden lg:inline-flex items-center gap-2.5 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg shadow-slate-200"
           [ngClass]="billingChipTone()"
           (click)="goToSearchResult('/billing')"
+          style="font-family: 'Sora', sans-serif;"
         >
-          <span class="h-2 w-2 rounded-full" [ngClass]="billingDotTone()"></span>
+          <div class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" [ngClass]="billingDotTone()"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full" [ngClass]="billingDotTone()"></span>
+          </div>
           <span>{{ billingChipLabel() }}</span>
         </button>
 
@@ -462,7 +457,7 @@ type GuidePreview = {
         <!-- User Profile Dropdown -->
         <div class="relative">
           @if (currentUser(); as user) {
-            <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-2 rounded-full cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
+            <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-2 rounded-xl cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
               <div class="w-8 h-8 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
                 @if (user.avatar) {
                   <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
@@ -479,8 +474,8 @@ type GuidePreview = {
 
           <!-- Profile Dropdown -->
           @if (showDropdown && currentUser(); as user) {
-            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-xl shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
-              <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-lg">
+            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-md shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
+              <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-md">
                 <div class="w-10 h-10 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ring-2 ring-white">
                   @if (user.avatar) {
                     <img [src]="user.avatar" class="h-full w-full object-cover">
@@ -499,12 +494,12 @@ type GuidePreview = {
                   </div>
                 </div>
               </div>
-              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
+              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-md transition-all group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>My Profile</span>
               </button>
               @if (settingsEntry(); as settingsEntry) {
-                <button (click)="goToSearchResult(settingsEntry.route)" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group mt-1">
+                <button (click)="goToSearchResult(settingsEntry.route)" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-md transition-all group mt-1">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                   <span>{{ settingsEntry.label }}</span>
                 </button>
@@ -537,7 +532,7 @@ type GuidePreview = {
                 </div>
               </div>
               <div class="my-1.5 border-t border-slate-100"></div>
-              <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-all group">
+              <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-md transition-all group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-0.5 transition-transform"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 <span>Sign Out</span>
               </button>
@@ -756,6 +751,47 @@ type GuidePreview = {
         box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
       }
 
+      .topbar-icon-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.92);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .topbar-icon-action:hover,
+      .topbar-icon-action-active {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+        background: rgba(248, 250, 252, 0.98);
+        color: #0f172a;
+      }
+
+      .top-nav-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+      }
+
+      .top-nav-tab-active {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        color: #0f172a;
+        box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
+      }
+
+      .top-nav-tab-active .top-nav-icon {
+        color: #4f46e5;
+      }
+
       .topbar-back-btn {
         display: inline-flex;
         align-items: center;
@@ -855,6 +891,7 @@ type GuidePreview = {
   ]
 })
 export class TopbarComponent implements OnInit {
+  private sanitizer = inject(DomSanitizer);
   private store = inject(Store);
   private router = inject(Router);
   private location = inject(Location);
@@ -890,6 +927,9 @@ export class TopbarComponent implements OnInit {
   private designations = signal<Designation[]>([]);
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   userDesignation = signal<string>('');
+  orgLogo = signal<string>('');
+  orgName = signal<string>('');
+  showUserDropdown = false;
   userRoleLabel = signal<string>('Employee');
   addonLauncherItems = signal<AddonLauncherItem[]>([]);
   moduleGuides = signal<GuidePreview[]>([
@@ -962,6 +1002,19 @@ export class TopbarComponent implements OnInit {
         })),
     );
   });
+  readonly topNavigationTabs = computed<TopNavItem[]>(() => {
+    const candidates = [
+      this.makeTopNavItem('Self Service', '/dashboard', 'dashboard'),
+      this.makeTopNavItem('Employees', '/employees', 'employees'),
+      this.makeTopNavItem('Attendance', this.attendanceTopNavRoute(), 'attendance'),
+      this.makeTopNavItem('Leave', this.resolveTopNavRoute(['/leaves?view=request', '/leaves', '/admin/approvals/leave']), 'leave'),
+      this.makeTopNavItem('Payroll', '/payroll', 'payroll'),
+      this.makeTopNavItem('Timesheet', '/timesheets', 'timesheets'),
+      this.makeTopNavItem('Reports', '/reports', 'reports'),
+    ];
+
+    return candidates.filter((item): item is TopNavItem => !!item);
+  });
   readonly activeAddons = computed(() => this.addonLauncherItems().filter((item) => item.isActive).slice(0, 4));
   readonly lockedAddons = computed(() => this.addonLauncherItems().filter((item) => !item.isActive).slice(0, 4));
   readonly featuredLauncherAddons = computed(() => {
@@ -1010,6 +1063,13 @@ export class TopbarComponent implements OnInit {
     this.subscriptionService.getStatus().subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
+    });
+
+    this.organizationService.getOrganization().subscribe((org) => {
+      if (org) {
+        this.orgLogo.set(org.logo || '');
+        this.orgName.set(org.name || '');
+      }
     });
   }
 
@@ -1133,33 +1193,47 @@ export class TopbarComponent implements OnInit {
 
   goBack() {
     this.closeAll();
-    const storedPreviousRoute = this.readPreviousRoute();
-    if (storedPreviousRoute && storedPreviousRoute !== this.currentPath()) {
-      this.router.navigateByUrl(storedPreviousRoute);
-      return;
-    }
-
+    const currentRoute = this.currentPath();
     const routeHistory = this.readRouteHistory();
-    if (routeHistory.length > 1) {
-      routeHistory.pop();
-      const previousRoute = routeHistory[routeHistory.length - 1];
-      this.writeRouteHistory(routeHistory);
-      if (previousRoute && previousRoute !== this.currentPath()) {
-        this.router.navigateByUrl(previousRoute);
-        return;
-      }
+    const canUseBrowserBack = window.history.length > 1 || routeHistory.length > 1;
+
+    if (canUseBrowserBack) {
+      this.location.back();
+
+      setTimeout(() => {
+        if (this.currentPath() === currentRoute) {
+          const fallbackHistory = this.readRouteHistory();
+          if (fallbackHistory.length > 1) {
+            fallbackHistory.pop();
+            const previousRoute = fallbackHistory[fallbackHistory.length - 1];
+            this.writeRouteHistory(fallbackHistory);
+            if (previousRoute && previousRoute !== currentRoute) {
+              this.router.navigateByUrl(previousRoute);
+              return;
+            }
+          }
+
+          const fallbackRoute = this.getFallbackBackRoute();
+          if (fallbackRoute !== currentRoute) {
+            this.router.navigateByUrl(fallbackRoute);
+          }
+        }
+      }, 120);
+      return;
     }
 
     const fallbackRoute = this.getFallbackBackRoute();
-    if (fallbackRoute !== this.currentPath()) {
+    if (fallbackRoute !== currentRoute) {
       this.router.navigateByUrl(fallbackRoute);
-      return;
     }
-
-    this.location.back();
   }
 
   openLockedModule(module: ModuleTab) {
+    this.closeAll();
+    this.router.navigateByUrl('/billing');
+  }
+
+  openLockedTopNav(item: TopNavItem) {
     this.closeAll();
     this.router.navigateByUrl('/billing');
   }
@@ -1401,32 +1475,24 @@ export class TopbarComponent implements OnInit {
 
   billingChipLabel(): string {
     const status = this.subscriptionStatus();
-    if (!status) return 'Billing';
-    if (status.organization.readOnlyMode) return 'Billing Locked';
-    if (status.organization.isTrialActive) {
-      const days = Math.max(0, status.trialDaysRemaining ?? 0);
-      return `${days}d Trial Left`;
-    }
-    return status.plan?.name ? `${status.plan.name} Active` : 'Billing Active';
+    if (status?.organization.readOnlyMode) return 'Overdue';
+    if (status?.organization.isTrialActive) return 'Trial';
+    return 'Pro';
   }
 
-  billingChipTone(): string {
+  billingChipTone = computed(() => {
     const status = this.subscriptionStatus();
-    if (status?.organization.readOnlyMode) {
-      return 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100';
-    }
-    if (status?.organization.isTrialActive) {
-      return 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100';
-    }
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100';
-  }
+    if (status?.organization.readOnlyMode) return 'border-rose-200 bg-rose-50 text-rose-700';
+    if (status?.organization.isTrialActive) return 'border-amber-200 bg-amber-50 text-amber-700';
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  });
 
-  billingDotTone(): string {
+  billingDotTone = computed(() => {
     const status = this.subscriptionStatus();
     if (status?.organization.readOnlyMode) return 'bg-rose-500';
     if (status?.organization.isTrialActive) return 'bg-amber-500';
     return 'bg-emerald-500';
-  }
+  });
 
   userInitial(): string {
     const user = this.currentUser() ?? this.authService.getStoredUser();
@@ -1434,14 +1500,21 @@ export class TopbarComponent implements OnInit {
   }
 
   headerKicker(): string {
-    if (this.currentPath() === '/' || this.currentPath() === '/dashboard' || this.currentPath() === '/self-service') {
+    const path = this.currentPath();
+    if (path === '/' || path === '/dashboard' || path === '/self-service') {
       const user = this.currentUser() ?? this.authService.getStoredUser();
-      if (this.permissionService.isAdminUser(user)) return 'Operations Command Center';
+      if (this.permissionService.isAdminUser(user)) return 'Operations Control';
       if (this.permissionService.isHrManagerUser(user)) return 'HR Operations Hub';
       if (this.permissionService.isManagerialUser(user)) return 'Team Workspace';
-      return 'Self-Service Workspace';
+      return 'Employee Workspace';
     }
-    return 'HR Workspace';
+    if (path.startsWith('/employees')) return 'Workforce Directory';
+    if (path.startsWith('/attendance')) return 'Time & Attendance';
+    if (path.startsWith('/leaves')) return 'Absence Management';
+    if (path.startsWith('/reports')) return 'Analytics & Insights';
+    if (path.startsWith('/payroll')) return 'Compensation';
+    if (path.startsWith('/settings') || path.startsWith('/admin')) return 'System Controls';
+    return 'Organization Workspace';
   }
 
   headerTitle(): string {
@@ -1458,7 +1531,7 @@ export class TopbarComponent implements OnInit {
     if (path.startsWith('/expenses')) return 'Expense Claims';
     if (path.startsWith('/timesheets')) return 'Timesheets';
     if (path.startsWith('/settings') || path.startsWith('/admin')) return 'Administration';
-    return 'HRMS Workspace';
+    return 'HRNexus Workspace';
   }
 
   headerSubtitle(): string {
@@ -1498,14 +1571,17 @@ export class TopbarComponent implements OnInit {
   }
 
   isActiveRoute(route: string): boolean {
-    const currentPath = this.currentPath().split('?')[0];
-    const targetPath = route.split('?')[0];
-    if (route === '/dashboard') {
-      return currentPath === '/' || currentPath === '/dashboard' || currentPath === '/self-service';
+    const currentPath = this.currentPath().split('?')[0].replace(/\/+$/, '');
+    const targetPath = route.split('?')[0].replace(/\/+$/, '');
+    
+    if (targetPath === '/dashboard' || targetPath === '/self-service' || targetPath === '') {
+      return currentPath === '' || currentPath === '/' || currentPath === '/dashboard' || currentPath === '/self-service';
     }
-    if (targetPath === '/settings') {
+    
+    if (targetPath === '/settings' || targetPath === '/admin') {
       return currentPath.startsWith('/settings') || currentPath.startsWith('/admin');
     }
+    
     return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
   }
 
@@ -1519,6 +1595,29 @@ export class TopbarComponent implements OnInit {
         category: 'Quick Link' as const,
         tone: item.quickLinkTone ?? 'bg-slate-100 text-slate-700',
       }));
+  }
+
+  topNavIcon(icon: string): SafeHtml {
+    const icons: Record<string, string> = {
+      dashboard:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+      employees:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      attendance:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+      leave:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      payroll:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      timesheets:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      reports:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>',
+    };
+
+    return this.sanitizer.bypassSecurityTrustHtml(
+      icons[icon] ?? icons['dashboard'],
+    );
   }
 
   private getInitialSearchResults(): SearchResult[] {
@@ -1549,6 +1648,38 @@ export class TopbarComponent implements OnInit {
       }));
 
     return [...employeeHints, ...projectHints].slice(0, 8);
+  }
+
+  private makeTopNavItem(
+    label: string,
+    route: string | null,
+    icon: string,
+  ): TopNavItem | null {
+    if (!route || !this.canAccess(route)) {
+      return null;
+    }
+
+    return {
+      label,
+      route,
+      icon,
+      isLocked: false,
+      lockReason: null,
+    };
+  }
+
+  private resolveTopNavRoute(candidates: string[]): string | null {
+    return candidates.find((route) => this.canAccess(route)) ?? null;
+  }
+
+  private attendanceTopNavRoute(): string | null {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    const managerialCandidates = ['/admin/attendance', '/attendance', '/self-service/attendance'];
+    const selfCandidates = ['/self-service/attendance', '/attendance', '/admin/attendance'];
+
+    return this.resolveTopNavRoute(
+      this.permissionService.isManagerialUser(user) ? managerialCandidates : selfCandidates,
+    );
   }
 
   private seedRouteHistory(initialRoute: string) {
@@ -1673,5 +1804,47 @@ export class TopbarComponent implements OnInit {
       next: () => this.loggingOut.set(false),
       error: () => this.loggingOut.set(false)
     });
+  }
+
+  handleSidebarToggle(): void {
+    if (window.innerWidth >= 1024) {
+      this.layoutService.cycleDesktopSidebar();
+      return;
+    }
+
+    this.layoutService.toggleSidebar();
+  }
+
+  @ViewChild('navScrollContainer') navScrollContainer?: ElementRef<HTMLElement>;
+  canScrollLeft = signal<boolean>(false);
+  canScrollRight = signal<boolean>(false);
+
+  scrollNav(amount: number): void {
+    if (this.navScrollContainer) {
+      this.navScrollContainer.nativeElement.scrollBy({
+        left: amount,
+        behavior: 'smooth'
+      });
+      // Small timeout to allow the scroll to happen before updating visibility
+      setTimeout(() => this.updateScrollVisibility(), 300);
+    }
+  }
+
+  updateScrollVisibility(): void {
+    if (this.navScrollContainer) {
+      const el = this.navScrollContainer.nativeElement;
+      this.canScrollLeft.set(el.scrollLeft > 5);
+      this.canScrollRight.set(el.scrollLeft + el.offsetWidth < el.scrollWidth - 5);
+    }
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.updateScrollVisibility();
+  }
+
+  // Also call it in ngAfterViewInit or after tabs are loaded
+  ngAfterViewInit() {
+    setTimeout(() => this.updateScrollVisibility(), 500);
   }
 }

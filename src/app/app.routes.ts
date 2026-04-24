@@ -48,6 +48,85 @@ export const routes: Routes = [
         pathMatch: 'full',
       },
       {
+        path: 'self-service/requests',
+        loadComponent: () =>
+          import('./features/self-service/request-center.component').then(
+            (m) => m.RequestCenterComponent,
+          ),
+        data: { permission: 'dashboard.view' },
+        children: [
+          {
+            path: '',
+            redirectTo: 'leave',
+            pathMatch: 'full',
+          },
+          {
+            path: 'overview',
+            loadComponent: () =>
+              import('./features/self-service/request-center-overview.component').then(
+                (m) => m.RequestCenterOverviewComponent,
+              ),
+          },
+          {
+            path: 'leave',
+            loadComponent: () =>
+              import('./features/self-service/request-center-leave.component').then(
+                (m) => m.RequestCenterLeaveComponent,
+              ),
+          },
+          {
+            path: 'regularization',
+            loadComponent: () =>
+              import('./features/self-service/my-regularization-requests.component').then(
+                (m) => m.MyRegularizationRequestsComponent,
+              ),
+            data: {
+              title: 'Regularization Requests',
+              subtitle: 'Missed punch, late arrival, and correction requests you have raised.',
+              ctaLabel: 'New Regularization',
+              ctaRoute: '/self-service/attendance',
+            },
+          },
+          {
+            path: 'overtime',
+            loadComponent: () =>
+              import('./features/self-service/my-regularization-requests.component').then(
+                (m) => m.MyRegularizationRequestsComponent,
+              ),
+            data: {
+              title: 'Overtime Requests',
+              subtitle: 'Extra hours you have submitted for approval.',
+              ctaLabel: 'Request Overtime',
+              ctaRoute: '/self-service/attendance',
+              requestType: 'overtime',
+            },
+          },
+          {
+            path: 'expense',
+            loadComponent: () =>
+              import('./features/expenses/expenses.component').then(
+                (m) => m.ExpensesComponent,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'self-service/attendance',
+        loadComponent: () =>
+          import('@features/attendance/attendance.component').then(
+            (m) => m.AttendanceComponent,
+          ),
+        data: {
+          permission: 'attendance.view',
+          attendanceMode: 'self',
+        },
+      },
+      {
+        path: 'employee/attendance',
+        redirectTo: 'self-service/attendance',
+        pathMatch: 'full',
+      },
+      {
         path: 'my-team',
         loadComponent: () =>
           import('@features/self-service/my-team.component').then(
@@ -109,18 +188,232 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'attendance/integrations',
+        loadComponent: () =>
+          import('@features/attendance/attendance-route-redirect.component').then(
+            (m) => m.AttendanceRouteRedirectComponent,
+          ),
+        data: { redirectKind: 'integrations' },
+      },
+      {
         path: 'attendance',
+        loadComponent: () =>
+          import('@features/attendance/attendance-route-redirect.component').then(
+            (m) => m.AttendanceRouteRedirectComponent,
+          ),
+      },
+      {
+        path: 'hr/attendance',
+        redirectTo: 'admin/attendance',
+        pathMatch: 'full',
+      },
+      {
+        path: 'admin/approvals',
+        loadComponent: () =>
+          import('./features/admin/approval-center.component').then(
+            (m) => m.ApprovalCenterComponent,
+          ),
+        children: [
+          {
+            path: '',
+            redirectTo: 'leave',
+            pathMatch: 'full',
+          },
+          {
+            path: 'overview',
+            loadComponent: () =>
+              import('./features/admin/approval-center-overview.component').then(
+                (m) => m.ApprovalCenterOverviewComponent,
+              ),
+          },
+          {
+            path: 'leave',
+            loadComponent: () =>
+              import('./features/admin/approval-center-leave.component').then(
+                (m) => m.ApprovalCenterLeaveComponent,
+              ),
+            data: {
+              title: 'Leave',
+              searchPlaceholder: 'Search Leave Approvals',
+              emptyMessage: 'No leave approvals found for the selected window.',
+              filterKind: 'all',
+            },
+          },
+          {
+            path: 'short-day',
+            loadComponent: () =>
+              import('./features/admin/approval-center-leave.component').then(
+                (m) => m.ApprovalCenterLeaveComponent,
+              ),
+            data: {
+              title: 'Short Day Leave',
+              searchPlaceholder: 'Search Short Day Leave Approvals',
+              emptyMessage: 'No short day leave approvals found for the selected window.',
+              filterKind: 'short-day',
+            },
+          },
+          {
+            path: 'time-off',
+            loadComponent: () =>
+              import('./features/admin/approval-center-leave.component').then(
+                (m) => m.ApprovalCenterLeaveComponent,
+              ),
+            data: {
+              title: 'Time Off',
+              searchPlaceholder: 'Search Time Off Approvals',
+              emptyMessage: 'No time off approvals found for the selected window.',
+              filterKind: 'time-off',
+            },
+          },
+          {
+            path: 'regularization',
+            loadComponent: () =>
+              import('./features/admin/regularization.component').then(
+                (m) => m.RegularizationComponent,
+              ),
+            data: { filterType: '' },
+          },
+          {
+            path: 'overtime',
+            loadComponent: () =>
+              import('./features/admin/regularization.component').then(
+                (m) => m.RegularizationComponent,
+              ),
+            data: { filterType: 'overtime' },
+          },
+          {
+            path: 'expense',
+            loadComponent: () =>
+              import('./features/expenses/expenses.component').then(
+                (m) => m.ExpensesComponent,
+              ),
+          },
+          {
+            path: 'shift-request',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Shift Request',
+              subtitle: 'Review employee shift change requests from a dedicated approval queue.',
+            },
+          },
+          {
+            path: 'remote-work',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Remote Work',
+              subtitle: 'Approve or reject remote work requests without mixing them into attendance or leave screens.',
+            },
+          },
+          {
+            path: 'flexi-holiday',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Flexi Holiday',
+              subtitle: 'Use this queue for flexi holiday approval movement when the module is enabled.',
+            },
+          },
+          {
+            path: 'weekly-off',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Weekly Off',
+              subtitle: 'This route is reserved for weekly off approval requests in the approval workspace.',
+            },
+          },
+          {
+            path: 'documents',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Documents',
+              subtitle: 'Handle organization document approvals in a dedicated route, just like Angular_Web.',
+            },
+          },
+          {
+            path: 'resignation',
+            loadComponent: () =>
+              import('./features/admin/approval-center-placeholder.component').then(
+                (m) => m.ApprovalCenterPlaceholderComponent,
+              ),
+            data: {
+              title: 'Resignation',
+              subtitle: 'Separate resignation approvals from leave and attendance workflows so the experience stays clear.',
+            },
+          },
+        ],
+      },
+      {
+        path: 'admin/attendance',
+        loadComponent: () =>
+          import('./features/admin/admin-attendance-management.component').then(
+            (m) => m.AdminAttendanceManagementComponent,
+          ),
+        data: { permission: 'attendance.team.view' },
+      },
+      {
+        path: 'admin/attendance/workspace',
         loadComponent: () =>
           import('@features/attendance/attendance.component').then(
             (m) => m.AttendanceComponent,
           ),
+        data: {
+          permission: 'attendance.team.view',
+          attendanceMode: 'admin',
+        },
       },
       {
-        path: 'attendance/integrations',
+        path: 'admin/attendance/register',
+        loadComponent: () =>
+          import('./features/admin/team-attendance.component').then(
+            (m) => m.TeamAttendanceComponent,
+          ),
+        data: { permission: 'attendance.team.view' },
+      },
+      {
+        path: 'admin/attendance/regularizations',
+        loadComponent: () =>
+          import('./features/admin/regularization.component').then(
+            (m) => m.RegularizationComponent,
+          ),
+        data: { permission: 'regularization.view' },
+      },
+      {
+        path: 'admin/attendance/geofence',
+        loadComponent: () =>
+          import('./features/admin/geofence-settings.component').then(
+            (m) => m.GeofenceSettingsComponent,
+          ),
+        data: { permission: 'geofence.view' },
+      },
+      {
+        path: 'admin/attendance/integrations',
         loadComponent: () =>
           import('@features/attendance/integrations.component').then(
             (m) => m.AttendanceIntegrationsComponent,
           ),
+        data: { permission: 'attendance.team.view' },
+      },
+      {
+        path: 'admin/attendance/reports',
+        loadComponent: () =>
+          import('@features/reports/reports.component').then(
+            (m) => m.ReportsComponent,
+          ),
+        data: { permission: 'reports.view' },
       },
       {
         path: 'face-registration',
@@ -229,24 +522,18 @@ export const routes: Routes = [
       },
       {
         path: 'admin/geofence',
-        loadComponent: () =>
-          import('./features/admin/geofence-settings.component').then(
-            (m) => m.GeofenceSettingsComponent,
-          ),
+        redirectTo: 'admin/attendance/geofence',
+        pathMatch: 'full',
       },
       {
         path: 'admin/team-attendance',
-        loadComponent: () =>
-          import('./features/admin/team-attendance.component').then(
-            (m) => m.TeamAttendanceComponent,
-          ),
+        redirectTo: 'admin/attendance/register',
+        pathMatch: 'full',
       },
       {
         path: 'admin/regularization',
-        loadComponent: () =>
-          import('./features/admin/regularization.component').then(
-            (m) => m.RegularizationComponent,
-          ),
+        redirectTo: 'admin/attendance/regularizations',
+        pathMatch: 'full',
       },
       {
         path: 'admin/documents',

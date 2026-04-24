@@ -10,7 +10,7 @@ import { CommonModule } from '@angular/common';
 import { EmployeeService } from '../../core/services/employee.service';
 import { User } from '../../core/models/auth.model';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ModalService } from '../../core/services/modal.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LiveRefreshService } from '../../core/services/live-refresh.service';
@@ -30,7 +30,7 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="flex flex-col gap-4 sm:gap-5 lg:gap-6">
       <!-- Header Section -->
       <section
-        class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm"
+        class="sticky top-3 z-20 overflow-hidden rounded-lg border border-slate-100 bg-white/95 shadow-lg shadow-slate-200/60 backdrop-blur"
       >
         <div
           class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8 lg:py-8"
@@ -55,7 +55,7 @@ import { AuthService } from '../../core/services/auth.service';
 
             <!-- Stats Grid -->
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm transition-all hover:translate-y-[-2px]">
+              <div class="rounded-md border border-slate-100 bg-slate-50 px-4 py-4 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
                   {{ t('common.totalEmployees') }}
                 </p>
@@ -63,7 +63,7 @@ import { AuthService } from '../../core/services/auth.service';
                   <p class="text-2xl font-black text-slate-900">{{ employeeStats().total }}</p>
                 </div>
               </div>
-              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm transition-all hover:translate-y-[-2px]">
+              <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-500">
                   {{ t('common.active') }}
                 </p>
@@ -71,7 +71,7 @@ import { AuthService } from '../../core/services/auth.service';
                   <p class="text-2xl font-black text-emerald-600">{{ employeeStats().active }}</p>
                 </div>
               </div>
-              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm transition-all hover:translate-y-[-2px]">
+              <div class="rounded-md border border-amber-100 bg-amber-50 px-4 py-4 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-500">
                   {{ t('common.onLeave') }}
                 </p>
@@ -79,7 +79,7 @@ import { AuthService } from '../../core/services/auth.service';
                   <p class="text-2xl font-black text-amber-600">{{ employeeStats().onLeave }}</p>
                 </div>
               </div>
-              <div class="rounded-md border border-white/80 bg-white/90 px-4 py-4 shadow-sm transition-all hover:translate-y-[-2px]">
+              <div class="rounded-md border border-rose-100 bg-rose-50 px-4 py-4 shadow-sm">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-rose-500">
                   {{ t('common.terminated') }}
                 </p>
@@ -385,6 +385,7 @@ export class EmployeeListComponent implements OnInit {
   private modalService = inject(ModalService);
   private toastService = inject(ToastService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private liveRefreshService = inject(LiveRefreshService);
   private destroyRef = inject(DestroyRef);
   private languageService = inject(LanguageService);
@@ -394,6 +395,7 @@ export class EmployeeListComponent implements OnInit {
   searchQuery = signal<string>('');
   statusFilter = signal<any>('');
   currentTab = signal<'all' | 'active' | 'inactive' | 'on_leave' | 'terminated'>('all');
+  private routeView = signal<'dashboard' | 'on-job' | 'lifecycle'>('dashboard');
 
   normalizeStatus(value: any): 'active' | 'inactive' | 'on_leave' | 'terminated' {
     const normalized = String(value ?? '')
@@ -431,6 +433,10 @@ export class EmployeeListComponent implements OnInit {
     this.tabs[4].count = counts.terminated;
 
     const activeTab = this.currentTab();
+    if (this.routeView() !== 'dashboard') {
+      return;
+    }
+
     if (activeTab === 'all' || counts[activeTab] > 0 || employees.length === 0) {
       return;
     }
@@ -514,6 +520,12 @@ export class EmployeeListComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        this.applyRouteView(params.get('view'));
+      });
+
     this.loadEmployees();
     this.liveRefreshService
       .createStream(30000)
@@ -552,6 +564,24 @@ export class EmployeeListComponent implements OnInit {
   clearFilters() {
     this.searchQuery.set('');
     this.statusFilter.set('');
+  }
+
+  private applyRouteView(view: string | null) {
+    switch ((view || '').trim().toLowerCase()) {
+      case 'on-job':
+        this.routeView.set('on-job');
+        this.currentTab.set('active');
+        break;
+      case 'lifecycle':
+        this.routeView.set('lifecycle');
+        this.currentTab.set('terminated');
+        break;
+      case 'dashboard':
+      default:
+        this.routeView.set('dashboard');
+        this.currentTab.set('all');
+        break;
+    }
   }
 
   exportEmployees() {

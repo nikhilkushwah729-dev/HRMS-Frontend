@@ -48,13 +48,13 @@ import { AuthService } from '../../../core/services/auth.service';
             <p class="mt-3 app-module-highlight-value">
               {{ editingId() ? t('common.editing') : t('common.ready') }}
             </p>
-            <p class="mt-3 text-sm leading-6 text-white/80">
+            <p class="mt-3 text-sm leading-6 text-slate-600">
               {{ editingId() ? t('common.editing') + ' ' + config().itemName : t('common.create') + ' ' + config().itemName }}
             </p>
-            <div class="mt-4 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/80">
+            <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
               {{ t('common.quickAttributesVisible', { count: secondaryFields().length }) }}
             </div>
-            <div class="mt-3 rounded-md border border-white/15 bg-white/10 px-4 py-3 text-xs leading-5 text-white/80">
+            <div class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">
               {{ t('common.sharedWorkspaceSettings') }}
             </div>
           </div>

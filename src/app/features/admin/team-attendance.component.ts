@@ -33,29 +33,30 @@ interface NormalizedAttendance {
     <div class="flex flex-col gap-6 pb-10 max-w-7xl mx-auto">
       <!-- Header -->
       <header
-        class="app-module-hero flex flex-col xl:flex-row justify-between items-start xl:items-end gap-5"
+        class="sticky top-3 z-20 rounded-lg border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5"
       >
-        <div class="max-w-2xl">
-          <p class="app-module-kicker">Manager Workspace</p>
-          <h1 class="app-module-title mt-3">
+        <div class="grid grid-cols-12 items-center gap-4">
+        <div class="col-span-12 xl:col-span-5">
+          <p class="text-[10px] font-bold uppercase tracking-wide text-teal-600">Manager Workspace</p>
+          <h1 class="mt-1 text-2xl font-semibold text-slate-900 max-sm:text-lg">
             Team attendance monitoring and follow-up
           </h1>
-          <p class="app-module-text mt-3">
+          <p class="mt-2 text-sm font-medium text-slate-500">
             Review check-ins, late arrivals, department filters, and team
             attendance trends from one manager-friendly workspace.
           </p>
         </div>
-        <div class="flex flex-col gap-3 xl:items-end">
-          <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">Visible employees</span>
-            <div class="app-module-highlight-value mt-3">
-              {{ filteredAttendance().length }}
-            </div>
-            <p class="mt-2 text-sm text-white/80">
-              Employees currently visible after applying date, department,
-              status, and search filters.
-            </p>
+        <div class="col-span-12 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:col-span-4">
+          <div class="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Visible employees</p>
+            <p class="mt-1 text-sm font-black text-slate-900">{{ filteredAttendance().length }}</p>
           </div>
+          <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-cyan-500">Date</p>
+            <p class="mt-1 text-sm font-black text-cyan-700">{{ selectedDate | date: 'dd MMM yyyy' }}</p>
+          </div>
+        </div>
+        <div class="col-span-12 flex flex-col gap-3 xl:col-span-3 xl:items-end">
           <div class="flex items-center gap-2">
             <button
               (click)="refreshData()"
@@ -80,6 +81,7 @@ interface NormalizedAttendance {
               Refresh
             </button>
           </div>
+        </div>
         </div>
       </header>
 

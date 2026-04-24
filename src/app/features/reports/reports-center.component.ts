@@ -17,69 +17,92 @@ export interface ReportItem {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="mx-auto max-w-7xl space-y-8 pb-12 animate-in fade-in duration-500">
-      <section class="app-module-hero">
-        <div>
-          <p class="app-module-kicker">Analytics Hub</p>
-          <h1 class="app-module-title">Reports center</h1>
-          <p class="app-module-text max-w-2xl">Explore attendance, payroll, employee, and leave insights from a single reporting workspace inspired by a more premium HR analytics flow.</p>
-        </div>
+    <div class="mx-auto max-w-[1400px] space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <section class="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+        <div class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-slate-50 opacity-50 blur-3xl"></div>
+        <div class="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-blue-50 opacity-50 blur-3xl"></div>
+        
+        <div class="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div class="max-w-2xl">
+            <div class="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+              Analytics Hub v2.0
+            </div>
+            <h1 class="mt-4 text-4xl font-[900] tracking-tight text-slate-900 md:text-5xl lg:text-6xl" style="font-family: 'Sora', sans-serif;">
+              Reports <span class="text-blue-600">Center</span>
+            </h1>
+            <p class="mt-6 text-lg leading-relaxed text-slate-500">
+              Unlock powerful workforce insights with our redesigned reporting workspace. Track attendance, monitor payroll trends, and analyze employee growth from a single, high-fidelity interface.
+            </p>
+          </div>
 
-        <div class="app-module-highlight">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Available reports</p>
-          <p class="mt-3 text-3xl font-black text-slate-900">{{ reports().length }}</p>
-          <p class="mt-2 text-sm text-slate-600">Favorites: {{ favoriteReports().length }} | Categories: {{ filteredCategories().length }}</p>
+          <div class="grid grid-cols-2 gap-4 rounded-[1.5rem] bg-slate-50 p-6 ring-1 ring-slate-100">
+            <div class="space-y-1">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Total Reports</p>
+              <p class="text-3xl font-black text-slate-900" style="font-family: 'Sora', sans-serif;">{{ reports().length }}</p>
+            </div>
+            <div class="space-y-1">
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">Active Categories</p>
+              <p class="text-3xl font-black text-slate-900" style="font-family: 'Sora', sans-serif;">{{ filteredCategories().length }}</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">
-          <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-          Report workspace ready
-        </div>
-
-        <div class="relative w-full lg:w-[22rem]">
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div class="relative flex-1 lg:max-w-md">
           <input
             type="text"
             [ngModel]="searchQuery()"
             (ngModelChange)="searchQuery.set($event)"
-            placeholder="Search for a report..."
-            class="w-full rounded-md border border-slate-200 bg-white px-12 py-3 text-sm outline-none transition-all focus:border-slate-900 focus:ring-4 focus:ring-slate-200"
+            placeholder="Search reports by name or category..."
+            class="w-full rounded-2xl border border-slate-200 bg-white px-14 py-4 text-sm font-medium transition-all focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none"
           >
-          <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <svg class="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </div>
+
+        <div class="flex items-center gap-3 overflow-x-auto pb-2 lg:pb-0">
+          <button class="whitespace-nowrap rounded-full bg-slate-900 px-6 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800">All Analytics</button>
+          <button class="whitespace-nowrap rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">Custom Builder</button>
+          <button class="whitespace-nowrap rounded-full bg-white px-6 py-2.5 text-sm font-bold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50">Export Logs</button>
         </div>
       </div>
 
       @if (favoriteReports().length > 0 && !searchQuery()) {
-        <section>
-          <div class="mb-5 flex items-center gap-3">
-            <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-amber-100 text-amber-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
-            </span>
-            <div>
-              <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Favorite Reports</p>
-              <h2 class="text-xl font-black text-slate-900">Quick access shortcuts</h2>
+        <section class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-500 ring-1 ring-amber-100">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
+              </div>
+              <h2 class="text-2xl font-[900] text-slate-900" style="font-family: 'Sora', sans-serif;">Starred Workspaces</h2>
             </div>
           </div>
 
-          <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             @for (report of favoriteReports(); track report.id) {
-              <article class="app-surface-card flex items-start gap-4 transition hover:-translate-y-1">
-                <div class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-100 text-slate-700">
-                  <svg [innerHTML]="report.icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-start justify-between gap-3">
-                    <h3 class="text-lg font-black text-slate-900">{{ report.name }}</h3>
-                    <button (click)="toggleFavorite(report)" class="text-amber-400 transition hover:scale-110">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
-                    </button>
+              <article class="group relative overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white p-6 transition-all hover:-translate-y-1 hover:shadow-2xl hover:shadow-slate-200/50">
+                <div class="flex items-start justify-between">
+                  <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-900 transition-colors group-hover:bg-slate-900 group-hover:text-white">
+                    <svg [innerHTML]="report.icon" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"></svg>
                   </div>
-                  <p class="mt-2 text-sm leading-7 text-slate-600">{{ report.description }}</p>
-                  <a [routerLink]="reportRoute(report)" [queryParams]="reportQueryParams(report)" class="mt-4 inline-flex items-center gap-2 text-sm font-bold text-slate-900 transition hover:gap-3">
-                    Generate report
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  <button (click)="toggleFavorite(report)" class="text-amber-400 transition hover:scale-125">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
+                  </button>
+                </div>
+                
+                <div class="mt-6">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-blue-600">{{ report.category }}</p>
+                  <h3 class="mt-1 text-xl font-black text-slate-900">{{ report.name }}</h3>
+                  <p class="mt-3 text-sm leading-relaxed text-slate-500 line-clamp-2">{{ report.description }}</p>
+                </div>
+
+                <div class="mt-8 flex items-center justify-between">
+                  <a [routerLink]="reportRoute(report)" [queryParams]="reportQueryParams(report)" class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-600">
+                    Launch Report
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                   </a>
+                  <span class="text-[10px] font-bold text-slate-300">Ready to export</span>
                 </div>
               </article>
             }
@@ -88,28 +111,28 @@ export interface ReportItem {
       }
 
       @for (category of filteredCategories(); track category.name) {
-        <section class="space-y-5">
+        <section class="space-y-6">
           <div class="flex items-center gap-3">
-            <span class="h-2.5 w-2.5 rounded-full bg-slate-900"></span>
-            <h2 class="text-xl font-black text-slate-900">{{ category.name }}</h2>
+            <div class="h-1.5 w-8 rounded-full bg-slate-900"></div>
+            <h2 class="text-xl font-black tracking-tight text-slate-900" style="font-family: 'Sora', sans-serif;">{{ category.name }} Reports</h2>
           </div>
 
-          <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             @for (report of category.reports; track report.id) {
-              <article class="app-surface-card transition hover:-translate-y-1">
-                <div class="mb-5 flex items-start justify-between gap-3">
-                  <div class="flex h-11 w-11 items-center justify-center rounded-md bg-slate-100 text-slate-700">
-                    <svg [innerHTML]="report.icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+              <article class="group rounded-[1.25rem] border border-slate-100 bg-white p-5 transition-all hover:border-slate-200 hover:shadow-xl">
+                <div class="flex items-start justify-between">
+                  <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-50 text-slate-600 transition-colors group-hover:bg-blue-50 group-hover:text-blue-600">
+                    <svg [innerHTML]="report.icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
                   </div>
-                  <button (click)="toggleFavorite(report)" [class.text-amber-400]="report.isFavorite" [class.text-slate-300]="!report.isFavorite" class="transition hover:scale-110 hover:text-amber-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
+                  <button (click)="toggleFavorite(report)" [class.text-amber-400]="report.isFavorite" [class.text-slate-200]="!report.isFavorite" class="transition hover:scale-110 hover:text-amber-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.75l-6.172 3.245 1.179-6.873-4.993-4.867 6.9-1.002L12 2l3.086 6.253 6.9 1.002-4.993 4.867 1.179 6.873z"/></svg>
                   </button>
                 </div>
-                <h3 class="text-lg font-black leading-tight text-slate-900">{{ report.name }}</h3>
-                <p class="mt-2 text-sm leading-7 text-slate-600">{{ report.description }}</p>
-                <a [routerLink]="reportRoute(report)" [queryParams]="reportQueryParams(report)" class="mt-5 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-slate-700 transition hover:gap-3">
-                  Open report
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                <h3 class="mt-5 text-lg font-black leading-tight text-slate-900 group-hover:text-blue-600 transition-colors">{{ report.name }}</h3>
+                <p class="mt-2 text-sm leading-relaxed text-slate-500 line-clamp-2">{{ report.description }}</p>
+                <a [routerLink]="reportRoute(report)" [queryParams]="reportQueryParams(report)" class="mt-6 flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-slate-400 transition hover:text-slate-900">
+                  <span>Explore Metrics</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </a>
               </article>
             }
@@ -118,13 +141,13 @@ export interface ReportItem {
       }
 
       @if (filteredCategories().length === 0) {
-        <div class="app-surface-card py-16 text-center">
-          <div class="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100">
-            <svg class="text-slate-300" xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <div class="rounded-[2.5rem] border border-dashed border-slate-200 bg-white py-24 text-center">
+          <div class="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-slate-50 text-slate-200">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
           </div>
-          <h3 class="mt-6 text-xl font-black text-slate-900">No reports found</h3>
-          <p class="mx-auto mt-2 max-w-md text-sm leading-7 text-slate-600">We could not find any reports matching "{{ searchQuery() }}". Try another keyword or clear the search.</p>
-          <button (click)="searchQuery.set('')" class="mt-6 rounded-md bg-slate-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-slate-800">Clear search</button>
+          <h3 class="mt-8 text-2xl font-black text-slate-900" style="font-family: 'Sora', sans-serif;">Search yielded no results</h3>
+          <p class="mx-auto mt-3 max-w-md text-slate-500">We couldn't find any reports matching "{{ searchQuery() }}". Try using more general keywords like "Attendance" or "Salary".</p>
+          <button (click)="searchQuery.set('')" class="mt-10 rounded-full bg-slate-900 px-10 py-4 text-sm font-black text-white transition hover:bg-slate-800">Reset Search Workspace</button>
         </div>
       }
     </div>
