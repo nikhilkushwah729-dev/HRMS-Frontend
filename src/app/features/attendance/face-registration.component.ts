@@ -767,16 +767,44 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       this.autoRegisterTriggered = false;
       this.registrationSuccess.set(false);
 
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 640 },
+      const constraintsToTry: MediaStreamConstraints[] = [
+        {
+          video: {
+            facingMode: { ideal: 'user' },
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
         },
-        audio: false,
-      });
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+      for (const constraints of constraintsToTry) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) {
+        throw lastError instanceof Error ? lastError : new Error('Unable to access camera.');
+      }
+
+      this.mediaStream = stream;
 
       const video = this.videoElement.nativeElement;
+      video.setAttribute('playsinline', 'true');
+      video.muted = true;
       video.srcObject = this.mediaStream;
 
       await new Promise<void>((resolve) => {
@@ -796,7 +824,9 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Camera error:', error);
       this.toastService.error(
-        'Could not access camera. Please allow camera permission.',
+        error instanceof Error
+          ? error.message
+          : 'Could not access camera. Please allow camera permission.',
       );
     }
   }

@@ -1520,6 +1520,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ]);
   currentTime = signal('');
   currentDay = signal('');
+  private employeesLoaded = signal(false);
 
   activeAnnouncements = computed(() => {
     const dismissed = this.dismissedAnnouncementIds();
@@ -1674,7 +1675,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.subscriptionService.getStatus().subscribe();
     this.currentUser.set(this.authService.getStoredUser());
     this.loadDashboardData();
-    this.loadEmployees();
+    if (this.shouldLoadEmployees()) {
+      this.loadEmployees();
+    }
     this.loadAnnouncements();
     this.seedCalendarData();
     this.startClock();
@@ -1694,10 +1697,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadEmployees(): void {
+    if (this.employeesLoaded()) return;
+
     this.employeeService.getEmployees().subscribe({
-      next: (data) => this.employees.set(data ?? []),
+      next: (data) => {
+        this.employees.set(data ?? []);
+        this.employeesLoaded.set(true);
+      },
       error: () => this.employees.set([]),
     });
+  }
+
+  private shouldLoadEmployees(): boolean {
+    const user = this.currentUser();
+    return Boolean(user?.managerId || this.isManager());
   }
 
   private loadAnnouncements(): void {

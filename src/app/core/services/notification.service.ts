@@ -1,6 +1,6 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface Notification {
@@ -27,6 +27,9 @@ export interface NotificationPayload {
 export class NotificationService {
   private http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/notifications`;
+  private readonly cacheTtlMs = 60 * 1000;
+  private notificationsLoadedAt = 0;
+  private notificationsRequest$?: Observable<Notification[]>;
 
   // Signals for reactive state
   private _notifications = signal<Notification[]>([]);
@@ -40,18 +43,13 @@ export class NotificationService {
   hasUnread = computed(() => this._unreadCount() > 0);
   recentNotifications = computed(() => this._notifications().slice(0, 10));
 
-  constructor() {
-    this.loadNotifications();
-  }
-
   /**
    * Load notifications for the current user
    */
-  loadNotifications(): void {
-    this.http.get<any>(this.apiUrl).subscribe({
+  loadNotifications(forceRefresh = false): void {
+    this.fetchNotifications(forceRefresh).subscribe({
       next: (res) => {
-        const notifications = this.normalizeNotifications(res?.data || res || []);
-        this._notifications.set(notifications);
+        this._notifications.set(res);
         this.updateUnreadCount();
       },
       error: (err) => console.error('Failed to load notifications', err)
@@ -61,7 +59,11 @@ export class NotificationService {
   /**
    * Get notifications with pagination
    */
-  getNotifications(page: number = 1, limit: number = 20): Observable<Notification[]> {
+  getNotifications(page: number = 1, limit: number = 20, forceRefresh = false): Observable<Notification[]> {
+    if (page === 1 && limit === 20) {
+      return this.fetchNotifications(forceRefresh);
+    }
+
     return this.http.get<any>(`${this.apiUrl}?page=${page}&limit=${limit}`).pipe(
       map(res => this.normalizeNotifications(res?.data || res || []))
     );
@@ -78,6 +80,7 @@ export class NotificationService {
         );
         this._notifications.set(notifications);
         this.updateUnreadCount();
+        this.notificationsLoadedAt = Date.now();
       })
     );
   }
@@ -91,6 +94,7 @@ export class NotificationService {
         const notifications = this._notifications().map(n => ({ ...n, isRead: true }));
         this._notifications.set(notifications);
         this._unreadCount.set(0);
+        this.notificationsLoadedAt = Date.now();
       })
     );
   }
@@ -104,6 +108,7 @@ export class NotificationService {
         const notifications = this._notifications().filter(n => n.id !== id);
         this._notifications.set(notifications);
         this.updateUnreadCount();
+        this.notificationsLoadedAt = Date.now();
       })
     );
   }
@@ -173,6 +178,36 @@ export class NotificationService {
   }
 
   // Private helper methods
+
+  private fetchNotifications(forceRefresh = false): Observable<Notification[]> {
+    const hasFreshCache =
+      !forceRefresh &&
+      this.notificationsLoadedAt > 0 &&
+      Date.now() - this.notificationsLoadedAt < this.cacheTtlMs;
+
+    if (hasFreshCache) {
+      return of(this._notifications());
+    }
+
+    if (!forceRefresh && this.notificationsRequest$) {
+      return this.notificationsRequest$;
+    }
+
+    this.notificationsRequest$ = this.http.get<any>(this.apiUrl).pipe(
+      map((res) => this.normalizeNotifications(res?.data || res || [])),
+      tap((notifications) => {
+        this._notifications.set(notifications);
+        this.updateUnreadCount();
+        this.notificationsLoadedAt = Date.now();
+      }),
+      finalize(() => {
+        this.notificationsRequest$ = undefined;
+      }),
+      shareReplay(1)
+    );
+
+    return this.notificationsRequest$;
+  }
 
   private normalizeNotifications(items: any[]): Notification[] {
     return Array.isArray(items) ? items.map(item => this.normalizeNotification(item)) : [];

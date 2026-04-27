@@ -1,21 +1,28 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, Subject, catchError, map, of } from 'rxjs';
+import { Observable, Subject, catchError, map, of, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface AttendanceRecord {
     id: number;
     employee_id: number;
+    employee_code?: string;
     date: string;
     check_in: string | null;
     check_out: string | null;
     work_hours: number | null;
+    net_work_hours?: number | null;
+    total_break_min?: number;
     status: 'present' | 'absent' | 'half_day' | 'late' | 'on_leave' | 'holiday' | 'weekend';
     selfie_url: string | null;
     is_late: boolean;
     is_half_day: boolean;
     shift_id?: number;
     shift_name?: string;
+    source?: string;
+    attendance_method?: string | null;
+    kiosk_name?: string | null;
+    device_info?: string | null;
     latitude?: number;
     longitude?: number;
     location_address?: string;
@@ -197,6 +204,9 @@ export class AttendanceService {
     private readonly localShiftKey = 'hrms_attendance_shifts';
     private readonly localZoneKey = 'hrms_attendance_zones';
     private readonly localGeoFenceSettingsKey = 'hrms_attendance_geofence_settings';
+    private readonly sharedCacheTtlMs = 5 * 60 * 1000;
+    private shiftsCache$?: Observable<AttendanceShift[]>;
+    private shiftsCacheAt = 0;
 
     private pollingSubject = new Subject<boolean>();
     private statusUpdateSubject = new Subject<TodayAttendance>();
@@ -311,24 +321,64 @@ export class AttendanceService {
     }
 
     private normalizeAttendanceRecord(raw: any): AttendanceRecord {
-        const employeeName = String(raw?.employeeName ?? '').trim();
+        let parsedDeviceInfo: any = null;
+        const rawDeviceInfo = raw?.deviceInfo ?? raw?.device_info ?? null;
+
+        if (typeof rawDeviceInfo === 'string') {
+            try {
+                parsedDeviceInfo = JSON.parse(rawDeviceInfo);
+            } catch {
+                parsedDeviceInfo = null;
+            }
+        } else if (rawDeviceInfo && typeof rawDeviceInfo === 'object') {
+            parsedDeviceInfo = rawDeviceInfo;
+        }
+
+        const employeeName = String(
+            raw?.employeeName ??
+            raw?.employee_name ??
+            raw?.employee?.name ??
+            `${raw?.employee?.firstName ?? raw?.employee?.first_name ?? ''} ${raw?.employee?.lastName ?? raw?.employee?.last_name ?? ''}`
+        ).trim();
         const [firstName, ...rest] = employeeName ? employeeName.split(' ') : ['Employee'];
-        const lastName = rest.join(' ') || String(raw?.employeeCode ?? '').trim() || '';
-        const employeeDepartment = String(raw?.department ?? '').trim();
+        const lastName =
+            rest.join(' ') ||
+            String(raw?.employeeCode ?? raw?.employee_code ?? raw?.employee?.employeeCode ?? raw?.employee?.employee_code ?? '').trim() ||
+            '';
+        const employeeDepartment = String(
+            raw?.department ??
+            raw?.employee?.department ??
+            raw?.employee?.departmentName ??
+            raw?.employee?.department_name ??
+            ''
+        ).trim();
 
         return {
             id: Number(raw?.id ?? Date.now()),
-            employee_id: Number(raw?.employeeId ?? raw?.employee_id ?? 0),
-            date: String(raw?.date ?? new Date().toISOString().slice(0, 10)),
-            check_in: raw?.checkInTime ?? raw?.check_in ?? null,
-            check_out: raw?.checkOutTime ?? raw?.check_out ?? null,
+            employee_id: Number(raw?.employeeId ?? raw?.employee_id ?? raw?.employee?.id ?? 0),
+            employee_code: String(
+                raw?.employeeCode ??
+                raw?.employee_code ??
+                raw?.employee?.employeeCode ??
+                raw?.employee?.employee_code ??
+                ''
+            ).trim() || undefined,
+            date: String(raw?.date ?? raw?.attendance_date ?? new Date().toISOString().slice(0, 10)),
+            check_in: raw?.checkInTime ?? raw?.check_in ?? raw?.checkIn ?? null,
+            check_out: raw?.checkOutTime ?? raw?.check_out ?? raw?.checkOut ?? null,
             work_hours: raw?.workHours ?? raw?.work_hours ?? null,
+            net_work_hours: raw?.netWorkHours ?? raw?.net_work_hours ?? null,
+            total_break_min: Number(raw?.totalBreakMin ?? raw?.total_break_min ?? 0),
             status: raw?.status ?? 'present',
             selfie_url: raw?.selfieUrl ?? raw?.selfie_url ?? null,
             is_late: Boolean(raw?.lateMinutes ?? raw?.isLate ?? raw?.status === 'late'),
             is_half_day: Boolean(raw?.isHalfDay ?? raw?.status === 'half_day'),
             shift_id: raw?.shiftId ?? raw?.shift_id,
             shift_name: raw?.shiftName ?? raw?.shift_name,
+            source: raw?.source ?? parsedDeviceInfo?.source ?? undefined,
+            attendance_method: raw?.attendanceMethod ?? raw?.attendance_method ?? parsedDeviceInfo?.method ?? null,
+            kiosk_name: raw?.kioskName ?? raw?.kiosk_name ?? parsedDeviceInfo?.kioskName ?? null,
+            device_info: typeof rawDeviceInfo === 'string' ? rawDeviceInfo : rawDeviceInfo ? JSON.stringify(rawDeviceInfo) : null,
             latitude: raw?.latitude,
             longitude: raw?.longitude,
             location_address: raw?.locationAddress ?? raw?.location_address,
@@ -336,11 +386,11 @@ export class AttendanceService {
             created_at: raw?.createdAt ?? raw?.created_at,
             updated_at: raw?.updatedAt ?? raw?.updated_at,
             employee: {
-                id: Number(raw?.employeeId ?? raw?.employee_id ?? 0),
-                firstName: firstName || 'Employee',
-                lastName,
-                email: raw?.email ?? '',
-                avatar: raw?.avatar ?? null,
+                id: Number(raw?.employeeId ?? raw?.employee_id ?? raw?.employee?.id ?? 0),
+                firstName: (raw?.employee?.firstName ?? raw?.employee?.first_name ?? firstName) || 'Employee',
+                lastName: raw?.employee?.lastName ?? raw?.employee?.last_name ?? lastName,
+                email: raw?.email ?? raw?.employee?.email ?? '',
+                avatar: raw?.avatar ?? raw?.employee?.avatar ?? null,
                 department: employeeDepartment || undefined,
             },
         };
@@ -424,7 +474,10 @@ export class AttendanceService {
         }
 
         return this.http.get<any>(`${this.apiUrl}/attendance/history`, { params }).pipe(
-            map((res) => res.data || res)
+            map((res) => {
+                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                return records.map((record: any) => this.normalizeAttendanceRecord(record));
+            })
         );
     }
 
@@ -507,7 +560,10 @@ export class AttendanceService {
             .set('month', month.toString());
 
         return this.http.get<any>(`${this.apiUrl}/attendance/monthly`, { params }).pipe(
-            map((res) => res.data || res)
+            map((res) => {
+                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                return records.map((record: any) => this.normalizeAttendanceRecord(record));
+            })
         );
     }
 
@@ -694,13 +750,19 @@ export class AttendanceService {
         }
 
         return this.http.get<any>(`${this.apiUrl}/attendance/all`, { params }).pipe(
-            map((res) => res.data || res)
+            map((res) => {
+                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                return records.map((record: any) => this.normalizeAttendanceRecord(record));
+            })
         );
     }
 
     getTodayAllAttendance(): Observable<AttendanceRecord[]> {
         return this.http.get<any>(`${this.apiUrl}/attendance/all/today`).pipe(
-            map((res) => res.data || res)
+            map((res) => {
+                const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                return records.map((record: any) => this.normalizeAttendanceRecord(record));
+            })
         );
     }
 
@@ -722,6 +784,11 @@ export class AttendanceService {
         this.pollingSubject.next(false);
     }
 
+    private clearShiftsCache(): void {
+        this.shiftsCache$ = undefined;
+        this.shiftsCacheAt = 0;
+    }
+
     refreshStatus(): void {
         this.getTodayAttendance().subscribe({
             next: (status) => {
@@ -731,9 +798,19 @@ export class AttendanceService {
         });
     }
 
-    getShifts(): Observable<AttendanceShift[]> {
+    getShifts(forceRefresh = false): Observable<AttendanceShift[]> {
+        if (
+            !forceRefresh &&
+            this.shiftsCache$ &&
+            this.shiftsCacheAt > 0 &&
+            Date.now() - this.shiftsCacheAt < this.sharedCacheTtlMs
+        ) {
+            return this.shiftsCache$;
+        }
+
         const localShifts = this.getLocalShifts();
-        return this.http.get<any>(`${this.apiUrl}/attendance/shifts`).pipe(
+        this.shiftsCacheAt = Date.now();
+        this.shiftsCache$ = this.http.get<any>(`${this.apiUrl}/attendance/shifts`).pipe(
             map((res) => {
                 const shifts = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 const normalized = shifts.map((shift: any) => this.normalizeShift(shift));
@@ -741,17 +818,24 @@ export class AttendanceService {
                 [...normalized, ...localShifts].forEach((shift) => merged.set(shift.id, shift));
                 return Array.from(merged.values());
             }),
-            catchError(() => of(localShifts))
+            catchError(() => of(localShifts)),
+            shareReplay(1)
         );
+        return this.shiftsCache$;
     }
 
     createShift(data: Partial<AttendanceShift>): Observable<AttendanceShift> {
         const fallbackShift = this.normalizeShift({ id: Date.now(), ...data });
         return this.http.post<any>(`${this.apiUrl}/attendance/shifts`, data).pipe(
             map((res) => this.normalizeShift(res?.data || res)),
+            map((shift) => {
+                this.clearShiftsCache();
+                return shift;
+            }),
             catchError(() => {
                 const nextShifts = [fallbackShift, ...this.getLocalShifts()];
                 this.saveLocalState(this.localShiftKey, nextShifts);
+                this.clearShiftsCache();
                 return of(fallbackShift);
             })
         );
@@ -760,12 +844,17 @@ export class AttendanceService {
     updateShift(id: number, data: Partial<AttendanceShift>): Observable<AttendanceShift> {
         return this.http.put<any>(`${this.apiUrl}/attendance/shifts/${id}`, data).pipe(
             map((res) => this.normalizeShift(res?.data || res)),
+            map((shift) => {
+                this.clearShiftsCache();
+                return shift;
+            }),
             catchError(() => {
                 const nextShifts = this.getLocalShifts().map((shift) => shift.id === id
                     ? this.normalizeShift({ ...shift, ...data })
                     : shift);
                 this.saveLocalState(this.localShiftKey, nextShifts);
                 const updatedShift = nextShifts.find((shift) => shift.id === id) ?? this.normalizeShift({ id, ...data });
+                this.clearShiftsCache();
                 return of(updatedShift);
             })
         );
@@ -773,9 +862,14 @@ export class AttendanceService {
 
     deleteShift(id: number): Observable<any> {
         return this.http.delete<any>(`${this.apiUrl}/attendance/shifts/${id}`).pipe(
+            map((res) => {
+                this.clearShiftsCache();
+                return res;
+            }),
             catchError(() => {
                 const nextShifts = this.getLocalShifts().filter((shift) => shift.id !== id);
                 this.saveLocalState(this.localShiftKey, nextShifts);
+                this.clearShiftsCache();
                 return of({ success: true });
             })
         );

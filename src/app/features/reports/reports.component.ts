@@ -177,11 +177,11 @@ type CatalogItem = {
                       </div>
 
                       <div class="flex items-center gap-2">
-                        <button (click)="exportExcel()" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100">
+                        <button (click)="exportExcel()" [disabled]="!canExportCurrentReport()" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                           Excel
                         </button>
-                        <button (click)="exportPdf()" class="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-100">
+                        <button (click)="exportPdf()" [disabled]="!canExportCurrentReport()" class="inline-flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2 text-sm font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50">
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
                           PDF
                         </button>
@@ -455,6 +455,7 @@ export class ReportsComponent implements OnInit {
   selectedShortcut = signal<'all' | 'favorites' | 'custom'>('all');
   isSearchBoxOpen = signal<boolean>(false);
   isViewerMode = signal<boolean>(false);
+  private departmentsLoaded = signal<boolean>(false);
 
   dailyReport = signal<DailyReport | null>(null);
   monthlyReport = signal<MonthlyReport | null>(null);
@@ -575,22 +576,27 @@ export class ReportsComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser());
-    this.loadDepartments();
     this.route.queryParamMap.subscribe((params) => {
       const preset = params.get('preset') as 'daily' | 'monthly' | 'late' | 'absent' | null;
       this.isViewerMode.set(!!preset);
       if (preset && ['daily', 'monthly', 'late', 'absent'].includes(preset)) {
         this.currentReportType.set(preset);
+        this.loadDepartments();
+        this.loadReport();
       }
       this.selectedCategory.set('Attendance');
       this.activeSection.set('Attendance');
-      this.loadReport();
     });
   }
 
   private loadDepartments() {
+    if (this.departmentsLoaded()) return;
+
     this.orgService.getDepartments().subscribe({
-      next: (depts) => this.departments.set(depts),
+      next: (depts) => {
+        this.departments.set(depts);
+        this.departmentsLoaded.set(true);
+      },
       error: () => this.departments.set([])
     });
   }
@@ -726,15 +732,15 @@ export class ReportsComponent implements OnInit {
       error: () => {
         this.dailyReport.set({
           date,
-          totalEmployees: 45,
-          present: 38,
-          absent: 4,
-          late: 3,
+          totalEmployees: 0,
+          present: 0,
+          absent: 0,
+          late: 0,
           halfDay: 0,
           onLeave: 0,
           holidays: 0,
           weekend: 0,
-          attendancePercentage: 84.4
+          attendancePercentage: 0
         });
         this.loading.set(false);
       }
@@ -810,6 +816,8 @@ export class ReportsComponent implements OnInit {
   }
 
   exportExcel() {
+    if (!this.canExportCurrentReport()) return;
+
     this.reportService.exportToExcel(this.filters).subscribe({
       next: (blob) => {
         if (!blob || blob.size === 0) {
@@ -827,6 +835,8 @@ export class ReportsComponent implements OnInit {
   }
 
   exportPdf() {
+    if (!this.canExportCurrentReport()) return;
+
     this.reportService.exportToPdf(this.filters).subscribe({
       next: (blob) => {
         if (!blob || blob.size === 0) {
@@ -850,6 +860,23 @@ export class ReportsComponent implements OnInit {
       this.permissionService.hasPermission(user, 'reports.read') ||
       this.permissionService.hasPermission(user, 'reports.view')
     );
+  }
+
+  canExportCurrentReport(): boolean {
+    if (!this.canExportReports() || this.loading() || !this.isViewerMode()) return false;
+
+    switch (this.currentReportType()) {
+      case 'daily':
+        return this.dailyReport() !== null;
+      case 'monthly':
+        return this.monthlyReport() !== null;
+      case 'late':
+        return this.lateReports().length > 0;
+      case 'absent':
+        return this.absentReports().length > 0;
+      default:
+        return false;
+    }
   }
 
   getRecordCount(): number {

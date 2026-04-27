@@ -1,4 +1,4 @@
-import {
+﻿import {
   Component,
   OnInit,
   OnDestroy,
@@ -25,6 +25,10 @@ import { User } from '../../core/models/auth.model';
 import { ToastService } from '../../core/services/toast.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { OrganizationService } from '../../core/services/organization.service';
+import {
+  LiveRefreshService,
+  LiveRefreshTrigger,
+} from '../../core/services/live-refresh.service';
 import { GeofenceManagementComponent } from './components/geofence-management.component';
 import { EmployeeTrackingComponent } from './components/employee-tracking.component';
 import { ShiftPlannerComponent } from './components/shift-planner.component';
@@ -33,6 +37,8 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
+import { AttendanceDataTableComponent } from './components/attendance-table.component';
+import { AttendancePunchComponent } from './components/attendance-punch.component';
 
 @Component({
   selector: 'app-attendance',
@@ -47,6 +53,8 @@ import {
     ShiftPlannerComponent,
     CustomModalComponent,
     UiSelectAdvancedComponent,
+    AttendanceDataTableComponent,
+    AttendancePunchComponent,
   ],
   template: `
     <div class="attendance-clean-panel mx-auto flex max-w-7xl flex-col gap-4 pb-8 sm:gap-5 lg:gap-6 lg:pb-10">
@@ -83,7 +91,7 @@ import {
             </div>
             <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
               <p class="text-[10px] font-bold uppercase tracking-wide text-emerald-500">Mode</p>
-              <p class="mt-1 text-sm font-black text-emerald-700">{{ currentView() }}</p>
+              <p class="mt-1 text-sm font-black text-emerald-700">{{ currentViewLabel() }}</p>
             </div>
             <div class="rounded-lg border border-cyan-100 bg-cyan-50 px-3 py-2">
               <p class="text-[10px] font-bold uppercase tracking-wide text-cyan-500">Hours</p>
@@ -111,6 +119,7 @@ import {
             class="app-chip-switch max-w-full overflow-x-auto no-scrollbar whitespace-nowrap"
           >
             <button
+              *ngIf="isSelfServiceWorkspace()"
               (click)="setView('punch')"
               [ngClass]="
                 currentView() === 'punch'
@@ -119,9 +128,10 @@ import {
               "
               class="app-chip-button shrink-0"
             >
-              Punch Clock
+              Mark Attendance
             </button>
             <button
+              *ngIf="isSelfServiceWorkspace()"
               (click)="setView('calendar')"
               [ngClass]="
                 currentView() === 'calendar'
@@ -133,6 +143,7 @@ import {
               Calendar
             </button>
             <button
+              *ngIf="isSelfServiceWorkspace()"
               (click)="setView('stats')"
               [ngClass]="
                 currentView() === 'stats'
@@ -144,8 +155,7 @@ import {
               Statistics
             </button>
             <button
-              *ngIf="canAccessTrackingWorkspace()"
-              [disabled]="isSelfServiceWorkspace()"
+              *ngIf="isAdminAttendanceWorkspace() && canAccessTrackingWorkspace()"
               (click)="setView('tracking')"
               [ngClass]="
                 currentView() === 'tracking'
@@ -157,8 +167,7 @@ import {
               Tracking
             </button>
             <button
-              *ngIf="canAccessGeofenceWorkspace()"
-              [disabled]="isSelfServiceWorkspace()"
+              *ngIf="isAdminAttendanceWorkspace() && canAccessGeofenceWorkspace()"
               (click)="setView('geofence')"
               [ngClass]="
                 currentView() === 'geofence'
@@ -170,8 +179,19 @@ import {
               Geofence
             </button>
             <button
-              *ngIf="canAccessShiftPlannerWorkspace()"
-              [disabled]="isSelfServiceWorkspace()"
+              *ngIf="isSelfServiceWorkspace()"
+              (click)="setView('records')"
+              [ngClass]="
+                currentView() === 'records'
+                  ? 'bg-teal-700 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-stone-100'
+              "
+              class="app-chip-button shrink-0"
+            >
+              Records
+            </button>
+            <button
+              *ngIf="isAdminAttendanceWorkspace() && canAccessShiftPlannerWorkspace()"
               (click)="setView('shift-planner')"
               [ngClass]="
                 currentView() === 'shift-planner'
@@ -245,254 +265,142 @@ import {
       </section>
 
       <section *ngIf="isAdminAttendanceWorkspace()" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div class="max-w-3xl">
             <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-              Attendance Add-ons
+              Admin Workspace
             </p>
             <h2 class="mt-1 text-lg font-black text-slate-900">
-              Manage attendance modules like Angular Web
+              Manage the operations tool, not the employee self-service screen
             </h2>
-            <p class="mt-1 text-sm text-slate-500">
-              Active modules open directly. Suggested modules continue to the upgrade flow with the selected add-on.
+            <p class="mt-2 text-sm leading-6 text-slate-500">
+              Employees should stay on <span class="font-bold text-slate-700">My Attendance</span>. HR and Admin should use
+              this workspace only for tracking, geofence, shift planning, and follow-up actions.
             </p>
           </div>
-          <button
-            type="button"
-            (click)="openAttendanceAddons()"
-            class="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-700 transition hover:bg-white"
-          >
-            View All Add-ons
-          </button>
-        </div>
-
-        <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          @for (addon of attendanceAddonCards(); track addon.slug) {
-            <article class="flex min-h-[190px] flex-col rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition hover:-translate-y-0.5 hover:border-cyan-200 hover:bg-white hover:shadow-sm">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex h-11 w-11 items-center justify-center rounded-xl" [ngClass]="addon.tone">
-                  <span class="text-lg font-black">{{ addon.short }}</span>
-                </div>
-                <span
-                  class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
-                  [ngClass]="addon.active ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'"
-                >
-                  {{ addon.active ? 'Subscribed' : 'Suggested' }}
-                </span>
-              </div>
-              <h3 class="mt-4 text-base font-black text-slate-900">{{ addon.name }}</h3>
-              <p class="mt-2 flex-1 text-sm leading-6 text-slate-500">{{ addon.description }}</p>
-              <button
-                type="button"
-                (click)="addon.active ? openAttendanceAddon(addon) : openAttendanceUpgrade(addon.slug)"
-                class="mt-4 rounded-lg px-4 py-2 text-sm font-black transition"
-                [ngClass]="addon.active ? 'border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50' : 'bg-slate-900 text-white hover:bg-slate-800'"
-              >
-                {{ addon.active ? 'Manage' : 'Upgrade' }}
-              </button>
-            </article>
-          }
+          <div class="grid gap-2 sm:grid-cols-2 xl:w-[420px]">
+            <a
+              routerLink="/admin/attendance/register"
+              class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-teal-200 hover:bg-white"
+            >
+              Team Register
+            </a>
+            <a
+              routerLink="/admin/attendance/regularizations"
+              class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:bg-white"
+            >
+              Regularizations
+            </a>
+            <a
+              routerLink="/admin/attendance/reports"
+              class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-orange-200 hover:bg-white"
+            >
+              Reports
+            </a>
+            <button
+              type="button"
+              (click)="openAttendanceAddons()"
+              class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:border-cyan-200 hover:bg-white"
+            >
+              Attendance Add-ons
+            </button>
+          </div>
         </div>
       </section>
 
       <!-- Attendance Suite Shortcuts -->
-      <section class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <button
           type="button"
           (click)="setView('punch')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-teal-300 hover:shadow-md sm:p-5"
+          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
+          [ngClass]="currentView() === 'punch' ? 'border-teal-300 bg-teal-50/70' : 'border-slate-200 bg-white hover:border-teal-200'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Core action
+                Main action
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Punch Clock</h3>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Mark Attendance</h3>
               <p class="mt-2 text-sm text-slate-500">
-                Open the live check-in flow with camera, face, biometric, or web punch modes.
+                Open your check-in or check-out flow with web, selfie, face, or biometric mode.
               </p>
             </div>
-            <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-700">
-              Live
+            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'punch' ? 'bg-teal-700 text-white' : 'bg-teal-50 text-teal-700'">
+              {{ todayAttendance()?.is_clocked_in ? 'Checked In' : 'Ready' }}
             </span>
           </div>
         </button>
 
         <button
-          *ngIf="isSelfServiceWorkspace()"
           type="button"
           (click)="setView('calendar')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-sky-300 hover:shadow-md sm:p-5"
+          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
+          [ngClass]="currentView() === 'calendar' ? 'border-sky-300 bg-sky-50/70' : 'border-slate-200 bg-white hover:border-sky-200'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                My history
+                Calendar
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Attendance History</h3>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Monthly View</h3>
               <p class="mt-2 text-sm text-slate-500">
-                Review your own present days, late marks, working hours, and daily attendance records.
+                Review day-by-day status, late marks, leave, and attendance activity.
               </p>
             </div>
-            <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
-              History
+            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'calendar' ? 'bg-sky-700 text-white' : 'bg-sky-50 text-sky-700'">
+              View
             </span>
           </div>
         </button>
 
         <button
-          *ngIf="isSelfServiceWorkspace()"
           type="button"
           (click)="setView('stats')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md sm:p-5"
+          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
+          [ngClass]="currentView() === 'stats' ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-white hover:border-indigo-200'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                My summary
+                Insights
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Work Hours & Late Marks</h3>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Statistics</h3>
               <p class="mt-2 text-sm text-slate-500">
-                See your overtime, punctuality, average hours, and attendance trends for the selected period.
+                Track punctuality, work hours, overtime, and present or absent trends.
               </p>
             </div>
-            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-              Stats
+            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'stats' ? 'bg-indigo-700 text-white' : 'bg-indigo-50 text-indigo-700'">
+              Trends
             </span>
           </div>
         </button>
 
         <button
-          *ngIf="isAdminAttendanceWorkspace() && canAccessTrackingWorkspace()"
           type="button"
-          (click)="setView('tracking')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-cyan-300 hover:shadow-md sm:p-5"
+          (click)="setView('records')"
+          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
+          [ngClass]="currentView() === 'records' ? 'border-slate-400 bg-slate-100/80' : 'border-slate-200 bg-white hover:border-slate-300'"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Operations
+                Archive
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Employee Tracking</h3>
+              <h3 class="mt-2 text-lg font-bold text-slate-900">Records</h3>
               <p class="mt-2 text-sm text-slate-500">
-                Review live employee locations and see who is currently clocked in.
+                Search your attendance history and review check-in, check-out, and selfie data.
               </p>
             </div>
-            <span class="rounded-full bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-700">
-              GPS
+            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'records' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'">
+              {{ history().length }}
             </span>
           </div>
         </button>
+      </section>
 
-        <button
-          *ngIf="isAdminAttendanceWorkspace() && canAccessGeofenceWorkspace()"
-          type="button"
-          (click)="setView('geofence')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-4 shadow-sm transition-all hover:border-purple-300 hover:shadow-md sm:p-5"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Compliance
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Geofence Control</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Manage allowed zones and attendance boundaries in one place.
-              </p>
-            </div>
-            <span class="rounded-full bg-purple-50 px-3 py-1 text-xs font-bold text-purple-700">
-              Zones
-            </span>
-          </div>
-        </button>
-
-        <button
-          *ngIf="isAdminAttendanceWorkspace() && canAccessShiftPlannerWorkspace()"
-          type="button"
-          (click)="setView('shift-planner')"
-          class="group text-left rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Scheduling
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Shift Planner</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Assign shifts and manage roster planning for the team.
-              </p>
-            </div>
-            <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-              Roster
-            </span>
-          </div>
-        </button>
-
+      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <a
-          *ngIf="isAdminAttendanceWorkspace() && canAccessTeamAttendanceRoute()"
-          routerLink="/admin/attendance/register"
-          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Manager view
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Team Attendance</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Review late arrivals, absent users, and department-wise attendance.
-              </p>
-            </div>
-            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-              Team
-            </span>
-          </div>
-        </a>
-
-        <a
-          *ngIf="isAdminAttendanceWorkspace() && canAccessFaceRegistrationRoute()"
-          routerLink="/face-registration"
-          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Identity
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Face Registration</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Register biometric data for touchless attendance workflows.
-              </p>
-            </div>
-            <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
-              Face ID
-            </span>
-          </div>
-        </a>
-
-        <a
-          *ngIf="isAdminAttendanceWorkspace() && canAccessRegularizationRoute()"
-          routerLink="/admin/attendance/regularizations"
-          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-rose-300 transition-all"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Corrections
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Regularization</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Approve or review attendance correction requests from employees.
-              </p>
-            </div>
-            <span class="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
-              Requests
-            </span>
-          </div>
-        </a>
-
-        <a
-          *ngIf="isSelfServiceWorkspace()"
           routerLink="/timesheets"
           class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
         >
@@ -511,31 +419,10 @@ import {
             </span>
           </div>
         </a>
-
-        <a
-          *ngIf="isAdminAttendanceWorkspace() && canAccessIntegrationsRoute()"
-          routerLink="/admin/attendance/integrations"
-          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Setup hub
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Integrations Center</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Open the full attendance setup workspace for biometric, shift, zone, and review workflows.
-              </p>
-            </div>
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-              Hub
-            </span>
-          </div>
-        </a>
       </section>
 
       <!-- Attendance Pulse -->
-      <section class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-4">
+      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-4">
         <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
@@ -655,6 +542,7 @@ import {
 
       <!-- Real-time Clock Banner -->
       <div
+        *ngIf="isSelfServiceWorkspace()"
         class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-md p-4 sm:p-6 text-white shadow-lg"
       >
         <div
@@ -740,946 +628,331 @@ import {
         </div>
       </div>
 
-      <!-- Main Content - Punch View -->
-      <div
-        *ngIf="currentView() === 'punch'"
-        class="grid grid-cols-1 lg:grid-cols-12 gap-6"
-      >
-        <!-- Left: Punch Card -->
-        <div class="lg:col-span-5 flex flex-col gap-4">
-          <!-- Mode Selector -->
-          <div
-            class="bg-white rounded-md shadow-sm border border-slate-200 p-1 flex"
-          >
+      <!-- Punch Workspace -->
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'punch'" class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Punch workspace</p>
+              <h3 class="mt-2 text-xl font-bold text-slate-900">Mark attendance</h3>
+              <p class="mt-2 max-w-2xl text-sm text-slate-500">
+                Choose a capture mode, review your current status, then mark attendance from one clean modal flow.
+              </p>
+            </div>
+            <span class="rounded-full px-3 py-1 text-xs font-bold self-start" [ngClass]="todayAttendance()?.is_clocked_in ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'">
+              {{ todayAttendance()?.is_clocked_in ? 'Ready For Check Out' : 'Ready For Check In' }}
+            </span>
+          </div>
+
+          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <button
               *ngFor="let mode of modes"
-              (click)="setModeFromTemplate(mode.id)"
-              [disabled]="mode.id === 'biometric' && !canUseBiometricMode()"
-              class="flex-1 px-3 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-all"
-              [ngClass]="
-                checkInMode() === mode.id
-                  ? 'bg-primary-600 text-white'
-                  : 'text-slate-500 hover:bg-slate-50'
-              "
+              type="button"
+              (click)="setMode(mode.id)"
+              class="rounded-2xl border px-4 py-4 text-left transition-all"
+              [ngClass]="checkInMode() === mode.id ? 'border-teal-300 bg-teal-50 shadow-sm' : 'border-slate-200 bg-slate-50/60 hover:border-slate-300 hover:bg-white'"
             >
-              <span [innerHTML]="mode.icon"></span>
-              <span class="hidden sm:inline">{{ mode.label }}</span>
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-2xl" [ngClass]="checkInMode() === mode.id ? 'bg-teal-600 text-white' : 'bg-white text-slate-700 border border-slate-200'" [innerHTML]="mode.icon"></div>
+                <span *ngIf="checkInMode() === mode.id" class="rounded-full bg-teal-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">Selected</span>
+              </div>
+              <h4 class="mt-4 text-sm font-black text-slate-900">{{ mode.label }}</h4>
+              <p class="mt-1 text-xs leading-5 text-slate-500">
+                {{
+                  mode.id === 'web'
+                    ? 'Simple browser-based attendance without camera.'
+                    : mode.id === 'camera'
+                      ? 'Capture selfie evidence before submitting your punch.'
+                      : mode.id === 'face'
+                        ? 'Use live face verification for touchless attendance.'
+                        : biometricStatusLabel()
+                }}
+              </p>
             </button>
           </div>
 
-          <!-- Punch Card -->
-          <div
-            class="card p-0 overflow-hidden border border-slate-200/60 shadow-xl bg-white rounded-md"
-          >
-            <!-- Status Header -->
-            <div
-              class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50"
-            >
-              <div>
-                <span
-                  class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1"
-                  >Current Status</span
+          <div class="mt-5 grid gap-4 lg:grid-cols-2">
+            <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quick actions</p>
+              <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  (click)="openPrimaryAttendanceModal()"
+                  [disabled]="processing() || todayAttendance()?.is_clocked_out"
+                  class="rounded-xl bg-teal-600 px-4 py-3 text-sm font-black text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
                 >
-                <div class="flex items-center gap-2">
-                  <div
-                    class="w-2.5 h-2.5 rounded-full animate-pulse"
-                    [ngClass]="isClockedIn() ? 'bg-success' : 'bg-slate-300'"
-                  ></div>
-                  <span class="font-bold text-lg text-slate-900">{{
-                    getStatusText()
-                  }}</span>
-                </div>
-              </div>
-              <div *ngIf="isClockedIn()">
-                <span
-                  class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-1"
-                  >Check-in</span
+                  {{ primaryAttendanceButtonLabel() }}
+                </button>
+                <button
+                  type="button"
+                  (click)="handleBreak()"
+                  [disabled]="processing() || !todayAttendance()?.is_clocked_in || todayAttendance()?.is_clocked_out"
+                  class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
                 >
-                <span class="font-bold text-lg text-primary-600">{{
-                  clockInTime()
-                }}</span>
+                  {{ isOnBreak() ? 'End Break' : 'Start Break' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="openManualRequest()"
+                  class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  Manual Request
+                </button>
               </div>
             </div>
 
-            <!-- Action Area -->
-            <div
-              class="p-6 sm:p-8 flex flex-col items-center justify-center min-h-[280px]"
-            >
-              <!-- Web Mode -->
-              <div *ngIf="checkInMode() === 'web'" class="text-center">
-                <div
-                  class="w-28 h-28 rounded-full bg-slate-50 flex items-center justify-center mb-4 border-4 border-slate-100"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="40"
-                    height="40"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    class="text-slate-400"
-                  >
-                    <rect width="20" height="14" x="2" y="3" rx="2" />
-                    <line x1="8" x2="16" y1="21" y2="21" />
-                    <line x1="12" x2="12" y1="17" y2="21" />
-                  </svg>
+            <div class="rounded-2xl border border-slate-200 bg-white p-4">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today snapshot</p>
+              <div class="mt-4 space-y-3">
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Check in</span>
+                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
                 </div>
-                <p class="text-slate-500 font-medium">Standard web check-in</p>
-              </div>
-
-              <!-- Camera Mode -->
-              <div
-                *ngIf="checkInMode() === 'camera'"
-                class="w-full max-w-sm text-center"
-              >
-                <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-cyan-100 bg-cyan-50">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="42"
-                    height="42"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                    class="text-cyan-700"
-                  >
-                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                    <circle cx="12" cy="13" r="3"/>
-                  </svg>
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Check out</span>
+                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
                 </div>
-                <p class="mt-4 text-sm font-bold text-slate-800">
-                  Selfie verification opens in a focused camera modal
-                </p>
-                <p class="mt-2 text-xs leading-5 text-slate-500">
-                  Open the camera only when you are ready to capture and submit attendance.
-                </p>
-              </div>
-
-              <!-- Face ID Mode -->
-              <div
-                *ngIf="checkInMode() === 'face'"
-                class="w-full max-w-sm text-center"
-              >
-                <div class="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-indigo-100 bg-indigo-50">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="42"
-                    height="42"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                    class="text-indigo-700"
-                  >
-                    <path d="M7 3H5a2 2 0 0 0-2 2v2"/>
-                    <path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-                    <path d="M21 17v2a2 2 0 0 1-2 2h-2"/>
-                    <path d="M3 17v2a2 2 0 0 0 2 2h2"/>
-                    <path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/>
-                  </svg>
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Break time</span>
+                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.break_time_minutes || 0 }}m</span>
                 </div>
-                <p class="mt-4 text-sm font-bold text-slate-800">
-                  Face attendance runs inside a guided scan modal
-                </p>
-                <p class="mt-2 text-xs leading-5 text-slate-500">
-                  We open the camera only for the scan session, then stop it right after verification.
-                </p>
-              </div>
-
-              <!-- Biometric Mode -->
-              <div *ngIf="checkInMode() === 'biometric'" class="text-center">
-                <div
-                  class="relative w-32 h-32 mb-4 flex items-center justify-center"
-                >
-                  <div
-                    class="absolute inset-0 bg-indigo-50 rounded-full animate-ping opacity-20"
-                  ></div>
-                  <div
-                    class="absolute inset-4 bg-indigo-100 rounded-full animate-pulse opacity-50"
-                  ></div>
-                  <div
-                    class="relative z-10 w-20 h-20 bg-white rounded-full shadow-xl flex items-center justify-center border border-indigo-50"
-                  >
-                    <svg
-                      *ngIf="!processing()"
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="40"
-                      height="40"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      class="text-indigo-600"
-                    >
-                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                    <svg
-                      *ngIf="processing()"
-                      class="animate-spin h-8 w-8 text-indigo-600"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                      ></circle>
-                      <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      ></path>
-                    </svg>
-                  </div>
-                </div>
-                <p class="text-slate-500 font-medium">
-                  {{ biometricPromptText() }}
-                </p>
-                <p class="mt-2 max-w-sm text-xs leading-5 text-slate-400">
-                  {{ biometricSupportMessage() }}
-                </p>
-              </div>
-
-              <canvas #canvasElement class="hidden"></canvas>
-            </div>
-
-            <!-- Action Footer -->
-            <div class="p-5 bg-slate-50/80 border-t border-slate-100">
-              <div class="flex flex-col gap-3">
-                <!-- Shift Selector -->
-                <div class="flex items-center justify-between">
-                  <span class="text-sm font-bold text-slate-700">Shift</span>
-                  <app-ui-select-advanced
-                    [ngModel]="selectedShiftId()"
-                    (ngModelChange)="onShiftChangeValue($event)"
-                    [options]="shiftOptions()"
-                    placeholder="No shift"
-                    [searchable]="false"
-                    [showFooter]="false"
-                    size="sm"
-                  ></app-ui-select-advanced>
-                </div>
-
-                <!-- Break Button -->
-                <button
-                  *ngIf="isClockedIn() && !isOnBreak()"
-                  (click)="handleBreak()"
-                  [disabled]="processing()"
-                  class="w-full bg-amber-500 text-white py-3 rounded-md font-bold hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  START BREAK
-                </button>
-
-                <button
-                  *ngIf="isOnBreak()"
-                  (click)="handleBreak()"
-                  [disabled]="processing()"
-                  class="w-full bg-green-500 text-white py-3 rounded-md font-bold hover:bg-green-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  END BREAK
-                </button>
-
-                <!-- Clock In/Out Buttons -->
-                <button
-                  *ngIf="!isClockedIn()"
-                  (click)="onPunchAction('in')"
-                  [disabled]="processing()"
-                  class="w-full bg-slate-900 text-white py-4 rounded-md font-black text-lg hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
-                >
-                  <svg
-                    *ngIf="!processing()"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                  >
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                    <polyline points="10 17 15 12 10 7" />
-                    <line x1="15" y1="12" x2="3" y2="12" />
-                  </svg>
-                  <svg
-                    *ngIf="processing()"
-                    class="animate-spin h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      class="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="4"
-                    ></circle>
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                  {{ processing() ? 'Verifying...' : 'CLOCK IN' }}
-                </button>
-
-                <button
-                  *ngIf="isClockedIn() && !isClockedOut()"
-                  (click)="onPunchAction('out')"
-                  [disabled]="processing()"
-                  class="w-full bg-error text-white py-4 rounded-md font-black text-lg hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
-                >
-                  <svg
-                    *ngIf="!processing()"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                    <polyline points="16 17 21 12 16 7" />
-                    <line x1="21" y1="12" x2="9" y2="12" />
-                  </svg>
-                  <svg
-                    *ngIf="processing()"
-                    class="animate-spin h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      class="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      stroke-width="4"
-                    ></circle>
-                    <path
-                      class="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    ></path>
-                  </svg>
-                  {{ processing() ? 'Verifying...' : 'CLOCK OUT' }}
-                </button>
-
-                <!-- Quick Actions -->
-                <div class="flex gap-2 mt-2">
-                  <button
-                    (click)="openManualRequest()"
-                    class="flex-1 text-xs font-bold text-slate-500 hover:text-primary-600 py-2"
-                  >
-                    + Manual Request
-                  </button>
-                  <button
-                    (click)="refreshData()"
-                    class="flex-1 text-xs font-bold text-slate-500 hover:text-primary-600 py-2"
-                  >
-                    ↻ Refresh
-                  </button>
+                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Working hours</span>
+                  <span class="text-sm font-black text-slate-900">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <app-custom-modal
-          [openModal]="showCameraModal()"
-          (closeModal)="closeCameraModal()"
-          [crossButton]="true"
-          maxWidth="max-w-3xl"
-        >
-          <div class="text-left">
-            <div class="flex flex-col gap-2 border-b border-slate-100 pb-5 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  {{ checkInMode() === 'face' ? 'Face Attendance' : 'Camera Attendance' }}
-                </p>
-                <h2 class="mt-2 text-2xl font-black text-slate-900">
-                  {{ pendingPunchAction() === 'out' ? 'Complete clock out with camera verification' : 'Complete clock in with camera verification' }}
-                </h2>
-                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                  {{ checkInMode() === 'face'
-                    ? 'Center your face in the frame, turn slightly, and return to center. Attendance submits automatically after a successful liveness match.'
-                    : 'Frame your face clearly and use the secure camera preview to capture attendance.' }}
-                </p>
-              </div>
-              <span
-                class="inline-flex items-center self-start rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.16em]"
-                [ngClass]="checkInMode() === 'face' ? 'bg-indigo-100 text-indigo-700' : 'bg-cyan-100 text-cyan-700'"
-              >
-                {{ checkInMode() === 'face' ? 'Liveness Scan' : 'Selfie Capture' }}
-              </span>
+        <div class="space-y-4">
+          <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Current status</p>
+            <h3 class="mt-2 text-lg font-bold text-slate-900">{{ nextAttendanceActionLabel() }}</h3>
+            <p class="mt-2 text-sm text-slate-500">
+              {{ nextAttendanceActionDescription() }}
+            </p>
+            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all" [style.width.%]="attendanceProgress()"></div>
             </div>
-
-            <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <div class="rounded-2xl border border-slate-200 bg-slate-950 p-3 shadow-xl">
-                <div class="relative aspect-square overflow-hidden rounded-xl bg-slate-900">
-                  <div
-                    *ngIf="!isCameraReady()"
-                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-300"
-                  >
-                    <svg
-                      class="h-9 w-9 animate-spin"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        class="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        stroke-width="4"
-                      ></circle>
-                      <path
-                        class="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
-                      ></path>
-                    </svg>
-                    <p class="text-sm font-semibold">
-                      Opening camera...
-                    </p>
-                  </div>
-
-                  <video
-                    #videoElement
-                    *ngIf="checkInMode() === 'camera'"
-                    autoplay
-                    playsinline
-                    muted
-                    class="absolute inset-0 h-full w-full object-cover"
-                    [class.opacity-0]="!isCameraReady()"
-                  ></video>
-
-                  <video
-                    #faceVideoElement
-                    *ngIf="checkInMode() === 'face'"
-                    autoplay
-                    playsinline
-                    muted
-                    class="absolute inset-0 h-full w-full object-cover"
-                    [class.opacity-0]="!isCameraReady()"
-                  ></video>
-
-                  <img
-                    *ngIf="capturedPhotoData()"
-                    [src]="capturedPhotoData()"
-                    class="absolute inset-0 h-full w-full object-cover animate-in fade-in"
-                  />
-
-                  <div
-                    *ngIf="checkInMode() === 'face' && isCameraReady()"
-                    class="pointer-events-none absolute inset-0 flex items-center justify-center"
-                  >
-                    <div class="relative h-3/4 w-3/4 rounded-full border-2 border-primary-500/60">
-                      <div class="absolute inset-0 rounded-full bg-primary-500/10 animate-pulse"></div>
-                      <div class="scan-line absolute left-0 right-0 h-0.5 bg-primary-400"></div>
-                    </div>
-                  </div>
-
-                  <div
-                    *ngIf="processing()"
-                    class="absolute inset-0 flex items-center justify-center bg-slate-950/65 backdrop-blur-sm"
-                  >
-                    <span class="flex items-center gap-2 text-sm font-bold text-white">
-                      <svg
-                        class="h-4 w-4 animate-spin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          class="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          stroke-width="4"
-                        ></circle>
-                        <path
-                          class="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z"
-                        ></path>
-                      </svg>
-                      {{ checkInMode() === 'face' ? 'Verifying face...' : 'Submitting capture...' }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div *ngIf="checkInMode() === 'face'" class="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm">
-                  <svg class="h-12 w-12 -rotate-90" viewBox="0 0 36 36">
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.5"
-                      fill="none"
-                      stroke="rgba(148,163,184,0.22)"
-                      stroke-width="3"
-                    ></circle>
-                    <circle
-                      cx="18"
-                      cy="18"
-                      r="15.5"
-                      fill="none"
-                      stroke="#4f46e5"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      stroke-dasharray="97.39"
-                      [attr.stroke-dashoffset]="97.39 - (97.39 * getFaceScanProgress() / 100)"
-                    ></circle>
-                  </svg>
-                  <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                      Scan progress
-                    </p>
-                    <p class="text-lg font-black text-slate-800">
-                      {{ getFaceScanProgress() }}%
-                    </p>
-                  </div>
-                </div>
-
-                <div *ngIf="attendanceSuccess()" class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                  Attendance marked
-                </div>
-
-                <div class="rounded-xl border border-slate-200 bg-white p-4">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    Live status
-                  </p>
-                  <p class="mt-2 text-sm font-medium leading-6 text-slate-600">
-                    {{
-                      checkInMode() === 'face'
-                        ? (faceScanStatus() || 'Waiting for a clear face in the frame.')
-                        : (isCameraReady() ? 'Camera is ready. Use confirm to submit attendance.' : 'Allow camera access to continue.')
-                    }}
-                  </p>
-                  <p *ngIf="checkInMode() === 'face'" class="mt-2 text-xs text-slate-400">
-                    Attempts: {{ faceScanAttempts() }}/3
-                  </p>
-                </div>
-
-                <div class="rounded-xl border border-dashed border-slate-300 bg-white/70 p-4 text-sm leading-6 text-slate-500">
-                  <p class="font-semibold text-slate-700">Before you continue</p>
-                  <p class="mt-2">Keep your face centered, remove strong backlight, and avoid moving the phone during verification.</p>
-                </div>
-
-                <div class="mt-auto flex flex-col gap-3">
-                  <button
-                    *ngIf="checkInMode() === 'camera'"
-                    type="button"
-                    (click)="submitCameraModalPunch()"
-                    [disabled]="processing() || !isCameraReady() || !pendingPunchAction()"
-                    class="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:opacity-50"
-                  >
-                    {{ processing() ? 'Submitting...' : (pendingPunchAction() === 'out' ? 'Confirm Clock Out' : 'Confirm Clock In') }}
-                  </button>
-
-                  <button
-                    *ngIf="checkInMode() === 'face'"
-                    type="button"
-                    (click)="restartFaceModalScan()"
-                    [disabled]="processing() || !showCameraModal()"
-                    class="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    Restart Face Scan
-                  </button>
-
-                  <button
-                    type="button"
-                    (click)="closeCameraModal()"
-                    class="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <canvas #canvasElement class="hidden"></canvas>
-          </div>
-        </app-custom-modal>
-
-        <!-- Right: History & Stats -->
-        <div class="lg:col-span-7 flex flex-col gap-4">
-          <!-- Quick Stats -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div
-              class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-md p-4 text-white"
-            >
-              <p
-                class="text-[10px] font-bold uppercase tracking-widest opacity-80"
-              >
-                Total Hours
-              </p>
-              <p class="text-2xl font-black mt-1">
-                {{ formatHours(stats()?.total_work_hours || 0) }}
-              </p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-md p-4">
-              <p
-                class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
-              >
-                Present
-              </p>
-              <p class="text-2xl font-black text-success mt-1">
-                {{ stats()?.total_present || 0 }}
-              </p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-md p-4">
-              <p
-                class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
-              >
-                Late
-              </p>
-              <p class="text-2xl font-black text-warning mt-1">
-                {{ stats()?.total_late || 0 }}
-              </p>
-            </div>
-            <div class="bg-white border border-slate-200 rounded-md p-4">
-              <p
-                class="text-[10px] font-bold uppercase tracking-widest text-slate-400"
-              >
-                Punctuality
-              </p>
-              <p class="text-2xl font-black text-primary-600 mt-1">
-                {{ stats()?.punctuality_percentage || 0 }}%
-              </p>
+            <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Mode {{ checkInMode() | titlecase }}</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{{ currentTime() }}</span>
+              <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Pending requests {{ pendingManualRequestCount() }}</span>
             </div>
           </div>
 
-          <!-- Today's Breaks -->
-          <div
-            *ngIf="breaks().length > 0"
-            class="card p-4 rounded-md border border-slate-200"
-          >
-            <h3 class="font-bold text-slate-800 text-sm mb-3">
-              Today's Breaks
-            </h3>
-            <div class="flex flex-wrap gap-2">
-              <div
-                *ngFor="let brk of breaks()"
-                class="px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs font-medium"
-              >
-                {{ brk.type }}: {{ brk.start_time | date: 'shortTime' }}
-                <span *ngIf="brk.end_time">
-                  - {{ brk.end_time | date: 'shortTime' }}</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <div class="card p-4 rounded-md border border-slate-200">
+          <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <div class="flex items-center justify-between gap-3">
               <div>
-                <h3 class="font-bold text-slate-800 text-sm">
-                  Manual Requests
-                </h3>
-                <p class="text-xs text-slate-500 mt-1">
-                  Track correction requests waiting for approval.
-                </p>
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Recent requests</p>
+                <h3 class="mt-2 text-lg font-bold text-slate-900">Manual request queue</h3>
               </div>
-              <span
-                class="rounded-full px-3 py-1 text-xs font-bold"
-                [ngClass]="
-                  pendingManualRequestCount() > 0
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-slate-100 text-slate-600'
-                "
-              >
-                {{ pendingManualRequestCount() }} Pending
-              </span>
-            </div>
-          </div>
-
-          <!-- History Table -->
-          <div class="card overflow-hidden rounded-md border border-slate-200">
-            <div
-              class="p-4 border-b border-slate-100 flex justify-between items-center gap-3 flex-wrap"
-            >
-              <div>
-                <h3 class="font-bold text-slate-800 flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    class="text-primary-500"
-                  >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" x2="16" y1="2" y2="6" />
-                    <line x1="8" x2="8" y1="2" y2="6" />
-                    <line x1="3" x2="21" y1="10" y2="10" />
-                  </svg>
-                  Recent Attendance
-                </h3>
-                <p class="text-xs font-medium text-slate-400 mt-1">
-                  {{ filteredHistory().length }} visible records
-                </p>
-              </div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <app-ui-select-advanced
-                  [ngModel]="historyStatusFilter()"
-                  (ngModelChange)="historyStatusFilter.set($event)"
-                  [options]="historyStatusOptions"
-                  placeholder="All Statuses"
-                  [searchable]="false"
-                  [showFooter]="false"
-                  size="sm"
-                ></app-ui-select-advanced>
-                <button
-                  (click)="exportAttendanceHistory()"
-                  class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
-                >
-                  Export
-                </button>
-              </div>
+              <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{{ manualRequests().length }}</span>
             </div>
 
-            <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
-              <table class="w-full text-left">
-                <thead class="bg-slate-50 sticky top-0">
-                  <tr>
-                    <th
-                      class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase"
-                    >
-                      Date
-                    </th>
-                    <th
-                      class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase"
-                    >
-                      In/Out
-                    </th>
-                    <th
-                      class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase text-center"
-                    >
-                      Status
-                    </th>
-                    <th
-                      class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase text-right"
-                    >
-                      Hours
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                  <tr *ngIf="filteredHistory().length === 0">
-                    <td
-                      colspan="4"
-                      class="px-4 py-8 text-center text-slate-400 text-sm"
-                    >
-                      No attendance records found
-                    </td>
-                  </tr>
-                  <tr
-                    *ngFor="let entry of filteredHistory()"
-                    class="hover:bg-slate-50/50"
-                  >
-                    <td class="px-4 py-3">
-                      <span class="font-semibold text-slate-800 text-sm">{{
-                        entry.date | date: 'MMM dd'
-                      }}</span>
-                      <span class="block text-xs text-slate-400">{{
-                        entry.date | date: 'EEEE'
-                      }}</span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <div class="flex items-center gap-2">
-                        <span class="text-sm font-medium text-slate-700">{{
-                          entry.check_in
-                            ? (entry.check_in | date: 'HH:mm')
-                            : '--:--'
-                        }}</span>
-                        <span class="text-slate-300">/</span>
-                        <span
-                          class="text-sm font-medium"
-                          [ngClass]="
-                            !entry.check_out && entry.check_in
-                              ? 'text-primary-600 animate-pulse'
-                              : 'text-slate-700'
-                          "
-                        >
-                          {{
-                            entry.check_out
-                              ? (entry.check_out | date: 'HH:mm')
-                              : entry.check_in
-                                ? 'Active'
-                                : '--:--'
-                          }}
-                        </span>
-                      </div>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                      <span
-                        class="px-2 py-1 rounded-md text-[10px] font-bold uppercase"
-                        [ngClass]="getStatusClass(entry.status)"
-                      >
-                        {{ entry.status }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                      <span class="font-bold text-slate-800">{{
-                        entry.work_hours ? entry.work_hours.toFixed(1) : '--'
-                      }}</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="mt-4 space-y-3" *ngIf="manualRequests().length; else noManualRequests">
+              <div *ngFor="let request of manualRequests().slice(0, 4)" class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-bold text-slate-900">{{ request.date | date:'mediumDate' }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ request.reason || 'No reason added' }}</p>
+                  </div>
+                  <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]" [ngClass]="request.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : request.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'">
+                    {{ request.status }}
+                  </span>
+                </div>
+              </div>
             </div>
+            <ng-template #noManualRequests>
+              <div class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-500">
+                No manual correction requests yet.
+              </div>
+            </ng-template>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Calendar View -->
       <div
         *ngIf="currentView() === 'calendar'"
-        class="card p-6 rounded-md border border-slate-200"
+        class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_380px]"
       >
-        <div class="flex justify-between items-center mb-6">
-          <div class="flex items-center gap-4">
-            <button
-              (click)="previousMonth()"
-              class="p-2 hover:bg-slate-100 rounded-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+        <div class="card rounded-md border border-slate-200 p-6">
+          <div class="mb-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <button
+                (click)="previousMonth()"
+                class="p-2 hover:bg-slate-100 rounded-lg"
               >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            <h3 class="text-lg font-bold text-slate-900">
-              {{ getMonthYearString() }}
-            </h3>
-            <button
-              (click)="nextMonth()"
-              class="p-2 hover:bg-slate-100 rounded-lg"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <div>
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance calendar</p>
+                <h3 class="text-lg font-bold text-slate-900">
+                  {{ getMonthYearString() }}
+                </h3>
+              </div>
+              <button
+                (click)="nextMonth()"
+                class="p-2 hover:bg-slate-100 rounded-lg"
               >
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
+            <button
+              (click)="goToToday()"
+              class="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Today
             </button>
           </div>
-          <button
-            (click)="goToToday()"
-            class="text-sm font-bold text-primary-600 hover:text-primary-700"
-          >
-            Today
-          </button>
-        </div>
 
-        <!-- Calendar Grid -->
-        <div class="grid grid-cols-7 gap-1">
-          <div
-            *ngFor="let day of weekDays"
-            class="text-center text-xs font-bold text-slate-400 uppercase py-2"
-          >
-            {{ day }}
-          </div>
-          <div
-            *ngFor="let day of calendarDays(); let i = index"
-            class="aspect-square p-1 relative"
-            [ngClass]="{
-              'bg-slate-50': !day.isCurrentMonth,
-              'hover:bg-slate-50': day.isCurrentMonth && day.date,
-              'cursor-pointer': day.date,
-            }"
-            (click)="day.date && selectDate(day.date)"
-          >
+          <div class="grid grid-cols-7 gap-1">
             <div
-              *ngIf="day.date"
-              class="w-full h-full flex flex-col items-center justify-center rounded-lg"
-              [ngClass]="{
-                'bg-primary-600 text-white': day.isToday,
-                'bg-slate-100': day.isSelected && !day.isToday,
-              }"
+              *ngFor="let day of weekDays"
+              class="text-center text-xs font-bold text-slate-400 uppercase py-2"
             >
-              <span
-                class="text-sm font-bold"
-                [ngClass]="{
-                  'text-white': day.isToday,
-                  'text-slate-900': !day.isToday,
-                }"
-                >{{ day.dayNumber }}</span
-              >
+              {{ day }}
+            </div>
+            <div
+              *ngFor="let day of calendarDays(); let i = index"
+              class="aspect-square p-1 relative"
+              [ngClass]="{
+                'bg-slate-50': !day.isCurrentMonth,
+                'hover:bg-slate-50': day.isCurrentMonth && day.date,
+                'cursor-pointer': day.date,
+              }"
+              (click)="day.date && selectDate(day.date)"
+            >
               <div
-                *ngIf="day.attendance"
-                class="w-1.5 h-1.5 rounded-full mt-0.5"
-                [ngClass]="getCalendarStatusColor(day.attendance.status)"
-              ></div>
+                *ngIf="day.date"
+                class="w-full h-full flex flex-col items-center justify-center rounded-lg border transition-all"
+                [ngClass]="{
+                  'bg-primary-600 text-white border-primary-600': day.isToday,
+                  'bg-slate-100 border-slate-300': day.isSelected && !day.isToday,
+                  'border-transparent': !day.isSelected && !day.isToday
+                }"
+              >
+                <span
+                  class="text-sm font-bold"
+                  [ngClass]="{
+                    'text-white': day.isToday,
+                    'text-slate-900': !day.isToday,
+                  }"
+                  >{{ day.dayNumber }}</span
+                >
+                <div
+                  *ngIf="day.attendance"
+                  class="w-1.5 h-1.5 rounded-full mt-1"
+                  [ngClass]="getCalendarStatusColor(day.attendance.status)"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-4 mt-6 pt-4 border-t border-slate-100">
+            <div
+              *ngFor="let item of statusLegend"
+              class="flex items-center gap-2"
+            >
+              <div class="w-2 h-2 rounded-full" [ngClass]="item.color"></div>
+              <span class="text-xs font-medium text-slate-500">{{
+                item.label
+              }}</span>
             </div>
           </div>
         </div>
 
-        <!-- Legend -->
-        <div class="flex flex-wrap gap-4 mt-6 pt-4 border-t border-slate-100">
-          <div
-            *ngFor="let item of statusLegend"
-            class="flex items-center gap-2"
-          >
-            <div class="w-2 h-2 rounded-full" [ngClass]="item.color"></div>
-            <span class="text-xs font-medium text-slate-500">{{
-              item.label
-            }}</span>
+        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance details</p>
+              <h3 class="mt-2 text-xl font-bold text-slate-900">
+                {{ selectedAttendanceDateLabel() }}
+              </h3>
+            </div>
+            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="selectedAttendanceStatusClass()">
+              {{ selectedAttendanceStatusLabel() }}
+            </span>
           </div>
+
+          <div *ngIf="selectedAttendanceRecord(); else noAttendanceSelected" class="mt-5 space-y-4">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time In</p>
+                <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.check_in ? formatShortTime(selectedAttendanceRecord()?.check_in) : '--:--' }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time Out</p>
+                <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.check_out ? formatShortTime(selectedAttendanceRecord()?.check_out) : '--:--' }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Work Hours</p>
+                <p class="mt-2 text-base font-black text-slate-900">{{ formatHours(selectedAttendanceRecord()?.work_hours || 0) }}</p>
+              </div>
+              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Late Mark</p>
+                <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.is_late ? 'Yes' : 'No' }}</p>
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Location Details</p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                {{ selectedAttendanceRecord()?.location_address || 'Location details were not captured for this record.' }}
+              </p>
+            </div>
+
+            <div *ngIf="selectedAttendanceRecord()?.selfie_url" class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selfie Proof</p>
+              <img [src]="selectedAttendanceRecord()?.selfie_url" alt="Attendance selfie" class="mt-3 h-32 w-32 rounded-2xl object-cover border border-slate-200" />
+            </div>
+
+            <div class="flex flex-wrap gap-2 pt-1">
+              <button
+                type="button"
+                (click)="setView('records')"
+                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              >
+                Open Records
+              </button>
+              <button
+                type="button"
+                (click)="openManualRequest()"
+                class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+              >
+                Request Correction
+              </button>
+            </div>
+          </div>
+
+          <ng-template #noAttendanceSelected>
+            <div class="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-5 text-center">
+              <p class="text-sm font-bold text-slate-700">Select a workday</p>
+              <p class="mt-2 text-sm text-slate-500">Choose any date from the calendar to review attendance timing, status, and captured details.</p>
+            </div>
+          </ng-template>
         </div>
       </div>
 
@@ -1944,6 +1217,236 @@ import {
         class="animate-in fade-in slide-in-from-bottom-4 duration-500"
       ></app-shift-planner>
 
+      <!-- Records View -->
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'records'" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance records</p>
+            <h3 class="mt-2 text-xl font-bold text-slate-900">Search and review your attendance history</h3>
+            <p class="mt-2 text-sm text-slate-500">
+              Check every recorded day with status, in and out time, work hours, and available selfie proof.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              (click)="openManualRequest()"
+              class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            >
+              Raise Correction
+            </button>
+            <button
+              type="button"
+              (click)="setView('calendar')"
+              class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+            >
+              Open Calendar
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-5">
+          <app-attendance-table [adminMode]="false"></app-attendance-table>
+        </div>
+      </section>
+
+      <!-- Mark Attendance Modal -->
+      <div
+        *ngIf="showCameraModal()"
+        class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 p-3 backdrop-blur-sm sm:p-4"
+      >
+        <div class="mx-auto flex min-h-full w-full max-w-3xl items-center justify-center">
+        <div class="my-4 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+          <header class="flex items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-teal-600">Mark Attendance</p>
+              <h2 class="mt-2 text-xl font-black text-slate-900">{{ punchModalTitle() }}</h2>
+              <p class="mt-2 text-sm text-slate-500">{{ punchModalDescription() }}</p>
+            </div>
+            <button
+              type="button"
+              (click)="closeCameraModal()"
+              class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            </button>
+          </header>
+
+          <div class="grid max-h-[calc(100vh-2rem)] gap-0 overflow-y-auto lg:grid-cols-[minmax(0,1.1fr)_360px]">
+            <div class="border-b border-slate-100 p-4 lg:border-b-0 lg:border-r sm:p-5">
+              <div class="grid grid-cols-2 gap-3">
+                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Date</p>
+                  <p class="mt-2 text-sm font-black text-slate-900">{{ punchModalDate() | date:'d MMMM, y' }}</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time</p>
+                  <p class="mt-2 text-sm font-black text-slate-900">{{ punchModalTime() }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Location</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-700">{{ punchLocationLabel() }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ punchLocationCoords() || 'Location preview will appear here.' }}</p>
+                  </div>
+                  <span class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em]"
+                    [ngClass]="
+                      punchLocationAvailability() === 'ready'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : punchLocationAvailability() === 'checking'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-200 text-slate-600'
+                    "
+                  >
+                    {{
+                      punchLocationAvailability() === 'ready'
+                        ? 'Detected'
+                        : punchLocationAvailability() === 'checking'
+                          ? 'Checking'
+                          : 'Optional'
+                    }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Capture</p>
+                    <p class="mt-2 text-sm font-semibold text-slate-700">{{ punchModalStatusText() }}</p>
+                  </div>
+                  <span class="rounded-full bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-700">
+                    {{ punchModalBadge() }}
+                  </span>
+                </div>
+
+                <div *ngIf="attendanceSuccess()" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <p class="text-sm font-black text-emerald-700">Attendance marked successfully</p>
+                  <p class="mt-1 text-xs text-emerald-600">Your record has been saved. Closing this window...</p>
+                </div>
+
+                <div *ngIf="!attendanceSuccess()" class="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-950">
+                  <div class="relative aspect-[4/3]">
+                    <video
+                      #videoElement
+                      *ngIf="checkInMode() !== 'face'"
+                      autoplay
+                      muted
+                      playsinline
+                      class="absolute inset-0 h-full w-full object-cover"
+                    ></video>
+                    <video
+                      #faceVideo
+                      *ngIf="checkInMode() === 'face'"
+                      autoplay
+                      muted
+                      playsinline
+                      class="absolute inset-0 h-full w-full object-cover"
+                    ></video>
+
+                    <div *ngIf="!isCameraReady()" class="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/90 text-white">
+                      <div class="h-12 w-12 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
+                      <p class="text-sm font-bold">{{ cameraAvailability() === 'checking' ? 'Opening camera...' : 'Camera preview unavailable' }}</p>
+                    </div>
+
+                    <div *ngIf="capturedPhotoData() && checkInMode() !== 'face'" class="absolute inset-0">
+                      <img [src]="capturedPhotoData()!" alt="Captured attendance" class="h-full w-full object-cover" />
+                    </div>
+
+                    <div *ngIf="checkInMode() === 'face' && isCameraReady()" class="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div class="h-44 w-44 sm:h-56 sm:w-56 lg:h-64 lg:w-64 rounded-full border-4 border-dashed border-sky-300/70 shadow-[0_0_0_999px_rgba(15,23,42,0.34)]"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div *ngIf="checkInMode() !== 'face' && !attendanceSuccess()" class="mt-3 flex gap-3">
+                  <button
+                    type="button"
+                    (click)="retryPunchCamera()"
+                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Retry Camera
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-4 sm:p-5">
+              <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Mode</p>
+                <div class="mt-3 grid gap-2">
+                  <button
+                    *ngFor="let mode of modes"
+                    type="button"
+                    (click)="setMode(mode.id)"
+                    class="rounded-xl border px-3 py-3 text-left text-sm font-bold transition"
+                    [ngClass]="checkInMode() === mode.id ? 'border-teal-300 bg-teal-50 text-teal-700' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                  >
+                    {{ mode.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Today Status</p>
+                <div class="mt-3 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-500">Action</span>
+                    <span class="text-sm font-black text-slate-900">{{ pendingPunchAction() === 'out' ? 'Check Out' : 'Check In' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-500">Current state</span>
+                    <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.is_clocked_in ? 'Checked In' : 'Not Checked In' }}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-500">Work hours</span>
+                    <span class="text-sm font-black text-slate-900">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-5 flex flex-col gap-3">
+                <button
+                  *ngIf="checkInMode() === 'face'"
+                  type="button"
+                  (click)="restartFaceModalScan()"
+                  [disabled]="processing() || attendanceSuccess()"
+                  class="rounded-xl bg-slate-900 px-4 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {{ punchModalPrimaryLabel() }}
+                </button>
+
+                <button
+                  *ngIf="checkInMode() !== 'face'"
+                  type="button"
+                  (click)="submitCameraModalPunch()"
+                  [disabled]="processing() || attendanceSuccess()"
+                  class="rounded-xl bg-teal-600 px-4 py-3 text-sm font-black text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {{ processing() ? 'Submitting Attendance...' : punchModalPrimaryLabel() }}
+                </button>
+
+                <button
+                  type="button"
+                  (click)="closeCameraModal()"
+                  [disabled]="processing()"
+                  class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
       <!-- Manual Request Modal -->
       <div
         *ngIf="showManualModal()"
@@ -2116,6 +1619,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private permissionService = inject(PermissionService);
   private organizationService = inject(OrganizationService);
+  private liveRefreshService = inject(LiveRefreshService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -2128,17 +1632,24 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   history = signal<AttendanceRecord[]>([]);
   todayAttendance = signal<TodayAttendance | null>(null);
   stats = signal<AttendanceStats | null>(null);
+
   breaks = signal<BreakRecord[]>([]);
   shifts = signal<any[]>([]);
   manualRequests = signal<any[]>([]);
 
   // UI State
   currentView = signal<
-    'punch' | 'calendar' | 'stats' | 'tracking' | 'geofence' | 'shift-planner'
+    'punch' | 'calendar' | 'stats' | 'tracking' | 'geofence' | 'shift-planner' | 'records'
   >('punch');
   checkInMode = signal<'web' | 'camera' | 'biometric' | 'face'>('web');
   processing = signal<boolean>(false);
   isCameraReady = signal<boolean>(false);
+  cameraAvailability = signal<'idle' | 'checking' | 'ready' | 'unavailable'>('idle');
+  punchLocationAvailability = signal<'idle' | 'checking' | 'ready' | 'unavailable'>('idle');
+  punchLocationLabel = signal<string>('Location not checked yet');
+  punchLocationCoords = signal<string>('');
+  punchModalDate = signal<Date>(new Date());
+  punchModalTime = signal<string>('');
   capturedPhotoData = signal<string | null>(null);
   faceScanStatus = signal<string>('');
   faceScanAttempts = signal<number>(0);
@@ -2308,6 +1819,22 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       description: 'Add face-based attendance authentication and employee identity verification.',
     },
   ]);
+  currentViewLabel = computed(() => {
+    const labels: Record<
+      'punch' | 'calendar' | 'stats' | 'tracking' | 'geofence' | 'shift-planner' | 'records',
+      string
+    > = {
+      punch: 'Mark Attendance',
+      calendar: 'Calendar',
+      stats: 'Statistics',
+      tracking: 'Tracking',
+      geofence: 'Geofence',
+      'shift-planner': 'Shift Planner',
+      records: 'Records',
+    };
+
+    return labels[this.currentView()];
+  });
   viewMeta = computed(() => {
     const currentView = this.currentView();
     const meta: Record<
@@ -2344,6 +1871,14 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         description:
           'Manage shift allocation, scheduling visibility, and operational attendance readiness.',
       },
+      records: {
+        title: this.isSelfServiceWorkspace()
+          ? 'Detailed Attendance Records'
+          : 'Attendance records are managed from the team register',
+        description: this.isSelfServiceWorkspace()
+          ? 'View and search your complete attendance history with selfie and location data.'
+          : 'Use the team attendance register to review who marked attendance, when they marked it, and the daily status across employees.',
+      },
     };
 
     return meta[currentView];
@@ -2352,7 +1887,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.currentUser = this.authService.getStoredUser();
     this.workspaceMode.set(this.resolveWorkspaceMode());
-    this.currentView.set(this.isAdminAttendanceWorkspace() ? 'stats' : 'punch');
+    this.currentView.set(this.resolveDefaultViewForWorkspace());
     this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (this.isAttendanceView(view)) {
@@ -2380,19 +1915,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   loadInitialData() {
     forkJoin({
       today: this.attendanceService.getTodayAttendance(),
-      history: this.attendanceService.getAttendanceHistory(),
-      stats: this.attendanceService.getAttendanceStats(this.statsPeriod()),
       shifts: this.attendanceService.getShifts(),
       breaks: this.attendanceService.getTodayBreaks(),
-      manualRequests: this.attendanceService.getManualAttendanceRequests(),
     }).subscribe({
       next: (data) => {
         this.todayAttendance.set(data.today);
-        this.history.set(data.history);
-        this.stats.set(data.stats);
         this.shifts.set(data.shifts || []);
         this.breaks.set(data.breaks || []);
-        this.manualRequests.set(data.manualRequests || []);
 
         if (data.today?.check_in) {
           const checkInDate = new Date(data.today.check_in);
@@ -2407,95 +1936,45 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.isOnBreak.set(data.today?.current_status === 'on_break');
       },
       error: () => {
-        // MOCK DATA for perfect UI
-        console.warn('Backend failed, injecting mock attendance data');
-        const today = new Date();
-        const checkInTime = new Date(today);
-        checkInTime.setHours(9, 15, 0, 0);
-
-        const mockToday: any = {
-          is_clocked_in: true,
-          is_clocked_out: false,
-          check_in: checkInTime.toISOString(),
-          current_status: 'working',
-          total_work_hours: 5.5,
-          break_time_minutes: 45,
-        };
-
-        const mockHistory: any[] = [
-          {
-            date: new Date(today.getTime() - 86400000)
-              .toISOString()
-              .split('T')[0],
-            check_in: '2026-03-24T09:05:00Z',
-            check_out: '2026-03-24T18:10:00Z',
-            status: 'present',
-            work_hours: 8.5,
-          },
-          {
-            date: new Date(today.getTime() - 86400000 * 2)
-              .toISOString()
-              .split('T')[0],
-            check_in: '2026-03-23T09:35:00Z',
-            check_out: '2026-03-23T18:05:00Z',
-            status: 'late',
-            work_hours: 8.0,
-          },
-          {
-            date: new Date(today.getTime() - 86400000 * 3)
-              .toISOString()
-              .split('T')[0],
-            check_in: '2026-03-22T08:55:00Z',
-            check_out: '2026-03-22T17:50:00Z',
-            status: 'present',
-            work_hours: 8.8,
-          },
-        ];
-
-        const mockStats: any = {
-          total_work_hours: 165.5,
-          total_present: 20,
-          total_late: 2,
-          total_absent: 0,
-          punctuality_percentage: 92,
-          overtime_hours: 12.5,
-          average_arrival_time: '09:08 AM',
-        };
-
-        const mockShifts: any[] = [
-          {
-            id: 1,
-            name: 'General Shift',
-            start_time: '09:00 AM',
-            end_time: '06:00 PM',
-          },
-          {
-            id: 2,
-            name: 'Morning Shift',
-            start_time: '06:00 AM',
-            end_time: '03:00 PM',
-          },
-        ];
-
-        const mockBreaks: any[] = [
-          {
-            type: 'Lunch',
-            start_time: new Date(today.setHours(13, 0)).toISOString(),
-            end_time: new Date(today.setHours(13, 45)).toISOString(),
-          },
-        ];
-
-        this.todayAttendance.set(mockToday);
-        this.history.set(mockHistory);
-        this.stats.set(mockStats);
-        this.shifts.set(mockShifts);
-        this.breaks.set(mockBreaks);
-        this.clockInTime.set('09:15 AM');
+        this.todayAttendance.set(null);
+        this.shifts.set([]);
+        this.breaks.set([]);
+        this.clockInTime.set('--:--');
         this.isOnBreak.set(false);
+        this.toastService.error('Unable to load attendance data right now.');
       },
     });
 
+    this.loadDataForCurrentView();
     this.generateCalendar();
+  }
+
+  private loadDataForCurrentView(): void {
+    const view = this.currentView();
+
+    if (this.isAdminAttendanceWorkspace() && this.isSelfOnlyView(view)) {
+      return;
+    }
+
+    if (view === 'stats') {
+      this.loadStatsForPeriod(this.statsPeriod());
+      return;
+    }
+
+    if (view === 'calendar') {
+      this.loadMonthData();
+      return;
+    }
+
+    this.attendanceService.getAttendanceHistory().subscribe({
+      next: (data) => this.history.set(data),
+      error: () => this.history.set([]),
+    });
+
+    this.attendanceService.getManualAttendanceRequests().subscribe({
+      next: (data) => this.manualRequests.set(data || []),
+      error: () => this.manualRequests.set([]),
+    });
   }
 
   startClock() {
@@ -2523,8 +2002,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // ============ POLLING ============
 
   startPolling() {
-    this.pollingSubscription = interval(30000).subscribe(() => {
-      this.refreshData();
+    this.pollingSubscription = this.liveRefreshService.createStream(60000).subscribe((trigger) => {
+      if (trigger === 'interval' && typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+        return;
+      }
+      this.refreshData(trigger === 'interval' ? 'live' : 'full');
     });
   }
 
@@ -2532,7 +2014,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.pollingSubscription?.unsubscribe();
   }
 
-  refreshData() {
+  refreshData(mode: 'full' | 'live' = 'full') {
     this.attendanceService.getTodayAttendance().subscribe({
       next: (data) => {
         this.todayAttendance.set(data);
@@ -2549,22 +2031,26 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       },
     });
 
-    this.attendanceService.getAttendanceHistory().subscribe({
-      next: (data) => this.history.set(data),
-    });
-
     this.attendanceService.getTodayBreaks().subscribe({
       next: (data) => this.breaks.set(data),
     });
 
-    this.attendanceService.getAttendanceStats(this.statsPeriod()).subscribe({
-      next: (data) => this.stats.set(data),
-    });
+    if (mode === 'full' || this.currentView() === 'punch') {
+      this.attendanceService.getAttendanceHistory().subscribe({
+        next: (data) => this.history.set(data),
+      });
 
-    this.attendanceService.getManualAttendanceRequests().subscribe({
-      next: (data) => this.manualRequests.set(data || []),
-      error: () => this.manualRequests.set([]),
-    });
+      this.attendanceService.getManualAttendanceRequests().subscribe({
+        next: (data) => this.manualRequests.set(data || []),
+        error: () => this.manualRequests.set([]),
+      });
+    }
+
+    if (mode === 'full' || this.currentView() === 'stats') {
+      this.attendanceService.getAttendanceStats(this.statsPeriod()).subscribe({
+        next: (data) => this.stats.set(data),
+      });
+    }
   }
 
   // ============ VIEW SWITCHING ============
@@ -2576,9 +2062,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       | 'stats'
       | 'tracking'
       | 'geofence'
-      | 'shift-planner',
+      | 'shift-planner'
+      | 'records',
   ) {
     if (this.isSelfServiceWorkspace() && this.isAdminOnlyView(view)) return;
+    if (this.isAdminAttendanceWorkspace() && this.isSelfOnlyView(view)) return;
     if (view === 'tracking' && !this.canAccessTrackingWorkspace()) return;
     if (view === 'geofence' && !this.canAccessGeofenceWorkspace()) return;
     if (view === 'shift-planner' && !this.canAccessShiftPlannerWorkspace()) return;
@@ -2587,7 +2075,25 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.loadStatsForPeriod(this.statsPeriod());
     }
     if (view === 'calendar') {
+      this.loadMonthData();
       this.generateCalendar();
+    }
+    if (view === 'punch') {
+      this.attendanceService.getAttendanceHistory().subscribe({
+        next: (data) => this.history.set(data),
+        error: () => this.history.set([]),
+      });
+
+      this.attendanceService.getManualAttendanceRequests().subscribe({
+        next: (data) => this.manualRequests.set(data || []),
+        error: () => this.manualRequests.set([]),
+      });
+    }
+    if (view === 'records') {
+      this.attendanceService.getAttendanceHistory().subscribe({
+        next: (data) => this.history.set(data),
+        error: () => this.history.set([]),
+      });
     }
   }
 
@@ -2599,14 +2105,16 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     | 'stats'
     | 'tracking'
     | 'geofence'
-    | 'shift-planner' {
+    | 'shift-planner'
+    | 'records' {
     return (
       view === 'punch' ||
       view === 'calendar' ||
       view === 'stats' ||
       view === 'tracking' ||
       view === 'geofence' ||
-      view === 'shift-planner'
+      view === 'shift-planner' ||
+      view === 'records'
     );
   }
 
@@ -2617,9 +2125,55 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       | 'stats'
       | 'tracking'
       | 'geofence'
-      | 'shift-planner',
+      | 'shift-planner'
+      | 'records',
   ): boolean {
     return view === 'tracking' || view === 'geofence' || view === 'shift-planner';
+  }
+
+  private isSelfOnlyView(
+    view:
+      | 'punch'
+      | 'calendar'
+      | 'stats'
+      | 'tracking'
+      | 'geofence'
+      | 'shift-planner'
+      | 'records',
+  ): boolean {
+    return (
+      view === 'punch' ||
+      view === 'calendar' ||
+      view === 'stats' ||
+      view === 'records'
+    );
+  }
+
+  private resolveDefaultViewForWorkspace():
+    | 'punch'
+    | 'calendar'
+    | 'stats'
+    | 'tracking'
+    | 'geofence'
+    | 'shift-planner'
+    | 'records' {
+    if (this.isSelfServiceWorkspace()) {
+      return 'calendar';
+    }
+
+    if (this.canAccessTrackingWorkspace()) {
+      return 'tracking';
+    }
+
+    if (this.canAccessShiftPlannerWorkspace()) {
+      return 'shift-planner';
+    }
+
+    if (this.canAccessGeofenceWorkspace()) {
+      return 'geofence';
+    }
+
+    return 'tracking';
   }
 
   setStatsPeriod(period: 'week' | 'month' | 'year') {
@@ -2776,21 +2330,31 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   onPunchAction(action: 'in' | 'out') {
-    if (this.isCameraMode()) {
-      this.openCameraModal(action);
+    if (this.checkInMode() === 'biometric') {
+      void this.handlePunch(action);
       return;
     }
 
-    void this.handlePunch(action);
+    this.openCameraModal(action);
+  }
+
+  openPrimaryAttendanceModal() {
+    if (this.todayAttendance()?.is_clocked_out) {
+      return;
+    }
+
+    this.onPunchAction(this.primaryAttendanceAction());
   }
 
   openCameraModal(action: 'in' | 'out') {
-    if (!this.isCameraMode() || this.processing()) {
+    if (this.processing()) {
       return;
     }
 
+    this.preparePunchModal();
     this.pendingPunchAction.set(action);
     this.showCameraModal.set(true);
+    this.cameraAvailability.set('idle');
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
@@ -2798,14 +2362,23 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
     const mode = this.checkInMode();
-    if (mode === 'camera' || mode === 'face') {
-      this.startCamera(mode);
+    if (mode === 'face') {
+      this.startCamera('face');
+      return;
+    }
+
+    if (mode === 'camera' || mode === 'web') {
+      this.startCamera('camera', true);
     }
   }
 
   closeCameraModal() {
     this.showCameraModal.set(false);
     this.pendingPunchAction.set(null);
+    this.cameraAvailability.set('idle');
+    this.punchLocationAvailability.set('idle');
+    this.punchLocationLabel.set('Location not checked yet');
+    this.punchLocationCoords.set('');
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
@@ -2818,7 +2391,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   submitCameraModalPunch() {
     const action = this.pendingPunchAction();
-    if (!action || this.checkInMode() !== 'camera') {
+    if (!action || this.checkInMode() === 'face') {
       return;
     }
 
@@ -2847,24 +2420,51 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   // ============ CAMERA ============
 
-  async startCamera(mode: 'camera' | 'face') {
+  async startCamera(mode: 'camera' | 'face', allowFallback = false) {
     this.stopCamera();
     this.stopFaceAutoScan();
     this.isCameraReady.set(false);
+    this.cameraAvailability.set('checking');
     this.faceAutoTriggered = false;
 
     try {
       if (!navigator?.mediaDevices?.getUserMedia) {
         throw new Error('Camera API is not available in this browser.');
       }
-      this.cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 640 },
+      const constraintsToTry: MediaStreamConstraints[] = [
+        {
+          video: {
+            facingMode: { ideal: 'user' },
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
         },
-        audio: false,
-      });
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+      for (const constraints of constraintsToTry) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) {
+        throw lastError instanceof Error ? lastError : new Error('Unable to access camera.');
+      }
+
+      this.cameraStream = stream;
 
       setTimeout(() => {
         const video =
@@ -2872,6 +2472,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
             ? this.faceVideoElement?.nativeElement
             : this.videoElement?.nativeElement;
         if (video) {
+          video.setAttribute('playsinline', 'true');
+          video.muted = true;
           video.srcObject = this.cameraStream;
           video.onloadedmetadata = async () => {
             try {
@@ -2880,6 +2482,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
               // Ignore autoplay timing issues; the video element still becomes usable.
             }
             this.isCameraReady.set(true);
+            this.cameraAvailability.set('ready');
             if (mode === 'face') {
               this.startFaceAutoScan();
             }
@@ -2888,8 +2491,17 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       }, 100);
     } catch (err) {
       console.error('Camera error:', err);
+      this.stopCamera();
+      this.cameraAvailability.set('unavailable');
+      const errorMessage =
+        err instanceof Error ? err.message : 'Camera access failed on this device.';
+      if (allowFallback) {
+        this.toastService.error('Camera not available. You can continue without selfie.');
+        this.faceScanStatus.set(`${errorMessage} You can still continue without selfie.`);
+        return;
+      }
       this.toastService.error('Could not access camera');
-      this.faceScanStatus.set('Camera access failed. Please allow permission and try again.');
+      this.faceScanStatus.set(`${errorMessage} Please allow permission and try again.`);
       this.showCameraModal.set(false);
       this.pendingPunchAction.set(null);
       this.setMode('web');
@@ -2902,6 +2514,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.cameraStream = null;
     }
     this.isCameraReady.set(false);
+    if (this.cameraAvailability() !== 'unavailable') {
+      this.cameraAvailability.set('idle');
+    }
   }
 
   stopFaceAutoScan() {
@@ -3142,79 +2757,77 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.isCameraMode()) {
-      if (this.checkInMode() === 'face') {
-        try {
-          const video =
-            this.faceVideoElement?.nativeElement ||
-            this.videoElement?.nativeElement;
+    if (this.checkInMode() === 'face') {
+      try {
+        const video =
+          this.faceVideoElement?.nativeElement ||
+          this.videoElement?.nativeElement;
 
-          const verification = video
-            ? await firstValueFrom(
-                this.faceRecognitionService.verifyAndMarkAttendanceFromVideo(
-                  user.id!,
-                  orgId,
-                  video,
-                  action === 'in' ? 'check_in' : 'check_out',
-                ),
-              )
-            : null;
+        const verification = video
+          ? await firstValueFrom(
+              this.faceRecognitionService.verifyAndMarkAttendanceFromVideo(
+                user.id!,
+                orgId,
+                video,
+                action === 'in' ? 'check_in' : 'check_out',
+              ),
+            )
+          : null;
 
-          if (verification && !verification?.matched) {
-            const attempts = this.faceScanAttempts() + 1;
-            this.faceScanAttempts.set(attempts);
-            this.facePresenceStreak.set(0);
-            this.faceScanStatus.set(
-              attempts >= 3
-                ? 'Face mismatch. Redirecting to registration.'
-                : `Face did not match. Retrying ${attempts}/3...`,
-            );
-            this.toastService.error(
-              'Face did not match the registered profile.',
-            );
-            if (attempts >= 3) {
-              this.stopFaceAutoScan();
-              void this.router.navigate(['/face-registration'], {
-                queryParams: { returnUrl: '/attendance' },
-              });
-            } else {
-              this.faceAutoTriggered = false;
-              this.faceTurnAway = false;
-              this.startFaceAutoScan();
-            }
-            this.processing.set(false);
-            this.capturedPhotoData.set(null);
-            return;
+        if (verification && !verification?.matched) {
+          const attempts = this.faceScanAttempts() + 1;
+          this.faceScanAttempts.set(attempts);
+          this.facePresenceStreak.set(0);
+          this.faceScanStatus.set(
+            attempts >= 3
+              ? 'Face mismatch. Redirecting to registration.'
+              : `Face did not match. Retrying ${attempts}/3...`,
+          );
+          this.toastService.error(
+            'Face did not match the registered profile.',
+          );
+          if (attempts >= 3) {
+            this.stopFaceAutoScan();
+            void this.router.navigate(['/face-registration'], {
+              queryParams: { returnUrl: '/attendance' },
+            });
+          } else {
+            this.faceAutoTriggered = false;
+            this.faceTurnAway = false;
+            this.startFaceAutoScan();
           }
-
-          const frame = this.captureFrame();
-          if (frame) {
-            this.capturedPhotoData.set(frame);
-            payload.selfieUrl = frame;
-          }
-          await new Promise((r) => setTimeout(r, 250));
-        } catch (err: any) {
-          const message =
-            err?.friendlyMessage ||
-            err?.error?.message ||
-            'Face verification failed';
-          this.toastService.error(message);
           this.processing.set(false);
           this.capturedPhotoData.set(null);
-          this.faceAutoTriggered = false;
-          this.facePresenceStreak.set(0);
-          this.faceTurnAway = false;
-          this.startFaceAutoScan();
           return;
         }
-      } else {
+
         const frame = this.captureFrame();
         if (frame) {
           this.capturedPhotoData.set(frame);
           payload.selfieUrl = frame;
         }
-        await new Promise((r) => setTimeout(r, 800));
+        await new Promise((r) => setTimeout(r, 250));
+      } catch (err: any) {
+        const message =
+          err?.friendlyMessage ||
+          err?.error?.message ||
+          'Face verification failed';
+        this.toastService.error(message);
+        this.processing.set(false);
+        this.capturedPhotoData.set(null);
+        this.faceAutoTriggered = false;
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        this.startFaceAutoScan();
+        return;
       }
+    } else if (this.showCameraModal() && this.isCameraReady()) {
+      const frame = this.captureFrame();
+      if (frame) {
+        this.capturedPhotoData.set(frame);
+        payload.selfieUrl = frame;
+      }
+      await new Promise((r) => setTimeout(r, 500));
     } else if (this.checkInMode() === 'biometric') {
       const biometricRef = await this.prepareBiometricRef();
       if (!biometricRef) {
@@ -3244,14 +2857,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.playSuccessTone();
         this.stopFaceAutoScan();
         this.stopCamera();
-        this.showCameraModal.set(false);
-        this.pendingPunchAction.set(null);
         this.refreshData();
         this.processing.set(false);
         this.capturedPhotoData.set(null);
         this.faceScanStatus.set('Attendance captured successfully.');
         this.attendanceSuccess.set(true);
-        setTimeout(() => this.attendanceSuccess.set(false), 1600);
+        setTimeout(() => this.closeCameraModal(), 1800);
       },
       error: (err) => {
         this.toastService.error(
@@ -3298,6 +2909,117 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       default:
         return 'Checking biometric support for this device...';
     }
+  }
+
+  punchModalTitle(): string {
+    return 'Mark Your Attendance';
+  }
+
+  punchModalDescription(): string {
+    if (this.checkInMode() === 'face') {
+      return 'Center your face in the frame, turn slightly, and return to center. Attendance submits automatically after a successful liveness match.';
+    }
+
+    if (this.cameraAvailability() === 'ready') {
+      return 'Selfie preview is ready. Confirm to capture the image and mark your attendance in one step.';
+    }
+
+    if (this.cameraAvailability() === 'checking') {
+      return 'Checking camera permission for selfie capture before submitting your attendance.';
+    }
+
+    return 'If selfie permission is available we will attach a live camera capture, otherwise attendance will continue without camera.';
+  }
+
+  preparePunchModal(): void {
+    this.punchModalDate.set(new Date());
+    this.punchModalTime.set(
+      new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+    );
+    void this.requestPunchLocationPreview();
+  }
+
+  punchModalBadge(): string {
+    if (this.checkInMode() === 'face') return 'Liveness Scan';
+    if (this.cameraAvailability() === 'ready') return 'Selfie Ready';
+    if (this.cameraAvailability() === 'checking') return 'Checking Camera';
+    return 'No Camera Required';
+  }
+
+  punchModalStatusText(): string {
+    if (this.checkInMode() === 'face') {
+      return this.faceScanStatus() || 'Waiting for a clear face in the frame.';
+    }
+
+    if (this.cameraAvailability() === 'ready') {
+      return 'Camera is ready. Confirm to capture selfie and submit attendance.';
+    }
+
+    if (this.cameraAvailability() === 'checking') {
+      return 'Checking camera access...';
+    }
+
+    return 'Camera permission is unavailable or skipped. You can continue with a normal punch.';
+  }
+
+  punchModalPrimaryLabel(): string {
+    const verb = this.pendingPunchAction() === 'out' ? 'Check Out' : 'Check In';
+    if (this.checkInMode() === 'face') {
+      return 'Restart Face Scan';
+    }
+    return this.cameraAvailability() === 'ready'
+      ? `Capture Selfie & ${verb}`
+      : `Continue ${verb}`;
+  }
+
+  primaryAttendanceAction(): 'in' | 'out' {
+    return this.todayAttendance()?.is_clocked_in ? 'out' : 'in';
+  }
+
+  primaryAttendanceButtonLabel(): string {
+    if (this.todayAttendance()?.is_clocked_out) {
+      return 'Attendance Already Marked';
+    }
+
+    return this.primaryAttendanceAction() === 'out'
+      ? 'Mark Attendance For Check Out'
+      : 'Mark Attendance For Check In';
+  }
+
+  async requestPunchLocationPreview(): Promise<void> {
+    this.punchLocationAvailability.set('checking');
+    this.punchLocationLabel.set('Checking your current location...');
+    this.punchLocationCoords.set('');
+
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          timeout: 10000,
+          enableHighAccuracy: true,
+        });
+      });
+
+      const lat = Number(position.coords.latitude.toFixed(5));
+      const lng = Number(position.coords.longitude.toFixed(5));
+      this.punchLocationAvailability.set('ready');
+      this.punchLocationLabel.set('Current device location detected');
+      this.punchLocationCoords.set(`${lat}, ${lng}`);
+    } catch {
+      this.punchLocationAvailability.set('unavailable');
+      this.punchLocationLabel.set('Location permission unavailable');
+      this.punchLocationCoords.set('You can still continue if location access is blocked.');
+    }
+  }
+
+  retryPunchCamera(): void {
+    if (this.processing() || this.checkInMode() === 'face') {
+      return;
+    }
+    this.cameraAvailability.set('idle');
+    void this.startCamera('camera', true);
   }
 
   private resolveWorkspaceMode(): 'self' | 'admin' {
@@ -3557,6 +3279,15 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           this.history.set(data);
+          if (!this.selectedDate()) {
+            const today = new Date();
+            if (
+              this.currentMonth() === today.getMonth() &&
+              this.currentYear() === today.getFullYear()
+            ) {
+              this.selectedDate.set(today.toISOString().split('T')[0]);
+            }
+          }
           this.generateCalendar();
         },
       });
@@ -3609,6 +3340,77 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     if (score >= 70) return 'bg-teal-50 text-teal-700';
     if (score >= 40) return 'bg-amber-50 text-amber-700';
     return 'bg-slate-100 text-slate-700';
+  }
+
+  selectedAttendanceRecord(): AttendanceRecord | null {
+    const selected = this.selectedDate();
+    if (!selected) return null;
+    return this.history().find((record) => record.date === selected) ?? null;
+  }
+
+  selectedAttendanceDateLabel(): string {
+    const selected = this.selectedDate();
+    if (!selected) return 'Pick a date';
+    return new Date(selected).toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  selectedAttendanceStatusLabel(): string {
+    const record = this.selectedAttendanceRecord();
+    if (!record) return 'No record';
+    return this.getRecordStatusLabel(record.status);
+  }
+
+  selectedAttendanceStatusClass(): string {
+    const record = this.selectedAttendanceRecord();
+    return record
+      ? this.getStatusClass(record.status)
+      : 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+
+  formatShortTime(value?: string | null): string {
+    if (!value) return '--:--';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '--:--';
+    return date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  nextAttendanceActionLabel(): string {
+    if (this.todayAttendance()?.is_clocked_out) {
+      return 'Attendance cycle complete for today';
+    }
+
+    if (this.todayAttendance()?.is_clocked_in) {
+      return this.isOnBreak() ? 'Break is active right now' : 'Ready for check out';
+    }
+
+    return 'Ready for check in';
+  }
+
+  nextAttendanceActionDescription(): string {
+    if (this.todayAttendance()?.is_clocked_out) {
+      return 'Your check-in and check-out are already recorded. Review the records or raise a correction if anything needs adjustment.';
+    }
+
+    if (this.todayAttendance()?.is_clocked_in) {
+      return this.isOnBreak()
+        ? 'Your break is currently active. End the break when you return, then continue your day normally.'
+        : 'Your check-in is saved. Come back here later and use the same workspace for check out.';
+    }
+
+    return 'Select your preferred mode and complete the first punch of the day from the quick actions panel.';
+  }
+
+  biometricStatusLabel(): string {
+    return this.canUseBiometricMode()
+      ? 'Use your laptop fingerprint or Windows Hello authenticator.'
+      : 'Biometric mode works only when your device and account support it.';
   }
 
   recentHistoryPreview(): AttendanceRecord[] {

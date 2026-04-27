@@ -32,7 +32,7 @@ import {
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { forkJoin, Subscription } from 'rxjs';
 
 Chart.register(...registerables);
 
@@ -169,7 +169,7 @@ Chart.register(...registerables);
             <div class="inline-flex w-full rounded-lg border border-slate-200 bg-slate-50 p-1 sm:w-auto">
               <button
                 type="button"
-                (click)="currentView.set('dashboard')"
+                (click)="selectView('dashboard')"
                 class="flex-1 rounded-md px-4 py-2 text-xs font-black transition md:flex-none"
                 [ngClass]="currentView() === 'dashboard' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
               >
@@ -177,7 +177,7 @@ Chart.register(...registerables);
               </button>
               <button
                 type="button"
-                (click)="currentView.set('request')"
+                (click)="selectView('request')"
                 class="flex-1 rounded-md px-4 py-2 text-xs font-black transition md:flex-none"
                 [ngClass]="currentView() === 'request' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500 hover:text-slate-900'"
               >
@@ -673,6 +673,8 @@ export class LeavesComponent implements OnInit, OnDestroy {
   currentView = signal<'request' | 'dashboard'>('dashboard');
   activeModule = signal<'approval' | 'request'>('request');
   editingLeaveId = signal<number | null>(null);
+  private dashboardLoaded = signal(false);
+  private requestDataLoaded = signal(false);
 
   leaveTypeOptions = computed<SelectOption[]>(() =>
     this.leaveTypes().map((t) => ({ label: t.typeName, value: t.id })),
@@ -762,35 +764,37 @@ export class LeavesComponent implements OnInit, OnDestroy {
     this.routeSubscription = this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (view === 'dashboard' || view === 'request') {
-        this.currentView.set(view);
+        this.selectView(view);
       }
 
       const mode = params.get('mode');
       if (mode === 'approval' && this.isApprover()) {
-        this.currentView.set('request');
+        this.selectView('request');
         this.activeModule.set('approval');
         return;
       }
 
       if (mode === 'request') {
-        this.currentView.set('request');
+        this.selectView('request');
         this.activeModule.set('request');
         return;
       }
 
       const currentUrl = this.router.url || '';
       if (currentUrl.includes('/admin/approvals/leave') && this.isApprover()) {
-        this.currentView.set('request');
+        this.selectView('request');
         this.activeModule.set('approval');
         return;
       }
 
       if (currentUrl.includes('/self-service/requests/leave')) {
-        this.currentView.set('request');
+        this.selectView('request');
         this.activeModule.set('request');
+        return;
       }
+
+      this.selectView(this.currentView());
     });
-    this.loadDashboard();
   }
 
   ngOnDestroy(): void {
@@ -1011,6 +1015,7 @@ export class LeavesComponent implements OnInit, OnDestroy {
 
     this.leaveService.getLeaveDashboard(new Date(this.toDate()).getFullYear(), this.fromDate(), this.toDate()).subscribe({
       next: (dashboard) => {
+        this.dashboardLoaded.set(true);
         this.leaveDashboard.set(dashboard);
         this.leaveTypes.set(dashboard.leaveTypes);
         this.leaveBalances.set(dashboard.balances);
@@ -1036,6 +1041,49 @@ export class LeavesComponent implements OnInit, OnDestroy {
       },
       complete: () => this.isLoadingDashboard.set(false),
     });
+  }
+
+  private loadRequestData(forceRefresh = false): void {
+    if (this.requestDataLoaded() && !forceRefresh) return;
+
+    const year = new Date(this.toDate()).getFullYear();
+    this.isLoadingDashboard.set(true);
+    this.dashboardError.set('');
+
+    forkJoin({
+      history: this.leaveService.getLeaveHistory(),
+      balances: this.leaveService.getLeaveBalances(year),
+      leaveTypes: this.leaveService.getLeaveTypes(),
+    }).subscribe({
+      next: ({ history, balances, leaveTypes }) => {
+        this.requestDataLoaded.set(true);
+        this.leaves.set(history || []);
+        this.leaveBalances.set(balances || []);
+        this.leaveTypes.set(leaveTypes?.data || []);
+        if ((leaveTypes?.data || []).length > 0 && !this.leaveForm.value.leaveTypeId) {
+          this.leaveForm.patchValue({ leaveTypeId: leaveTypes.data[0].id });
+        }
+      },
+      error: () => {
+        this.leaves.set([]);
+        this.leaveBalances.set([]);
+        this.leaveTypes.set([]);
+        this.dashboardError.set('Unable to load leave requests right now. Please try again.');
+      },
+      complete: () => this.isLoadingDashboard.set(false),
+    });
+  }
+
+  selectView(view: 'request' | 'dashboard', forceRefresh = false): void {
+    this.currentView.set(view);
+    if (view === 'dashboard') {
+      if (!this.dashboardLoaded() || forceRefresh) {
+        this.loadDashboard();
+      }
+      return;
+    }
+
+    this.loadRequestData(forceRefresh);
   }
 
   usagePercent(): number {
@@ -1080,7 +1128,8 @@ export class LeavesComponent implements OnInit, OnDestroy {
       this.toastService.show('From date cannot be after to date.', 'error');
       return;
     }
-    this.loadDashboard();
+    this.dashboardLoaded.set(false);
+    this.selectView('dashboard', true);
   }
 
   formattedToday(): string {
@@ -1097,11 +1146,11 @@ export class LeavesComponent implements OnInit, OnDestroy {
       return;
     }
     if (target === 'pending') {
-      this.currentView.set('request');
+      this.selectView('request');
       this.activeModule.set(this.isApprover() ? 'approval' : 'request');
       return;
     }
-    this.currentView.set('request');
+    this.selectView('request');
   }
 
   private percent(value: number, total: number): number {
@@ -1138,7 +1187,9 @@ export class LeavesComponent implements OnInit, OnDestroy {
 
       request$.subscribe({
         next: () => {
-          this.loadDashboard();
+          this.dashboardLoaded.set(false);
+          this.requestDataLoaded.set(false);
+          this.selectView(this.currentView(), true);
           this.processing.set(false);
           this.editingLeaveId.set(null);
           this.toggleForm();
@@ -1161,7 +1212,9 @@ export class LeavesComponent implements OnInit, OnDestroy {
       this.statusUpdatingId.set(id);
       this.leaveService.updateLeaveStatus(id, status, rejectionNote).subscribe({
         next: () => {
-          this.loadDashboard();
+          this.dashboardLoaded.set(false);
+          this.requestDataLoaded.set(false);
+          this.selectView(this.currentView(), true);
           this.toastService.show(
             `Leave request ${status} successfully.`,
             'success',

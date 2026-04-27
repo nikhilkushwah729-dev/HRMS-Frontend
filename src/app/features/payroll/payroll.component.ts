@@ -167,30 +167,7 @@ export class PayrollComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // MOCK DATA for perfect UI
-        const mockPayslips: any[] = [
-          {
-            id: 1,
-            month: 'February',
-            year: 2026,
-            basic_salary: 85000,
-            allowances: 15000,
-            deductions: 5000,
-            net_salary: 95000,
-            status: 'published'
-          },
-          {
-            id: 2,
-            month: 'January',
-            year: 2026,
-            basic_salary: 85000,
-            allowances: 15000,
-            deductions: 5000,
-            net_salary: 95000,
-            status: 'published'
-          }
-        ];
-        this.payslips.set(mockPayslips);
+        this.payslips.set([]);
         this.loading.set(false);
       }
     });

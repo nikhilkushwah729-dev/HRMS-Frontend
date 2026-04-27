@@ -101,17 +101,8 @@ export class AuditLogService {
           this.loading.set(false);
         },
         error: () => {
-          // MOCK DATA for perfect UI
-          const mockLogs: AuditLog[] = [
-            { id: 101, orgId: 1, employeeId: 1, action: 'LOGIN', module: 'auth', entityName: 'UserSession', entityId: 'SESS_991', oldValues: null, newValues: { ip: '192.168.1.45' }, ipAddress: '192.168.1.45', userAgent: 'Chrome/122.0.0.0', isImmutable: true, createdAt: new Date().toISOString() },
-            { id: 102, orgId: 1, employeeId: 2, action: 'CREATE', module: 'employees', entityName: 'Employee', entityId: 'EMP_008', oldValues: null, newValues: { firstName: 'Sarah', lastName: 'Connor', role: 'Developer' }, ipAddress: '192.168.1.12', userAgent: 'Firefox/123.0', isImmutable: true, createdAt: new Date(Date.now() - 3600000).toISOString() },
-            { id: 103, orgId: 1, employeeId: 1, action: 'UPDATE', module: 'settings', entityName: 'OrganizationSettings', entityId: 'ORG_1', oldValues: { allowRemote: false }, newValues: { allowRemote: true }, ipAddress: '192.168.1.45', userAgent: 'Chrome/122.0.0.0', isImmutable: true, createdAt: new Date(Date.now() - 7200000).toISOString() },
-            { id: 104, orgId: 1, employeeId: 3, action: 'APPROVE', module: 'leaves', entityName: 'LeaveRequest', entityId: 'LR_22', oldValues: { status: 'pending' }, newValues: { status: 'approved' }, ipAddress: '192.168.1.18', userAgent: 'Safari/17.4', isImmutable: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
-            { id: 105, orgId: 1, employeeId: 1, action: 'UPDATE', module: 'payroll', entityName: 'Payslip', entityId: 'PS_MAR25_01', oldValues: { netPay: 4500 }, newValues: { netPay: 4600 }, ipAddress: '192.168.1.45', userAgent: 'Chrome/122.0.0.0', isImmutable: true, createdAt: new Date(Date.now() - 172800000).toISOString() }
-          ] as any[];
-          
-          this.logs.set(mockLogs);
-          this.totalItems.set(mockLogs.length);
+          this.logs.set([]);
+          this.totalItems.set(0);
           this.totalPages.set(1);
           this.currentPage.set(page);
           this.loading.set(false);

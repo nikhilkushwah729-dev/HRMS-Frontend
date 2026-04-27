@@ -14,8 +14,8 @@ import { User } from '../../core/models/auth.model';
       <header class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
           <div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-600">Attendance Management</p>
-            <h1 class="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Admin attendance register, approvals, and controls</h1>
+            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-600">Attendance Module</p>
+            <h1 class="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Admin attendance module for all employees</h1>
             <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
               This workspace is dedicated to HR and admin attendance operations: register review, correction workflows,
               regularization approvals, shift planning, geofence controls, and reporting.

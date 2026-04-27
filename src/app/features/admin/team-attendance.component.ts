@@ -17,12 +17,19 @@ import {
 interface NormalizedAttendance {
   id: number;
   employeeId: number;
+  employeeName: string;
+  employeeCode: string;
+  department: string;
   date: string;
   checkIn: string | null;
   checkOut: string | null;
   workHours: number | null;
+  netWorkHours: number | null;
   status: string;
   lateMinutes: number;
+  source: string;
+  method: string;
+  kioskName: string | null;
 }
 
 @Component({
@@ -95,7 +102,7 @@ interface NormalizedAttendance {
             <input
               type="date"
               [(ngModel)]="selectedDate"
-              (change)="loadAttendance()"
+              (change)="scheduleLoadAttendance()"
               class="px-3 py-2 border border-slate-200 rounded-lg text-sm"
             />
           </div>
@@ -106,7 +113,7 @@ interface NormalizedAttendance {
             >
             <app-ui-select-advanced
               [(ngModel)]="selectedDepartment"
-              (ngModelChange)="loadAttendance()"
+              (ngModelChange)="scheduleLoadAttendance()"
               [options]="departmentOptions()"
               placeholder="All Departments"
               size="sm"
@@ -120,7 +127,7 @@ interface NormalizedAttendance {
             >
             <app-ui-select-advanced
               [(ngModel)]="statusFilter"
-              (ngModelChange)="filterAttendance()"
+              (ngModelChange)="scheduleFilterAttendance()"
               [options]="statusOptions"
               placeholder="All Status"
               size="sm"
@@ -136,7 +143,7 @@ interface NormalizedAttendance {
             <input
               type="text"
               [(ngModel)]="searchQuery"
-              (input)="filterAttendance()"
+              (input)="scheduleFilterAttendance()"
               placeholder="Search employee..."
               class="px-3 py-2 border border-slate-200 rounded-lg text-sm min-w-[200px]"
             />
@@ -227,6 +234,11 @@ interface NormalizedAttendance {
                   Work Hours
                 </th>
                 <th
+                  class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase"
+                >
+                  Marked Via
+                </th>
+                <th
                   class="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase text-center"
                 >
                   Status
@@ -246,7 +258,7 @@ interface NormalizedAttendance {
             <tbody class="divide-y divide-slate-100">
               @if (loading()) {
                 <tr>
-                  <td colspan="8" class="px-4 py-12 text-center text-slate-400">
+                  <td colspan="9" class="px-4 py-12 text-center text-slate-400">
                     <div class="flex items-center justify-center gap-2">
                       <svg
                         class="animate-spin h-5 w-5"
@@ -274,7 +286,7 @@ interface NormalizedAttendance {
                 </tr>
               } @else if (filteredAttendance().length === 0) {
                 <tr>
-                  <td colspan="8" class="px-4 py-12 text-center text-slate-400">
+                  <td colspan="9" class="px-4 py-12 text-center text-slate-400">
                     No attendance records found.
                   </td>
                 </tr>
@@ -286,22 +298,16 @@ interface NormalizedAttendance {
                         <div
                           class="w-9 h-9 bg-primary-50 text-primary-700 rounded-lg flex items-center justify-center font-bold text-sm"
                         >
-                          {{ getEmployeeInitials(record.employeeId) }}
+                          {{ getEmployeeInitials(record) }}
                         </div>
                         <div class="flex flex-col">
-                          <span class="font-semibold text-slate-900">{{
-                            getEmployeeName(record.employeeId)
-                          }}</span>
-                          <span class="text-[11px] text-slate-500">{{
-                            getEmployeeCode(record.employeeId)
-                          }}</span>
+                          <span class="font-semibold text-slate-900">{{ record.employeeName }}</span>
+                          <span class="text-[11px] text-slate-500">{{ record.employeeCode }}</span>
                         </div>
                       </div>
                     </td>
                     <td class="px-4 py-3">
-                      <span class="text-sm text-slate-600">{{
-                        getEmployeeDepartment(record.employeeId)
-                      }}</span>
+                      <span class="text-sm text-slate-600">{{ record.department }}</span>
                     </td>
                     <td class="px-4 py-3">
                       <span
@@ -328,8 +334,21 @@ interface NormalizedAttendance {
                     </td>
                     <td class="px-4 py-3">
                       <span class="text-sm font-medium text-slate-700">{{
-                        formatHours(record.workHours)
+                        formatHours(record.netWorkHours ?? record.workHours)
                       }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="flex flex-col gap-1">
+                        <span class="inline-flex w-fit rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-700">
+                          {{ sourceLabel(record.source) }}
+                        </span>
+                        <span class="text-[11px] text-slate-500">
+                          {{ methodLabel(record.method) }}
+                          @if (record.kioskName) {
+                            <span>· {{ record.kioskName }}</span>
+                          }
+                        </span>
+                      </div>
                     </td>
                     <td class="px-4 py-3 text-center">
                       <span
@@ -387,6 +406,7 @@ export class TeamAttendanceComponent implements OnInit {
   private employeeService = inject(EmployeeService);
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
+  private filterDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   // State
   loading = signal<boolean>(false);
@@ -438,6 +458,20 @@ export class TeamAttendanceComponent implements OnInit {
     this.loadAttendance();
   }
 
+  scheduleLoadAttendance() {
+    if (this.filterDebounceTimer) {
+      clearTimeout(this.filterDebounceTimer);
+    }
+    this.filterDebounceTimer = setTimeout(() => this.loadAttendance(), 250);
+  }
+
+  scheduleFilterAttendance() {
+    if (this.filterDebounceTimer) {
+      clearTimeout(this.filterDebounceTimer);
+    }
+    this.filterDebounceTimer = setTimeout(() => this.filterAttendance(), 200);
+  }
+
   private loadDepartments() {
     this.orgService.getDepartments().subscribe({
       next: (depts) => this.departments.set(depts),
@@ -454,28 +488,33 @@ export class TeamAttendanceComponent implements OnInit {
 
   loadAttendance() {
     this.loading.set(true);
-
     this.attendanceService
-      .getMonthlyAttendance(new Date().getFullYear(), new Date().getMonth() + 1)
+      .getAllAttendance({
+        startDate: this.selectedDate,
+        endDate: this.selectedDate,
+        departmentId: this.selectedDepartment ?? undefined,
+      })
       .subscribe({
-        next: (records: any[]) => {
-          // Normalize the records to camelCase
-          const normalized: NormalizedAttendance[] = records.map((r) => ({
-            id: Number(r.id || 0),
-            employeeId: Number(r.employee_id || 0),
-            date: r.date || '',
-            checkIn: r.check_in || null,
-            checkOut: r.check_out || null,
-            workHours: r.work_hours || null,
-            status: r.status || 'absent',
-            lateMinutes: r.is_late ? 15 : 0, // Default late minutes if marked as late
+        next: (records) => {
+          const normalized: NormalizedAttendance[] = records.map((record) => ({
+            id: Number(record.id || 0),
+            employeeId: Number(record.employee_id || 0),
+            date: record.date || '',
+            checkIn: record.check_in || null,
+            checkOut: record.check_out || null,
+            workHours: typeof record.work_hours === 'number' ? record.work_hours : null,
+            netWorkHours: typeof record.net_work_hours === 'number' ? record.net_work_hours : null,
+            status: record.status || 'absent',
+            lateMinutes: record.is_late ? 15 : 0,
+            employeeName: `${record.employee?.firstName || ''} ${record.employee?.lastName || ''}`.trim() || 'Unknown',
+            employeeCode: record.employee_code || 'N/A',
+            department: record.employee?.department || 'General',
+            source: record.source || 'web',
+            method: record.attendance_method || record.source || 'web',
+            kioskName: record.kiosk_name || null,
           }));
 
-          // Filter by selected date
-          const dateStr = this.selectedDate;
-          const filtered = normalized.filter((r) => r.date === dateStr);
-
-          this.attendanceRecords.set(filtered);
+          this.attendanceRecords.set(normalized);
           this.calculateStats();
           this.filterAttendance();
           this.loading.set(false);
@@ -507,11 +546,8 @@ export class TeamAttendanceComponent implements OnInit {
     if (this.searchQuery) {
       const query = this.searchQuery.toLowerCase();
       filtered = filtered.filter((r) => {
-        const emp = this.employees().find((e) => e.id === r.employeeId);
-        const name = emp
-          ? `${emp.firstName} ${emp.lastName}`.toLowerCase()
-          : '';
-        const code = emp?.employeeCode?.toLowerCase() || '';
+        const name = r.employeeName.toLowerCase();
+        const code = r.employeeCode.toLowerCase();
         return name.includes(query) || code.includes(query);
       });
     }
@@ -522,7 +558,7 @@ export class TeamAttendanceComponent implements OnInit {
   private calculateStats() {
     const records = this.attendanceRecords();
     const stats = {
-      total: this.employees().length,
+      total: records.length,
       present: records.filter((r) => r.status === 'present').length,
       absent: records.filter((r) => r.status === 'absent').length,
       late: records.filter((r) => r.status === 'late').length,
@@ -537,40 +573,27 @@ export class TeamAttendanceComponent implements OnInit {
   }
 
   viewDetails(record: NormalizedAttendance) {
-    const emp = this.employees().find((e) => e.id === record.employeeId);
-    const name = emp ? `${emp.firstName} ${emp.lastName}` : 'Unknown';
     const message = `
-Employee: ${name}
+Employee: ${record.employeeName}
+Code: ${record.employeeCode}
 Date: ${record.date}
 Check In: ${record.checkIn || 'N/A'}
 Check Out: ${record.checkOut || 'N/A'}
 Status: ${record.status}
-Work Hours: ${this.formatHours(record.workHours)}
+Work Hours: ${this.formatHours(record.netWorkHours ?? record.workHours)}
+Source: ${this.sourceLabel(record.source)}
+Method: ${this.methodLabel(record.method)}
 Late Minutes: ${record.lateMinutes || 0}
     `.trim();
     this.toastService.show(message, 'info');
   }
 
   // Helper methods
-  getEmployeeName(employeeId: number): string {
-    const emp = this.employees().find((e) => e.id === employeeId);
-    return emp ? `${emp.firstName} ${emp.lastName}` : 'Unknown';
-  }
-
-  getEmployeeInitials(employeeId: number): string {
-    const emp = this.employees().find((e) => e.id === employeeId);
-    return emp ? (emp.firstName?.[0] || '?') + (emp.lastName?.[0] || '') : '?';
-  }
-
-  getEmployeeCode(employeeId: number): string {
-    const emp = this.employees().find((e) => e.id === employeeId);
-    return emp?.employeeCode || 'N/A';
-  }
-
-  getEmployeeDepartment(employeeId: number): string {
-    const emp = this.employees().find((e) => e.id === employeeId);
-    const dept = this.departments().find((d) => d.id === emp?.departmentId);
-    return dept?.name || 'General';
+  getEmployeeInitials(record: NormalizedAttendance): string {
+    const parts = record.employeeName.split(' ').filter(Boolean);
+    const first = parts[0]?.[0] || '?';
+    const second = parts[1]?.[0] || '';
+    return `${first}${second}`.toUpperCase();
   }
 
   formatHours(hours: number | undefined | null): string {
@@ -590,5 +613,21 @@ Late Minutes: ${record.lateMinutes || 0}
       holiday: 'bg-purple-50 text-purple-600 border-purple-200',
     };
     return classes[status || ''] || 'bg-slate-50 text-slate-600';
+  }
+
+  sourceLabel(source: string | undefined): string {
+    const normalized = String(source || 'web').replace(/_/g, ' ').trim().toLowerCase();
+    if (normalized === 'kiosk') return 'Kiosk';
+    if (normalized === 'geo fence') return 'Geo Fence';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  methodLabel(method: string | undefined): string {
+    const normalized = String(method || 'web').replace(/_/g, ' ').trim().toLowerCase();
+    if (normalized === 'pin') return 'PIN';
+    if (normalized === 'qr') return 'QR';
+    if (normalized === 'face') return 'Face';
+    if (normalized === 'camera') return 'Selfie';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 }

@@ -218,7 +218,7 @@ type TopNavItem = {
           <div class="relative flex items-center">
             <button
               type="button"
-              (click)="openSearch()"
+              (click)="openSearch($event)"
               class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
               aria-label="Open search"
             >
@@ -457,7 +457,7 @@ type TopNavItem = {
         <!-- User Profile Dropdown -->
         <div class="relative">
           @if (currentUser(); as user) {
-            <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-2 rounded-xl cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
+            <div (click)="toggleProfileDropdown($event)" class="flex items-center gap-2 rounded-xl cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
               <div class="w-8 h-8 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
                 @if (user.avatar) {
                   <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
@@ -474,7 +474,7 @@ type TopNavItem = {
 
           <!-- Profile Dropdown -->
           @if (showDropdown && currentUser(); as user) {
-            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-md shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
+            <div (click)="$event.stopPropagation()" class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-md shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
               <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-md">
                 <div class="w-10 h-10 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ring-2 ring-white">
                   @if (user.avatar) {
@@ -545,8 +545,8 @@ type TopNavItem = {
     </header>
 
     <!-- Click outside overlay to close dropdowns -->
-    @if (showDropdown || showNotifications() || showSearchPanel() || showAddonsPanel()) {
-      <div (click)="closeAll()" class="fixed inset-0 z-30"></div>
+    @if (showDropdown || showNotifications() || showSearchPanel() || showAddonsPanel() || showModuleSwitcher()) {
+      <div (click)="closeAll()" class="fixed inset-x-0 bottom-0 top-[64px] md:top-[72px] z-30"></div>
     }
 
   `,
@@ -925,6 +925,9 @@ export class TopbarComponent implements OnInit {
   private employeeCache = signal<User[]>([]);
   private projectCache = signal<Project[]>([]);
   private designations = signal<Designation[]>([]);
+  private searchDataLoaded = signal(false);
+  private addonLauncherLoaded = signal(false);
+  private notificationsLoaded = signal(false);
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   userDesignation = signal<string>('');
   orgLogo = signal<string>('');
@@ -1007,6 +1010,7 @@ export class TopbarComponent implements OnInit {
       this.makeTopNavItem('Self Service', '/dashboard', 'dashboard'),
       this.makeTopNavItem('Employees', '/employees', 'employees'),
       this.makeTopNavItem('Attendance', this.attendanceTopNavRoute(), 'attendance'),
+      this.makeTopNavItem('Kiosk', '/admin/kiosks', 'kiosk'),
       this.makeTopNavItem('Leave', this.resolveTopNavRoute(['/leaves?view=request', '/leaves', '/admin/approvals/leave']), 'leave'),
       this.makeTopNavItem('Payroll', '/payroll', 'payroll'),
       this.makeTopNavItem('Timesheet', '/timesheets', 'timesheets'),
@@ -1055,11 +1059,8 @@ export class TopbarComponent implements OnInit {
       }
     });
 
-    this.notifService.getNotifications().subscribe();
-    this.loadSearchData();
     this.searchResults.set(this.getVisibleQuickLinks().slice(0, 6));
     this.loadUserDesignation();
-    this.loadAddonLauncher();
     this.subscriptionService.getStatus().subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
@@ -1112,6 +1113,8 @@ export class TopbarComponent implements OnInit {
   }
 
   private loadSearchData() {
+    if (this.searchDataLoaded()) return;
+
     const canSearchEmployees = this.permissionService.hasPermission(this.currentUser(), 'search.employees');
     const canSearchProjects = this.permissionService.hasPermission(this.currentUser(), 'search.projects');
 
@@ -1125,10 +1128,13 @@ export class TopbarComponent implements OnInit {
     }).subscribe(({ employees, projects }) => {
       this.employeeCache.set(employees);
       this.projectCache.set(projects);
+      this.searchDataLoaded.set(true);
     });
   }
 
-  openSearch() {
+  openSearch(event?: Event) {
+    event?.stopPropagation();
+    this.loadSearchData();
     this.showDropdown = false;
     this.showNotifications.set(false);
     this.showModuleSwitcher.set(false);
@@ -1137,6 +1143,15 @@ export class TopbarComponent implements OnInit {
     if (!this.searchQuery().trim()) {
       this.searchResults.set(this.getInitialSearchResults());
     }
+  }
+
+  toggleProfileDropdown(event?: Event) {
+    event?.stopPropagation();
+    this.showNotifications.set(false);
+    this.showSearchPanel.set(false);
+    this.showModuleSwitcher.set(false);
+    this.showAddonsPanel.set(false);
+    this.showDropdown = !this.showDropdown;
   }
 
   onSearchInput(value: string) {
@@ -1239,6 +1254,9 @@ export class TopbarComponent implements OnInit {
   }
 
   toggleAddonsPanel() {
+    if (!this.showAddonsPanel()) {
+      this.loadAddonLauncher();
+    }
     this.showSearchPanel.set(false);
     this.showDropdown = false;
     this.showNotifications.set(false);
@@ -1257,6 +1275,12 @@ export class TopbarComponent implements OnInit {
 
   toggleNotifications() {
     if (!this.canViewNotifications()) return;
+    if (!this.showNotifications() && !this.notificationsLoaded()) {
+      this.notifService.getNotifications().subscribe({
+        next: () => this.notificationsLoaded.set(true),
+        error: () => this.notificationsLoaded.set(false),
+      });
+    }
     this.showSearchPanel.set(false);
     this.showDropdown = false;
     this.showModuleSwitcher.set(false);
@@ -1605,6 +1629,8 @@ export class TopbarComponent implements OnInit {
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
       attendance:
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+      kiosk:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h6"/><path d="M8 11h8"/><path d="M8 15h5"/><circle cx="17" cy="15" r="1"/></svg>',
       leave:
         '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
       payroll:
@@ -1674,7 +1700,7 @@ export class TopbarComponent implements OnInit {
 
   private attendanceTopNavRoute(): string | null {
     const user = this.currentUser() ?? this.authService.getStoredUser();
-    const managerialCandidates = ['/admin/attendance', '/attendance', '/self-service/attendance'];
+    const managerialCandidates = ['/admin/attendance/register', '/admin/attendance', '/attendance', '/self-service/attendance'];
     const selfCandidates = ['/self-service/attendance', '/attendance', '/admin/attendance'];
 
     return this.resolveTopNavRoute(
@@ -1738,8 +1764,11 @@ export class TopbarComponent implements OnInit {
   }
 
   private loadAddonLauncher() {
+    if (this.addonLauncherLoaded()) return;
+
     this.organizationService.getAddons().pipe(catchError(() => of([] as any[]))).subscribe((addons) => {
       this.addonLauncherItems.set((addons || []).map((addon) => this.toAddonLauncherItem(addon)));
+      this.addonLauncherLoaded.set(true);
     });
   }
 

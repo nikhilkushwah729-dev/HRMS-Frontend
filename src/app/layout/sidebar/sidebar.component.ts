@@ -526,7 +526,7 @@ export class SidebarComponent implements OnInit {
   }
 
   systemLinks(): WorkspaceModuleView[] {
-    return ['settings', 'addons', 'visitormanagement', 'organization', 'roles-permissions'].flatMap((id) => this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }));
+    return ['settings', 'addons', 'visitormanagement', 'organization', 'kiosk-management', 'roles-permissions'].flatMap((id) => this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }));
   }
 
   mainSectionLabel(): string { return 'Portal'; }
