@@ -72,7 +72,7 @@ import {
             >
             <app-ui-select-advanced
               [(ngModel)]="filters.status"
-              (ngModelChange)="loadRegularizations()"
+              (ngModelChange)="scheduleLoadRegularizations()"
               [options]="statusFilterOptions"
               placeholder="All Status"
               size="sm"
@@ -86,7 +86,7 @@ import {
             >
             <app-ui-select-advanced
               [(ngModel)]="filters.type"
-              (ngModelChange)="loadRegularizations()"
+              (ngModelChange)="scheduleLoadRegularizations()"
               [options]="typeFilterOptions"
               placeholder="All Types"
               size="sm"
@@ -101,7 +101,7 @@ import {
             <input
               type="date"
               [(ngModel)]="filters.startDate"
-              (change)="loadRegularizations()"
+              (change)="scheduleLoadRegularizations()"
               class="w-full rounded-md border border-slate-300 px-4 py-3 focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-200"
             />
           </div>
@@ -112,7 +112,7 @@ import {
             <input
               type="date"
               [(ngModel)]="filters.endDate"
-              (change)="loadRegularizations()"
+              (change)="scheduleLoadRegularizations()"
               class="w-full rounded-md border border-slate-300 px-4 py-3 focus:border-slate-900 focus:outline-none focus:ring-4 focus:ring-slate-200"
             />
           </div>
@@ -351,6 +351,7 @@ export class RegularizationComponent implements OnInit {
   private regularizationService = inject(RegularizationService);
   private toastService = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private filterDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   regularizations: RegularizationRequest[] = [];
   loading = false;
@@ -409,6 +410,13 @@ export class RegularizationComponent implements OnInit {
       this.filters.type = filterType;
     }
     this.loadRegularizations();
+  }
+
+  scheduleLoadRegularizations() {
+    if (this.filterDebounceTimer) {
+      clearTimeout(this.filterDebounceTimer);
+    }
+    this.filterDebounceTimer = setTimeout(() => this.loadRegularizations(), 250);
   }
 
   pendingCount(): number {

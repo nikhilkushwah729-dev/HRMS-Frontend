@@ -42,7 +42,7 @@ import { LanguageService } from '../../../../core/services/language.service';
             </div>
 
             <div class="flex flex-wrap items-center gap-4">
-              <button (click)="navigate.emit('/attendance')" class="flex h-14 items-center gap-3 rounded-2xl bg-slate-900 px-8 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]">
+              <button (click)="punchAction.emit()" class="flex h-14 items-center gap-3 rounded-2xl bg-slate-900 px-8 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
                 {{ t('selfService.greeting.dailyPunch') }}
               </button>
@@ -92,6 +92,7 @@ export class EssGreetingComponent {
 
   navigate = output<string>();
   closeBanner = output<void>();
+  punchAction = output<void>();
   readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
     this.languageService.t(key, params);
 

@@ -26,6 +26,12 @@ export interface MyTeamResponse {
     members: User[];
 }
 
+export interface KioskPinResponse {
+    id: number;
+    employeeCode: string;
+    kioskPinConfigured: boolean;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -234,6 +240,40 @@ export class EmployeeService {
     getEmployees(): Observable<User[]> {
         return this.http.get<any>(`${this.apiUrl}/employees`).pipe(
             map(res => this.mapEmployeeListResponse(res))
+        );
+    }
+
+    setKioskPin(employeeId: number, pin: string): Observable<KioskPinResponse> {
+        return this.http.post<any>(`${this.apiUrl}/employees/${employeeId}/kiosk-pin`, { pin }).pipe(
+            map((res) => res?.data ?? res),
+            tap(() => {
+                this.auditLogService.logAction(
+                    AuditAction.UPDATE,
+                    AuditModule.EMPLOYEES,
+                    {
+                        entityName: 'Kiosk PIN',
+                        entityId: String(employeeId),
+                        newValues: { kioskPinConfigured: true },
+                    }
+                ).subscribe();
+            })
+        );
+    }
+
+    resetKioskPin(employeeId: number): Observable<KioskPinResponse> {
+        return this.http.delete<any>(`${this.apiUrl}/employees/${employeeId}/kiosk-pin`).pipe(
+            map((res) => res?.data ?? res),
+            tap(() => {
+                this.auditLogService.logAction(
+                    AuditAction.UPDATE,
+                    AuditModule.EMPLOYEES,
+                    {
+                        entityName: 'Kiosk PIN',
+                        entityId: String(employeeId),
+                        newValues: { kioskPinConfigured: false },
+                    }
+                ).subscribe();
+            })
         );
     }
 

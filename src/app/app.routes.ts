@@ -23,6 +23,13 @@ export const routes: Routes = [
         (m) => m.PrivacyPolicyComponent,
       ),
   },
+  {
+    path: 'kiosk',
+    loadComponent: () =>
+      import('./features/kiosk/kiosk-home/kiosk-home.component').then(
+        (m) => m.KioskHomeComponent,
+      ),
+  },
 
   {
     path: '',
@@ -119,6 +126,16 @@ export const routes: Routes = [
         data: {
           permission: 'attendance.view',
           attendanceMode: 'self',
+        },
+      },
+      {
+        path: 'self-service/attendance-qr',
+        loadComponent: () =>
+          import('./features/self-service/attendance-qr.component').then(
+            (m) => m.AttendanceQrComponent,
+          ),
+        data: {
+          permission: 'attendance.view',
         },
       },
       {
@@ -554,6 +571,55 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/announcements.component').then(
             (m) => m.AnnouncementsComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/kiosk-list/kiosk-list.component').then(
+            (m) => m.KioskListComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/approvals',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/kiosk-approvals/kiosk-approvals.component').then(
+            (m) => m.KioskApprovalsComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/logs',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/attendance-logs/attendance-logs.component').then(
+            (m) => m.KioskAttendanceLogsComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/face-profiles',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/face-profile-approvals/face-profile-approvals.component').then(
+            (m) => m.FaceProfileApprovalsComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/pins',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/kiosk-pin-management/kiosk-pin-management.component').then(
+            (m) => m.KioskPinManagementComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/settings',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/kiosk-settings/kiosk-settings.component').then(
+            (m) => m.KioskSettingsComponent,
+          ),
+      },
+      {
+        path: 'admin/kiosks/:id',
+        loadComponent: () =>
+          import('./features/admin/kiosk-management/kiosk-detail/kiosk-detail.component').then(
+            (m) => m.KioskDetailComponent,
           ),
       },
       { path: '', redirectTo: '', pathMatch: 'full' },

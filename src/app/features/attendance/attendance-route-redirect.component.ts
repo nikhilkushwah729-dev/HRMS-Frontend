@@ -51,7 +51,7 @@ export class AttendanceRouteRedirectComponent implements OnInit {
       return;
     }
 
-    const safeEmployeeViews = ['punch', 'calendar', 'stats'];
+    const safeEmployeeViews = ['punch', 'calendar', 'stats', 'records'];
     const nextQueryParams = safeEmployeeViews.includes(requestedView)
       ? { view: requestedView }
       : undefined;

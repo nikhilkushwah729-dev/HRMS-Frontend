@@ -665,7 +665,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               <div class="mt-8 flex flex-wrap gap-3">
                 <button
                   type="button"
-                  (click)="currentTab.set('personal')"
+                  (click)="selectTab('personal')"
                   class="rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Edit Profile
@@ -752,7 +752,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
           <div class="space-y-2">
             <button
               *ngFor="let tab of tabs"
-              (click)="currentTab.set(tab.id)"
+              (click)="selectTab(tab.id)"
               [class.bg-slate-900]="currentTab() === tab.id"
               [class.text-white]="currentTab() === tab.id"
               [class.shadow-xl]="currentTab() === tab.id"
@@ -1530,6 +1530,9 @@ export class ProfileComponent implements OnInit {
   education = signal<any[]>([]);
   experience = signal<any[]>([]);
   documents = signal<any[]>([]);
+  private documentsLoaded = signal(false);
+  private experienceLoaded = signal(false);
+  private educationLoaded = signal(false);
 
   private isDraggingCrop = false;
   private dragStartX = 0;
@@ -1651,6 +1654,7 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     this.refreshProfile();
     this.fetchOrganizationBranding();
+    this.selectTab(this.currentTab());
   }
 
   fetchOrganizationBranding() {
@@ -1704,19 +1708,34 @@ export class ProfileComponent implements OnInit {
       },
     });
 
-    this.loadDynamicData();
   }
 
-  loadDynamicData() {
-    this.employeeService
-      .getDocuments()
-      .subscribe((docs) => this.documents.set(docs));
-    this.employeeService
-      .getExperiences()
-      .subscribe((exps) => this.experience.set(exps));
-    this.employeeService
-      .getEducation()
-      .subscribe((edu) => this.education.set(edu));
+  selectTab(tabId: string) {
+    this.currentTab.set(tabId);
+    this.loadDynamicDataForTab(tabId);
+  }
+
+  loadDynamicDataForTab(tabId: string, forceRefresh = false) {
+    if (tabId === 'documents' && (!this.documentsLoaded() || forceRefresh)) {
+      this.employeeService.getDocuments().subscribe((docs) => {
+        this.documents.set(docs);
+        this.documentsLoaded.set(true);
+      });
+    }
+
+    if (tabId === 'experience' && (!this.experienceLoaded() || forceRefresh)) {
+      this.employeeService.getExperiences().subscribe((exps) => {
+        this.experience.set(exps);
+        this.experienceLoaded.set(true);
+      });
+    }
+
+    if (tabId === 'experience' && (!this.educationLoaded() || forceRefresh)) {
+      this.employeeService.getEducation().subscribe((edu) => {
+        this.education.set(edu);
+        this.educationLoaded.set(true);
+      });
+    }
   }
 
   // ============ MODAL HANDLERS ============
@@ -1779,7 +1798,7 @@ export class ProfileComponent implements OnInit {
 
     obs.subscribe({
       next: () => {
-        this.loadDynamicData();
+        this.loadDynamicDataForTab('experience', true);
         this.closeModals();
         this.saving.set(false);
         this.toastService.success(
@@ -1823,7 +1842,7 @@ export class ProfileComponent implements OnInit {
 
     obs.subscribe({
       next: () => {
-        this.loadDynamicData();
+        this.loadDynamicDataForTab('experience', true);
         this.closeModals();
         this.saving.set(false);
         this.toastService.success(
@@ -1854,7 +1873,7 @@ export class ProfileComponent implements OnInit {
       description: '',
     }).subscribe({
       next: () => {
-        this.loadDynamicData();
+        this.loadDynamicDataForTab('documents', true);
         this.closeModals();
         this.saving.set(false);
         this.toastService.success('Document uploaded');

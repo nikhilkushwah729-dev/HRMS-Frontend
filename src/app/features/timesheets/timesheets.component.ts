@@ -392,57 +392,9 @@ export class TimesheetsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        // MOCK DATA for perfect UI
-        const mockData: Timesheet[] = [
-          {
-            id: 1,
-            projectId: 1,
-            project: { name: 'Website Redesign' },
-            workDate: '2025-03-24',
-            hoursWorked: 8,
-            status: 'approved',
-            description:
-              'Implementing new homepage hero section and navigation.',
-          },
-          {
-            id: 2,
-            projectId: 1,
-            project: { name: 'Website Redesign' },
-            workDate: '2025-03-23',
-            hoursWorked: 7.5,
-            status: 'approved',
-            description: 'Refactoring CSS modules for better performance.',
-          },
-          {
-            id: 3,
-            projectId: 2,
-            project: { name: 'HR Portal Phase 2' },
-            workDate: '2025-03-22',
-            hoursWorked: 8,
-            status: 'pending',
-            description: 'Developing core attendance logic and signal stores.',
-          },
-          {
-            id: 4,
-            projectId: 2,
-            project: { name: 'HR Portal Phase 2' },
-            workDate: '2025-03-21',
-            hoursWorked: 6,
-            status: 'approved',
-            description: 'UI audit and fixing border-radius across modules.',
-          },
-          {
-            id: 5,
-            projectId: 3,
-            project: { name: 'Mobile App API' },
-            workDate: '2025-03-24',
-            hoursWorked: 4,
-            status: 'pending',
-            description: 'Reviewing authentication flow and token refresh.',
-          },
-        ] as any[];
-        this.processTimesheets(mockData);
+        this.processTimesheets([]);
         this.loading.set(false);
+        this.toastService.error(this.t('timesheet.timeLoggedFailed'));
       },
     });
   }
@@ -473,15 +425,7 @@ export class TimesheetsComponent implements OnInit {
   loadProjects() {
     this.projectService.getProjects().subscribe({
       next: (data) => this.projects.set(data),
-      error: () => {
-        // MOCK DATA for perfect UI
-        this.projects.set([
-          { id: 1, name: 'Website Redesign' },
-          { id: 2, name: 'HR Portal Phase 2' },
-          { id: 3, name: 'Mobile App API' },
-          { id: 4, name: 'Cloud Migration' },
-        ]);
-      },
+      error: () => this.projects.set([]),
     });
   }
 

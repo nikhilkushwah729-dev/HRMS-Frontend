@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, map, tap, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface BillingPlan {
@@ -89,8 +89,11 @@ export interface LegacyBillingContext {
 export class SubscriptionService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/billing`;
+  private readonly statusCacheTtlMs = 5 * 60 * 1000;
 
   private statusSignal = signal<SubscriptionStatusPayload | null>(null);
+  private statusCache$?: Observable<SubscriptionStatusPayload>;
+  private statusCacheAt = 0;
   readonly status = this.statusSignal.asReadonly();
   readonly bannerVisible = computed(() => {
     const status = this.statusSignal();
@@ -110,10 +113,18 @@ export class SubscriptionService {
   }
 
   getStatus(): Observable<SubscriptionStatusPayload> {
-    return this.http.get<any>(`${this.apiUrl}/status`).pipe(
+    if (this.statusCache$ && Date.now() - this.statusCacheAt < this.statusCacheTtlMs) {
+      return this.statusCache$;
+    }
+
+    this.statusCacheAt = Date.now();
+    this.statusCache$ = this.http.get<any>(`${this.apiUrl}/status`).pipe(
       map((res) => this.unwrap<SubscriptionStatusPayload>(res)),
-      tap((status) => this.statusSignal.set(status))
+      tap((status) => this.statusSignal.set(status)),
+      shareReplay(1)
     );
+
+    return this.statusCache$;
   }
 
   createUpgradeIntent(payload: { planId: number; billingCycle: 'monthly' | 'yearly'; gateway: 'razorpay' | 'stripe' }) {

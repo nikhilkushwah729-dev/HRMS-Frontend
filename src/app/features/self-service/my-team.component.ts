@@ -72,7 +72,7 @@ type TeamTab = 'all' | 'reportees' | 'peers';
             }
 
             <div class="mt-5 grid grid-cols-2 gap-2">
-              <a routerLink="/attendance?view=calendar" class="rounded-md border border-slate-200 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50">
+              <a routerLink="/self-service/attendance" [queryParams]="{ view: 'calendar' }" class="rounded-md border border-slate-200 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50">
                 Attendance
               </a>
               <a routerLink="/leaves?view=request" class="rounded-md border border-slate-200 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50">
@@ -116,7 +116,7 @@ type TeamTab = 'all' | 'reportees' | 'peers';
           </div>
         </aside>
 
-        <div class="rounded-md border border-slate-200 bg-white shadow-sm">
+        <div class="flex min-h-[620px] max-h-[calc(100vh-10rem)] flex-col overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
           <div class="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 class="text-lg font-black text-slate-900">{{ activeTitle() }}</h2>
@@ -128,23 +128,28 @@ type TeamTab = 'all' | 'reportees' | 'peers';
           </div>
 
           @if (loading()) {
-            <div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+            <div class="team-scroll-area flex-1 overflow-y-auto">
+              <div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
               @for (i of [1,2,3,4,5,6]; track i) {
                 <div class="h-40 animate-pulse rounded-md bg-slate-100"></div>
               }
+              </div>
             </div>
           } @else if (!filteredMembers().length) {
-            <div class="flex min-h-[280px] flex-col items-center justify-center px-5 py-12 text-center">
-              <div class="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div class="team-scroll-area flex-1 overflow-y-auto">
+              <div class="flex min-h-[280px] flex-col items-center justify-center px-5 py-12 text-center">
+                <div class="flex h-14 w-14 items-center justify-center rounded-md bg-slate-100 text-slate-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <p class="mt-4 font-black text-slate-800">No team members found</p>
+                <p class="mt-2 max-w-md text-sm text-slate-500">Assign reporting managers in employee profiles to populate peers and direct reportees.</p>
               </div>
-              <p class="mt-4 font-black text-slate-800">No team members found</p>
-              <p class="mt-2 max-w-md text-sm text-slate-500">Assign reporting managers in employee profiles to populate peers and direct reportees.</p>
             </div>
           } @else {
-            <div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
+            <div class="team-scroll-area flex-1 overflow-y-auto">
+              <div class="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
               @for (person of filteredMembers(); track person.id) {
-                <article class="rounded-md border border-slate-200 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
+                <article class="flex h-full flex-col rounded-md border border-slate-200 bg-white p-4 transition hover:border-sky-200 hover:shadow-sm">
                   <div class="flex items-start gap-3">
                     <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-slate-900 text-sm font-black text-white">
                       {{ initials(person) }}
@@ -174,7 +179,7 @@ type TeamTab = 'all' | 'reportees' | 'peers';
                     </div>
                   </div>
 
-                  <div class="mt-4 flex gap-2">
+                  <div class="mt-auto flex gap-2 pt-4">
                     <a [routerLink]="['/employees/view', person.id]" class="flex-1 rounded-md border border-slate-200 px-3 py-2 text-center text-xs font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50">
                       View
                     </a>
@@ -184,12 +189,19 @@ type TeamTab = 'all' | 'reportees' | 'peers';
                   </div>
                 </article>
               }
+              </div>
             </div>
           }
         </div>
       </section>
     </div>
   `,
+  styles: [`
+    .team-scroll-area::-webkit-scrollbar { width: 8px; }
+    .team-scroll-area::-webkit-scrollbar-track { background: transparent; }
+    .team-scroll-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    .team-scroll-area::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  `],
 })
 export class MyTeamComponent implements OnInit {
   private employeeService = inject(EmployeeService);

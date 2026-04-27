@@ -1,8 +1,7 @@
-import { Component, OnInit, inject, signal, computed, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin } from 'rxjs';
 
 // Widgets
 import { EssGreetingComponent } from './ess-dashboard/widgets/ess-greeting.component';
@@ -11,14 +10,11 @@ import { EssNetworkHubComponent } from './ess-dashboard/widgets/ess-network-hub.
 import { EssAttendanceCenterComponent } from './ess-dashboard/widgets/ess-attendance-center.component';
 import { EssPulseComponent, DashboardHighlight } from './ess-dashboard/widgets/ess-pulse.component';
 import { EssAnnouncementsComponent } from './ess-dashboard/widgets/ess-announcements.component';
-import { EssWorkflowCenterComponent, WorkflowCenterCard } from './ess-dashboard/widgets/ess-workflow-center.component';
-import { EssQuickActionsComponent, QuickAction } from './ess-dashboard/widgets/ess-quick-actions.component';
 import { EssCalendarComponent, CalendarDay } from './ess-dashboard/widgets/ess-calendar.component';
 import { EssLeaveBalanceComponent } from './ess-dashboard/widgets/ess-leave-balance.component';
 import { EssHolidaysComponent } from './ess-dashboard/widgets/ess-holidays.component';
 import { EssRequestsLedgerComponent } from './ess-dashboard/widgets/ess-requests-ledger.component';
-import { EssWorkbenchComponent, WorkbenchProject, WorkbenchTimesheet } from './ess-dashboard/widgets/ess-workbench.component';
-import { EssTeamEngagementComponent } from './ess-dashboard/widgets/ess-team-engagement.component';
+import { AttendancePunchComponent } from '../attendance/components/attendance-punch.component';
 
 // Services
 import { AuthService } from '../../core/services/auth.service';
@@ -31,8 +27,7 @@ import { OrganizationService } from '../../core/services/organization.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { LiveRefreshService } from '../../core/services/live-refresh.service';
-import { ReportService, DailyReport } from '../../core/services/report.service';
+import { LiveRefreshService, LiveRefreshTrigger } from '../../core/services/live-refresh.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
 
@@ -41,8 +36,11 @@ import { User } from '../../core/models/auth.model';
 import confetti from 'canvas-confetti';
 import { TodayAttendance } from '../../core/services/attendance.service';
 import { Timesheet } from '../../core/services/timesheet.service';
-import { Organization } from '../../core/services/organization.service';
+import { Organization, OrganizationHoliday } from '../../core/services/organization.service';
 import { GeoFenceSettings, AttendanceShift } from '../../core/services/attendance.service';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 export interface DashboardProjectCard {
   id: number;
@@ -104,162 +102,124 @@ interface HolidayCalendarItem {
     EssAttendanceCenterComponent,
     EssPulseComponent,
     EssAnnouncementsComponent,
-    EssWorkflowCenterComponent,
-    EssQuickActionsComponent,
     EssCalendarComponent,
     EssLeaveBalanceComponent,
     EssHolidaysComponent,
     EssRequestsLedgerComponent,
-    EssWorkbenchComponent,
-    EssTeamEngagementComponent
+    AttendancePunchComponent
   ],
   template: `
     <div class="ess-clean-panel min-h-full bg-[#f8fafc]">
-      <div class="mx-auto w-full max-w-[1600px] space-y-6 p-4 sm:p-6 lg:p-8">
-        <!-- Header Section -->
-        <header class="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-              </span>
-              <span class="text-xs font-black uppercase tracking-widest text-slate-400">{{ t('selfService.workspace') }}</span>
-            </div>
-            <h1 class="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">{{ t('selfService.heroTitle') }}</h1>
-            <p class="text-sm font-bold text-slate-500">{{ t('selfService.heroSubtitle') }}</p>
-          </div>
+      <div class="mx-auto w-full max-w-[1440px] space-y-4 p-4 sm:p-5 lg:p-6">
+        <app-ess-announcements [announcements]="announcements()" [announcement]="announcements()[0]"></app-ess-announcements>
 
-          <div class="flex flex-wrap items-center gap-3">
-             <div class="flex items-center gap-3 rounded-xl bg-white p-2 pr-4 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" x2="8" y1="13" y2="13"></line><line x1="16" x2="8" y1="17" y2="17"></line><line x1="10" x2="8" y1="9" y2="9"></line></svg>
-                </div>
-                <div>
-                   <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Requests</p>
-                   <p class="text-sm font-black text-slate-900">{{ pendingRequests() }}</p>
-                </div>
-             </div>
-             <div class="flex items-center gap-3 rounded-xl bg-white p-2 pr-4 shadow-sm ring-1 ring-slate-100 transition hover:shadow-md">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                </div>
-                <div>
-                   <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Leave Balance</p>
-                   <p class="text-sm font-black text-slate-900">{{ totalLeaveBalance() }}</p>
-                </div>
-             </div>
-          </div>
-        </header>
-
-        <app-ess-greeting 
-          [user]="currentUser()" 
-          [specialMessage]="specialMessage()" 
+        <app-ess-greeting
+          [user]="currentUser()"
+          [specialMessage]="specialMessage()"
           [currentTime]="currentTime()"
           (navigate)="navigateTo($event)"
+          (punchAction)="showPunchModal.set(true)"
           (closeBanner)="specialMessage.set([])">
         </app-ess-greeting>
 
-        <div class="space-y-5">
-          <!-- Quick Glance Stats -->
-          <app-ess-stats [stats]="workspaceStats()"></app-ess-stats>
+        <app-ess-stats [stats]="workspaceStats()"></app-ess-stats>
 
-          <!-- Main Dashboard Grid: Modern Keka-style 2-Column Split -->
-          <div class="grid grid-cols-1 items-start gap-5 xl:grid-cols-12">
-            
-            <!-- Left Column: Main Feed/Activity (8/12) -->
-            <div class="min-w-0 space-y-5 xl:col-span-8">
-              
-              <!-- Network Hub: "Who's In" Feel -->
-              <app-ess-network-hub 
-                [teammates]="teammates()" 
+        <div class="grid grid-cols-1 gap-4 xl:auto-rows-[165px] xl:grid-cols-12">
+          <div class="min-w-0 xl:col-span-7 xl:row-span-4">
+              <app-ess-network-hub
+                [teammates]="teammates()"
                 [reportees]="reportees()"
                 [currentUserName]="currentUserFullName()"
                 [managerName]="currentManagerName()"
                 [canViewEmployeeProfiles]="canAccess('/employees')"
                 (navigate)="navigateTo($event)"
-                class="min-h-[420px]">
+                class="block h-full min-h-[420px]">
               </app-ess-network-hub>
+          </div>
 
-              <!-- Workspace Highlights -->
-              <app-ess-pulse 
-                [highlights]="workspaceHighlights()" 
-                [unreadCount]="notificationService.unreadCount()"
-                class="min-h-[360px]">
-              </app-ess-pulse>
-
-              <div class="space-y-4">
-                <!-- Request History & Tracking -->
-                <app-ess-requests-ledger 
-                  [requests]="myLeaveRequests()"
-                  (viewAll)="navigateTo('/leaves')"
-                  class="min-h-[390px]">
-                </app-ess-requests-ledger>
-
-                <!-- Full Attendance Calendar -->
-                <app-ess-calendar 
-                  [monthDate]="calendarCursor()"
-                  [summary]="calendarSummary()"
-                  [legends]="calendarLegends()"
-                  [days]="calendarGrid()"
-                  [selectedDay]="selectedCalendarDay()"
-                  [selectedMetrics]="selectedCalendarViewMetrics()"
-                  [selectedNotes]="selectedCalendarViewNotes()"
-                  (previousMonth)="previousCalendarMonth()"
-                  (nextMonth)="nextCalendarMonth()"
-                  (jumpToToday)="jumpToCurrentMonth()"
-                  (selectDay)="openCalendarDay($event)"
-                  (closeDetail)="closeCalendarDay()"
-                  (navigate)="navigateTo($event)"
-                  class="min-h-[620px]">
-                </app-ess-calendar>
-              </div>
-
-              <!-- Organizational Announcements -->
-              <app-ess-announcements [announcement]="announcements()[0]"></app-ess-announcements>
-
-              <div class="grid grid-cols-1 gap-5 2xl:grid-cols-2">
-                <app-ess-quick-actions
-                  [actions]="quickActions()"
-                  (navigate)="navigateTo($event)"
-                  class="min-h-[290px]">
-                </app-ess-quick-actions>
-
-                <app-ess-workflow-center
-                  [workflows]="workflowCenter()"
-                  (navigate)="navigateTo($event)"
-                  class="min-h-[290px]">
-                </app-ess-workflow-center>
-              </div>
-
-              <app-ess-workbench
-                [projects]="projectWorkbench()"
-                [timesheets]="timesheetWorkbench()"
+          <div class="min-w-0 xl:col-span-5 xl:row-span-4">
+              <app-ess-calendar
+                [monthDate]="calendarCursor()"
+                [summary]="calendarSummary()"
+                [legends]="calendarLegends()"
+                [days]="calendarGrid()"
+                [selectedDay]="selectedCalendarDay()"
+                [selectedMetrics]="selectedCalendarViewMetrics()"
+                [selectedNotes]="selectedCalendarViewNotes()"
+                (previousMonth)="previousCalendarMonth()"
+                (nextMonth)="nextCalendarMonth()"
+                (jumpToToday)="jumpToCurrentMonth()"
+                (selectDay)="openCalendarDay($event)"
+                (closeDetail)="closeCalendarDay()"
                 (navigate)="navigateTo($event)"
-                class="min-h-[360px]">
-              </app-ess-workbench>
+                class="block h-full min-h-[420px]">
+              </app-ess-calendar>
+          </div>
+
+          <div class="min-w-0 xl:col-span-7 xl:row-span-3">
+              <app-ess-pulse
+                [highlights]="workspaceHighlights()"
+                [unreadCount]="notificationService.unreadCount()"
+                class="block h-full min-h-[390px]">
+              </app-ess-pulse>
+          </div>
+
+          <div class="min-w-0 xl:col-span-5 xl:row-span-3">
+              <div class="grid h-full grid-cols-1 gap-4 xl:grid-rows-[1.9fr_1.1fr]">
+                <app-ess-attendance-center
+                  [todayStatus]="todayStatus()"
+                  class="block h-full min-h-[260px]">
+                </app-ess-attendance-center>
+
+                <app-ess-leave-balance
+                  [balances]="leaveBalances()"
+                  (requestLeave)="navigateTo('/leaves')"
+                  class="block h-full min-h-[190px]">
+                </app-ess-leave-balance>
+              </div>
+          </div>
+
+          <div class="min-w-0 xl:col-span-4 xl:row-span-3">
+              <app-ess-holidays
+                [holidays]="upcomingHolidays()"
+                class="block h-full min-h-[390px]">
+              </app-ess-holidays>
+          </div>
+
+          <div class="min-w-0 xl:col-span-8 xl:row-span-3">
+              <app-ess-requests-ledger
+                [requests]="myLeaveRequests()"
+                (viewAll)="navigateTo('/leaves')"
+                class="block h-full min-h-[390px]">
+              </app-ess-requests-ledger>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Punch Modal -->
+    <div *ngIf="showPunchModal()" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="showPunchModal.set(false)"></div>
+      <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-full animate-in fade-in zoom-in duration-200">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
+          <div class="flex items-center gap-4">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-600">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
             </div>
-
-            <!-- Right Column: Personal & Team Context (4/12) - STICKY -->
-            <div class="min-w-0 space-y-5 xl:sticky xl:top-24 xl:col-span-4">
-              
-              <!-- Real-time Web Clock -->
-              <app-ess-attendance-center [todayStatus]="todayStatus()" class="min-h-[400px]"></app-ess-attendance-center>
-
-              <!-- Rapid Leave Balances -->
-              <app-ess-leave-balance 
-                [balances]="leaveBalances()"
-                (requestLeave)="navigateTo('/leaves')"
-                class="min-h-[400px]">
-              </app-ess-leave-balance>
-
-              <!-- Holiday Countdown -->
-              <app-ess-holidays [holidays]="upcomingHolidays()" class="min-h-[320px]"></app-ess-holidays>
-
-              <!-- Team Engagement (Birthdays/Anniversary) -->
-              <app-ess-team-engagement [occasions]="teamOccasions()" class="min-h-[320px]"></app-ess-team-engagement>
-
+            <div>
+              <h2 class="text-xl font-black tracking-tight text-slate-900">Mark Attendance</h2>
+              <p class="text-sm font-bold text-slate-500">Record your daily punch seamlessly</p>
             </div>
           </div>
+          <button (click)="showPunchModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        
+        <!-- Body -->
+        <div class="p-4 sm:p-5 overflow-y-auto">
+          <app-attendance-punch (punchSuccess)="onPunchSuccess()"></app-attendance-punch>
         </div>
       </div>
     </div>
@@ -285,9 +245,26 @@ interface HolidayCalendarItem {
     :host ::ng-deep .ess-clean-panel .hover\\:-translate-y-1:hover {
       transform: none !important;
     }
+
+    :host ::ng-deep .ess-clean-panel app-ess-network-hub,
+    :host ::ng-deep .ess-clean-panel app-ess-calendar,
+    :host ::ng-deep .ess-clean-panel app-ess-pulse,
+    :host ::ng-deep .ess-clean-panel app-ess-attendance-center,
+    :host ::ng-deep .ess-clean-panel app-ess-leave-balance,
+    :host ::ng-deep .ess-clean-panel app-ess-holidays,
+    :host ::ng-deep .ess-clean-panel app-ess-requests-ledger {
+      display: block;
+      width: 100%;
+    }
+
+    :host ::ng-deep #selfServiceAttendanceChart,
+    :host ::ng-deep #selfServiceLeaveChart {
+      width: 100% !important;
+      height: 100% !important;
+    }
   `],
 })
-export class SelfServiceComponent implements OnInit {
+export class SelfServiceComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private attendanceService = inject(AttendanceService);
   private leaveService = inject(LeaveService);
@@ -299,7 +276,6 @@ export class SelfServiceComponent implements OnInit {
   private announcementService = inject(AnnouncementService);
   public notificationService = inject(NotificationService);
   private liveRefreshService = inject(LiveRefreshService);
-  private reportService = inject(ReportService);
   private toastService = inject(ToastService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
@@ -322,6 +298,7 @@ export class SelfServiceComponent implements OnInit {
   accessibleModules = signal<ModuleCard[]>([]);
   specialMessage = signal<string[]>([]);
   teamOccasions = signal<any[]>([]);
+  showPunchModal = signal<boolean>(false);
 
   calendarCursor = signal<Date>(new Date());
   calendarAttendance = signal<AttendanceRecord[]>([]);
@@ -333,6 +310,9 @@ export class SelfServiceComponent implements OnInit {
   activeShiftCount = signal<number>(0);
   geoFenceSettings = signal<GeoFenceSettings | null>(null);
   weeklyOffPolicyCount = signal<number>(0);
+  private attendanceInsightChart: Chart | null = null;
+  private leaveInsightChart: Chart | null = null;
+  private chartRenderFrame: number | null = null;
 
   calendarGrid = computed(() => this.buildCalendarDays());
   readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
@@ -480,13 +460,14 @@ export class SelfServiceComponent implements OnInit {
     if (!day) return [];
 
     const iso = day.iso;
-    const record = this.calendarAttendance().find(r => this.toIsoDate(new Date(r.date)) === iso);
+    const record = this.calendarAttendance().find((r) => this.tryIsoDate(r.date) === iso);
 
     return [
+      { label: this.t('selfService.calendar.status'), value: day.label || this.t('selfService.notAvailable') },
       { label: this.t('selfService.calendar.checkIn'), value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : this.t('selfService.notAvailable') },
       { label: this.t('selfService.calendar.duration'), value: record?.work_hours ? `${record.work_hours}H` : '0H' },
       { label: this.t('selfService.calendar.overtime'), value: '0H' },
-      { label: this.t('selfService.calendar.location'), value: 'HQ' }
+      { label: this.t('selfService.calendar.location'), value: record?.location_address || 'HQ' }
     ];
   });
 
@@ -494,58 +475,14 @@ export class SelfServiceComponent implements OnInit {
     const day = this.selectedCalendarDay();
     if (!day) return [];
     if (day.statusKey === 'weekend') return [this.t('selfService.calendar.scheduledWeeklyOff')];
-    if (day.statusKey === 'holiday') return [this.t('selfService.calendar.organizationHoliday', { name: day.sublabel })];
-    if (day.statusKey === 'leave') return [this.t('selfService.calendar.approvedLeave', { name: day.label })];
+    if (day.statusKey === 'holiday') return [this.t('selfService.calendar.organizationHoliday', { name: day.sublabel || day.label })];
+    if (day.statusKey === 'leave') return [this.t('selfService.calendar.approvedLeave', { name: day.sublabel || day.label })];
+    if (day.statusKey === 'absent') return ['No check-in was recorded for this day.', 'You can review attendance or raise a correction if needed.'];
+    if (day.statusKey === 'late') return [day.sublabel || 'Late arrival was recorded for this day.', this.t('selfService.calendar.standardWorkdayRecorded')];
     if (day.statusKey === 'present') return [this.t('selfService.calendar.standardWorkdayRecorded'), this.t('selfService.calendar.noAnomalies')];
+    if (day.statusKey === 'upcoming') return ['No attendance data is recorded for this date yet.', 'Select another date to review logged details.'];
     return [this.t('selfService.calendar.noSpecificLogs')];
   });
-
-  quickActions = computed<QuickAction[]>(() => [
-    { title: this.t('selfService.actions.clockInNow'), description: this.t('selfService.actions.startYourShift'), route: '/attendance', icon: 'clock-3', tone: 'primary' },
-    { title: this.t('selfService.actions.applyLeave'), description: this.t('selfService.actions.requestTimeOff'), route: '/leaves', icon: 'calendar-plus', tone: 'success' },
-    { title: this.t('selfService.actions.myRequests'), description: this.t('selfService.actions.trackApprovals'), route: '/self-service/requests', icon: 'layout-grid', tone: 'warning' },
-    { title: this.t('selfService.actions.timesheets'), description: this.t('selfService.actions.logProjectHours'), route: '/timesheets', icon: 'clock-3', tone: 'slate' },
-    { title: this.t('selfService.actions.myProfile'), description: this.t('selfService.actions.updatePersonalDetails'), route: '/profile', icon: 'spark', tone: 'warning' },
-    { title: this.t('selfService.actions.openReports'), description: this.t('selfService.actions.insightsHistory'), route: '/reports-center', icon: 'chart-column', tone: 'slate' },
-    { title: this.t('selfService.actions.moreAddons'), description: this.t('selfService.actions.exploreExtensions'), route: '/add-ons', icon: 'blocks', tone: 'primary' }
-  ]);
-
-  workflowCenter = computed<WorkflowCenterCard[]>(() => {
-    const isAdmin = this.isManager();
-    const list: WorkflowCenterCard[] = [];
-
-    if (isAdmin) {
-      list.push({ key: 'rev', title: this.t('selfService.workflow.reviewEmployees'), description: this.t('selfService.workflow.reviewEmployeesHelp'), route: '/employees', tone: 'border-indigo-100 bg-indigo-50/50', badge: 'ADMIN' });
-      list.push({ key: 'att', title: this.t('selfService.workflow.teamAttendance'), description: this.t('selfService.workflow.teamAttendanceHelp'), route: '/admin/team-attendance', tone: 'border-emerald-100 bg-emerald-50/50', badge: 'LEAD' });
-      list.push({ key: 'apr', title: 'Approval Center', description: 'Review pending leave, attendance regularization, and expense queues.', route: '/admin/approvals', tone: 'border-sky-100 bg-sky-50/50', badge: 'QUEUE' });
-    }
-
-    list.push({ key: 'his', title: this.t('selfService.workflow.activityHistory'), description: this.t('selfService.workflow.activityHistoryHelp'), route: '/reports-center', tone: 'border-slate-100 bg-slate-50/50', badge: 'SELF' });
-    list.push({ key: 'req', title: this.t('selfService.workflow.requestCenter'), description: this.t('selfService.workflow.requestCenterHelp'), route: '/self-service/requests', tone: 'border-violet-100 bg-violet-50/50', badge: 'ESS' });
-    return list;
-  });
-
-  projectWorkbench = computed<WorkbenchProject[]>(() =>
-    this.projects().slice(0, 4).map((project) => ({
-      id: Number(project.id),
-      name: project.name,
-      progress: project.progress,
-      statusLabel: project.statusLabel,
-      deadline: project.deadline,
-      teamSize: project.teamSize
-    }))
-  );
-
-  timesheetWorkbench = computed<WorkbenchTimesheet[]>(() =>
-    this.timesheets().slice(0, 4).map((entry) => ({
-      id: Number(entry.id),
-      projectName: entry.projectName,
-      workDate: entry.workDate,
-      hours: entry.hours,
-      description: entry.description,
-      status: entry.status
-    }))
-  );
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser() as User | null);
@@ -561,19 +498,29 @@ export class SelfServiceComponent implements OnInit {
     this.loadOccasions();
     this.notificationService.loadNotifications();
 
-    this.liveRefreshService.createStream(30000)
+    this.liveRefreshService.createStream(120000)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.loadData();
-        this.loadEmployees();
-        this.loadAddons();
-        this.loadAnnouncements();
-        this.loadCalendarMonth();
-        this.permissionService.syncForUser(this.currentUser());
-        this.notificationService.loadNotifications();
-        this.loadSystemSettings();
-        this.currentTime.set(new Date().toLocaleTimeString(this.languageService.currentLanguage().locale, { hour: '2-digit', minute: '2-digit' }));
+      .subscribe((trigger) => {
+        this.refreshDashboardData(trigger);
       });
+  }
+
+  ngOnDestroy(): void {
+    if (this.chartRenderFrame !== null) {
+      cancelAnimationFrame(this.chartRenderFrame);
+      this.chartRenderFrame = null;
+    }
+    this.attendanceInsightChart?.destroy();
+    this.leaveInsightChart?.destroy();
+  }
+
+  onPunchSuccess() {
+    this.showPunchModal.set(false);
+    this.loadData();
+    this.loadCalendarMonth();
+    this.attendanceService.getTodayAttendance().subscribe({
+      next: (data) => this.todayStatus.set(data)
+    });
   }
 
   loadOccasions() {
@@ -596,17 +543,8 @@ export class SelfServiceComponent implements OnInit {
         }
       },
       error: () => {
-        const mock = [
-          { id: 101, firstName: 'Aarav', lastName: 'Sharma', designation: 'Senior Designer', isBirthday: true, avatar: null },
-          { id: 102, firstName: 'Ishani', lastName: 'Mehta', designation: 'HR lead', isBirthday: false, avatar: null }
-        ];
-        this.teamOccasions.set(mock);
-
-        const today = new Date();
-        if (today.getDate() === 1) {
-          this.specialMessage.set([this.t('selfService.newYearTitle'), this.t('selfService.newYearBody')]);
-          this.playConfetti();
-        }
+        this.teamOccasions.set([]);
+        this.specialMessage.set([]);
       }
     });
   }
@@ -625,19 +563,19 @@ export class SelfServiceComponent implements OnInit {
     this.attendanceService.getTodayAttendance().subscribe({
       next: (data) => this.todayStatus.set(data),
       error: () => {
-        const today = new Date();
-        const checkInTime = new Date(today);
-        checkInTime.setHours(9, 0, 0, 0);
-        this.todayStatus.set({
-          is_clocked_in: true,
-          is_clocked_out: false,
-          check_in: checkInTime.toISOString(),
-          check_out: null,
-          current_status: 'working',
-          break_time_minutes: 0,
-          total_work_hours: 6.5,
-          overtime_hours: 0
-        });
+        this.todayStatus.set(null);
+        this.scheduleInsightCharts();
+      }
+    });
+
+    this.attendanceService.getAttendanceHistory().subscribe({
+      next: (records: AttendanceRecord[]) => {
+        this.recentAttendance.set((records || []).slice(0, 7));
+        this.scheduleInsightCharts();
+      },
+      error: () => {
+        this.recentAttendance.set([]);
+        this.scheduleInsightCharts();
       }
     });
 
@@ -645,8 +583,12 @@ export class SelfServiceComponent implements OnInit {
       next: (balances: any[]) => {
         this.leaveBalances.set(balances);
         this.totalLeaveBalance.set(balances.reduce((sum: number, b: any) => sum + (b.remaining || 0), 0));
+        this.scheduleInsightCharts();
       },
-      error: () => this.leaveBalances.set([])
+      error: () => {
+        this.leaveBalances.set([]);
+        this.scheduleInsightCharts();
+      }
     });
 
     this.leaveService.getLeaveHistory().subscribe({
@@ -663,6 +605,18 @@ export class SelfServiceComponent implements OnInit {
 
     this.loadProjects();
     this.loadTimesheets();
+  }
+
+  private refreshDashboardData(trigger: LiveRefreshTrigger): void {
+    this.loadData();
+    this.loadCalendarMonth();
+    this.notificationService.loadNotifications(trigger !== 'interval');
+    this.currentTime.set(new Date().toLocaleTimeString(this.languageService.currentLanguage().locale, { hour: '2-digit', minute: '2-digit' }));
+
+    if (trigger !== 'interval') {
+      this.loadAnnouncements();
+      this.permissionService.syncForUser(this.currentUser());
+    }
   }
 
   private loadProjects(): void {
@@ -830,21 +784,17 @@ export class SelfServiceComponent implements OnInit {
       return;
     }
 
-    const requests: Array<ReturnType<ReportService['getDailyReport']>> = [];
-    for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
-      requests.push(this.reportService.getDailyReport(this.toIsoDate(cursor)));
-    }
-
-    forkJoin(requests).subscribe({
-      next: (days: DailyReport[]) => {
-        const holidays = days
-          .filter((day) => day.holidays > 0)
-          .map((day) => ({
-            date: day.date,
-            name: this.inferHolidayName(day.date)
+    this.organizationService.getHolidays().subscribe({
+      next: (holidays: OrganizationHoliday[]) => {
+        const filtered = (holidays || [])
+          .filter((holiday) => holiday.holidayDate >= startIso && holiday.holidayDate <= endIso)
+          .sort((a, b) => a.holidayDate.localeCompare(b.holidayDate))
+          .map((holiday) => ({
+            date: holiday.holidayDate,
+            name: holiday.name || this.inferHolidayName(holiday.holidayDate)
           }));
 
-        this.upcomingHolidays.set(holidays);
+        this.upcomingHolidays.set(filtered);
         this.holidayWindowStart.set(startIso);
         this.holidayWindowEnd.set(endIso);
       },
@@ -877,8 +827,14 @@ export class SelfServiceComponent implements OnInit {
       startDate: this.toIsoDate(startDate),
       endDate: this.toIsoDate(endDate),
     }).subscribe({
-      next: (records: AttendanceRecord[]) => this.calendarAttendance.set(records || []),
-      error: () => this.calendarAttendance.set([])
+      next: (records: AttendanceRecord[]) => {
+        this.calendarAttendance.set(records || []);
+        this.scheduleInsightCharts();
+      },
+      error: () => {
+        this.calendarAttendance.set([]);
+        this.scheduleInsightCharts();
+      }
     });
   }
 
@@ -920,7 +876,14 @@ export class SelfServiceComponent implements OnInit {
     const gridEnd = new Date(lastDay);
     gridEnd.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
 
-    const attendanceByDate = new Map(this.calendarAttendance().map(r => [this.toIsoDate(new Date(r.date)), r]));
+    const attendanceByDate = new Map(
+      this.calendarAttendance()
+        .map((r) => {
+          const iso = this.tryIsoDate(r.date);
+          return iso ? [iso, r] as const : null;
+        })
+        .filter((entry): entry is readonly [string, AttendanceRecord] => entry !== null)
+    );
     const holidaysByDate = new Map(this.upcomingHolidays().map(h => [h.date, h.name]));
     const todayKey = this.toIsoDate(new Date());
     const items: CalendarDay[] = [];
@@ -944,7 +907,38 @@ export class SelfServiceComponent implements OnInit {
     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
     if (holiday) return { statusKey: 'holiday', label: this.t('selfService.holiday'), sublabel: holiday, dotClass: 'bg-sky-500', chipClass: 'border-sky-200 bg-sky-50 text-sky-700', cardClass: 'border-sky-100 bg-sky-50/50' };
     if (att) {
-      const isLate = att.is_late || (att.status === 'late');
+      const normalizedStatus = String(att.status || '').toLowerCase();
+      if (normalizedStatus === 'absent') {
+        return {
+          statusKey: 'absent',
+          label: this.t('selfService.absent'),
+          sublabel: 'Attendance not marked',
+          dotClass: 'bg-rose-500',
+          chipClass: 'border-rose-200 bg-rose-50/90 text-rose-700',
+          cardClass: 'border-rose-100 bg-gradient-to-br from-rose-50/95 to-white'
+        };
+      }
+      if (normalizedStatus === 'on_leave') {
+        return {
+          statusKey: 'leave',
+          label: this.t('selfService.leave'),
+          sublabel: att.notes || this.t('selfService.calendar.approvedTimeOff'),
+          dotClass: 'bg-violet-500',
+          chipClass: 'border-violet-200 bg-violet-50/90 text-violet-700',
+          cardClass: 'border-violet-100 bg-gradient-to-br from-violet-50/95 to-white'
+        };
+      }
+      if (normalizedStatus === 'holiday') {
+        return {
+          statusKey: 'holiday',
+          label: this.t('selfService.holiday'),
+          sublabel: att.notes || this.t('selfService.calendar.organizationBreaks'),
+          dotClass: 'bg-sky-500',
+          chipClass: 'border-sky-200 bg-sky-50/90 text-sky-700',
+          cardClass: 'border-sky-100 bg-gradient-to-br from-sky-50/95 to-white'
+        };
+      }
+      const isLate = att.is_late || normalizedStatus === 'late';
       return {
         statusKey: isLate ? 'late' : 'present',
         label: isLate ? this.t('selfService.late') : this.t('selfService.present'),
@@ -962,6 +956,118 @@ export class SelfServiceComponent implements OnInit {
 
   private toIsoDate(date: Date): string {
     return date.toISOString().split('T')[0];
+  }
+
+  private tryIsoDate(value: Date | string | null | undefined): string | null {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return this.toIsoDate(date);
+  }
+
+  private scheduleInsightCharts(): void {
+    if (typeof window === 'undefined') return;
+    if (this.chartRenderFrame !== null) {
+      cancelAnimationFrame(this.chartRenderFrame);
+    }
+    this.chartRenderFrame = requestAnimationFrame(() => {
+      this.chartRenderFrame = null;
+      this.renderAttendanceInsightChart();
+      this.renderLeaveInsightChart();
+    });
+  }
+
+  private renderAttendanceInsightChart(): void {
+    const canvas = document.getElementById('selfServiceAttendanceChart') as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    this.attendanceInsightChart?.destroy();
+
+    const fallbackRecords = this.calendarAttendance()
+      .filter((record) => !!record?.date)
+      .slice(-7);
+    const records = (this.recentAttendance().length ? this.recentAttendance() : fallbackRecords).slice(-7);
+
+    if (!records.length) return;
+
+    const labels = records.map((record) =>
+      new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+    );
+
+    const hours = records.map((record) =>
+      Number(
+        record.work_hours ??
+        0,
+      ),
+    );
+
+    this.attendanceInsightChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Work Hours',
+            data: hours,
+            backgroundColor: records.map((record) => {
+              const status = String(record.status ?? '').toLowerCase();
+              if (status === 'late') return '#f59e0b';
+              if (status === 'absent') return '#f43f5e';
+              if (status === 'on_leave') return '#8b5cf6';
+              return '#0f766e';
+            }),
+            borderRadius: 8,
+            maxBarThickness: 42,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { display: false } },
+          y: { beginAtZero: true, grid: { color: '#e2e8f0' } },
+        },
+        plugins: {
+          legend: { display: false },
+        },
+      },
+    });
+  }
+
+  private renderLeaveInsightChart(): void {
+    const canvas = document.getElementById('selfServiceLeaveChart') as HTMLCanvasElement | null;
+    if (!canvas) return;
+
+    this.leaveInsightChart?.destroy();
+
+    const balances = this.leaveBalances().filter((item) => Number(item?.remaining ?? item?.balance ?? 0) > 0);
+    if (!balances.length) return;
+
+    this.leaveInsightChart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: balances.map((item) => String(item?.type ?? item?.name ?? 'Leave')),
+        datasets: [
+          {
+            data: balances.map((item) => Number(item?.remaining ?? item?.balance ?? 0)),
+            backgroundColor: ['#0f766e', '#14b8a6', '#6366f1', '#f59e0b', '#ec4899', '#38bdf8'],
+            borderWidth: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { usePointStyle: true, font: { weight: 'bold', size: 10 } },
+          },
+        },
+      },
+    });
   }
 
   teammates = computed(() => {

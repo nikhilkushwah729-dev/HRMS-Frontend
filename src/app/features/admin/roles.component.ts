@@ -94,7 +94,11 @@ declare const Object: any;
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <button (click)="editRole(role)" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <button
+                                    (click)="editRole(role)"
+                                    [disabled]="!canEditRole(role)"
+                                    [class]="canEditRole(role) ? 'text-blue-600 hover:text-blue-900 mr-3' : 'text-slate-300 cursor-not-allowed mr-3'"
+                                >
                                     Edit
                                 </button>
                             </td>
@@ -273,6 +277,10 @@ export class RolesComponent implements OnInit {
     }
 
     editRole(role: Role) {
+        if (!this.canEditRole(role)) {
+            this.toastService.info('System or global roles are read-only here.');
+            return;
+        }
         this.loadPermissions();
         this.editingId = role.id;
         this.formData = {
@@ -325,6 +333,10 @@ export class RolesComponent implements OnInit {
                 this.saving = false;
             }
         });
+    }
+
+    canEditRole(role: Role): boolean {
+        return !role.isSystem && role.orgId !== null && role.orgId !== undefined;
     }
 
 }

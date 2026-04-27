@@ -10,6 +10,8 @@ export interface Role {
     roleName?: string;
     description?: string;
     isDefault?: boolean;
+    isSystem?: boolean;
+    orgId?: number | null;
     permissions?: Array<number | string>;
     createdAt?: string;
     updatedAt?: string;
@@ -47,6 +49,8 @@ export class RoleService {
             roleName: raw.roleName || raw.name,
             description: raw.description,
             isDefault: Boolean(raw.isDefault ?? raw.is_default),
+            isSystem: Boolean(raw.isSystem ?? raw.is_system),
+            orgId: raw.orgId ?? raw.org_id ?? null,
             permissions,
             createdAt: raw.createdAt || raw.created_at,
             updatedAt: raw.updatedAt || raw.updated_at

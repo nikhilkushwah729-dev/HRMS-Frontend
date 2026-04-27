@@ -1,7 +1,7 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable, map, catchError, of, tap } from 'rxjs';
+import { Observable, map, catchError, of, tap, shareReplay } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export interface Organization {
@@ -76,6 +76,18 @@ export class OrganizationService {
     private readonly orgDraftKey = 'hrms_org_profile_draft';
     private readonly locationsKey = 'locations';
     private readonly employeeCodePrefixKey = 'employee-code-prefix';
+    private readonly sharedCacheTtlMs = 5 * 60 * 1000;
+
+    private organizationCache$?: Observable<Organization>;
+    private organizationCacheAt = 0;
+    private departmentsCache$?: Observable<Department[]>;
+    private departmentsCacheAt = 0;
+    private designationsCache$?: Observable<Designation[]>;
+    private designationsCacheAt = 0;
+    private holidaysCache$?: Observable<OrganizationHoliday[]>;
+    private holidaysCacheAt = 0;
+    private addonsCache$?: Observable<any[]>;
+    private addonsCacheAt = 0;
 
     private _activeModules = signal<string[]>([]);
     /**
@@ -287,14 +299,50 @@ export class OrganizationService {
         } catch {}
     }
 
-    getOrganization(): Observable<Organization> {
+    private isCacheFresh(timestamp: number): boolean {
+        return timestamp > 0 && Date.now() - timestamp < this.sharedCacheTtlMs;
+    }
+
+    private clearOrganizationCache(): void {
+        this.organizationCache$ = undefined;
+        this.organizationCacheAt = 0;
+    }
+
+    private clearDepartmentsCache(): void {
+        this.departmentsCache$ = undefined;
+        this.departmentsCacheAt = 0;
+    }
+
+    private clearDesignationsCache(): void {
+        this.designationsCache$ = undefined;
+        this.designationsCacheAt = 0;
+    }
+
+    private clearHolidaysCache(): void {
+        this.holidaysCache$ = undefined;
+        this.holidaysCacheAt = 0;
+    }
+
+    private clearAddonsCache(): void {
+        this.addonsCache$ = undefined;
+        this.addonsCacheAt = 0;
+    }
+
+    getOrganization(forceRefresh = false): Observable<Organization> {
+        if (!forceRefresh && this.organizationCache$ && this.isCacheFresh(this.organizationCacheAt)) {
+            return this.organizationCache$;
+        }
+
         const userOrg = this.getOrganizationFromUser();
-        return this.http.get<any>(this.apiUrl).pipe(
+        this.organizationCacheAt = Date.now();
+        this.organizationCache$ = this.http.get<any>(this.apiUrl).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
             map((org) => this.mergeDefinedOrganization(userOrg, org)),
             map((org) => this.mergeDefinedOrganization(org, this.readLocalDraft())),
-            catchError(() => of(this.mergeDefinedOrganization(userOrg, this.readLocalDraft())))
+            catchError(() => of(this.mergeDefinedOrganization(userOrg, this.readLocalDraft()))),
+            shareReplay(1)
         );
+        return this.organizationCache$;
     }
 
     updateOrganization(data: Partial<Organization>): Observable<Organization> {
@@ -329,7 +377,11 @@ export class OrganizationService {
 
         return this.http.put<any>(this.apiUrl, payload).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
-            tap((org) => this.saveLocalDraft(org)),
+            tap((org) => {
+                this.saveLocalDraft(org);
+                this.organizationCacheAt = Date.now();
+                this.organizationCache$ = of(org).pipe(shareReplay(1));
+            }),
             catchError(() => {
                 const merged = this.normalizeOrganization({ ...this.readLocalDraft(), ...payload });
                 this.saveLocalDraft(merged);
@@ -338,10 +390,17 @@ export class OrganizationService {
         );
     }
 
-    getDepartments(): Observable<Department[]> {
-        return this.http.get<any>(`${this.apiUrl}/departments`).pipe(
-            map(res => (res?.data ?? []).map((d: any) => this.normalizeDepartment(d)))
+    getDepartments(forceRefresh = false): Observable<Department[]> {
+        if (!forceRefresh && this.departmentsCache$ && this.isCacheFresh(this.departmentsCacheAt)) {
+            return this.departmentsCache$;
+        }
+
+        this.departmentsCacheAt = Date.now();
+        this.departmentsCache$ = this.http.get<any>(`${this.apiUrl}/departments`).pipe(
+            map(res => (res?.data ?? []).map((d: any) => this.normalizeDepartment(d))),
+            shareReplay(1)
         );
+        return this.departmentsCache$;
     }
 
     createDepartment(payload: { name: string; parentId?: number | null; description?: string | null; isActive?: boolean }): Observable<Department> {
@@ -357,59 +416,58 @@ export class OrganizationService {
             is_active: payload.isActive ?? true
         };
         return this.http.post<any>(`${this.apiUrl}/departments`, body).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(res => this.normalizeDepartment(res?.data ?? res))
         );
     }
 
     updateDepartment(departmentId: number, payload: { name: string; parentId?: number | null; description?: string | null; isActive?: boolean }): Observable<Department> {
         return this.http.put<any>(`${this.apiUrl}/departments/${departmentId}`, payload).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(res => this.normalizeDepartment(res?.data ?? res))
         );
     }
 
     deleteDepartment(departmentId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/departments/${departmentId}`).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(() => true),
             catchError(() => of(false))
         );
     }
 
-    getDesignations(): Observable<Designation[]> {
-        return this.http.get<any>(`${this.apiUrl}/designations`).pipe(
+    getDesignations(forceRefresh = false): Observable<Designation[]> {
+        if (!forceRefresh && this.designationsCache$ && this.isCacheFresh(this.designationsCacheAt)) {
+            return this.designationsCache$;
+        }
+
+        this.designationsCacheAt = Date.now();
+        this.designationsCache$ = this.http.get<any>(`${this.apiUrl}/designations`).pipe(
             map(res => (res?.data ?? []).map((d: any) => this.normalizeDesignation(d))),
-            catchError(() =>
-                this.http.get<any>(`${environment.apiUrl}/designations`).pipe(
-                    map(res => (res?.data ?? []).map((d: any) => this.normalizeDesignation(d)))
-                )
-            )
+            catchError(() => of([]))
         );
+        this.designationsCache$ = this.designationsCache$.pipe(shareReplay(1));
+        return this.designationsCache$;
     }
 
     createDesignation(payload: { name: string; departmentId?: number | null }): Observable<Designation> {
         const body = { name: payload.name, departmentId: payload.departmentId ?? null };
         return this.http.post<any>(`${this.apiUrl}/designations`, body).pipe(
-            map(res => this.normalizeDesignation(res?.data ?? res)),
-            catchError(() =>
-                this.http.post<any>(`${environment.apiUrl}/designations`, body).pipe(
-                    map(res => this.normalizeDesignation(res?.data ?? res))
-                )
-            )
+            tap(() => this.clearDesignationsCache()),
+            map(res => this.normalizeDesignation(res?.data ?? res))
         );
     }
 
     updateDesignation(designationId: number, payload: { name: string; departmentId?: number | null }): Observable<Designation> {
         return this.http.put<any>(`${this.apiUrl}/designations/${designationId}`, payload).pipe(
-            map(res => this.normalizeDesignation(res?.data ?? res)),
-            catchError(() =>
-                this.http.put<any>(`${environment.apiUrl}/designations/${designationId}`, payload).pipe(
-                    map(res => this.normalizeDesignation(res?.data ?? res))
-                )
-            )
+            tap(() => this.clearDesignationsCache()),
+            map(res => this.normalizeDesignation(res?.data ?? res))
         );
     }
 
     deleteDesignation(designationId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/designations/${designationId}`).pipe(
+            tap(() => this.clearDesignationsCache()),
             map(() => true),
             catchError(() => of(false))
         );
@@ -511,37 +569,52 @@ export class OrganizationService {
         );
     }
 
-    getHolidays(): Observable<OrganizationHoliday[]> {
-        return this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
+    getHolidays(forceRefresh = false): Observable<OrganizationHoliday[]> {
+        if (!forceRefresh && this.holidaysCache$ && this.isCacheFresh(this.holidaysCacheAt)) {
+            return this.holidaysCache$;
+        }
+
+        this.holidaysCacheAt = Date.now();
+        this.holidaysCache$ = this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
             map((res) => {
                 const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 return records.map((item: any) => this.normalizeHoliday(item));
             }),
-            catchError(() => of([]))
+            catchError(() => of([])),
+            shareReplay(1)
         );
+        return this.holidaysCache$;
     }
 
     createHoliday(payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
         return this.http.post<any>(`${this.apiUrl}/holidays`, payload).pipe(
+            tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     updateHoliday(holidayId: number, payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
         return this.http.put<any>(`${this.apiUrl}/holidays/${holidayId}`, payload).pipe(
+            tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     deleteHoliday(holidayId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/holidays/${holidayId}`).pipe(
+            tap(() => this.clearHolidaysCache()),
             map(() => true),
             catchError(() => of(false))
         );
     }
 
-    getAddons(): Observable<any[]> {
-        return this.http.get<any>(`${this.apiUrl}/addons`).pipe(
+    getAddons(forceRefresh = false): Observable<any[]> {
+        if (!forceRefresh && this.addonsCache$ && this.isCacheFresh(this.addonsCacheAt)) {
+            return this.addonsCache$;
+        }
+
+        this.addonsCacheAt = Date.now();
+        this.addonsCache$ = this.http.get<any>(`${this.apiUrl}/addons`).pipe(
             map(res => {
                 const addons = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 const activeSlugs = addons
@@ -550,17 +623,16 @@ export class OrganizationService {
                     .filter(Boolean);
                 this._activeModules.set(activeSlugs);
                 return addons;
-            })
+            }),
+            shareReplay(1)
         );
+        return this.addonsCache$;
     }
 
     toggleAddon(addonId: number, isActive: boolean): Observable<any> {
         return this.http.post<any>(`${this.apiUrl}/addons/toggle`, { addonId, isActive }).pipe(
-            map(res => {
-                // Refresh local signal
-                this.getAddons().subscribe();
-                return res;
-            })
+            tap(() => this.clearAddonsCache()),
+            map(res => res)
         );
     }
 }

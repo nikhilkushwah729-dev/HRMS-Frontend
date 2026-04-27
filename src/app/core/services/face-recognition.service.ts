@@ -303,6 +303,93 @@ export class FaceRecognitionService {
     return JSON.stringify(descriptor);
   }
 
+  async buildEmbeddingFromImage(imageData: string): Promise<number[]> {
+    return this.extractDescriptorFromImage(imageData);
+  }
+
+  async buildEmbeddingFromVideo(video: HTMLVideoElement): Promise<number[]> {
+    const descriptor = await this.captureStableDescriptorFromVideo(video);
+    return JSON.parse(descriptor) as number[];
+  }
+
+  async evaluateLiveness(
+    video: HTMLVideoElement,
+  ): Promise<{
+    confirmed: boolean;
+    blinkDetected: boolean;
+    headMovementDetected: boolean;
+    samples: FaceLivenessSample[];
+  }> {
+    await this.ensureModelsLoaded();
+    const faceapi = await this.loadFaceApi();
+    const samples: FaceLivenessSample[] = [];
+
+    for (let index = 0; index < 4; index += 1) {
+      const detection = await faceapi
+        .detectSingleFace(
+          video,
+          new faceapi.TinyFaceDetectorOptions({
+            inputSize: 192,
+            scoreThreshold: 0.35,
+          }),
+        )
+        .withFaceLandmarks();
+
+      if (detection?.landmarks) {
+        const leftEye = detection.landmarks.getLeftEye();
+        const rightEye = detection.landmarks.getRightEye();
+        const mouth = detection.landmarks.getMouth();
+        const jaw = detection.landmarks.getJawOutline();
+        const nose = detection.landmarks.getNose();
+
+        const leftCenter = this.centerOf(leftEye);
+        const rightCenter = this.centerOf(rightEye);
+        const jawCenter = this.centerOf(jaw);
+        const noseCenter = this.centerOf(nose);
+        const eyeDistance = this.pointDistance(leftCenter, rightCenter) || 1;
+
+        samples.push({
+          detected: true,
+          leftEyeRatio: this.eyeAspectRatio(leftEye),
+          rightEyeRatio: this.eyeAspectRatio(rightEye),
+          averageEyeRatio:
+            (this.eyeAspectRatio(leftEye) + this.eyeAspectRatio(rightEye)) / 2,
+          mouthRatio: this.mouthAspectRatio(mouth),
+          headTurnRatio: Math.abs(noseCenter.x - jawCenter.x) / eyeDistance,
+        });
+      } else {
+        samples.push({
+          detected: false,
+          leftEyeRatio: 0,
+          rightEyeRatio: 0,
+          averageEyeRatio: 0,
+          mouthRatio: 0,
+          headTurnRatio: 0,
+        });
+      }
+
+      if (index < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 220));
+      }
+    }
+
+    const eyeRatios = samples.filter((sample) => sample.detected).map((sample) => sample.averageEyeRatio);
+    const headRatios = samples.filter((sample) => sample.detected).map((sample) => sample.headTurnRatio);
+    const blinkDetected =
+      eyeRatios.length > 1 &&
+      Math.max(...eyeRatios) - Math.min(...eyeRatios) > 0.045;
+    const headMovementDetected =
+      headRatios.length > 1 &&
+      Math.max(...headRatios) - Math.min(...headRatios) > 0.035;
+
+    return {
+      confirmed: blinkDetected || headMovementDetected,
+      blinkDetected,
+      headMovementDetected,
+      samples,
+    };
+  }
+
   // ==================== FACE REGISTRATION ====================
 
   /**
@@ -708,10 +795,87 @@ export class FaceRecognitionService {
   ): Promise<boolean> {
     try {
       this.stopCamera();
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API is not available in this browser.');
+      }
 
+      const constraintsToTry: MediaStreamConstraints[] = [
+        {
+          video: {
+            facingMode: { ideal: facingMode },
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          },
+          audio: false,
+        },
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          },
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+
+      for (const constraints of constraintsToTry) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) {
+        throw lastError instanceof Error ? lastError : new Error('Unable to access camera.');
+      }
+
+      this.mediaStream = stream;
+
+      this.videoElement = videoElement;
+      videoElement.setAttribute('playsinline', 'true');
+      videoElement.muted = true;
+      videoElement.srcObject = this.mediaStream;
+
+      await new Promise<void>((resolve) => {
+        videoElement.onloadedmetadata = async () => {
+          try {
+            await videoElement.play();
+          } catch {
+            // Keep camera usable even if autoplay timing is blocked.
+          }
+          resolve();
+        };
+      });
+
+      this.isCameraReady.set(true);
+      return true;
+    } catch (error) {
+      console.error('Camera error:', error);
+      this.isCameraReady.set(false);
+      return false;
+    }
+  }
+
+  async startBestAvailableCamera(
+    videoElement: HTMLVideoElement,
+  ): Promise<boolean> {
+    const strategies: Array<'user' | 'environment'> = ['user', 'environment'];
+
+    for (const facingMode of strategies) {
+      const started = await this.startCamera(videoElement, facingMode);
+      if (started) {
+        return true;
+      }
+    }
+
+    try {
+      this.stopCamera();
       this.mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: facingMode,
           width: { ideal: 640 },
           height: { ideal: 480 },
         },
@@ -731,7 +895,7 @@ export class FaceRecognitionService {
       this.isCameraReady.set(true);
       return true;
     } catch (error) {
-      console.error('Camera error:', error);
+      console.error('Best camera auto-detect failed:', error);
       this.isCameraReady.set(false);
       return false;
     }
