@@ -14,7 +14,6 @@ import { EssCalendarComponent, CalendarDay } from './ess-dashboard/widgets/ess-c
 import { EssLeaveBalanceComponent } from './ess-dashboard/widgets/ess-leave-balance.component';
 import { EssHolidaysComponent } from './ess-dashboard/widgets/ess-holidays.component';
 import { EssRequestsLedgerComponent } from './ess-dashboard/widgets/ess-requests-ledger.component';
-import { AttendancePunchComponent } from '../attendance/components/attendance-punch.component';
 
 // Services
 import { AuthService } from '../../core/services/auth.service';
@@ -105,8 +104,7 @@ interface HolidayCalendarItem {
     EssCalendarComponent,
     EssLeaveBalanceComponent,
     EssHolidaysComponent,
-    EssRequestsLedgerComponent,
-    AttendancePunchComponent
+    EssRequestsLedgerComponent
   ],
   template: `
     <div class="ess-clean-panel min-h-full bg-[#f8fafc]">
@@ -118,7 +116,7 @@ interface HolidayCalendarItem {
           [specialMessage]="specialMessage()"
           [currentTime]="currentTime()"
           (navigate)="navigateTo($event)"
-          (punchAction)="showPunchModal.set(true)"
+          (punchAction)="openAttendanceModal()"
           (closeBanner)="specialMessage.set([])">
         </app-ess-greeting>
 
@@ -197,32 +195,6 @@ interface HolidayCalendarItem {
       </div>
     </div>
 
-    <!-- Attendance Punch Modal -->
-    <div *ngIf="showPunchModal()" class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" (click)="showPunchModal.set(false)"></div>
-      <div class="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-full animate-in fade-in zoom-in duration-200">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50">
-          <div class="flex items-center gap-4">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
-            </div>
-            <div>
-              <h2 class="text-xl font-black tracking-tight text-slate-900">Mark Attendance</h2>
-              <p class="text-sm font-bold text-slate-500">Record your daily punch seamlessly</p>
-            </div>
-          </div>
-          <button (click)="showPunchModal.set(false)" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-        
-        <!-- Body -->
-        <div class="p-4 sm:p-5 overflow-y-auto">
-          <app-attendance-punch (punchSuccess)="onPunchSuccess()"></app-attendance-punch>
-        </div>
-      </div>
-    </div>
   `,
   styles: [`
     :host { display: block; }
@@ -298,8 +270,6 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
   accessibleModules = signal<ModuleCard[]>([]);
   specialMessage = signal<string[]>([]);
   teamOccasions = signal<any[]>([]);
-  showPunchModal = signal<boolean>(false);
-
   calendarCursor = signal<Date>(new Date());
   calendarAttendance = signal<AttendanceRecord[]>([]);
   upcomingHolidays = signal<HolidayCalendarItem[]>([]);
@@ -514,12 +484,9 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
     this.leaveInsightChart?.destroy();
   }
 
-  onPunchSuccess() {
-    this.showPunchModal.set(false);
-    this.loadData();
-    this.loadCalendarMonth();
-    this.attendanceService.getTodayAttendance().subscribe({
-      next: (data) => this.todayStatus.set(data)
+  openAttendanceModal() {
+    void this.router.navigate(['/self-service/attendance'], {
+      queryParams: { view: 'punch', openModal: 1 },
     });
   }
 

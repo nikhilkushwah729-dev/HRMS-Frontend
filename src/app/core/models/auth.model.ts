@@ -32,6 +32,9 @@ export interface User {
   status?: string;
   designationId?: number;
   departmentId?: number;
+  geofenceId?: number;
+  geofenceRequired?: boolean;
+  geofenceZoneName?: string;
   managerId?: number;
   reportingManagerId?: number;
   subordinateIds?: number[];

@@ -701,6 +701,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   autoScanAttempts = signal<number>(0);
   facePresenceStreak = signal<number>(0);
   registrationSuccess = signal<boolean>(false);
+  multiFaceDetected = signal<boolean>(false);
 
   currentUser: User | null = null;
   private mediaStream: MediaStream | null = null;
@@ -855,6 +856,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     this.autoScanAttempts.set(0);
     this.facePresenceStreak.set(0);
     this.faceTurnAway = false;
+    this.multiFaceDetected.set(false);
     this.autoScanStatus.set(
       'Looking for your face. Turn your head slightly left or right to register.',
     );
@@ -882,6 +884,38 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
     this.autoScanBusy = true;
     try {
+      const frameSummary = await firstValueFrom(
+        this.faceRecognitionService.getLiveFaceFrameSummary(video),
+      ).catch(() => null);
+
+      if (frameSummary?.status === 'multiple_faces') {
+        this.multiFaceDetected.set(true);
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        this.autoScanStatus.set(
+          'Multiple faces detected. Keep only your face in the frame.',
+        );
+        return;
+      }
+
+      if (frameSummary?.status === 'no_face') {
+        this.multiFaceDetected.set(false);
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        const attempts = this.autoScanAttempts() + 1;
+        this.autoScanAttempts.set(attempts);
+        this.autoScanStatus.set(
+          attempts >= 3
+            ? 'No face detected. Please face the camera clearly.'
+            : `No face detected yet. Retrying ${attempts}/3...`,
+        );
+        if (attempts >= 3) {
+          this.stopAutoScan();
+        }
+        return;
+      }
+
+      this.multiFaceDetected.set(false);
       const sample = await firstValueFrom(
         this.faceRecognitionService.detectLivenessSampleFromVideo(video),
       ).catch(() => null);
@@ -1237,6 +1271,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== NAVIGATION ====================
 
   goBack() {
-    this.router.navigate(['/attendance']);
+    if (this.returnUrl()) {
+      void this.router.navigateByUrl(this.returnUrl()!);
+      return;
+    }
+    void this.router.navigate(['/self-service/attendance']);
   }
 }

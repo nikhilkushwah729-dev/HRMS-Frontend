@@ -273,7 +273,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="overflow-x-auto no-scrollbar">
             <div class="min-w-[1200px]">
               <!-- Table Header -->
-              <div class="grid grid-cols-[minmax(340px,1.8fr)_150px_180px_160px_180px_200px] bg-slate-50/50 border-b border-slate-100">
+              <div class="grid grid-cols-[minmax(340px,1.8fr)_150px_180px_160px_180px_260px] bg-slate-50/50 border-b border-slate-100">
                 <div class="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{{ t('sidebar.employee') }}</div>
                 <div class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] text-center">ID</div>
                 <div class="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">{{ t('common.role') }}</div>
@@ -285,7 +285,7 @@ import { AuthService } from '../../core/services/auth.service';
               <!-- Table Body -->
               <div class="divide-y divide-slate-100">
                 @for (emp of tableEmployees(); track trackEmployee(rowIndex, emp); let rowIndex = $index) {
-                  <div class="grid grid-cols-[minmax(340px,1.8fr)_150px_180px_160px_180px_200px] items-center bg-white transition-all hover:bg-slate-50/80 group">
+                  <div class="grid grid-cols-[minmax(340px,1.8fr)_150px_180px_160px_180px_260px] items-center bg-white transition-all hover:bg-slate-50/80 group">
                     <!-- User Info Column -->
                     <div class="min-w-0 px-8 py-4">
                       <div class="flex items-center gap-4">
@@ -300,6 +300,20 @@ import { AuthService } from '../../core/services/auth.service';
                         <div class="min-w-0 flex flex-col gap-0.5">
                           <span class="truncate font-black text-slate-900 tracking-tight group-hover:text-primary-600 transition-colors">{{ employeeName(emp) }}</span>
                           <span class="truncate text-[11px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors">{{ employeeEmail(emp) }}</span>
+                          <div class="mt-2 flex flex-wrap items-center gap-2">
+                            <span
+                              class="inline-flex rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em]"
+                              [ngClass]="employeeGeofenceRequired(emp) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
+                            >
+                              {{ employeeGeofenceRequired(emp) ? 'Geofence Required' : 'Geofence Optional' }}
+                            </span>
+                            <span
+                              *ngIf="employeeGeofenceName(emp)"
+                              class="inline-flex rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-blue-700"
+                            >
+                              {{ employeeGeofenceName(emp) }}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -329,11 +343,14 @@ import { AuthService } from '../../core/services/auth.service';
 
                     <!-- Actions Column -->
                     <div class="px-8 py-4">
-                      <div class="flex justify-end gap-2.5 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                      <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                         <button type="button" (click)="viewEmployee(emp)" class="inline-flex h-9 min-w-[76px] items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-black uppercase tracking-widest text-slate-700 shadow-sm transition-all hover:bg-slate-900 hover:text-white hover:border-slate-900">
                           View
                         </button>
                         @if (canManageEmployees()) {
+                          <button type="button" (click)="manageEmployeeGeofence(emp)" class="inline-flex h-9 min-w-[92px] items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-3 text-xs font-black uppercase tracking-widest text-emerald-700 shadow-sm transition-all hover:border-emerald-600 hover:bg-emerald-600 hover:text-white">
+                            Geofence
+                          </button>
                           <button type="button" (click)="editEmployee(emp)" class="inline-flex h-9 min-w-[76px] items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-black uppercase tracking-widest text-slate-700 shadow-sm transition-all hover:bg-primary-600 hover:text-white hover:border-primary-600">
                             Edit
                           </button>
@@ -702,6 +719,14 @@ export class EmployeeListComponent implements OnInit {
     return role || this.getRoleLabel(emp.roleId);
   }
 
+  employeeGeofenceRequired(emp: any): boolean {
+    return Boolean(emp?.geofenceRequired ?? emp?.requires_geofence ?? emp?.requiresGeofence ?? false);
+  }
+
+  employeeGeofenceName(emp: any): string {
+    return this.fieldValue(emp, ['geofenceZoneName', 'geofence_zone_name', 'geofence.name', 'zone.name']);
+  }
+
   statusBadgeClass(status: any): Record<string, boolean> {
     const norm = this.normalizeStatus(status);
     return {
@@ -733,6 +758,17 @@ export class EmployeeListComponent implements OnInit {
        return;
     }
     this.router.navigate(['/employees/edit', id]);
+  }
+
+  manageEmployeeGeofence(emp: any) {
+    const id = this.resolveEmployeeId(this.employeeNumericId(emp));
+    if (!id) {
+      this.toastService.error(this.t('error.invalidEmployeeId'));
+      return;
+    }
+    this.router.navigate(['/employees/edit', id], {
+      queryParams: { focus: 'geofence' },
+    });
   }
 
   viewEmployee(emp: any) {

@@ -5,6 +5,7 @@ import { EmployeeService } from '../../core/services/employee.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { AttendanceService, GeoFenceZone } from '../../core/services/attendance.service';
 
 @Component({
   selector: 'app-view-employee',
@@ -82,6 +83,30 @@ import { PermissionService } from '../../core/services/permission.service';
                 <div class="rounded-md bg-slate-50 px-4 py-4">
                   <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('employee.accountAccess') }}</p>
                   <p class="mt-2 text-sm font-bold" [ngClass]="employee()!.isLocked ? 'text-rose-700' : 'text-emerald-700'">{{ employee()!.isLocked ? t('common.locked') : t('common.active') }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="app-surface-card p-5 sm:p-6">
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Attendance Geofence</p>
+              <div class="mt-5 grid gap-3">
+                <div class="rounded-md bg-slate-50 px-4 py-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Policy</p>
+                  <p class="mt-2 text-sm font-bold" [ngClass]="employeeGeofence().requires_geofence ? 'text-emerald-700' : 'text-slate-600'">
+                    {{ employeeGeofence().requires_geofence ? 'Mandatory inside assigned zone' : 'Optional / organization default' }}
+                  </p>
+                </div>
+                <div class="rounded-md bg-slate-50 px-4 py-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Assigned Zone</p>
+                  <p class="mt-2 text-sm font-bold text-slate-900">
+                    {{ assignedGeofenceZone()?.name || 'No dedicated geofence assigned' }}
+                  </p>
+                </div>
+                <div class="rounded-md bg-slate-50 px-4 py-4">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Radius</p>
+                  <p class="mt-2 text-sm font-bold text-slate-900">
+                    {{ assignedGeofenceZone() ? assignedGeofenceZone()!.radius_meters + ' meters' : 'Inherited from org rules' }}
+                  </p>
                 </div>
               </div>
             </section>
@@ -174,6 +199,7 @@ import { PermissionService } from '../../core/services/permission.service';
 export class ViewEmployeeComponent implements OnInit {
   private readonly permissionService = inject(PermissionService);
   private employeeService = inject(EmployeeService);
+  private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
@@ -182,11 +208,20 @@ export class ViewEmployeeComponent implements OnInit {
   employeeId = 0;
   loading = signal(true);
   employee = signal<any>(null);
+  geofenceZones = signal<GeoFenceZone[]>([]);
+  employeeGeofence = signal<{ geofence_zone_id: number | null; requires_geofence: boolean }>({
+    geofence_zone_id: null,
+    requires_geofence: false,
+  });
 
   stats = signal({
     totalAttendance: 0,
     leaveTaken: 0,
     leaveBalance: 0
+  });
+  assignedGeofenceZone = computed<GeoFenceZone | null>(() => {
+    const zoneId = this.employeeGeofence().geofence_zone_id;
+    return this.geofenceZones().find((zone) => zone.id === zoneId) ?? null;
   });
 
   personalInfo = computed(() => {
@@ -225,6 +260,7 @@ export class ViewEmployeeComponent implements OnInit {
       return;
     }
     this.loadEmployee();
+    this.loadGeofenceContext();
   }
 
   loadEmployee() {
@@ -287,6 +323,22 @@ export class ViewEmployeeComponent implements OnInit {
       default:
         return this.t('sidebar.employee');
     }
+  }
+
+  loadGeofenceContext() {
+    this.attendanceService.getGeoFenceZones().subscribe({
+      next: (zones) => this.geofenceZones.set(zones),
+      error: () => this.geofenceZones.set([]),
+    });
+
+    this.attendanceService.getEmployeeGeofence(this.employeeId).subscribe({
+      next: (data) => this.employeeGeofence.set(data),
+      error: () =>
+        this.employeeGeofence.set({
+          geofence_zone_id: null,
+          requires_geofence: false,
+        }),
+    });
   }
 
   t(key: string, params?: Record<string, string | number | null | undefined>): string {

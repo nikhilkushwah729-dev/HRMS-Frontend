@@ -61,58 +61,71 @@ export const routes: Routes = [
             (m) => m.RequestCenterComponent,
           ),
         data: { permission: 'dashboard.view' },
+      },
+      {
+        path: 'self-service/requests/time-off',
+        loadComponent: () =>
+          import('./features/self-service/request-time-off.component').then(
+            (m) => m.RequestTimeOffComponent,
+          ),
+        data: { permission: 'dashboard.view' },
+      },
+      {
+        path: 'self-service/requests/time-off/apply',
+        loadComponent: () =>
+          import('./features/self-service/request-time-off-apply.component').then(
+            (m) => m.RequestTimeOffApplyComponent,
+          ),
+        data: { permission: 'dashboard.view' },
+      },
+      {
+        path: 'self-service/requests/create',
+        loadComponent: () =>
+          import('./features/self-service/request-center-create.component').then(
+            (m) => m.RequestCenterCreateComponent,
+          ),
+        data: { permission: 'dashboard.view' },
+      },
+      {
+        path: 'self-service/requests/:id',
+        loadComponent: () =>
+          import('./features/self-service/request-center-detail.component').then(
+            (m) => m.RequestCenterDetailComponent,
+          ),
+        data: { permission: 'dashboard.view' },
+      },
+      {
+        path: 'requests',
+        redirectTo: 'self-service/requests',
+        pathMatch: 'full',
+      },
+      {
+        path: 'approval-center',
+        loadComponent: () =>
+          import('./features/admin/approval-center.component').then(
+            (m) => m.ApprovalCenterComponent,
+          ),
         children: [
           {
             path: '',
-            redirectTo: 'leave',
             pathMatch: 'full',
-          },
-          {
-            path: 'overview',
             loadComponent: () =>
-              import('./features/self-service/request-center-overview.component').then(
-                (m) => m.RequestCenterOverviewComponent,
+              import('./features/admin/approval-center-pending.component').then(
+                (m) => m.ApprovalCenterPendingComponent,
               ),
           },
           {
-            path: 'leave',
+            path: 'pending',
             loadComponent: () =>
-              import('./features/self-service/request-center-leave.component').then(
-                (m) => m.RequestCenterLeaveComponent,
+              import('./features/admin/approval-center-pending.component').then(
+                (m) => m.ApprovalCenterPendingComponent,
               ),
           },
           {
-            path: 'regularization',
+            path: ':id',
             loadComponent: () =>
-              import('./features/self-service/my-regularization-requests.component').then(
-                (m) => m.MyRegularizationRequestsComponent,
-              ),
-            data: {
-              title: 'Regularization Requests',
-              subtitle: 'Missed punch, late arrival, and correction requests you have raised.',
-              ctaLabel: 'New Regularization',
-              ctaRoute: '/self-service/attendance',
-            },
-          },
-          {
-            path: 'overtime',
-            loadComponent: () =>
-              import('./features/self-service/my-regularization-requests.component').then(
-                (m) => m.MyRegularizationRequestsComponent,
-              ),
-            data: {
-              title: 'Overtime Requests',
-              subtitle: 'Extra hours you have submitted for approval.',
-              ctaLabel: 'Request Overtime',
-              ctaRoute: '/self-service/attendance',
-              requestType: 'overtime',
-            },
-          },
-          {
-            path: 'expense',
-            loadComponent: () =>
-              import('./features/expenses/expenses.component').then(
-                (m) => m.ExpensesComponent,
+              import('./features/admin/approval-center-detail.component').then(
+                (m) => m.ApprovalCenterDetailComponent,
               ),
           },
         ],
@@ -136,6 +149,76 @@ export const routes: Routes = [
           ),
         data: {
           permission: 'attendance.view',
+        },
+      },
+      {
+        path: 'self-service/leave',
+        loadComponent: () =>
+          import('./features/leaves/self-service-leave.component').then(
+            (m) => m.SelfServiceLeaveComponent,
+          ),
+        data: {
+          permission: 'leave.view',
+        },
+      },
+      {
+        path: 'self-service/leave/apply',
+        loadComponent: () =>
+          import('./features/leaves/self-service-leave-apply.component').then(
+            (m) => m.SelfServiceLeaveApplyComponent,
+          ),
+        data: {
+          permission: 'leave.view',
+        },
+      },
+      {
+        path: 'self-service/payroll',
+        loadComponent: () =>
+          import('./features/payroll/self-service-payroll.component').then(
+            (m) => m.SelfServicePayrollComponent,
+          ),
+        data: {
+          permission: 'payroll.view',
+        },
+      },
+      {
+        path: 'self-service/timesheet',
+        loadComponent: () =>
+          import('./features/timesheets/self-service-timesheet.component').then(
+            (m) => m.SelfServiceTimesheetComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'self-service/timesheet/create',
+        loadComponent: () =>
+          import('./features/timesheets/self-service-timesheet-create.component').then(
+            (m) => m.SelfServiceTimesheetCreateComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'self-service/timesheet/:id',
+        loadComponent: () =>
+          import('./features/timesheets/self-service-timesheet-detail.component').then(
+            (m) => m.SelfServiceTimesheetDetailComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'self-service/payslip/:month',
+        loadComponent: () =>
+          import('./features/payroll/self-service-payslip.component').then(
+            (m) => m.SelfServicePayslipComponent,
+          ),
+        data: {
+          permission: 'payroll.view',
         },
       },
       {
@@ -215,9 +298,10 @@ export const routes: Routes = [
       {
         path: 'attendance',
         loadComponent: () =>
-          import('@features/attendance/attendance-route-redirect.component').then(
-            (m) => m.AttendanceRouteRedirectComponent,
+          import('./features/admin/admin-attendance-management.component').then(
+            (m) => m.AdminAttendanceManagementComponent,
           ),
+        data: { permission: 'attendance.team.view' },
       },
       {
         path: 'hr/attendance',
@@ -226,160 +310,13 @@ export const routes: Routes = [
       },
       {
         path: 'admin/approvals',
-        loadComponent: () =>
-          import('./features/admin/approval-center.component').then(
-            (m) => m.ApprovalCenterComponent,
-          ),
-        children: [
-          {
-            path: '',
-            redirectTo: 'leave',
-            pathMatch: 'full',
-          },
-          {
-            path: 'overview',
-            loadComponent: () =>
-              import('./features/admin/approval-center-overview.component').then(
-                (m) => m.ApprovalCenterOverviewComponent,
-              ),
-          },
-          {
-            path: 'leave',
-            loadComponent: () =>
-              import('./features/admin/approval-center-leave.component').then(
-                (m) => m.ApprovalCenterLeaveComponent,
-              ),
-            data: {
-              title: 'Leave',
-              searchPlaceholder: 'Search Leave Approvals',
-              emptyMessage: 'No leave approvals found for the selected window.',
-              filterKind: 'all',
-            },
-          },
-          {
-            path: 'short-day',
-            loadComponent: () =>
-              import('./features/admin/approval-center-leave.component').then(
-                (m) => m.ApprovalCenterLeaveComponent,
-              ),
-            data: {
-              title: 'Short Day Leave',
-              searchPlaceholder: 'Search Short Day Leave Approvals',
-              emptyMessage: 'No short day leave approvals found for the selected window.',
-              filterKind: 'short-day',
-            },
-          },
-          {
-            path: 'time-off',
-            loadComponent: () =>
-              import('./features/admin/approval-center-leave.component').then(
-                (m) => m.ApprovalCenterLeaveComponent,
-              ),
-            data: {
-              title: 'Time Off',
-              searchPlaceholder: 'Search Time Off Approvals',
-              emptyMessage: 'No time off approvals found for the selected window.',
-              filterKind: 'time-off',
-            },
-          },
-          {
-            path: 'regularization',
-            loadComponent: () =>
-              import('./features/admin/regularization.component').then(
-                (m) => m.RegularizationComponent,
-              ),
-            data: { filterType: '' },
-          },
-          {
-            path: 'overtime',
-            loadComponent: () =>
-              import('./features/admin/regularization.component').then(
-                (m) => m.RegularizationComponent,
-              ),
-            data: { filterType: 'overtime' },
-          },
-          {
-            path: 'expense',
-            loadComponent: () =>
-              import('./features/expenses/expenses.component').then(
-                (m) => m.ExpensesComponent,
-              ),
-          },
-          {
-            path: 'shift-request',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Shift Request',
-              subtitle: 'Review employee shift change requests from a dedicated approval queue.',
-            },
-          },
-          {
-            path: 'remote-work',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Remote Work',
-              subtitle: 'Approve or reject remote work requests without mixing them into attendance or leave screens.',
-            },
-          },
-          {
-            path: 'flexi-holiday',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Flexi Holiday',
-              subtitle: 'Use this queue for flexi holiday approval movement when the module is enabled.',
-            },
-          },
-          {
-            path: 'weekly-off',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Weekly Off',
-              subtitle: 'This route is reserved for weekly off approval requests in the approval workspace.',
-            },
-          },
-          {
-            path: 'documents',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Documents',
-              subtitle: 'Handle organization document approvals in a dedicated route, just like Angular_Web.',
-            },
-          },
-          {
-            path: 'resignation',
-            loadComponent: () =>
-              import('./features/admin/approval-center-placeholder.component').then(
-                (m) => m.ApprovalCenterPlaceholderComponent,
-              ),
-            data: {
-              title: 'Resignation',
-              subtitle: 'Separate resignation approvals from leave and attendance workflows so the experience stays clear.',
-            },
-          },
-        ],
+        redirectTo: 'approval-center',
+        pathMatch: 'full',
       },
       {
         path: 'admin/attendance',
-        loadComponent: () =>
-          import('./features/admin/admin-attendance-management.component').then(
-            (m) => m.AdminAttendanceManagementComponent,
-          ),
-        data: { permission: 'attendance.team.view' },
+        redirectTo: 'attendance',
+        pathMatch: 'full',
       },
       {
         path: 'admin/attendance/workspace',
@@ -391,6 +328,57 @@ export const routes: Routes = [
           permission: 'attendance.team.view',
           attendanceMode: 'admin',
         },
+      },
+      {
+        path: 'attendance/workspace',
+        loadComponent: () =>
+          import('@features/attendance/attendance.component').then(
+            (m) => m.AttendanceComponent,
+          ),
+        data: {
+          permission: 'attendance.team.view',
+          attendanceMode: 'admin',
+        },
+      },
+      {
+        path: 'attendance/register',
+        loadComponent: () =>
+          import('./features/admin/team-attendance.component').then(
+            (m) => m.TeamAttendanceComponent,
+          ),
+        data: { permission: 'attendance.team.view' },
+      },
+      {
+        path: 'attendance/regularizations',
+        loadComponent: () =>
+          import('./features/admin/regularization.component').then(
+            (m) => m.RegularizationComponent,
+          ),
+        data: { permission: 'regularization.view' },
+      },
+      {
+        path: 'attendance/geofence',
+        loadComponent: () =>
+          import('./features/admin/geofence-settings.component').then(
+            (m) => m.GeofenceSettingsComponent,
+          ),
+        data: { permission: 'geofence.view' },
+      },
+      {
+        path: 'attendance/integrations',
+        loadComponent: () =>
+          import('@features/attendance/integrations.component').then(
+            (m) => m.AttendanceIntegrationsComponent,
+          ),
+        data: { permission: 'attendance.team.view' },
+      },
+      {
+        path: 'attendance/reports',
+        loadComponent: () =>
+          import('@features/reports/reports.component').then(
+            (m) => m.ReportsComponent,
+          ),
+        data: { permission: 'reports.view' },
       },
       {
         path: 'admin/attendance/register',
@@ -433,6 +421,26 @@ export const routes: Routes = [
         data: { permission: 'reports.view' },
       },
       {
+        path: 'leave',
+        loadComponent: () =>
+          import('./features/leaves/leave-management.component').then(
+            (m) => m.LeaveManagementComponent,
+          ),
+        data: {
+          permission: 'leave.view',
+        },
+      },
+      {
+        path: 'leave/settings',
+        loadComponent: () =>
+          import('./features/leaves/leave-settings.component').then(
+            (m) => m.LeaveSettingsComponent,
+          ),
+        data: {
+          permission: 'settings.view',
+        },
+      },
+      {
         path: 'face-registration',
         loadComponent: () =>
           import('@features/attendance/face-registration.component').then(
@@ -442,8 +450,8 @@ export const routes: Routes = [
       {
         path: 'leaves',
         loadComponent: () =>
-          import('@features/leaves/leaves.component').then(
-            (m) => m.LeavesComponent,
+          import('./features/leaves/leave-entry.component').then(
+            (m) => m.LeaveEntryComponent,
           ),
       },
       {
@@ -498,9 +506,39 @@ export const routes: Routes = [
       {
         path: 'payroll',
         loadComponent: () =>
-          import('@features/payroll/payroll.component').then(
-            (m) => m.PayrollComponent,
+          import('./features/payroll/payroll-entry.component').then(
+            (m) => m.PayrollEntryComponent,
           ),
+      },
+      {
+        path: 'payroll/manage',
+        loadComponent: () =>
+          import('./features/payroll/payroll-management.component').then(
+            (m) => m.PayrollManagementComponent,
+          ),
+        data: {
+          permission: 'payroll.view',
+        },
+      },
+      {
+        path: 'payroll/structure',
+        loadComponent: () =>
+          import('./features/payroll/payroll-structure.component').then(
+            (m) => m.PayrollStructureComponent,
+          ),
+        data: {
+          permission: 'payroll.update',
+        },
+      },
+      {
+        path: 'payroll/process',
+        loadComponent: () =>
+          import('./features/payroll/payroll-process.component').then(
+            (m) => m.PayrollProcessComponent,
+          ),
+        data: {
+          permission: 'payroll.update',
+        },
       },
       {
         path: 'projects',
@@ -518,10 +556,48 @@ export const routes: Routes = [
       },
       {
         path: 'timesheets',
+        redirectTo: 'self-service/timesheet',
+        pathMatch: 'full',
+      },
+      {
+        path: 'timesheet',
         loadComponent: () =>
-          import('@features/timesheets/timesheets.component').then(
-            (m) => m.TimesheetsComponent,
+          import('./features/timesheets/timesheet-management.component').then(
+            (m) => m.TimesheetManagementComponent,
           ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'timesheet/pending',
+        loadComponent: () =>
+          import('./features/timesheets/timesheet-pending.component').then(
+            (m) => m.TimesheetPendingComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'timesheet/reports',
+        loadComponent: () =>
+          import('./features/timesheets/timesheet-reports.component').then(
+            (m) => m.TimesheetReportsComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
+      },
+      {
+        path: 'timesheet/:id',
+        loadComponent: () =>
+          import('./features/timesheets/timesheet-detail.component').then(
+            (m) => m.TimesheetDetailComponent,
+          ),
+        data: {
+          permission: 'timesheets.view',
+        },
       },
       {
         path: 'admin/audit',

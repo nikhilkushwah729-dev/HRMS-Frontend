@@ -258,9 +258,27 @@ export class PermissionService {
   > = {
     '/dashboard': { modules: ['dashboard'] },
     '/self-service': { modules: ['dashboard'] },
+    '/self-service/requests': { modules: ['dashboard'] },
+    '/self-service/requests/create': { modules: ['dashboard'] },
     '/self-service/attendance': {
       modules: ['attendance'],
       keys: ['attendance.view'],
+    },
+    '/self-service/timesheet': {
+      modules: ['timesheets'],
+      keys: ['timesheets.view'],
+    },
+    '/self-service/timesheet/create': {
+      modules: ['timesheets'],
+      keys: ['timesheets.view'],
+    },
+    '/self-service/payroll': {
+      modules: ['payroll'],
+      keys: ['payroll.view'],
+    },
+    '/self-service/payslip': {
+      modules: ['payroll'],
+      keys: ['payroll.view'],
     },
     '/employee/attendance': {
       modules: ['attendance'],
@@ -277,10 +295,34 @@ export class PermissionService {
     '/employees/edit': { modules: ['employees'] },
     '/employees/view': { modules: ['employees'] },
     '/attendance': { modules: ['attendance'] },
+    '/attendance/register': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
+    '/attendance/workspace': {
+      modules: ['attendance'],
+      keys: ['attendance.team.view'],
+    },
     '/attendance/integrations': { modules: ['attendance'] },
+    '/attendance/geofence': {
+      modules: ['attendance', 'geofence'],
+      keys: ['geofence.view', 'attendance.team.view'],
+    },
+    '/attendance/regularizations': {
+      modules: ['attendance', 'regularization'],
+      keys: ['regularization.view', 'attendance.regularization.view'],
+    },
+    '/attendance/reports': {
+      modules: ['reports'],
+      keys: ['reports.view'],
+    },
     '/hr/attendance': {
       modules: ['attendance'],
       keys: ['attendance.team.view'],
+    },
+    '/approval-center': {
+      modules: ['regularization', 'leaves', 'expenses'],
+      keys: ['regularization.view', 'leave.approve', 'leaves.approve'],
     },
     '/admin/attendance': {
       modules: ['attendance'],
@@ -319,9 +361,24 @@ export class PermissionService {
       keys: ['visitorManagement.view'],
     },
     '/payroll': { modules: ['payroll'] },
+    '/payroll/manage': {
+      modules: ['payroll'],
+      keys: ['payroll.view'],
+    },
+    '/payroll/structure': {
+      modules: ['payroll'],
+      keys: ['payroll.update', 'payroll_process'],
+    },
+    '/payroll/process': {
+      modules: ['payroll'],
+      keys: ['payroll.update', 'payroll.approve', 'payroll_process'],
+    },
     '/projects': { modules: ['projects'] },
     '/expenses': { modules: ['expenses'] },
     '/timesheets': { modules: ['timesheets'] },
+    '/timesheet': { modules: ['timesheets'] },
+    '/timesheet/pending': { modules: ['timesheets'] },
+    '/timesheet/reports': { modules: ['timesheets'] },
     '/admin/audit': { modules: ['audit'] },
     '/admin/settings': { modules: ['settings'] },
     '/admin/geofence': { modules: ['geofence'] },
@@ -789,7 +846,7 @@ export class PermissionService {
     payroll: ['/payroll'],
     projects: ['/projects'],
     expenses: ['/expenses'],
-    timesheets: ['/timesheets'],
+    timesheets: ['/timesheets', '/timesheet', '/self-service/timesheet'],
     audit: ['/admin/audit'],
     settings: ['/settings', '/admin/settings', '/admin/announcements'],
     geofence: ['/admin/geofence'],

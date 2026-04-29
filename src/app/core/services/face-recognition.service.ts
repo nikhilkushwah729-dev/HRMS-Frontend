@@ -59,6 +59,11 @@ export interface FaceLivenessSample {
   headTurnRatio: number;
 }
 
+export interface LiveFaceFrameSummary {
+  status: 'no_face' | 'single_face' | 'multiple_faces';
+  count: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -554,6 +559,32 @@ export class FaceRecognitionService {
     );
   }
 
+  getLiveFaceFrameSummary(
+    video: HTMLVideoElement,
+  ): Observable<LiveFaceFrameSummary> {
+    return from(this.detectFaceCountOnVideo(video)).pipe(
+      map((count): LiveFaceFrameSummary => {
+        const status: LiveFaceFrameSummary['status'] =
+          count <= 0
+            ? 'no_face'
+            : count === 1
+              ? 'single_face'
+              : 'multiple_faces';
+
+        return {
+          count,
+          status,
+        };
+      }),
+      catchError(() =>
+        of({
+          count: 0,
+          status: 'no_face' as const,
+        }),
+      ),
+    );
+  }
+
   private async detectFacePresenceOnImage(imageData: string): Promise<boolean> {
     await this.ensureModelsLoaded();
     const image = await this.createImageElement(imageData);
@@ -583,6 +614,22 @@ export class FaceRecognitionService {
     );
 
     return Boolean(detection);
+  }
+
+  private async detectFaceCountOnVideo(
+    video: HTMLVideoElement,
+  ): Promise<number> {
+    await this.ensureModelsLoaded();
+    const faceapi = await this.loadFaceApi();
+    const detections = await faceapi.detectAllFaces(
+      video,
+      new faceapi.TinyFaceDetectorOptions({
+        inputSize: 160,
+        scoreThreshold: 0.3,
+      }),
+    );
+
+    return Array.isArray(detections) ? detections.length : 0;
   }
 
   private async detectLivenessSampleOnVideo(
