@@ -93,26 +93,13 @@ type CheckoutStep =
   <div class="flex h-screen flex-col overflow-hidden" [ngClass]="{ 'overflow-hidden': isAuthenticating || isRedirecting }">
 
     <!-- Professional Header -->
-    <header class="sticky top-0 z-50 flex-shrink-0 border-b border-gray-200/50 bg-white/95 shadow-sm shadow-gray-100/50 backdrop-blur-xl">
+    <header class="sticky top-0 z-50 flex-shrink-0 border-b border-gray-200/60 bg-white/95 shadow-sm shadow-gray-100/50 backdrop-blur-xl">
       <div class="mx-auto px-4">
-        <div class="flex h-14 sm:h-16 items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <div class="h-11 w-11 overflow-hidden rounded-2xl bg-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-100">
-                <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-cover" loading="eager" />
-              </div>
-              <div class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white"></div>
-            </div>
-            <div>
-              <h1 class="text-lg font-bold text-gray-900 leading-tight tracking-tight">
-                <span class="bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent uppercase">
-                  HRNexus Plan
-                </span>
-              </h1>
-              <div class="flex items-center gap-1">
-                <span class="text-[10px] font-semibold text-emerald-600 uppercase tracking-wider">Enterprise Edition</span>
-                <div class="w-1 h-1 bg-emerald-400 rounded-full"></div>
-                <span class="text-[10px] text-gray-500">HRNexus Technology</span>
+        <div class="flex min-h-[64px] flex-wrap items-center justify-between gap-3 py-3 sm:min-h-[72px]">
+          <div class="flex min-w-0 items-center gap-3">
+            <div class="relative shrink-0">
+              <div class="flex h-14 w-auto max-w-[250px] items-center justify-center overflow-hidden">
+                <img src="/hrnexus-logo.png" alt="HRNexus" class="h-full w-auto object-contain" loading="eager" />
               </div>
             </div>
           </div>
@@ -684,7 +671,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   private getBrandLogoUrl() {
-    return `${window.location.origin}/hrnexus-brand-mark.png`;
+    return `${window.location.origin}/hrnexus-logo.png`;
   }
 
   loadInitialData() {

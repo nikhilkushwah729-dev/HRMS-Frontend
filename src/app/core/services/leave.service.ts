@@ -37,6 +37,17 @@ export interface LeaveRequest {
     };
 }
 
+export interface LeaveApplyPayload {
+    leaveTypeId: number;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    supportingDoc?: string | null;
+    durationType?: 'full_day' | 'half_day';
+    halfDaySession?: 'first_half' | 'second_half' | null;
+    requestKind?: 'leave' | 'short-day' | 'under-time' | 'wfh' | 'outdoor-duty';
+}
+
 export type LeaveTypeBalance = {
     id: number;
     orgId: number;
@@ -345,7 +356,7 @@ export class LeaveService {
         });
     }
 
-    applyLeave(request: { leaveTypeId: number; startDate: string; endDate: string; reason: string }): Observable<LeaveRequest> {
+    applyLeave(request: LeaveApplyPayload): Observable<LeaveRequest> {
         return this.http.post<any>(`${this.apiUrl}/leaves`, request).pipe(
             map((res) => this.normalizeLeaveRequest(res?.data ?? res)),
             tap((createdLeave) => {
@@ -369,7 +380,7 @@ export class LeaveService {
         );
     }
 
-    updateLeave(id: number, request: { leaveTypeId: number; startDate: string; endDate: string; reason: string }): Observable<LeaveRequest> {
+    updateLeave(id: number, request: LeaveApplyPayload): Observable<LeaveRequest> {
         return this.http.put<any>(`${this.apiUrl}/leaves/${id}`, request).pipe(
             map((res) => this.normalizeLeaveRequest(res?.data ?? res)),
             tap((updatedLeave) => {

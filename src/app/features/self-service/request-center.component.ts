@@ -1,349 +1,270 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { filter } from 'rxjs/operators';
-import { AuthService } from '../../core/services/auth.service';
-import { LeaveDashboard, LeaveService } from '../../core/services/leave.service';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
-  RegularizationRequest,
-  RegularizationService,
-} from '../../core/services/regularization.service';
-import { Expense, ExpenseService } from '../../core/services/expense.service';
-
-type RequestMenuItem = {
-  label: string;
-  route: string;
-  description: string;
-  count: number;
-  applyBtn?: { name: string; route: string; queryParams?: any };
-  children?: RequestMenuItem[];
-};
+  RequestRecord,
+  RequestStatus,
+  RequestType,
+  RequestWorkflowService,
+} from '../../core/services/request-workflow.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-request-center',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterOutlet],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="mx-auto px-4 py-4">
-      <div class="grid grid-cols-12 gap-4">
-        <!-- Header -->
-        <div class="col-span-12 sticky top-0 z-20 shadow-lg p-6 rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md">
+    <div class="space-y-6">
+      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <div class="text-2xl max-sm:text-lg font-semibold text-slate-900">
-              Request Center
-            </div>
+            <p class="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600">Request Center</p>
+            <h1 class="mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Employee self-service requests and request history</h1>
+            <p class="mt-2 max-w-3xl text-sm text-slate-500">
+              Create requests, track approval status, review timelines, and cancel requests before approval without mixing approver workflows into this page.
+            </p>
           </div>
+          <a routerLink="/self-service/requests/create" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">
+            Create New Request
+          </a>
         </div>
+      </section>
 
-        <!-- Sidebar -->
-        <div class="lg:col-span-2 col-span-12">
-          <div class="mx-auto shadow-sm rounded-xl border border-slate-100 p-4 text-sm bg-white">
-            <h1 class="text-lg font-semibold mb-4 text-slate-900">Request Category</h1>
-            <hr class="border-slate-200" />
-            <div class="mt-4">
-              <ul class="flex flex-col lg:space-y-1 lg:h-[605px] overflow-y-auto overflow-x-hidden hidescrollbar">
-                @for (item of menuItems(); track item.label) {
-                  <li class="w-full">
-                    <button
-                      type="button"
-                      class="flex items-center justify-between p-2.5 w-full max-lg:whitespace-nowrap text-left rounded-xl font-normal hover:bg-slate-50 text-sm lg:text-base transition"
-                      (click)="toggleMenu(item)"
-                    >
-                      <span class="flex items-center text-sm text-slate-700 gap-3">
-                        <span class="text-slate-500" [innerHTML]="itemIcon(item.label)"></span>
-                        <span>{{ item.label }}</span>
-                      </span>
+      @if (loading()) {
+        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+          Loading your request center...
+        </div>
+      } @else {
+        <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Requests</p><p class="mt-3 text-3xl font-black text-slate-900">{{ requests().length }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('approved') }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Rejected</p><p class="mt-3 text-3xl font-black text-rose-600">{{ countByStatus('rejected') }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Upcoming Approved</p><p class="mt-3 text-3xl font-black text-sky-700">{{ upcomingApproved().length }}</p></article>
+        </section>
 
-                      <span class="ml-2 flex items-center gap-2">
-                        @if (item.count > 0 && !isExpanded(item)) {
-                          <span class="inline-flex min-w-5 justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                            {{ item.count }}
-                          </span>
-                        }
+        <section class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h2 class="text-lg font-black text-slate-900">My Requests</h2>
+                <p class="mt-1 text-sm text-slate-500">Only your own requests are visible here.</p>
+              </div>
+            </div>
 
-                      @if (item.children?.length) {
-                        <span class="flex justify-end">
-                          <svg class="h-5 w-5 text-slate-400 transition-transform duration-300" 
-                               [class.rotate-90]="isExpanded(item)" 
-                               viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6-6-6z" />
-                          </svg>
-                        </span>
-                      }
-                      </span>
-                    </button>
-
-                    @if (item.children?.length && isExpanded(item)) {
-                      <ul class="pl-4 lg:flex-col lg:space-y-1 space-y-0 max-lg:flex max-lg:flex-row max-lg:space-x-2 text-sm overflow-y-auto lg:max-h-[200px] max-h-[300px] lg:w-full w-auto lg:overflow-x-hidden overflow-x-auto text-slate-700 hidescrollbar">
-                        @for (child of item.children; track child.route) {
-                          <li class="lg:w-full w-auto">
-                            <a
-                              [routerLink]="child.route"
-                              class="block p-2.5 w-full max-lg:w-auto text-left rounded-xl font-normal hover:bg-slate-50 text-sm lg:text-base transition"
-                              [class.bg-emerald-50]="isRouteActive(child.route)"
-                              [class.text-emerald-700]="isRouteActive(child.route)"
-                              [class.font-semibold]="isRouteActive(child.route)"
-                              (click)="selectChild(child)"
-                            >
-                              <span class="flex items-center text-sm w-full justify-between gap-2">
-                                <span>{{ child.label }}</span>
-                                @if (child.count > 0) {
-                                  <span class="inline-flex min-w-5 justify-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
-                                    {{ child.count }}
-                                  </span>
-                                }
-                              </span>
-                            </a>
-                          </li>
-                        }
-                      </ul>
-                    } @else if (!item.children?.length) {
-                      <a [routerLink]="item.route" class="hidden" (click)="selectChild(item)"></a>
-                    }
-                  </li>
+            <div class="mt-5 grid gap-3 md:grid-cols-4">
+              <input [(ngModel)]="search" placeholder="Search title or reason" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
+              <select [(ngModel)]="type" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+                <option value="">All request types</option>
+                @for (option of requestTypes(); track option.key) {
+                  <option [value]="option.key">{{ option.label }}</option>
                 }
-              </ul>
+              </select>
+              <select [(ngModel)]="status" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+                <option value="">All status</option>
+                <option value="draft">Draft</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="sent_back">Sent Back</option>
+              </select>
             </div>
-          </div>
-        </div>
 
-        <!-- Main Content -->
-        <div class="lg:col-span-10 col-span-12">
-          <div class="mx-auto bg-white shadow-sm rounded-2xl border border-slate-100 pt-6 pb-2 text-sm">
-            <div class="flex justify-between items-center px-4 mb-4">
-              <h1 class="text-lg font-semibold text-slate-900">{{ activeCategory() }}</h1>
-              @if (applyBtnSub()) {
-                <a
-                  [routerLink]="applyBtnSub()!.route"
-                  [queryParams]="applyBtnSub()!.queryParams || {}"
-                  class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5"
-                >
-                  {{ applyBtnSub()!.name }}
-                </a>
-              }
+            <div class="mt-5 overflow-x-auto">
+              <table class="min-w-full divide-y divide-slate-200">
+                <thead>
+                  <tr class="text-left text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                    <th class="px-4 py-4">Request</th>
+                    <th class="px-4 py-4">Type</th>
+                    <th class="px-4 py-4">Application Date</th>
+                    <th class="px-4 py-4">Status</th>
+                    <th class="px-4 py-4">Priority</th>
+                    <th class="px-4 py-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  @for (item of filteredRequests(); track item.id) {
+                    <tr>
+                      <td class="px-4 py-4">
+                        <p class="text-sm font-black text-slate-900">{{ item.title }}</p>
+                        <p class="mt-1 max-w-md text-xs text-slate-500">{{ item.reason }}</p>
+                        @if (item.requestType === 'time_off' && (item.startTime || item.endTime)) {
+                          <p class="mt-2 text-[11px] font-bold text-sky-700">Time Off: {{ item.startTime || '--:--' }} to {{ item.endTime || '--:--' }}</p>
+                        }
+                      </td>
+                      <td class="px-4 py-4 text-sm text-slate-600">{{ requestTypeLabel(item.requestType) }}</td>
+                      <td class="px-4 py-4 text-sm text-slate-600">{{ displayApplicationDate(item) | date:'mediumDate' }}</td>
+                      <td class="px-4 py-4"><span class="rounded-full px-3 py-1 text-xs font-black" [ngClass]="statusBadge(item.status)">{{ prettyStatus(item.status) }}</span></td>
+                      <td class="px-4 py-4"><span class="rounded-full px-3 py-1 text-xs font-black" [ngClass]="priorityBadge(item.priority)">{{ item.priority }}</span></td>
+                      <td class="px-4 py-4">
+                        <div class="flex justify-end gap-2">
+                          <a [routerLink]="['/self-service/requests', item.id]" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">View</a>
+                          @if (canCancel(item)) {
+                            <button type="button" (click)="cancel(item)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">Cancel</button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="6" class="px-4 py-12 text-center text-sm font-semibold text-slate-500">No requests found for the selected filters.</td></tr>
+                  }
+                </tbody>
+              </table>
             </div>
-            <hr class="mx-4 border-slate-200" />
-            <router-outlet></router-outlet>
-          </div>
-        </div>
-      </div>
+          </article>
+
+          <article class="space-y-5">
+            <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 class="text-lg font-black text-slate-900">Request Types</h2>
+              <div class="mt-4 grid gap-3">
+                @for (option of requestTypes(); track option.key) {
+                  <a [routerLink]="requestTypeRoute(option.key)" [queryParams]="option.key === 'time_off' ? null : { type: option.key }" class="rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-50">
+                    <p class="text-sm font-black text-slate-900">{{ option.label }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ option.description }}</p>
+                  </a>
+                }
+              </div>
+            </section>
+
+            <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <h2 class="text-lg font-black text-slate-900">Upcoming Approved Requests</h2>
+              <div class="mt-4 space-y-3">
+                @for (item of upcomingApproved(); track item.id) {
+                  <a [routerLink]="['/self-service/requests', item.id]" class="block rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50">
+                    <p class="text-sm font-black text-slate-900">{{ item.title }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ requestTypeLabel(item.requestType) }} • {{ displayApplicationDate(item) | date:'mediumDate' }}{{ item.requestType === 'time_off' && (item.startTime || item.endTime) ? (' • ' + (item.startTime || '--:--') + ' to ' + (item.endTime || '--:--')) : '' }}</p>
+                  </a>
+                } @empty {
+                  <div class="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                    No upcoming approved requests.
+                  </div>
+                }
+              </div>
+            </section>
+          </article>
+        </section>
+      }
     </div>
   `,
 })
-export class RequestCenterComponent implements OnInit {
-  private readonly authService = inject(AuthService);
-  private readonly leaveService = inject(LeaveService);
-  private readonly regularizationService = inject(RegularizationService);
-  private readonly expenseService = inject(ExpenseService);
-  private readonly router = inject(Router);
+export class RequestCenterComponent {
+  private readonly requestService = inject(RequestWorkflowService);
+  private readonly toastService = inject(ToastService);
 
-  private readonly currentEmployeeId = Number(
-    this.authService.getStoredUser()?.employeeId ??
-      this.authService.getStoredUser()?.id ??
-      0,
+  readonly loading = signal(true);
+  readonly requests = signal<RequestRecord[]>([]);
+  readonly requestTypes = signal(this.requestService.getRequestTypes());
+
+  search = '';
+  type = '';
+  status = '';
+
+  readonly filteredRequests = computed(() =>
+    this.requests().filter((item) => {
+      if (this.type && item.requestType !== this.type) return false;
+      if (this.status && item.status !== this.status) return false;
+      if (!this.search.trim()) return true;
+      return [item.title, item.reason, item.description]
+        .join(' ')
+        .toLowerCase()
+        .includes(this.search.toLowerCase());
+    }),
   );
 
-  readonly leaveDashboard = signal<LeaveDashboard | null>(null);
-  readonly regularizations = signal<RegularizationRequest[]>([]);
-  readonly expenses = signal<Expense[]>([]);
-
-  readonly leavePendingCount = computed(
-    () =>
-      (this.leaveDashboard()?.requests ?? []).filter(
-        (item) =>
-          item.employeeId === this.currentEmployeeId && item.status === 'pending',
-      ).length,
+  readonly upcomingApproved = computed(() =>
+    this.requests()
+      .filter((item) => item.status === 'approved')
+      .sort((left, right) =>
+        String(this.displayApplicationDate(left)).localeCompare(
+          String(this.displayApplicationDate(right)),
+        ),
+      )
+      .slice(0, 5),
   );
 
-  readonly regularizationPendingCount = computed(
-    () =>
-      this.regularizations().filter(
-        (item) =>
-          item.employeeId === this.currentEmployeeId &&
-          item.status === 'pending' &&
-          item.type !== 'overtime',
-      ).length,
-  );
-
-  readonly overtimePendingCount = computed(
-    () =>
-      this.regularizations().filter(
-        (item) =>
-          item.employeeId === this.currentEmployeeId &&
-          item.status === 'pending' &&
-          item.type === 'overtime',
-      ).length,
-  );
-
-  readonly expensePendingCount = computed(
-    () =>
-      this.expenses().filter(
-        (item) =>
-          item.employeeId === this.currentEmployeeId && item.status === 'pending',
-      ).length,
-  );
-
-  readonly totalPending = computed(
-    () =>
-      this.leavePendingCount() +
-      this.regularizationPendingCount() +
-      this.expensePendingCount(),
-  );
-
-  readonly menuItems = computed<RequestMenuItem[]>(() => [
-    {
-      label: 'Leave',
-      route: '/self-service/requests/leave',
-      description: '',
-      count: this.leavePendingCount(),
-      applyBtn: {
-        name: 'Apply Leave',
-        route: '/leaves',
-        queryParams: { view: 'request' }
-      }
-    },
-    {
-      label: 'Attendance',
-      route: '/self-service/requests/regularization',
-      description: '',
-      count: this.regularizationPendingCount() + this.overtimePendingCount(),
-      children: [
-        {
-          label: 'Overtime',
-          route: '/self-service/requests/overtime',
-          description: '',
-          count: this.overtimePendingCount(),
-        },
-        {
-          label: 'Regularization',
-          route: '/self-service/requests/regularization',
-          description: '',
-          count: this.regularizationPendingCount(),
-          applyBtn: {
-            name: 'Apply Regularization',
-            route: '/self-service/attendance'
-          }
-        },
-      ],
-    },
-    {
-      label: 'Expense',
-      route: '/self-service/requests/expense',
-      description: '',
-      count: this.expensePendingCount(),
-    },
-  ]);
-
-  readonly activeCategory = signal<string>('Request Center');
-  readonly expandedItems = signal<Set<string>>(new Set());
-  readonly applyBtnSub = signal<{ name: string; route: string; queryParams?: any } | null>(null);
-
-  ngOnInit(): void {
-    forkJoin({
-      leaveDashboard: this.leaveService
-        .getLeaveDashboard()
-        .pipe(catchError(() => of(null))),
-      regularizations: this.regularizationService
-        .getRegularizations()
-        .pipe(catchError(() => of([]))),
-      expenses: this.expenseService.getExpenses().pipe(catchError(() => of([]))),
-    }).subscribe((result) => {
-      this.leaveDashboard.set(result.leaveDashboard);
-      this.regularizations.set(result.regularizations);
-      this.expenses.set(result.expenses);
-      this.syncActiveState();
-    });
-
-    this.syncActiveState();
-    this.router.events
-      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe(() => this.syncActiveState());
+  constructor() {
+    this.load();
   }
 
-  isRouteActive(route: string): boolean {
-    const currentUrl = this.router.url.split('?')[0];
-    return currentUrl === route || currentUrl.startsWith(`${route}/`);
-  }
-
-  toggleMenu(item: RequestMenuItem) {
-    if (!item.children?.length) {
-      this.router.navigateByUrl(item.route);
-      this.activeCategory.set(item.label);
-      this.applyBtnSub.set(item.applyBtn || null);
-      return;
-    }
-    
-    this.expandedItems.update(set => {
-      const newSet = new Set(set);
-      if (newSet.has(item.label)) {
-        newSet.delete(item.label);
-      } else {
-        newSet.add(item.label);
-      }
-      return newSet;
+  private load(): void {
+    this.loading.set(true);
+    this.requestService.getMyRequests().subscribe({
+      next: (items) => {
+        this.requests.set(items);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.toastService.show('Unable to load request center data.', 'error');
+        this.loading.set(false);
+      },
     });
   }
 
-  selectChild(child: RequestMenuItem) {
-    this.activeCategory.set(child.label);
-    this.applyBtnSub.set(child.applyBtn || null);
+  countByStatus(status: RequestStatus): number {
+    return this.requests().filter((item) => item.status === status).length;
   }
 
-  isExpanded(item: RequestMenuItem): boolean {
-    return this.expandedItems().has(item.label) || !!item.children?.some((child) => this.isRouteActive(child.route));
-  }
-
-  isDirectActive(item: RequestMenuItem): boolean {
-    if (item.children?.length) {
-      return this.isExpanded(item);
-    }
-    return this.isRouteActive(item.route);
-  }
-
-  private syncActiveState(): void {
-    const activeMenu = this.menuItems().find(
-      (item) =>
-        this.isDirectActive(item) ||
-        item.children?.some((child) => this.isRouteActive(child.route)),
+  requestTypeLabel(type: RequestType): string {
+    return (
+      this.requestTypes().find((item) => item.key === type)?.label ??
+      type.replace(/_/g, ' ')
     );
-
-    if (!activeMenu) {
-      this.activeCategory.set('Request Center');
-      this.applyBtnSub.set(null);
-      return;
-    }
-
-    if (activeMenu.children?.length) {
-      const activeChild = activeMenu.children.find((child) =>
-        this.isRouteActive(child.route),
-      );
-      if (activeChild) {
-        this.activeCategory.set(activeChild.label);
-        this.applyBtnSub.set(activeChild.applyBtn || null);
-        this.expandedItems.update((set) => {
-          const next = new Set(set);
-          next.add(activeMenu.label);
-          return next;
-        });
-        return;
-      }
-    }
-
-    this.activeCategory.set(activeMenu.label);
-    this.applyBtnSub.set(activeMenu.applyBtn || null);
   }
 
-  itemIcon(label: string): string {
-    const icons: Record<string, string> = {
-      Leave:
-        '<svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h8l2 2v12H5z"></path><path d="M7 8h6M7 11h6M7 14h4"></path></svg>',
-      Attendance:
-        '<svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 3h10v14H5z"></path><path d="M7 7h6M7 10h6M7 13h4"></path></svg>',
-      Expense:
-        '<svg class="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="14" height="10" rx="2"></rect><path d="M6 10h8"></path></svg>',
+  requestTypeRoute(type: RequestType): string[] {
+    if (type === 'time_off') {
+      return ['/self-service/requests/time-off'];
+    }
+    return ['/self-service/requests/create'];
+  }
+
+  prettyStatus(status: RequestStatus): string {
+    return status.replace(/_/g, ' ');
+  }
+
+  canCancel(item: RequestRecord): boolean {
+    return ['draft', 'pending', 'sent_back'].includes(item.status);
+  }
+
+  displayApplicationDate(item: RequestRecord): string {
+    return item.requestDate || item.submittedAt || item.startDate || item.createdAt;
+  }
+
+  cancel(item: RequestRecord): void {
+    this.requestService.cancelRequest(item.id, 'Cancelled by employee.').subscribe({
+      next: (result) => {
+        if (!result) {
+          this.toastService.show('This request can no longer be cancelled.', 'error');
+          return;
+        }
+        this.toastService.show('Request cancelled successfully.', 'success');
+        this.load();
+      },
+      error: () => this.toastService.show('Unable to cancel request right now.', 'error'),
+    });
+  }
+
+  statusBadge(status: RequestStatus): string {
+    const map: Record<RequestStatus, string> = {
+      draft: 'bg-slate-100 text-slate-700',
+      pending: 'bg-amber-50 text-amber-700',
+      approved: 'bg-emerald-50 text-emerald-700',
+      rejected: 'bg-rose-50 text-rose-700',
+      cancelled: 'bg-slate-100 text-slate-700',
+      sent_back: 'bg-sky-50 text-sky-700',
     };
-    return icons[label] || icons['Leave'];
+    return map[status];
+  }
+
+  priorityBadge(priority: RequestRecord['priority']): string {
+    const map: Record<RequestRecord['priority'], string> = {
+      low: 'bg-slate-100 text-slate-700',
+      medium: 'bg-indigo-50 text-indigo-700',
+      high: 'bg-orange-50 text-orange-700',
+      urgent: 'bg-rose-50 text-rose-700',
+    };
+    return map[priority];
   }
 }

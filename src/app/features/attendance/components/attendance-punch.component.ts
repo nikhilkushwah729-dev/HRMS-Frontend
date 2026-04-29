@@ -13,7 +13,10 @@ import {
 import { CommonModule } from '@angular/common';
 import { AttendanceService, TodayAttendance } from '../../../core/services/attendance.service';
 import { ToastService } from '../../../core/services/toast.service';
-import { finalize } from 'rxjs';
+import { finalize, firstValueFrom, interval, Subscription } from 'rxjs';
+import { FaceRecognitionService } from '../../../core/services/face-recognition.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-attendance-punch',
@@ -37,7 +40,7 @@ import { finalize } from 'rxjs';
           <!-- Camera Placeholder / Loading -->
           <div *ngIf="!isCameraReady()" class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-500">
              <div class="h-12 w-12 rounded-full border-4 border-slate-800 border-t-teal-500 animate-spin"></div>
-             <p class="text-sm font-bold uppercase tracking-widest animate-pulse">Initializing Camera...</p>
+             <p class="text-sm font-bold uppercase tracking-widest animate-pulse">{{ cameraFallbackMode() ? 'Camera unavailable. Preparing fallback...' : 'Initializing Camera...' }}</p>
           </div>
 
           <!-- Face Guide Overlay -->
@@ -50,6 +53,13 @@ import { finalize } from 'rxjs';
                 <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-teal-500 rounded-bl-xl"></div>
                 <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-teal-500 rounded-br-xl"></div>
              </div>
+          </div>
+
+          <div *ngIf="isCameraReady() && !capturedImage()" class="absolute left-4 right-4 top-4 z-10">
+            <div class="rounded-xl border border-white/15 bg-slate-950/65 px-4 py-3 text-white backdrop-blur-md">
+              <p class="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">Face Scan</p>
+              <p class="mt-1 text-sm font-bold">{{ faceStatusMessage() }}</p>
+            </div>
           </div>
 
           <!-- Captured Image Preview -->
@@ -73,14 +83,14 @@ import { finalize } from 'rxjs';
           <button
             *ngIf="!capturedImage()"
             (click)="captureAndPunch()"
-            [disabled]="!isCameraReady() || isProcessing() || locationStatus() === 'loading' || locationStatus() === 'outside_geofence' || locationStatus() === 'error' || hasCompletedPunch()"
+            [disabled]="isPrimaryActionDisabled()"
             class="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-xl font-black text-base shadow-lg shadow-teal-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
                <circle cx="12" cy="13" r="3" />
             </svg>
-            {{ hasCompletedPunch() ? 'SHIFT COMPLETED' : (status() === 'out' ? 'CLOCK IN NOW' : 'CLOCK OUT NOW') }}
+            {{ primaryActionLabel() }}
           </button>
 
           <button
@@ -105,8 +115,9 @@ import { finalize } from 'rxjs';
           <p class="text-xl font-black text-slate-900 mt-1">{{ currentTime }}</p>
         </div>
         <div class="p-4 rounded-xl border border-teal-100 bg-teal-50/50">
-          <p class="text-[10px] font-black text-teal-600 uppercase tracking-widest">STATUS</p>
-          <p class="text-xl font-black text-teal-700 mt-1 uppercase">{{ status() === 'in' ? 'Working' : 'Offline' }}</p>
+           <p class="text-[10px] font-black text-teal-600 uppercase tracking-widest">STATUS</p>
+          <p class="text-xl font-black text-teal-700 mt-1 uppercase">{{ statusBadgeLabel() }}</p>
+          <p class="mt-1 text-[11px] font-semibold text-teal-700/80">{{ faceRegistrationStatus() }}</p>
         </div>
         <div class="p-4 rounded-xl border" 
           [ngClass]="{
@@ -135,6 +146,19 @@ import { finalize } from 'rxjs';
         </div>
       </div>
 
+      <div
+        *ngIf="hasCompletedPunch()"
+        class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3"
+      >
+        <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Attendance Completed</p>
+        <p class="mt-1 text-sm font-bold text-emerald-900">
+          Today's check-in and check-out are already recorded.
+        </p>
+        <p class="mt-1 text-xs text-emerald-700">
+          You cannot mark attendance again for the same day from this screen.
+        </p>
+      </div>
+
       <!-- Instruction -->
       <div class="p-3 rounded-xl bg-amber-50 border border-amber-100 flex gap-3 items-start">
         <div class="h-8 w-8 shrink-0 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600">
@@ -146,7 +170,7 @@ import { finalize } from 'rxjs';
         </div>
         <div class="space-y-0.5">
            <p class="text-sm font-bold text-amber-900 leading-tight">Proper Positioning Required</p>
-           <p class="text-[11px] text-amber-700 leading-tight">Ensure your face is visible within the guide.</p>
+           <p class="text-[11px] text-amber-700 leading-tight">{{ instructionMessage() }}</p>
         </div>
       </div>
 
@@ -164,6 +188,9 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
+  private faceRecognitionService = inject(FaceRecognitionService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   isCameraReady = signal<boolean>(false);
   isProcessing = signal<boolean>(false);
@@ -173,19 +200,31 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   locationStatus = signal<'loading' | 'success' | 'error' | 'outside_geofence'>('loading');
   currentLocation = signal<{lat: number, lng: number, address?: string, zoneName?: string} | null>(null);
   geofenceMessage = signal<string>('Detecting location...');
+  faceStatusMessage = signal<string>('Preparing face scan...');
+  faceRegistrationStatus = signal<string>('Checking face registration...');
+  cameraFallbackMode = signal<boolean>(false);
+  multiFaceDetected = signal<boolean>(false);
+  faceRegistered = signal<boolean>(false);
   currentTime = '';
   
   private mediaStream: MediaStream | null = null;
   private timerInterval: any;
+  private autoScanSub?: Subscription;
+  private autoScanBusy = false;
+  private autoPunchTriggered = false;
+  private singleFaceStableFrames = 0;
+  private currentUser = this.authService.getStoredUser();
 
   ngOnInit() {
     this.startClock();
     this.checkStatus();
-    this.initCamera();
+    void this.initializeFaceFlow();
     this.initLocation();
   }
 
   ngOnDestroy() {
+    this.stopAutoScan();
+    this.faceRecognitionService.stopCamera();
     this.stopCamera();
     if (this.timerInterval) clearInterval(this.timerInterval);
   }
@@ -209,49 +248,55 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     });
   }
 
+  private async initializeFaceFlow() {
+    await this.checkFaceRegistration();
+    await this.initCamera();
+  }
+
+  private async checkFaceRegistration() {
+    const employeeId = Number(this.currentUser?.employeeId ?? this.currentUser?.id ?? 0);
+    if (!employeeId) {
+      this.faceRegistered.set(false);
+      this.faceRegistrationStatus.set('Employee context missing');
+      return;
+    }
+
+    const registered = await firstValueFrom(
+      this.faceRecognitionService.hasRegisteredFace(employeeId),
+    ).catch(() => false);
+
+    this.faceRegistered.set(Boolean(registered));
+    this.faceRegistrationStatus.set(
+      registered
+        ? 'Face registered and ready for auto attendance'
+        : 'Face not registered. Register first to use face attendance',
+    );
+  }
+
   private async initCamera() {
     try {
-      if (!navigator?.mediaDevices?.getUserMedia) {
-        throw new Error('Camera API is not available in this browser.');
-      }
-
-      const constraintsToTry: MediaStreamConstraints[] = [
-        {
-          video: { facingMode: { ideal: 'user' }, width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false
-        },
-        {
-          video: { width: { ideal: 640 }, height: { ideal: 480 } },
-          audio: false
-        }
-      ];
-
-      let stream: MediaStream | null = null;
-      let lastError: unknown = null;
-      for (const constraints of constraintsToTry) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraints);
-          break;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      if (!stream) {
-        throw lastError instanceof Error ? lastError : new Error('Unable to access camera.');
-      }
-
-      this.mediaStream = stream;
       const video = this.videoElement.nativeElement;
-      video.setAttribute('playsinline', 'true');
-      video.muted = true;
-      video.srcObject = this.mediaStream;
-      video.onloadedmetadata = () => {
-        video.play();
-        this.isCameraReady.set(true);
-      };
+      await this.faceRecognitionService.primeFaceEngine();
+      const ready = await this.faceRecognitionService.startBestAvailableCamera(video);
+      this.isCameraReady.set(ready);
+      this.cameraFallbackMode.set(!ready);
+
+      if (!ready) {
+        this.faceStatusMessage.set('Camera unavailable. Attendance will continue in fallback mode.');
+        this.toastService.info('Camera unavailable. You can still mark attendance without face scan.');
+        return;
+      }
+
+      if (!this.faceRegistered()) {
+        this.faceStatusMessage.set('Face not registered. Please complete face registration first.');
+        return;
+      }
+
+      this.startAutoScan();
     } catch (error) {
       console.error('Camera init error:', error);
+      this.cameraFallbackMode.set(true);
+      this.faceStatusMessage.set('Camera unavailable. Attendance will continue in fallback mode.');
       this.toastService.error(
         error instanceof Error ? error.message : 'Could not access camera. Please check permissions.',
       );
@@ -261,6 +306,78 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   private stopCamera() {
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
+    }
+  }
+
+  private startAutoScan() {
+    this.stopAutoScan();
+    this.autoPunchTriggered = false;
+    this.singleFaceStableFrames = 0;
+    this.multiFaceDetected.set(false);
+    this.faceStatusMessage.set('Camera ready. Looking for exactly one face...');
+    void this.runAutoScanTick();
+    this.autoScanSub = interval(700).subscribe(() => {
+      void this.runAutoScanTick();
+    });
+  }
+
+  private stopAutoScan() {
+    this.autoScanSub?.unsubscribe();
+    this.autoScanSub = undefined;
+    this.autoScanBusy = false;
+    this.autoPunchTriggered = false;
+    this.singleFaceStableFrames = 0;
+  }
+
+  private async runAutoScanTick() {
+    if (
+      !this.isCameraReady() ||
+      this.isProcessing() ||
+      this.autoScanBusy ||
+      this.autoPunchTriggered ||
+      this.cameraFallbackMode() ||
+      !this.faceRegistered()
+    ) {
+      return;
+    }
+
+    const video = this.videoElement?.nativeElement;
+    if (!video || !video.videoWidth) {
+      return;
+    }
+
+    this.autoScanBusy = true;
+    try {
+      const frameSummary = await firstValueFrom(
+        this.faceRecognitionService.getLiveFaceFrameSummary(video),
+      );
+
+      if (frameSummary.status === 'multiple_faces') {
+        this.singleFaceStableFrames = 0;
+        this.multiFaceDetected.set(true);
+        this.faceStatusMessage.set('Multiple faces detected. Keep only one face in frame.');
+        return;
+      }
+
+      this.multiFaceDetected.set(false);
+
+      if (frameSummary.status === 'no_face') {
+        this.singleFaceStableFrames = 0;
+        this.faceStatusMessage.set('No face detected. Please align your face inside the guide.');
+        return;
+      }
+
+      this.singleFaceStableFrames += 1;
+      if (this.singleFaceStableFrames < 2) {
+        this.faceStatusMessage.set('One face detected. Hold still for confirmation...');
+        return;
+      }
+
+      this.faceStatusMessage.set('Face confirmed. Verifying and marking attendance...');
+      this.autoPunchTriggered = true;
+      this.captureAndPunch(true);
+    } finally {
+      this.autoScanBusy = false;
     }
   }
 
@@ -305,8 +422,72 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     );
   }
 
-  captureAndPunch() {
-    if (!this.isCameraReady() || this.isProcessing()) return;
+  primaryActionLabel(): string {
+    if (this.hasCompletedPunch()) return 'SHIFT COMPLETED';
+    if (this.cameraFallbackMode()) {
+      return this.status() === 'out' ? 'CLOCK IN NOW' : 'CLOCK OUT NOW';
+    }
+    if (!this.faceRegistered()) return 'REGISTER FACE FIRST';
+    return this.status() === 'out' ? 'AUTO FACE CLOCK IN' : 'AUTO FACE CLOCK OUT';
+  }
+
+  instructionMessage(): string {
+    if (this.hasCompletedPunch()) {
+      return 'Your attendance for today is already completed. No further punch is required.';
+    }
+    if (this.cameraFallbackMode()) {
+      return 'Camera is unavailable. You can continue with standard attendance fallback.';
+    }
+    if (!this.faceRegistered()) {
+      return 'Your face is not registered yet. Complete face registration first, then mark attendance.';
+    }
+    if (this.multiFaceDetected()) {
+      return 'Multiple faces detected. Keep only one face inside the frame.';
+    }
+    return 'Ensure your face is visible within the guide. Auto capture will run when one face is detected.';
+  }
+
+  isPrimaryActionDisabled(): boolean {
+    if (this.isProcessing() || this.locationStatus() === 'loading' || this.locationStatus() === 'outside_geofence' || this.locationStatus() === 'error' || this.hasCompletedPunch()) {
+      return true;
+    }
+
+    if (this.cameraFallbackMode()) {
+      return false;
+    }
+
+    if (!this.faceRegistered()) {
+      return false;
+    }
+
+    return !this.isCameraReady();
+  }
+
+  statusBadgeLabel(): string {
+    if (this.hasCompletedPunch()) return 'Completed';
+    return this.status() === 'in' ? 'Working' : 'Offline';
+  }
+
+  captureAndPunch(autoTriggered = false) {
+    if (this.isProcessing()) return;
+    if (this.hasCompletedPunch()) {
+      this.toastService.info('Attendance for today is already completed.');
+      return;
+    }
+
+    if (!this.cameraFallbackMode() && !this.faceRegistered()) {
+      void this.router.navigate(['/face-registration'], {
+        queryParams: { returnUrl: '/self-service/attendance?view=punch&openModal=1' },
+      });
+      return;
+    }
+
+    if (this.cameraFallbackMode()) {
+      this.markAttendanceWithoutCamera();
+      return;
+    }
+
+    if (!this.isCameraReady()) return;
 
     const video = this.videoElement.nativeElement;
     const canvas = this.canvasElement.nativeElement;
@@ -330,34 +511,79 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     this.capturedImage.set(imageData);
     this.isProcessing.set(true);
 
-    const isClockingIn = this.status() === 'out';
-    const location = this.currentLocation();
-    
-    const actionObs = isClockingIn 
-      ? this.attendanceService.checkIn({ selfieUrl: imageData, source: 'web', latitude: location?.lat, longitude: location?.lng })
-      : this.attendanceService.checkOut({ selfieUrl: imageData, source: 'web', latitude: location?.lat, longitude: location?.lng });
+    const employeeId = Number(this.currentUser?.employeeId ?? this.currentUser?.id ?? 0);
+    const orgId = Number(this.currentUser?.orgId ?? this.currentUser?.organizationId ?? 0);
+    const action = this.status() === 'out' ? 'check_in' : 'check_out';
 
-    actionObs.pipe(finalize(() => this.isProcessing.set(false)))
+    this.faceRecognitionService
+      .verifyAndMarkAttendance(employeeId, orgId, imageData, action)
+      .pipe(finalize(() => this.isProcessing.set(false)))
       .subscribe({
-        next: () => {
-          this.toastService.success(`Successfully clocked ${isClockingIn ? 'in' : 'out'}!`);
-          this.status.set(isClockingIn ? 'in' : 'out');
-          if (!isClockingIn) {
-            this.hasCompletedPunch.set(true);
-          }
-          this.punchSuccess.emit();
-          // Clear captured image after success to show live feed again if they want
-          setTimeout(() => this.retake(), 3000);
+        next: (res) => {
+          if (!res.success) {
+          this.toastService.error(res.message || 'Face attendance could not be marked.');
+          this.retake();
+          return;
+        }
+
+          this.handleSuccessfulPunch(action === 'check_in');
         },
         error: (err) => {
           console.error('Punch failed', err);
-          this.toastService.error('Failed to record attendance. Please try again.');
-          this.retake();
+          this.toastService.error(
+            err?.friendlyMessage || err?.error?.message || 'Failed to record attendance. Please try again.',
+          );
+          if (!autoTriggered) {
+            this.retake();
+          } else {
+            this.autoPunchTriggered = false;
+            this.singleFaceStableFrames = 0;
+            this.capturedImage.set(null);
+            this.faceStatusMessage.set('Auto scan retrying after failed face verification.');
+          }
         }
       });
   }
 
+  private markAttendanceWithoutCamera() {
+    this.isProcessing.set(true);
+    const isClockingIn = this.status() === 'out';
+    const location = this.currentLocation();
+
+    const actionObs = isClockingIn
+      ? this.attendanceService.checkIn({ source: 'web', latitude: location?.lat, longitude: location?.lng })
+      : this.attendanceService.checkOut({ source: 'web', latitude: location?.lat, longitude: location?.lng });
+
+    actionObs.pipe(finalize(() => this.isProcessing.set(false))).subscribe({
+      next: () => this.handleSuccessfulPunch(isClockingIn),
+      error: (err) => {
+        console.error('Fallback punch failed', err);
+        this.toastService.error('Failed to record attendance. Please try again.');
+      },
+    });
+  }
+
+  private handleSuccessfulPunch(isClockingIn: boolean) {
+    this.toastService.success(`Successfully clocked ${isClockingIn ? 'in' : 'out'}!`);
+    this.status.set(isClockingIn ? 'in' : 'out');
+    if (!isClockingIn) {
+      this.hasCompletedPunch.set(true);
+    }
+    this.punchSuccess.emit();
+    this.faceStatusMessage.set(
+      isClockingIn
+        ? 'Attendance marked. You are now clocked in.'
+        : 'Attendance marked. You are now clocked out.',
+    );
+    setTimeout(() => this.retake(), 3000);
+  }
+
   retake() {
     this.capturedImage.set(null);
+    this.singleFaceStableFrames = 0;
+    if (!this.cameraFallbackMode() && this.faceRegistered() && this.isCameraReady()) {
+      this.autoPunchTriggered = false;
+      this.faceStatusMessage.set('Looking for exactly one face...');
+    }
   }
 }

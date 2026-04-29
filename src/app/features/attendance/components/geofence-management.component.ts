@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceService, GeoFenceZone, GeoFenceSettings } from '../../../core/services/attendance.service';
@@ -127,33 +127,67 @@ import { CustomModalComponent } from '../../../core/components/modal/custom-moda
     </div>
 
     <!-- Create/Edit Modal -->
-    <app-custom-modal [openModal]="showModal()" (closeModal)="closeModal()" [crossButton]="true" maxWidth="max-w-md">
+    <app-custom-modal [openModal]="showModal()" (closeModal)="closeModal()" [crossButton]="true" maxWidth="max-w-3xl">
       <div class="p-1">
         <h2 class="text-xl font-bold text-slate-900 mb-2">{{ isEditing() ? 'Edit Geofence Zone' : 'Create New Zone' }}</h2>
         <p class="text-sm text-slate-500 mb-6 font-medium">Identify the physical boundaries for this area.</p>
 
-        <form (ngSubmit)="saveZone()" class="space-y-4">
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Zone Name</label>
-            <input type="text" [(ngModel)]="currentZone.name" name="name" class="app-field" placeholder="e.g., Head Office, Site A" required>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Latitude</label>
-              <input type="number" step="any" [(ngModel)]="currentZone.latitude" name="latitude" class="app-field" placeholder="23.456789" required>
+        <form (ngSubmit)="saveZone()" class="space-y-5">
+          <div class="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)]">
+            <div class="space-y-4">
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                <div class="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
+                  <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Map Picker</p>
+                    <p class="mt-1 text-sm font-semibold text-slate-800">Click on the map to select the geofence center.</p>
+                  </div>
+                  <button
+                    type="button"
+                    (click)="useCurrentLocation()"
+                    class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.14em] text-blue-700 transition hover:border-blue-500 hover:bg-blue-100"
+                  >
+                    Use Current Location
+                  </button>
+                </div>
+                <div #zoneMapContainer class="h-[320px] w-full"></div>
+              </div>
+              <p class="text-xs text-slate-500">
+                Tip: move to the exact office or branch point on the map, click once, then adjust the radius until the green circle matches the allowed attendance area.
+              </p>
             </div>
-            <div class="flex flex-col gap-2">
-              <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Longitude</label>
-              <input type="number" step="any" [(ngModel)]="currentZone.longitude" name="longitude" class="app-field" placeholder="78.123456" required>
+
+            <div class="space-y-4">
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Zone Name</label>
+                <input type="text" [(ngModel)]="currentZone.name" name="name" class="app-field" placeholder="e.g., Head Office, Site A" required>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Latitude</label>
+                  <input type="number" step="any" [(ngModel)]="currentZone.latitude" (ngModelChange)="syncMapShapes()" name="latitude" class="app-field" placeholder="23.456789" required>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Longitude</label>
+                  <input type="number" step="any" [(ngModel)]="currentZone.longitude" (ngModelChange)="syncMapShapes()" name="longitude" class="app-field" placeholder="78.123456" required>
+                </div>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Radius (Meters)</label>
+                <div class="relative">
+                  <input type="number" [(ngModel)]="currentZone.radius_meters" (ngModelChange)="onRadiusChanged()" name="radius" class="app-field pr-12" placeholder="100" required>
+                  <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">m</span>
+                </div>
+                <p class="text-[10px] text-slate-400 font-medium italic">Recommended minimum radius is 50m for GPS accuracy.</p>
+              </div>
+
+              <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Selected Zone Summary</p>
+                <div class="mt-3 space-y-2 text-sm text-emerald-900">
+                  <p><span class="font-bold">Center:</span> {{ currentZone.latitude | number:'1.4-6' }}, {{ currentZone.longitude | number:'1.4-6' }}</p>
+                  <p><span class="font-bold">Radius:</span> {{ currentZone.radius_meters }} meters</p>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="flex flex-col gap-2">
-            <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Radius (Meters)</label>
-            <div class="relative">
-              <input type="number" [(ngModel)]="currentZone.radius_meters" name="radius" class="app-field pr-12" placeholder="100" required>
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">m</span>
-            </div>
-            <p class="text-[10px] text-slate-400 font-medium italic">Recommended minimum radius is 50m for GPS accuracy.</p>
           </div>
 
           <div class="flex gap-3 pt-4">
@@ -168,11 +202,16 @@ import { CustomModalComponent } from '../../../core/components/modal/custom-moda
   `,
   styles: [`
     :host { display: block; }
+    :host ::ng-deep .leaflet-container {
+      font-family: inherit;
+      z-index: 0;
+    }
   `]
 })
 export class GeofenceManagementComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
+  @ViewChild('zoneMapContainer') zoneMapContainer?: ElementRef<HTMLDivElement>;
 
   settings = signal<GeoFenceSettings>({ geofence_enabled: false, zones: [], require_geofence_for_all: false });
   zones = signal<GeoFenceZone[]>([]);
@@ -189,6 +228,10 @@ export class GeofenceManagementComponent implements OnInit {
     longitude: 0,
     radius_meters: 100
   };
+  private leafletLib: any = null;
+  private zoneMap: any = null;
+  private zoneMarker: any = null;
+  private zoneRadiusCircle: any = null;
 
   ngOnInit() {
     this.loadData();
@@ -240,8 +283,9 @@ export class GeofenceManagementComponent implements OnInit {
 
   openCreateModal() {
     this.isEditing.set(false);
-    this.currentZone = { id: 0, name: '', latitude: 0, longitude: 0, radius_meters: 100 };
+    this.currentZone = { id: 0, name: '', latitude: 23.2599, longitude: 77.4126, radius_meters: 100 };
     this.showModal.set(true);
+    this.scheduleMapSetup();
   }
 
   editZone(zone: GeoFenceZone) {
@@ -254,10 +298,12 @@ export class GeofenceManagementComponent implements OnInit {
         radius_meters: zone.radius_meters 
     };
     this.showModal.set(true);
+    this.scheduleMapSetup();
   }
 
   closeModal() {
     this.showModal.set(false);
+    this.destroyMapInstance();
   }
 
   saveZone() {
@@ -299,5 +345,114 @@ export class GeofenceManagementComponent implements OnInit {
         }
       });
     }
+  }
+
+  onRadiusChanged() {
+    this.syncMapShapes();
+  }
+
+  async useCurrentLocation() {
+    if (!navigator.geolocation) {
+      this.toastService.error('Geolocation is not supported in this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        this.currentZone.latitude = Number(position.coords.latitude.toFixed(6));
+        this.currentZone.longitude = Number(position.coords.longitude.toFixed(6));
+        this.syncMapShapes(true);
+      },
+      () => this.toastService.error('Unable to fetch current location.'),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+  }
+
+  private scheduleMapSetup() {
+    setTimeout(() => {
+      void this.initializeZoneMap();
+    }, 150);
+  }
+
+  private async initializeZoneMap() {
+    if (!this.showModal() || !this.zoneMapContainer?.nativeElement) {
+      return;
+    }
+
+    if (!this.leafletLib) {
+      this.leafletLib = await import('leaflet');
+    }
+
+    const L = this.leafletLib;
+
+    if (!this.zoneMap) {
+      this.zoneMap = L.map(this.zoneMapContainer.nativeElement, {
+        zoomControl: true,
+        attributionControl: true,
+      }).setView([this.currentZone.latitude, this.currentZone.longitude], 16);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(this.zoneMap);
+
+      this.zoneMap.on('click', (event: any) => {
+        this.currentZone.latitude = Number(event.latlng.lat.toFixed(6));
+        this.currentZone.longitude = Number(event.latlng.lng.toFixed(6));
+        this.syncMapShapes();
+      });
+    }
+
+    this.syncMapShapes(true);
+  }
+
+  syncMapShapes(shouldCenter = false) {
+    if (!this.zoneMap || !this.leafletLib) {
+      return;
+    }
+
+    const L = this.leafletLib;
+    const latLng = L.latLng(this.currentZone.latitude, this.currentZone.longitude);
+
+    if (!this.zoneMarker) {
+      this.zoneMarker = L.circleMarker(latLng, {
+        radius: 8,
+        color: '#0f172a',
+        weight: 2,
+        fillColor: '#22c55e',
+        fillOpacity: 0.9,
+      }).addTo(this.zoneMap);
+    } else {
+      this.zoneMarker.setLatLng(latLng);
+    }
+
+    if (!this.zoneRadiusCircle) {
+      this.zoneRadiusCircle = L.circle(latLng, {
+        radius: this.currentZone.radius_meters,
+        color: '#16a34a',
+        fillColor: '#22c55e',
+        fillOpacity: 0.14,
+        weight: 2,
+      }).addTo(this.zoneMap);
+    } else {
+      this.zoneRadiusCircle.setLatLng(latLng);
+      this.zoneRadiusCircle.setRadius(this.currentZone.radius_meters);
+    }
+
+    if (shouldCenter) {
+      this.zoneMap.setView(latLng, 16);
+    }
+
+    setTimeout(() => this.zoneMap.invalidateSize(), 0);
+  }
+
+  private destroyMapInstance() {
+    if (this.zoneMap) {
+      this.zoneMap.off();
+      this.zoneMap.remove();
+    }
+    this.zoneMap = null;
+    this.zoneMarker = null;
+    this.zoneRadiusCircle = null;
   }
 }

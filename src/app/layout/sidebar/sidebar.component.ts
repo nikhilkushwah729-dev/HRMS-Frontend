@@ -40,18 +40,12 @@ import { LanguageService } from '../../core/services/language.service';
       class="app-sidebar-surface fixed lg:static inset-y-0 left-0 w-[85vw] max-w-[290px] h-screen flex flex-col overflow-hidden z-50 transition-all duration-500 lg:translate-x-0 bg-white border-r border-slate-100 shadow-2xl shadow-slate-200/50"
     >
       <!-- Branding & Close (Mobile) -->
-      <div class="relative px-6 pt-8 pb-6">
+      <div class="relative border-b border-slate-100/80 px-5 pt-5 pb-4">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3.5 group cursor-pointer" routerLink="/dashboard">
-            <div class="flex h-11 w-11 overflow-hidden items-center justify-center rounded-xl bg-slate-950 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-100 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
-               <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-cover" />
+          <div class="flex min-w-0 items-center gap-3 group cursor-pointer" routerLink="/dashboard">
+            <div class="flex shrink-0 overflow-hidden items-center justify-center transition-transform duration-500 group-hover:scale-[1.02]">
+               <img [src]="showExpandedSidebar() ? '/hrnexus-logo.png' : '/hrnexus-brand-mark.png'" alt="HRNexus" [class]="showExpandedSidebar() ? 'h-14 w-auto max-w-[220px] object-contain' : 'h-12 w-12 rounded-xl bg-slate-950 p-1 shadow-lg shadow-emerald-500/20 ring-1 ring-emerald-100 object-contain'" />
             </div>
-            @if (showExpandedSidebar()) {
-              <div class="flex flex-col min-w-0">
-                <span class="text-xl font-black tracking-tight text-slate-900 leading-none">HRNexus</span>
-                <span class="mt-1 text-[10px] font-black text-emerald-600 uppercase tracking-widest">Workspace</span>
-              </div>
-            }
           </div>
 
           <button
@@ -65,26 +59,26 @@ import { LanguageService } from '../../core/services/language.service';
 
       <!-- User Profile Card -->
       @if (showExpandedSidebar()) {
-        <div class="px-5 mb-8">
-          <div class="group relative overflow-hidden rounded-2xl bg-slate-50 p-5 transition-all hover:bg-slate-100/80 border border-slate-100/50">
-            <div class="relative z-10 flex items-center gap-4">
+        <div class="px-4 pt-3 pb-4">
+          <div class="group relative overflow-hidden rounded-2xl border border-slate-100/80 bg-gradient-to-br from-slate-50 to-white px-4 py-3 transition-all hover:border-emerald-100 hover:from-emerald-50/40 hover:to-white">
+            <div class="relative z-10 flex items-center gap-3.5">
               <div class="relative">
-                <div class="h-14 w-14 overflow-hidden rounded-full border-2 border-white bg-white shadow-xl transition-transform duration-500 group-hover:scale-105">
+                <div class="h-12 w-12 overflow-hidden rounded-full border-2 border-white bg-white shadow-lg transition-transform duration-500 group-hover:scale-105">
                   @if (orgLogo()) {
                     <img [src]="orgLogo()" [alt]="orgName()" class="h-full w-full object-contain p-1">
                   } @else if (currentUser()?.avatar) {
                     <img [src]="currentUser()?.avatar" class="h-full w-full object-cover">
                   } @else {
-                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-lg font-black text-white">
+                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-base font-black text-white">
                       {{ userInitials() }}
                     </div>
                   }
                 </div>
-                <div class="absolute -bottom-1 -right-1 h-5 w-5 rounded-md border-2 border-white bg-emerald-500 shadow-lg"></div>
+                <div class="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white bg-emerald-500 shadow-md"></div>
               </div>
-              <div class="flex flex-col min-w-0">
+              <div class="flex min-w-0 flex-col">
                 <h3 class="truncate text-sm font-black text-slate-900 tracking-tight">{{ userName() }}</h3>
-                <p class="truncate text-[10px] font-bold text-slate-500 uppercase tracking-widest opacity-70">{{ userRole() }}</p>
+                <p class="truncate text-[10px] font-bold text-slate-500 uppercase tracking-[0.16em] opacity-70">{{ userRole() }}</p>
               </div>
             </div>
             <!-- Decorative Glow -->
@@ -96,9 +90,10 @@ import { LanguageService } from '../../core/services/language.service';
       <!-- Nav Sections -->
       <nav
         role="navigation"
-        class="flex-1 overflow-y-auto px-4 custom-scrollbar pb-8 space-y-8"
+        class="flex-1 overflow-y-auto custom-scrollbar pb-8"
       >
         @if (showExpandedSidebar()) {
+          <div class="space-y-6 px-4 pt-4">
           <!-- Self Service -->
           @if (shouldShowSection('main')) {
             <div class="space-y-2">
@@ -159,6 +154,21 @@ import { LanguageService } from '../../core/services/language.service';
             </div>
           }
 
+          <!-- Payroll -->
+          @if (shouldShowSection('payroll')) {
+            <div class="space-y-2">
+              <div class="px-2 flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ payrollSectionLabel() }}</span>
+                <div class="h-px flex-1 ml-4 bg-slate-100"></div>
+              </div>
+              <div class="space-y-1">
+                @for (link of payrollLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
+                }
+              </div>
+            </div>
+          }
+
           <!-- System -->
           @if (shouldShowSection('security')) {
             <div class="space-y-2">
@@ -173,9 +183,10 @@ import { LanguageService } from '../../core/services/language.service';
               </div>
             </div>
           }
+          </div>
         } @else {
           <!-- Compact Mode -->
-          <div class="flex flex-col items-center gap-3 pt-2">
+          <div class="flex flex-col items-center gap-3 px-3 pt-5">
             @for (link of compactNavLinks(); track link.id + link.route) {
               @if (link.isLocked) {
                 <button
@@ -210,7 +221,7 @@ import { LanguageService } from '../../core/services/language.service';
       </nav>
 
       <!-- Sidebar Footer -->
-      <div class="p-6 border-t border-slate-50">
+      <div class="border-t border-slate-100 px-4 py-5">
         @if (showExpandedSidebar()) {
           <div class="flex flex-col gap-4">
              <!-- Collapse Toggle -->
@@ -254,20 +265,24 @@ import { LanguageService } from '../../core/services/language.service';
           [routerLink]="routePath(link.route)"
           [queryParams]="routeQueryParams(link.route)"
           (click)="onNavLinkClick(activeSectionKey())"
-          class="group relative flex items-center gap-4 px-4 py-3.5 rounded-md transition-all duration-300"
-          [class.bg-emerald-600]="isRouteActive(link.route)"
+          class="group relative flex items-center gap-3.5 rounded-xl px-4 py-3 transition-all duration-300"
+          [class.bg-gradient-to-r]="isRouteActive(link.route)"
+          [class.from-emerald-600]="isRouteActive(link.route)"
+          [class.to-teal-500]="isRouteActive(link.route)"
           [class.text-white]="isRouteActive(link.route)"
-          [class.shadow-xl]="isRouteActive(link.route)"
+          [class.shadow-lg]="isRouteActive(link.route)"
           [class.shadow-emerald-200]="isRouteActive(link.route)"
           [class.text-slate-600]="!isRouteActive(link.route)"
           [class.font-bold]="!isRouteActive(link.route)"
           [class.hover:bg-slate-50]="!isRouteActive(link.route)"
+          [class.hover:text-slate-900]="!isRouteActive(link.route)"
         >
-          <span class="relative z-10 transition-transform duration-300 group-hover:scale-110" [innerHTML]="resolveIcon(link.icon)"></span>
+          <span class="relative z-10 transition-transform duration-300 group-hover:scale-110" [class.opacity-95]="isRouteActive(link.route)" [innerHTML]="resolveIcon(link.icon)"></span>
           <span class="relative z-10 truncate text-sm font-black tracking-tight">{{ link.label }}</span>
           
           @if (isRouteActive(link.route)) {
-            <div class="absolute inset-y-2 left-0 w-1 bg-white/40 rounded-md"></div>
+            <div class="absolute inset-y-2 left-0 w-1 rounded-r-md bg-white/60"></div>
+            <div class="absolute right-3 h-2 w-2 rounded-full bg-white/80 shadow-sm"></div>
           }
         </a>
       }
@@ -357,10 +372,21 @@ export class SidebarComponent implements OnInit {
     switch (this.activeSectionKey()) {
       case 'attendance': return this.attendanceLinks();
       case 'leave': return this.leaveLinks();
+      case 'payroll': return this.payrollLinks();
       case 'employees': return this.peopleLinks();
       case 'security': return this.systemLinks();
       default: return this.selfServiceLinks();
     }
+  }
+
+  sectionTabs(): Array<{ key: string; label: string }> {
+    return [
+      { key: 'main', label: 'Portal' },
+      { key: 'employees', label: 'People' },
+      { key: 'attendance', label: 'Attendance' },
+      { key: 'leave', label: 'Leave' },
+      { key: 'security', label: 'System' },
+    ];
   }
 
   activeSectionKey(): string {
@@ -388,9 +414,10 @@ export class SidebarComponent implements OnInit {
   private sectionForCurrentRoute(): string {
     const path = this.routePath(this.router.url || '/dashboard');
     if (path.startsWith('/self-service/requests') || path.startsWith('/admin/approvals')) return 'main';
+    if (path.startsWith('/self-service/leave') || path.startsWith('/leave') || path.startsWith('/leaves')) return 'leave';
+    if (path.startsWith('/self-service/payroll') || path.startsWith('/self-service/payslip') || path.startsWith('/payroll')) return 'payroll';
     if (path.startsWith('/employees')) return 'employees';
     if (path.startsWith('/attendance') || path.startsWith('/face-registration') || path.startsWith('/admin/attendance') || path.startsWith('/hr/attendance')) return 'attendance';
-    if (path.startsWith('/leaves')) return 'leave';
     if (path.startsWith('/settings') || path.startsWith('/admin') || path.startsWith('/add-ons') || path.startsWith('/visit-management') || path.startsWith('/reports')) return 'security';
     return 'main';
   }
@@ -525,6 +552,10 @@ export class SidebarComponent implements OnInit {
     return this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: true });
   }
 
+  payrollLinks(): WorkspaceModuleView[] {
+    return this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: true });
+  }
+
   systemLinks(): WorkspaceModuleView[] {
     return ['settings', 'addons', 'visitormanagement', 'organization', 'kiosk-management', 'roles-permissions'].flatMap((id) => this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }));
   }
@@ -533,5 +564,6 @@ export class SidebarComponent implements OnInit {
   peopleSectionLabel(): string { return 'Workforce'; }
   attendanceSectionLabel(): string { return 'Time & Presence'; }
   leaveSectionLabel(): string { return 'Absence'; }
+  payrollSectionLabel(): string { return 'Compensation'; }
   systemSectionLabel(): string { return 'Operations'; }
 }

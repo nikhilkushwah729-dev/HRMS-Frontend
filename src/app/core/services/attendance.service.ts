@@ -201,6 +201,7 @@ export interface AttendanceDashboardResponse {
 export class AttendanceService {
     private http = inject(HttpClient);
     private readonly apiUrl = environment.apiUrl;
+    private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly localShiftKey = 'hrms_attendance_shifts';
     private readonly localZoneKey = 'hrms_attendance_zones';
     private readonly localGeoFenceSettingsKey = 'hrms_attendance_geofence_settings';
@@ -320,6 +321,17 @@ export class AttendanceService {
         return Array.from(mapById.values());
     }
 
+    private normalizeAssetUrl(value?: string | null): string | null {
+        if (!value) return null;
+        const url = String(value).trim();
+        if (!url) return null;
+        if (/^(data:|blob:|https?:\/\/)/i.test(url)) return url;
+        if (url.startsWith('/')) {
+            return `${this.assetBaseUrl}${url}`;
+        }
+        return `${this.assetBaseUrl}/${url.replace(/^\.?\//, '')}`;
+    }
+
     private normalizeAttendanceRecord(raw: any): AttendanceRecord {
         let parsedDeviceInfo: any = null;
         const rawDeviceInfo = raw?.deviceInfo ?? raw?.device_info ?? null;
@@ -370,7 +382,7 @@ export class AttendanceService {
             net_work_hours: raw?.netWorkHours ?? raw?.net_work_hours ?? null,
             total_break_min: Number(raw?.totalBreakMin ?? raw?.total_break_min ?? 0),
             status: raw?.status ?? 'present',
-            selfie_url: raw?.selfieUrl ?? raw?.selfie_url ?? null,
+            selfie_url: this.normalizeAssetUrl(raw?.selfieUrl ?? raw?.selfie_url ?? null),
             is_late: Boolean(raw?.lateMinutes ?? raw?.isLate ?? raw?.status === 'late'),
             is_half_day: Boolean(raw?.isHalfDay ?? raw?.status === 'half_day'),
             shift_id: raw?.shiftId ?? raw?.shift_id,
