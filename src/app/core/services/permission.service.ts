@@ -910,8 +910,8 @@ export class PermissionService {
 
     const roleNames: Record<RoleId, string> = {
       1: 'Super Admin',
-      2: 'Admin',
-      3: 'Admin',
+      2: 'Organization Admin',
+      3: 'HR Manager',
       4: 'Manager',
       5: 'Employee',
     };

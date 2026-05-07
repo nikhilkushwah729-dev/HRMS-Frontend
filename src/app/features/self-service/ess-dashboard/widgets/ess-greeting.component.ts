@@ -8,18 +8,17 @@ import { LanguageService } from '../../../../core/services/language.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="grid grid-cols-12 gap-6">
-      <!-- Welcome Card -->
+    <div class="grid grid-cols-12 gap-5">
       <div class="col-span-12">
-        <div class="relative overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-xl hover:shadow-slate-200/40">
-          <div class="relative z-10 flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
-            <div class="flex items-center gap-6">
-              <div class="relative group cursor-pointer" (click)="navigate.emit('/profile')">
-                <div class="h-24 w-24 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl ring-1 ring-slate-100 transition-transform duration-500 group-hover:scale-105">
+        <div class="relative overflow-hidden rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-xl hover:shadow-slate-200/40 sm:p-7 lg:p-8">
+          <div class="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex min-w-0 items-center gap-5 sm:gap-6">
+              <div class="relative cursor-pointer group" (click)="navigate.emit('/profile')">
+                <div class="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-2xl ring-1 ring-slate-100 transition-transform duration-500 group-hover:scale-105 sm:h-24 sm:w-24">
                   @if (user()?.avatar) {
                     <img [src]="user()?.avatar" class="h-full w-full object-cover">
                   } @else {
-                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-3xl font-black text-white">
+                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-2xl font-black text-white sm:text-3xl">
                       {{ initials() }}
                     </div>
                   }
@@ -27,22 +26,34 @@ import { LanguageService } from '../../../../core/services/language.service';
                 <div class="absolute bottom-1 right-1 h-6 w-6 rounded-full border-2 border-white bg-emerald-500 shadow-lg"></div>
               </div>
 
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                   <div class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600" [innerHTML]="weatherIcon()"></div>
-                   <span class="text-xs font-black uppercase tracking-widest text-emerald-600">{{ greetingLabel() }}</span>
-                   <span class="text-xs font-bold text-slate-300">•</span>
-                   <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">{{ currentTime() }}</span>
+              <div class="min-w-0 space-y-2">
+                <div class="flex flex-wrap items-center gap-2">
+                  <div class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600" [innerHTML]="weatherIcon()"></div>
+                  <span class="text-xs font-black uppercase tracking-widest text-emerald-600">{{ greetingLabel() }}</span>
+                  <span class="text-xs font-bold text-slate-300">&middot;</span>
+                  <span class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ currentTime() }}</span>
                 </div>
-                <h2 class="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
-                  {{ t('selfService.greeting.welcomeBack') }}, <span class="text-emerald-600">{{ user()?.firstName }}!</span>
+                <h2 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                  {{ t('selfService.greeting.welcomeBack') }}, <span class="text-emerald-600">{{ user()?.firstName || 'Team' }}!</span>
                 </h2>
-                <p class="text-base font-bold text-slate-500">{{ t('selfService.greeting.subtitle') || "Good to see you again. Check out what's happening today." }}</p>
+                <p class="max-w-2xl text-sm font-bold leading-7 text-slate-500 sm:text-base">
+                  {{ t('selfService.greeting.subtitle') || "Good to see you again. Check out what's happening today." }}
+                </p>
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-4">
-              <button (click)="punchAction.emit()" class="flex h-14 items-center gap-3 rounded-2xl bg-slate-900 px-8 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]">
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+              <button
+                (click)="navigate.emit('/profile')"
+                class="flex h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+                Profile
+              </button>
+              <button
+                (click)="punchAction.emit()"
+                class="flex h-12 items-center gap-3 rounded-2xl bg-slate-900 px-6 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
                 {{ t('selfService.greeting.dailyPunch') }}
               </button>
@@ -53,22 +64,21 @@ import { LanguageService } from '../../../../core/services/language.service';
         </div>
       </div>
 
-      <!-- Special Messages / Banners -->
       @if (specialMessage().length > 0) {
         <div class="col-span-12">
           @for (msg of specialMessage(); track msg) {
-            <div class="group relative overflow-hidden rounded-3xl bg-emerald-600 p-6 text-white shadow-lg shadow-emerald-200">
-              <div class="relative z-10 flex items-center justify-between gap-6">
-                <div class="flex items-center gap-4">
-                  <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
+            <div class="group relative overflow-hidden rounded-[1.75rem] bg-emerald-600 p-5 text-white shadow-lg shadow-emerald-200 sm:p-6">
+              <div class="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex min-w-0 items-center gap-4">
+                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
-                  <div>
-                    <h4 class="text-lg font-black tracking-tight">{{ msg }}</h4>
+                  <div class="min-w-0">
+                    <h4 class="text-base font-black tracking-tight sm:text-lg">{{ msg }}</h4>
                     <p class="text-sm font-bold text-emerald-100 opacity-80">This is an automated system update for your workspace.</p>
                   </div>
                 </div>
-                <button (click)="closeBanner.emit()" class="rounded-xl bg-white/10 p-2 transition hover:bg-white/20">
+                <button (click)="closeBanner.emit()" class="self-start rounded-xl bg-white/10 p-2 transition hover:bg-white/20 sm:self-auto">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>

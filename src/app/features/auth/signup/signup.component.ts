@@ -145,6 +145,10 @@ export class SignupComponent implements OnInit {
       adminFirstName,
       email,
       adminPassword,
+      roleId: 2,
+      roleSlug: 'organization_admin',
+      requestedRole: 'Organization Admin',
+      accessScope: 'organization',
     };
 
     if (adminLastName) {

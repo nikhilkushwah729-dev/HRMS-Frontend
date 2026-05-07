@@ -1512,12 +1512,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentAnnouncementIndex = signal(0);
   pendingRequests = signal(3);
   upcomingHolidays = signal<UpcomingHoliday[]>([]);
-  birthdays = signal<Birthday[]>([
-    { name: 'Aarav Mehta', date: 'Today', department: 'Engineering' },
-  ]);
-  workAnniversaries = signal<WorkAnniversary[]>([
-    { name: 'Neha Sharma', years: 5 },
-  ]);
+  birthdays = signal<Birthday[]>([]);
+  workAnniversaries = signal<WorkAnniversary[]>([]);
   currentTime = signal('');
   currentDay = signal('');
   private employeesLoaded = signal(false);

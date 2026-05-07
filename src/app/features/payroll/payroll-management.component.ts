@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -15,6 +15,7 @@ import { ToastService } from '../../core/services/toast.service';
   selector: 'app-payroll-management',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
       <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -44,23 +45,23 @@ import { ToastService } from '../../core/services/toast.service';
       } @else {
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Payroll Runs</p><p class="mt-3 text-3xl font-black text-slate-900">{{ filteredRuns().length }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Processed</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('processed') }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Locked</p><p class="mt-3 text-3xl font-black text-slate-900">{{ countByStatus('locked') }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Processed</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ statusCounts().processed }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Locked</p><p class="mt-3 text-3xl font-black text-slate-900">{{ statusCounts().locked }}</p></article>
+          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ statusCounts().pending }}</p></article>
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Net Payroll</p><p class="mt-3 text-2xl font-black text-sky-700">{{ totalNet() | currency:'INR':'symbol':'1.0-0' }}</p></article>
         </section>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <input [(ngModel)]="search" placeholder="Search month, cycle, comment" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400 xl:col-span-2" />
-            <select [(ngModel)]="departmentId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
+            <input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search month, cycle, comment" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400 xl:col-span-2" />
+            <select [ngModel]="departmentId()" (ngModelChange)="departmentId.set($event)" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
               <option value="">All departments</option>
               @for (department of departments(); track department.id) {
                 <option [value]="department.id">{{ department.name }}</option>
               }
             </select>
-            <input [(ngModel)]="month" type="month" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400" />
-            <select [(ngModel)]="status" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
+            <input [ngModel]="month()" (ngModelChange)="month.set($event)" type="month" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400" />
+            <select [ngModel]="status()" (ngModelChange)="status.set($event)" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
               <option value="">All status</option>
               <option value="processed">Processed</option>
               <option value="pending">Pending</option>
@@ -98,7 +99,7 @@ import { ToastService } from '../../core/services/toast.service';
                     <td class="px-4 py-4">
                       <div class="flex justify-end gap-2">
                         <button type="button" (click)="viewRun(run)" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">Preview</button>
-                        @if (canManage()) {
+                        @if (canManageAccess()) {
                           <button type="button" (click)="lock(run)" [disabled]="run.locked" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800 disabled:opacity-50">Lock</button>
                           <button type="button" (click)="rerun(run)" [disabled]="run.locked" class="rounded-lg border border-fuchsia-200 px-3 py-2 text-xs font-black text-fuchsia-700 transition hover:bg-fuchsia-50 disabled:opacity-50">Re-run</button>
                         }
@@ -167,19 +168,48 @@ export class PayrollManagementComponent {
   readonly departments = signal<Department[]>([]);
   readonly currentUser = signal<User | null>(this.authService.getStoredUser());
   readonly selectedRun = signal<PayrollRun | null>(null);
+  readonly canManageAccess = computed(() => {
+    const user = this.currentUser();
+    const role = this.permissionService.getRoleDisplayName(user).toLowerCase();
+    return (
+      role.includes('admin') ||
+      role.includes('hr') ||
+      this.permissionService.hasPermission(user, 'payroll.update') ||
+      this.permissionService.hasPermission(user, 'payroll.approve')
+    );
+  });
+  readonly canViewTeamSummaryAccess = computed(() => {
+    const role = this.permissionService
+      .getRoleDisplayName(this.currentUser())
+      .toLowerCase();
+    return role.includes('manager');
+  });
 
-  search = '';
-  departmentId = '';
-  month = '';
-  status = '';
+  readonly search = signal('');
+  readonly departmentId = signal('');
+  readonly month = signal('');
+  readonly status = signal('');
+  readonly selectedDepartmentName = computed(() =>
+    this.departments()
+      .find((department) => String(department.id) === this.departmentId())
+      ?.name?.trim()
+      .toLowerCase() ?? '',
+  );
 
   readonly filteredRuns = computed(() => {
-    const search = this.search.trim().toLowerCase();
+    const search = this.search().trim().toLowerCase();
+    const selectedDepartmentName = this.selectedDepartmentName();
+    const selectedStatus = this.status();
+    const selectedMonth = this.month();
+
     return this.runs().filter((run) => {
-      if (this.status && run.status !== this.status) return false;
-      if (this.month) {
-        const period = `${run.year}-${String(run.month).padStart(2, '0')}`;
-        if (period !== this.month) return false;
+      if (selectedStatus && run.status !== selectedStatus) return false;
+      if (selectedDepartmentName && String(run.department ?? '').trim().toLowerCase() !== selectedDepartmentName) {
+        return false;
+      }
+      if (selectedMonth) {
+        const period = this.periodKey(run.month, run.year);
+        if (period !== selectedMonth) return false;
       }
       if (!search) return true;
       return [run.cycleLabel, run.comment, run.department].join(' ').toLowerCase().includes(search);
@@ -187,9 +217,17 @@ export class PayrollManagementComponent {
   });
 
   readonly totalNet = computed(() => this.filteredRuns().reduce((sum, run) => sum + run.totalNet, 0));
+  readonly statusCounts = computed(() => {
+    const filtered = this.filteredRuns();
+    return {
+      processed: filtered.filter((run) => run.status === 'processed').length,
+      locked: filtered.filter((run) => run.status === 'locked').length,
+      pending: filtered.filter((run) => run.status === 'pending').length,
+    };
+  });
 
   constructor() {
-    if (!this.canManage() && !this.canViewTeamSummary()) {
+    if (!this.canManageAccess() && !this.canViewTeamSummaryAccess()) {
       this.router.navigate(['/self-service/payroll']);
       return;
     }
@@ -214,19 +252,28 @@ export class PayrollManagementComponent {
     });
   }
 
-  canManage(): boolean {
-    const user = this.currentUser();
-    const role = this.permissionService.getRoleDisplayName(user).toLowerCase();
-    return role.includes('admin') || role.includes('hr') || this.permissionService.hasPermission(user, 'payroll.update') || this.permissionService.hasPermission(user, 'payroll.approve');
-  }
-
-  canViewTeamSummary(): boolean {
-    const role = this.permissionService.getRoleDisplayName(this.currentUser()).toLowerCase();
-    return role.includes('manager');
-  }
-
-  countByStatus(status: PayrollRun['status']): number {
-    return this.filteredRuns().filter((run) => run.status === status).length;
+  private periodKey(month: string, year: number): string {
+    const normalized = String(month ?? '').trim().toLowerCase();
+    const monthMap: Record<string, string> = {
+      january: '01',
+      february: '02',
+      march: '03',
+      april: '04',
+      may: '05',
+      june: '06',
+      july: '07',
+      august: '08',
+      september: '09',
+      october: '10',
+      november: '11',
+      december: '12',
+    };
+    const monthNumber =
+      monthMap[normalized] ??
+      (Number.isFinite(Number(month))
+        ? String(Number(month)).padStart(2, '0')
+        : '00');
+    return `${year}-${monthNumber}`;
   }
 
   statusBadge(status: PayrollRun['status']): string {
@@ -246,7 +293,7 @@ export class PayrollManagementComponent {
     this.payrollService.lockPayroll(run.id).subscribe({
       next: () => {
         this.toastService.show('Payroll run locked successfully.', 'success');
-        this.load();
+        this.refreshRuns();
       },
       error: () => this.toastService.show('Unable to lock payroll run.', 'error'),
     });
@@ -260,9 +307,16 @@ export class PayrollManagementComponent {
           return;
         }
         this.toastService.show('Payroll run re-processed successfully.', 'success');
-        this.load();
+        this.refreshRuns();
       },
       error: () => this.toastService.show('Unable to re-run payroll.', 'error'),
+    });
+  }
+
+  private refreshRuns(): void {
+    this.payrollService.getPayrollRuns().subscribe({
+      next: (runs) => this.runs.set(runs),
+      error: () => this.toastService.show('Unable to refresh payroll runs.', 'error'),
     });
   }
 }

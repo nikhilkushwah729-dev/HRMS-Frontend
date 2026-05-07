@@ -7,8 +7,8 @@ import { LanguageService } from '../../../../core/services/language.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
-      <div class="flex flex-col shrink-0 gap-4 p-8 border-b border-slate-50 bg-slate-50/20 sm:flex-row sm:items-center justify-between">
+    <div class="flex h-full flex-col overflow-hidden rounded-[1.9rem] bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
+      <div class="flex shrink-0 flex-col justify-between gap-4 border-b border-slate-100 bg-slate-50/30 p-6 sm:flex-row sm:items-center sm:p-7">
         <div class="flex items-center gap-4">
            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -23,10 +23,10 @@ import { LanguageService } from '../../../../core/services/language.service';
         </div>
       </div>
 
-      <div class="flex-1 space-y-4 overflow-y-auto p-8 custom-scrollbar">
+      <div class="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-6 sm:p-7">
         @for (item of occasions(); track item.id) {
-          <div class="group relative flex items-center justify-between rounded-3xl bg-slate-50 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 ring-1 ring-transparent hover:ring-slate-100">
-            <div class="flex items-center gap-5 min-w-0">
+          <div class="group relative flex flex-col gap-4 rounded-[1.5rem] bg-slate-50 p-5 transition-all ring-1 ring-transparent hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 hover:ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex min-w-0 items-center gap-4 sm:gap-5">
               <div class="relative">
                 <div class="h-16 w-16 overflow-hidden rounded-2xl shadow-sm transition-transform duration-500 group-hover:scale-105">
                   @if (item.avatar) {
@@ -52,7 +52,7 @@ import { LanguageService } from '../../../../core/services/language.service';
               </div>
             </div>
 
-            <button class="translate-x-4 rounded-xl bg-emerald-600 px-6 py-2.5 text-[11px] font-black uppercase tracking-widest text-white opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100 hover:bg-slate-900 shadow-lg shadow-emerald-100">
+            <button class="self-start rounded-xl bg-emerald-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-100 transition-all hover:bg-slate-900 sm:self-auto sm:translate-x-4 sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100">
               {{ t('selfService.team.wishNow') }}
             </button>
           </div>

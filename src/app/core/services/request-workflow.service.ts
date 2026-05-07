@@ -748,12 +748,7 @@ export class RequestWorkflowService {
             .filter((item: RequestRecord) => this.canApproveRequest(user, item)),
         ),
         map((items) => this.filterRequests(items, filter)),
-        catchError(() => {
-          const items = this
-            .getRequestsFallback()
-            .filter((item) => this.canApproveRequest(user, item));
-          return of(this.filterRequests(items, filter));
-        }),
+        catchError(() => of([])),
       );
   }
 

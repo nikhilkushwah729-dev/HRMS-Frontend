@@ -1,7 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { User } from '../../core/models/auth.model';
@@ -15,36 +15,19 @@ import {
   OrganizationHoliday,
   OrganizationService,
 } from '../../core/services/organization.service';
-import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
-
-type LeavePolicy = {
-  id: number;
-  name: string;
-  yearlyLimit: number;
-  carryForwardLimit: number;
-  paid: boolean;
-  approvalRequired: boolean;
-  appliesTo: 'all' | 'department' | 'designation' | 'custom';
-};
-
-type WeeklyOffConfig = {
-  id: number;
-  name: string;
-  days: string[];
-};
 
 @Component({
   selector: 'app-leave-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, RouterLink],
   template: `
     <div class="space-y-6">
       <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <p class="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">Leave Settings</p>
-        <h1 class="mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Configure leave types, policy, holidays, and weekly off rules</h1>
+        <h1 class="mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Configure live leave masters and admin controls</h1>
         <p class="mt-2 max-w-3xl text-sm text-slate-500">
-          HR and admin teams can define leave types, yearly limits, carry forward rules, holiday calendars, weekly offs, and employee policy assignment from one dedicated leave settings workspace.
+          This workspace is trimmed for production use. Only backend-backed leave setup remains editable here, while other operational flows are routed to their dedicated modules.
         </p>
       </section>
 
@@ -61,6 +44,9 @@ type WeeklyOffConfig = {
                   <h2 class="text-lg font-black text-slate-900">Leave Types</h2>
                   <p class="mt-1 text-sm text-slate-500">Manage CL, SL, EL, maternity, paternity, and loss of pay.</p>
                 </div>
+                <a routerLink="/settings/leave/leave-types" class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                  Open Full Leave Type Master
+                </a>
               </div>
 
               <div class="mt-4 grid gap-3 md:grid-cols-2">
@@ -139,8 +125,15 @@ type WeeklyOffConfig = {
             </article>
 
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 class="text-lg font-black text-slate-900">Holiday Calendar</h2>
-              <p class="mt-1 text-sm text-slate-500">Maintain company, national, and optional holidays that affect leave planning.</p>
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 class="text-lg font-black text-slate-900">Holiday Calendar</h2>
+                  <p class="mt-1 text-sm text-slate-500">Maintain company, national, and optional holidays that affect leave planning.</p>
+                </div>
+                <a routerLink="/settings/organisation/holiday" class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+                  Open Full Holiday Workspace
+                </a>
+              </div>
 
               <div class="mt-4 grid gap-3 md:grid-cols-3">
                 <input [(ngModel)]="holidayForm.name" placeholder="Holiday name" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
@@ -179,135 +172,73 @@ type WeeklyOffConfig = {
 
           <div class="space-y-5">
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 class="text-lg font-black text-slate-900">Leave Policies</h2>
-              <p class="mt-1 text-sm text-slate-500">Define yearly limits, carry forward, and approval requirement rules.</p>
+              <h2 class="text-lg font-black text-slate-900">Live Leave Governance</h2>
+              <p class="mt-1 text-sm text-slate-500">Use only backend-backed setup flows for production leave operations.</p>
 
-              <div class="mt-4 grid gap-3">
-                <input [(ngModel)]="policyForm.name" placeholder="Policy name" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-                <div class="grid gap-3 md:grid-cols-2">
-                  <input [(ngModel)]="policyForm.yearlyLimit" type="number" min="0" placeholder="Yearly limit" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-                  <input [(ngModel)]="policyForm.carryForwardLimit" type="number" min="0" placeholder="Carry forward limit" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-                </div>
-                <select [(ngModel)]="policyForm.appliesTo" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400">
-                  <option value="all">All employees</option>
-                  <option value="department">Department based</option>
-                  <option value="designation">Designation based</option>
-                  <option value="custom">Custom assignment</option>
-                </select>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
-                    <input [(ngModel)]="policyForm.paid" type="checkbox" />
-                    Paid policy
-                  </label>
-                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
-                    <input [(ngModel)]="policyForm.approvalRequired" type="checkbox" />
-                    Approval required
-                  </label>
-                </div>
-              </div>
-              <div class="mt-4 flex justify-end">
-                <button type="button" (click)="savePolicy()" class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700">
-                  Save Policy
-                </button>
-              </div>
-
-              <div class="mt-5 space-y-3">
-                @for (policy of policies(); track policy.id) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-sm font-black text-slate-900">{{ policy.name }}</p>
-                        <p class="mt-1 text-xs text-slate-500">
-                          {{ policy.yearlyLimit }} days • Carry {{ policy.carryForwardLimit }} • {{ policy.approvalRequired ? 'Approval required' : 'Auto approve' }}
-                        </p>
-                      </div>
-                      <button type="button" (click)="removePolicy(policy.id)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">
-                        Delete
-                      </button>
-                    </div>
+              <div class="mt-4 space-y-3">
+                <a routerLink="/settings/leave/leave-types" class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <div>
+                    <p class="text-sm font-black text-slate-900">Leave Type Master</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-500">Manage organization leave buckets from the dedicated backend-backed leave type screen.</p>
                   </div>
-                }
+                  <span class="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">Live</span>
+                </a>
+
+                <a routerLink="/settings/organisation/holiday" class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <div>
+                    <p class="text-sm font-black text-slate-900">Holiday Calendar Master</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-500">Review and maintain organization holidays from the central holiday settings workspace.</p>
+                  </div>
+                  <span class="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-700">Live</span>
+                </a>
+
+                <a routerLink="/settings/attendance/weekly-off" class="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <div>
+                    <p class="text-sm font-black text-slate-900">Weekly Off Policies</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-500">Open the weekly off policy workspace used by attendance and leave planning screens.</p>
+                  </div>
+                  <span class="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700">Review</span>
+                </a>
               </div>
             </article>
 
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 class="text-lg font-black text-slate-900">Policy Assignment & Bulk Leave</h2>
-              <p class="mt-1 text-sm text-slate-500">Assign policies to employees or apply a bulk balance top-up across the workforce.</p>
+              <h2 class="text-lg font-black text-slate-900">Operational Admin Shortcuts</h2>
+              <p class="mt-1 text-sm text-slate-500">Use real employee and leave workspaces for assignments, approvals, and reports.</p>
 
               <div class="mt-4 grid gap-3">
-                <select [(ngModel)]="assignmentEmployeeId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400">
-                  <option value="">Select employee</option>
-                  @for (employee of employees(); track employee.id) {
-                    <option [value]="employee.id">{{ employee.firstName }} {{ employee.lastName }}</option>
-                  }
-                </select>
-                <select [(ngModel)]="assignmentPolicyId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400">
-                  <option value="">Select policy</option>
-                  @for (policy of policies(); track policy.id) {
-                    <option [value]="policy.id">{{ policy.name }}</option>
-                  }
-                </select>
-                <button type="button" (click)="assignPolicy()" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
-                  Assign Policy
-                </button>
-              </div>
-
-              <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p class="text-sm font-black text-slate-900">Bulk Leave Assignment</p>
-                <p class="mt-1 text-xs text-slate-500">Apply one balance adjustment to all employees for a selected leave type.</p>
-                <div class="mt-3 grid gap-3 md:grid-cols-2">
-                  <select [(ngModel)]="bulkLeaveTypeId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400">
-                    <option value="">Select leave type</option>
-                    @for (type of leaveTypes(); track type.id) {
-                      <option [value]="type.id">{{ type.typeName }}</option>
-                    }
-                  </select>
-                  <input [(ngModel)]="bulkAdjustment" type="number" placeholder="Adjustment days" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-                </div>
-                <button type="button" (click)="runBulkAssignment()" class="mt-3 rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">
-                  Apply Bulk Assignment
-                </button>
-              </div>
-
-              <div class="mt-5 space-y-3">
-                @for (entry of assignments(); track $index) {
-                  <div class="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-                    {{ entry }}
-                  </div>
-                } @empty {
-                  <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
-                    No policy assignments logged yet.
-                  </div>
-                }
+                <a routerLink="/leave" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <p class="text-sm font-black text-slate-900">Open Leave Management</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">Review requests, approvals, and organization leave operations in the main leave module.</p>
+                </a>
+                <a routerLink="/employees" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <p class="text-sm font-black text-slate-900">Open Employee Directory</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">Use employee records for assignment-linked workflows instead of local-only browser mappings.</p>
+                </a>
+                <a routerLink="/approval-center" class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-emerald-300 hover:bg-emerald-50/40">
+                  <p class="text-sm font-black text-slate-900">Open Approval Center</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-500">Track pending leave approvals and route actions from the shared approval queue.</p>
+                </a>
               </div>
             </article>
 
             <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-              <h2 class="text-lg font-black text-slate-900">Weekly Off Configuration</h2>
-              <p class="mt-1 text-sm text-slate-500">Define recurring weekly off patterns used alongside holidays and leave logic.</p>
-              <div class="mt-4 grid gap-3 md:grid-cols-2">
-                <input [(ngModel)]="weeklyOffForm.name" placeholder="Config name" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-                <input [(ngModel)]="weeklyOffForm.daysCsv" placeholder="Example: Saturday, Sunday" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-emerald-400" />
-              </div>
-              <div class="mt-4 flex justify-end">
-                <button type="button" (click)="saveWeeklyOff()" class="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition hover:bg-emerald-700">
-                  Save Weekly Off Rule
-                </button>
-              </div>
-              <div class="mt-5 space-y-3">
-                @for (rule of weeklyOffs(); track rule.id) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-sm font-black text-slate-900">{{ rule.name }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ rule.days.join(', ') }}</p>
-                      </div>
-                      <button type="button" (click)="removeWeeklyOff(rule.id)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                }
+              <h2 class="text-lg font-black text-slate-900">Live Readiness Status</h2>
+              <p class="mt-1 text-sm text-slate-500">This workspace now avoids browser-only leave policy saves for production safety.</p>
+
+              <div class="mt-4 space-y-3">
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+                  <p class="text-sm font-black text-emerald-900">Backend-backed on this page</p>
+                  <p class="mt-1 text-xs leading-5 text-emerald-800">Leave types and holiday calendar changes save through real APIs.</p>
+                </div>
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p class="text-sm font-black text-amber-900">Moved out of this page</p>
+                  <p class="mt-1 text-xs leading-5 text-amber-800">Policy assignment, bulk adjustments, and weekly-off administration should run from dedicated working modules instead of local browser state.</p>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <p class="text-sm font-black text-slate-900">Employees available</p>
+                  <p class="mt-1 text-xs leading-5 text-slate-600">{{ employees().length }} employee records are currently available for leave-linked admin operations.</p>
+                </div>
               </div>
             </article>
           </div>
@@ -321,22 +252,12 @@ export class LeaveSettingsComponent {
   private readonly organizationService = inject(OrganizationService);
   private readonly employeeService = inject(EmployeeService);
   private readonly authService = inject(AuthService);
-  private readonly permissionService = inject(PermissionService);
   private readonly router = inject(Router);
   private readonly toastService = inject(ToastService);
-
-  private readonly policiesKey = 'hrms_leave_policies_v1';
-  private readonly assignmentsKey = 'hrms_leave_policy_assignments_v1';
-  private readonly weeklyOffKey = 'hrms_leave_weekly_off_v1';
 
   readonly loading = signal(true);
   readonly leaveTypes = signal<LeaveTypeBalance[]>([]);
   readonly holidays = signal<OrganizationHoliday[]>([]);
-  readonly policies = signal<LeavePolicy[]>(this.readStorage<LeavePolicy[]>(this.policiesKey, this.defaultPolicies()));
-  readonly assignments = signal<string[]>(this.readStorage<string[]>(this.assignmentsKey, []));
-  readonly weeklyOffs = signal<WeeklyOffConfig[]>(this.readStorage<WeeklyOffConfig[]>(this.weeklyOffKey, [
-    { id: 1, name: 'Standard Weekend', days: ['Saturday', 'Sunday'] },
-  ]));
   readonly employees = signal<User[]>([]);
   readonly editingTypeId = signal<number | null>(null);
 
@@ -356,25 +277,6 @@ export class LeaveSettingsComponent {
     type: 'company',
   };
 
-  policyForm: Omit<LeavePolicy, 'id'> = {
-    name: '',
-    yearlyLimit: 0,
-    carryForwardLimit: 0,
-    paid: true,
-    approvalRequired: true,
-    appliesTo: 'all',
-  };
-
-  weeklyOffForm = {
-    name: '',
-    daysCsv: '',
-  };
-
-  assignmentEmployeeId = '';
-  assignmentPolicyId = '';
-  bulkLeaveTypeId = '';
-  bulkAdjustment: number | '' = '';
-
   constructor() {
     if (!this.canManageSettings()) {
       this.router.navigate(['/self-service/leave']);
@@ -384,8 +286,13 @@ export class LeaveSettingsComponent {
   }
 
   private canManageSettings(): boolean {
-    const role = this.permissionService.getRoleDisplayName(this.authService.getStoredUser()).toLowerCase();
-    return role.includes('admin') || role.includes('hr') || this.permissionService.hasPermission(this.authService.getStoredUser(), 'settings.view');
+    const user = this.authService.getStoredUser();
+    const rawRole = user?.role;
+    const role =
+      typeof rawRole === 'string'
+        ? rawRole.toLowerCase()
+        : String(rawRole?.name ?? '').toLowerCase();
+    return role.includes('admin') || role.includes('hr');
   }
 
   private load(): void {
@@ -406,26 +313,6 @@ export class LeaveSettingsComponent {
         this.loading.set(false);
       },
     });
-  }
-
-  private readStorage<T>(key: string, fallback: T): T {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  private writeStorage<T>(key: string, value: T): void {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
-  private defaultPolicies(): LeavePolicy[] {
-    return [
-      { id: 1, name: 'Standard Annual Policy', yearlyLimit: 24, carryForwardLimit: 8, paid: true, approvalRequired: true, appliesTo: 'all' },
-      { id: 2, name: 'Probation Policy', yearlyLimit: 6, carryForwardLimit: 0, paid: false, approvalRequired: true, appliesTo: 'custom' },
-    ];
   }
 
   saveLeaveType(): void {
@@ -521,92 +408,5 @@ export class LeaveSettingsComponent {
       },
       error: () => this.toastService.show('Unable to delete holiday.', 'error'),
     });
-  }
-
-  savePolicy(): void {
-    if (!this.policyForm.name.trim()) {
-      this.toastService.show('Policy name is required.', 'error');
-      return;
-    }
-
-    const next = [
-      {
-        id: Date.now(),
-        ...this.policyForm,
-        name: this.policyForm.name.trim(),
-        yearlyLimit: Number(this.policyForm.yearlyLimit || 0),
-        carryForwardLimit: Number(this.policyForm.carryForwardLimit || 0),
-      },
-      ...this.policies(),
-    ];
-    this.policies.set(next);
-    this.writeStorage(this.policiesKey, next);
-    this.policyForm = {
-      name: '',
-      yearlyLimit: 0,
-      carryForwardLimit: 0,
-      paid: true,
-      approvalRequired: true,
-      appliesTo: 'all',
-    };
-    this.toastService.show('Leave policy saved successfully.', 'success');
-  }
-
-  removePolicy(id: number): void {
-    const next = this.policies().filter((policy) => policy.id !== id);
-    this.policies.set(next);
-    this.writeStorage(this.policiesKey, next);
-  }
-
-  assignPolicy(): void {
-    if (!this.assignmentEmployeeId || !this.assignmentPolicyId) {
-      this.toastService.show('Select both employee and policy before assignment.', 'error');
-      return;
-    }
-
-    const employee = this.employees().find((item) => String(item.id) === this.assignmentEmployeeId);
-    const policy = this.policies().find((item) => String(item.id) === this.assignmentPolicyId);
-    const entry = `${employee?.firstName || ''} ${employee?.lastName || ''} assigned to ${policy?.name || 'policy'}`.trim();
-    const next = [entry, ...this.assignments()];
-    this.assignments.set(next);
-    this.writeStorage(this.assignmentsKey, next);
-    this.assignmentEmployeeId = '';
-    this.assignmentPolicyId = '';
-    this.toastService.show('Policy assignment saved.', 'success');
-  }
-
-  runBulkAssignment(): void {
-    if (!this.bulkLeaveTypeId || this.bulkAdjustment === '') {
-      this.toastService.show('Select leave type and adjustment days.', 'error');
-      return;
-    }
-    this.toastService.show('Bulk leave assignment queued for organization employees.', 'success');
-    this.bulkLeaveTypeId = '';
-    this.bulkAdjustment = '';
-  }
-
-  saveWeeklyOff(): void {
-    if (!this.weeklyOffForm.name.trim() || !this.weeklyOffForm.daysCsv.trim()) {
-      this.toastService.show('Weekly off name and days are required.', 'error');
-      return;
-    }
-    const next = [
-      {
-        id: Date.now(),
-        name: this.weeklyOffForm.name.trim(),
-        days: this.weeklyOffForm.daysCsv.split(',').map((item) => item.trim()).filter(Boolean),
-      },
-      ...this.weeklyOffs(),
-    ];
-    this.weeklyOffs.set(next);
-    this.writeStorage(this.weeklyOffKey, next);
-    this.weeklyOffForm = { name: '', daysCsv: '' };
-    this.toastService.show('Weekly off configuration saved.', 'success');
-  }
-
-  removeWeeklyOff(id: number): void {
-    const next = this.weeklyOffs().filter((rule) => rule.id !== id);
-    this.weeklyOffs.set(next);
-    this.writeStorage(this.weeklyOffKey, next);
   }
 }

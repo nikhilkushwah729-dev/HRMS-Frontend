@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   RequestRecord,
@@ -11,7 +12,7 @@ import { ToastService } from '../../core/services/toast.service';
 @Component({
   selector: 'app-approval-center-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-6">
       @if (loading()) {
@@ -54,6 +55,10 @@ import { ToastService } from '../../core/services/toast.service';
 
           <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-black text-slate-900">Approval Timeline</h2>
+            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Action Note</p>
+              <textarea [(ngModel)]="actionNote" class="app-field mt-3 min-h-[120px]" placeholder="Add approval comment, correction guidance, or rejection reason"></textarea>
+            </div>
             <div class="mt-5 space-y-4">
               @for (event of request()!.timeline; track event.id) {
                 <div class="flex gap-3">
@@ -86,6 +91,7 @@ export class ApprovalCenterDetailComponent {
 
   readonly loading = signal(true);
   readonly request = signal<RequestRecord | null>(null);
+  actionNote = '';
 
   constructor() {
     const id = Number(this.route.snapshot.paramMap.get('id') || 0);
@@ -104,14 +110,16 @@ export class ApprovalCenterDetailComponent {
   process(action: 'approved' | 'rejected' | 'sent_back'): void {
     const id = this.request()?.id;
     if (!id) return;
-    const comment =
-      action === 'approved'
-        ? window.prompt('Approval comment (optional)') ?? ''
-        : window.prompt(
-            action === 'rejected'
-              ? 'Rejection reason'
-              : 'Correction / send-back reason',
-          ) ?? '';
+    const comment = this.actionNote.trim();
+    if ((action === 'rejected' || action === 'sent_back') && !comment) {
+      this.toastService.show(
+        action === 'rejected'
+          ? 'Add a rejection reason before rejecting.'
+          : 'Add a correction reason before sending back.',
+        'error',
+      );
+      return;
+    }
     this.requestService.processRequest(id, action, comment || undefined).subscribe({
       next: (item) => {
         if (!item) {
@@ -119,6 +127,7 @@ export class ApprovalCenterDetailComponent {
           return;
         }
         this.request.set(item);
+        this.actionNote = '';
         this.toastService.show(`Request ${action.replace('_', ' ')} successfully.`, 'success');
       },
       error: () => this.toastService.show('Unable to process this request.', 'error'),

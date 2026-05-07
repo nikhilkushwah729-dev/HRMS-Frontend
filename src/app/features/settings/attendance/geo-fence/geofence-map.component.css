@@ -1,0 +1,46 @@
+:host {
+  display: block;
+}
+
+.geofence-map {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+:host ::ng-deep .leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 1rem;
+  background: #f8fafc;
+}
+
+:host ::ng-deep .leaflet-control-zoom a {
+  color: #0f172a;
+}
+
+.search-shell {
+  min-width: 0;
+}
+
+.search-shell input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #0f766e;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.28);
+}
+
+input[type='range']::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #0f766e;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 118, 110, 0.28);
+}

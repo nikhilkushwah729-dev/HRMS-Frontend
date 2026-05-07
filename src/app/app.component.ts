@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet, Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
 import { Store } from '@ngrx/store';
 import * as AuthActions from './core/state/auth/auth.actions';
@@ -19,6 +20,7 @@ import { CustomButtonComponent } from './core/components/button/custom-button.co
 @Component({
   selector: 'app-root',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterOutlet,
@@ -40,6 +42,7 @@ export class AppComponent implements OnInit {
   private authService = inject(AuthService);
   private store = inject(Store);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   
   title = 'HRNexus';
   showRefreshStrip = signal(false);
@@ -66,6 +69,15 @@ export class AppComponent implements OnInit {
   
   isOnline = true;
 
+  private refreshSubscriptionStatus() {
+    this.subscriptionService.getStatus()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (status) => this.subscriptionStatus.set(status),
+        error: () => this.subscriptionStatus.set(null),
+      });
+  }
+
   ngOnInit() {
     const token = this.authService.getStoredToken();
     const user = this.authService.getStoredUser();
@@ -79,14 +91,11 @@ export class AppComponent implements OnInit {
 
     // Keep auth pages lightweight; refresh session only on non-auth routes.
     if (token && !isInitialAuthRoute) {
+      this.refreshSubscriptionStatus();
       this.authService.getMe({ skipLoading: true }).subscribe({
         next: (freshUser) => {
           this.authService.setStoredUser(freshUser);
           this.store.dispatch(AuthActions.restoreUser({ user: freshUser, token }));
-          this.subscriptionService.getStatus().subscribe({
-            next: (status) => this.subscriptionStatus.set(status),
-            error: () => this.subscriptionStatus.set(null),
-          });
         },
         error: (err) => {
           if (err?.status === 401 || err?.status === 404) {
@@ -99,6 +108,7 @@ export class AppComponent implements OnInit {
 
     // Handle routing loader
     this.router.events.pipe(
+      takeUntilDestroyed(this.destroyRef),
       filter(event => 
         event instanceof NavigationStart || 
         event instanceof NavigationEnd || 
@@ -123,12 +133,23 @@ export class AppComponent implements OnInit {
     // Online/Offline detection
     if (typeof window !== 'undefined') {
       this.isOnline = navigator.onLine;
-      window.addEventListener('online', () => {
-        this.isOnline = true;
-      });
-      window.addEventListener('offline', () => {
-        this.isOnline = false;
-      });
+      window.addEventListener('online', this.handleOnline);
+      window.addEventListener('offline', this.handleOffline);
+    }
+  }
+
+  private readonly handleOnline = () => {
+    this.isOnline = true;
+  };
+
+  private readonly handleOffline = () => {
+    this.isOnline = false;
+  };
+
+  ngOnDestroy() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.handleOnline);
+      window.removeEventListener('offline', this.handleOffline);
     }
   }
 

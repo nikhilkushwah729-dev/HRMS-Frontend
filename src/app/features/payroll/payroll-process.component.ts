@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -22,6 +22,7 @@ import { ToastService } from '../../core/services/toast.service';
   selector: 'app-payroll-process',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
       <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -68,7 +69,7 @@ import { ToastService } from '../../core/services/toast.service';
           <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Attendance Impact</p>
             <p class="mt-3 text-2xl font-black text-rose-600">LOP + OT</p>
-            <p class="mt-2 text-xs text-slate-500">Absent, half-day, unpaid leave, and overtime are applied by backend/fallback processing.</p>
+            <p class="mt-2 text-xs text-slate-500">Absent, half-day, unpaid leave, and overtime are applied by backend payroll processing.</p>
           </article>
         </section>
 
@@ -83,14 +84,14 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
 
             <div class="mt-5 grid gap-3 md:grid-cols-2">
-              <input [(ngModel)]="period" type="month" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400" />
-              <select [(ngModel)]="departmentId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
+              <input [ngModel]="period()" (ngModelChange)="period.set($event)" type="month" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400" />
+              <select [ngModel]="departmentId()" (ngModelChange)="departmentId.set($event)" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400">
                 <option value="">All departments</option>
                 @for (department of departments(); track department.id) {
                   <option [value]="department.id">{{ department.name }}</option>
                 }
               </select>
-              <select [(ngModel)]="employeeId" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400 md:col-span-2">
+              <select [ngModel]="employeeId()" (ngModelChange)="employeeId.set($event)" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400 md:col-span-2">
                 <option value="">All employees</option>
                 @for (employee of filteredEmployees(); track employee.id) {
                   <option [value]="employee.id">{{ employee.firstName }} {{ employee.lastName }}</option>
@@ -99,14 +100,15 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
 
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
-              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [(ngModel)]="includeAttendance" type="checkbox" /> Attendance-driven salary</label>
-              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [(ngModel)]="includeLeave" type="checkbox" /> Leave policy integration</label>
-              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [(ngModel)]="includeOvertime" type="checkbox" /> Include overtime earning</label>
-              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [(ngModel)]="includeBonus" type="checkbox" /> Include bonus / incentives</label>
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [ngModel]="includeAttendance()" (ngModelChange)="includeAttendance.set($event)" type="checkbox" /> Attendance-driven salary</label>
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [ngModel]="includeLeave()" (ngModelChange)="includeLeave.set($event)" type="checkbox" /> Leave policy integration</label>
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [ngModel]="includeOvertime()" (ngModelChange)="includeOvertime.set($event)" type="checkbox" /> Include overtime earning</label>
+              <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700"><input [ngModel]="includeBonus()" (ngModelChange)="includeBonus.set($event)" type="checkbox" /> Include bonus / incentives</label>
             </div>
 
             <textarea
-              [(ngModel)]="comment"
+              [ngModel]="comment()"
+              (ngModelChange)="comment.set($event)"
               rows="4"
               placeholder="Cycle notes, compliance comments, or special processing remarks"
               class="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-fuchsia-400"
@@ -194,15 +196,25 @@ export class PayrollProcessComponent {
   readonly employees = signal<User[]>([]);
   readonly departments = signal<Department[]>([]);
   readonly runs = signal<PayrollRun[]>([]);
+  readonly canProcessAccess = computed(() => {
+    const user = this.currentUser();
+    const role = this.permissionService.getRoleDisplayName(user).toLowerCase();
+    return (
+      role.includes('admin') ||
+      role.includes('hr') ||
+      this.permissionService.hasPermission(user, 'payroll.update') ||
+      this.permissionService.hasPermission(user, 'payroll.approve')
+    );
+  });
 
-  period = new Date().toISOString().slice(0, 7);
-  departmentId = '';
-  employeeId = '';
-  includeAttendance = true;
-  includeLeave = true;
-  includeOvertime = true;
-  includeBonus = true;
-  comment = '';
+  readonly period = signal(new Date().toISOString().slice(0, 7));
+  readonly departmentId = signal('');
+  readonly employeeId = signal('');
+  readonly includeAttendance = signal(true);
+  readonly includeLeave = signal(true);
+  readonly includeOvertime = signal(true);
+  readonly includeBonus = signal(true);
+  readonly comment = signal('');
 
   readonly processedRuns = computed(() =>
     this.runs().filter((run) => run.status === 'processed'),
@@ -219,7 +231,7 @@ export class PayrollProcessComponent {
       .slice(0, 4),
   );
   readonly filteredEmployees = computed(() => {
-    const departmentId = Number(this.departmentId || 0);
+    const departmentId = Number(this.departmentId() || 0);
     if (!departmentId) return this.employees();
     return this.employees().filter(
       (employee) => Number(employee.department?.id ?? 0) === departmentId,
@@ -227,7 +239,7 @@ export class PayrollProcessComponent {
   });
 
   constructor() {
-    if (!this.canProcess()) {
+    if (!this.canProcessAccess()) {
       this.router.navigate(['/self-service/payroll']);
       return;
     }
@@ -254,17 +266,6 @@ export class PayrollProcessComponent {
     });
   }
 
-  canProcess(): boolean {
-    const user = this.currentUser();
-    const role = this.permissionService.getRoleDisplayName(user).toLowerCase();
-    return (
-      role.includes('admin') ||
-      role.includes('hr') ||
-      this.permissionService.hasPermission(user, 'payroll.update') ||
-      this.permissionService.hasPermission(user, 'payroll.approve')
-    );
-  }
-
   statusBadge(status: PayrollRun['status']): string {
     const map: Record<PayrollRun['status'], string> = {
       pending: 'bg-amber-50 text-amber-700',
@@ -275,30 +276,30 @@ export class PayrollProcessComponent {
   }
 
   process(): void {
-    if (!this.period) {
+    if (!this.period()) {
       this.toastService.show('Select a payroll month before processing.', 'error');
       return;
     }
 
     const payload: PayrollProcessPayload = {
-      month: this.period.split('-')[1] || '',
-      year: Number(this.period.split('-')[0] || new Date().getFullYear()),
-      departmentId: this.departmentId ? Number(this.departmentId) : null,
-      employeeIds: this.employeeId ? [Number(this.employeeId)] : undefined,
-      includeAttendance: this.includeAttendance,
-      includeLeave: this.includeLeave,
-      includeOvertime: this.includeOvertime,
-      includeBonus: this.includeBonus,
-      comment: this.comment.trim() || undefined,
+      month: this.period().split('-')[1] || '',
+      year: Number(this.period().split('-')[0] || new Date().getFullYear()),
+      departmentId: this.departmentId() ? Number(this.departmentId()) : null,
+      employeeIds: this.employeeId() ? [Number(this.employeeId())] : undefined,
+      includeAttendance: this.includeAttendance(),
+      includeLeave: this.includeLeave(),
+      includeOvertime: this.includeOvertime(),
+      includeBonus: this.includeBonus(),
+      comment: this.comment().trim() || undefined,
     };
 
     this.processing.set(true);
     this.payrollService.processPayroll(payload).subscribe({
       next: () => {
         this.toastService.show('Payroll cycle processed successfully.', 'success');
-        this.comment = '';
+        this.comment.set('');
         this.processing.set(false);
-        this.load();
+        this.refreshRuns();
       },
       error: () => {
         this.processing.set(false);
@@ -310,15 +311,32 @@ export class PayrollProcessComponent {
   exportReport(): void {
     this.payrollService
       .exportPayrollReport({
-        period: this.period,
-        departmentId: this.departmentId || null,
-        employeeId: this.employeeId || null,
+        period: this.period(),
+        departmentId: this.departmentId() || null,
+        employeeId: this.employeeId() || null,
       })
       .subscribe({
-        next: () =>
-          this.toastService.show('Payroll report export started successfully.', 'success'),
+        next: (blob) => {
+          const reportUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          const safePeriod =
+            this.period() ||
+            `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+          link.href = reportUrl;
+          link.download = `payroll-report-${safePeriod}.xlsx`;
+          link.click();
+          window.URL.revokeObjectURL(reportUrl);
+          this.toastService.show('Payroll report downloaded successfully.', 'success');
+        },
         error: () =>
           this.toastService.show('Unable to export payroll report.', 'error'),
       });
+  }
+
+  private refreshRuns(): void {
+    this.payrollService.getPayrollRuns().subscribe({
+      next: (runs) => this.runs.set(runs),
+      error: () => this.toastService.show('Unable to refresh payroll runs.', 'error'),
+    });
   }
 }

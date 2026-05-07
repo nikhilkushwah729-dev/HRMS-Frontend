@@ -21,7 +21,7 @@ export interface CalendarDay {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
       <div class="border-b border-slate-100 px-5 py-4 sm:px-6">
         <div class="flex items-center justify-between gap-3">
           <div class="min-w-0">
@@ -43,16 +43,16 @@ export interface CalendarDay {
       </div>
 
       <div class="flex min-h-0 flex-1 flex-col px-4 py-4 sm:px-5">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div class="mb-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <button (click)="jumpToToday.emit()" class="rounded-lg bg-slate-900 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-emerald-600">
             {{ t('selfService.holidaysWidget.today') }}
           </button>
 
-          <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div class="grid w-full grid-cols-2 gap-2 sm:grid-cols-4 lg:w-auto">
             @for (stat of summary(); track stat.label) {
-              <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center">
-                <p class="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{{ stat.label }}</p>
-                <p class="mt-1 text-sm font-black text-slate-900 sm:text-base">{{ stat.value }}</p>
+              <div class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center">
+                <p class="break-words text-[9px] font-black uppercase tracking-[0.14em] text-slate-400">{{ stat.label }}</p>
+                <p class="mt-1 break-words text-sm font-black text-slate-900 sm:text-base">{{ stat.value }}</p>
               </div>
             }
           </div>
@@ -67,11 +67,11 @@ export interface CalendarDay {
             }
           </div>
 
-          <div class="grid grid-cols-7 gap-2">
+          <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
             @for (day of days(); track day.iso) {
               <button
                 (click)="selectDay.emit(day)"
-                class="relative mx-auto flex aspect-square w-full max-w-[44px] items-center justify-center rounded-lg text-xs font-bold transition sm:max-w-[50px] sm:text-sm"
+                class="relative mx-auto flex aspect-square w-full max-w-[40px] items-center justify-center rounded-lg text-[11px] font-bold transition sm:max-w-[46px] sm:text-sm lg:max-w-[48px]"
                 [attr.title]="calendarTooltip(day)"
                 [ngClass]="[
                   day.inCurrentMonth ? calendarDayClasses(day) : 'pointer-events-none text-transparent'
@@ -85,22 +85,22 @@ export interface CalendarDay {
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <div class="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-3 2xl:grid-cols-6">
           @for (legend of legends(); track legend.key) {
-            <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
+            <div class="flex min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700">
               <span class="h-2.5 w-2.5 rounded-full shrink-0" [ngClass]="legend.dotClass"></span>
-              <span class="truncate">{{ legendDisplayLabel(legend.key, legend.label) }}</span>
+              <span class="break-words leading-4 text-[11px] sm:text-xs">{{ legendDisplayLabel(legend.key, legend.label) }}</span>
             </div>
           }
         </div>
 
-        <div class="mt-4 min-h-0 rounded-xl border border-slate-200 bg-white p-4">
+        <div class="mt-4 min-h-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-4">
           @if (selectedDay()) {
-            <div class="flex h-full flex-col gap-4">
+            <div class="flex h-full min-h-0 flex-col gap-4 overflow-y-auto">
               <div class="flex items-start justify-between gap-3">
-                <div>
+                <div class="min-w-0">
                   <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">{{ t('selfService.calendarWidget.timelineEvent') }}</p>
-                  <h3 class="mt-1 text-lg font-black text-slate-900">{{ selectedDayHeadline() }}</h3>
+                  <h3 class="mt-1 break-words text-lg font-black text-slate-900">{{ selectedDayHeadline() }}</h3>
                 </div>
                 <button (click)="closeDetail.emit()" class="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50 text-slate-400 transition hover:text-emerald-600">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -118,11 +118,11 @@ export interface CalendarDay {
                 }
               </div>
 
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 @for (metric of selectedMetrics(); track metric.label) {
-                  <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-                    <p class="text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{{ metric.label }}</p>
-                    <p class="mt-1 text-sm font-black text-slate-900">{{ metric.value }}</p>
+                  <div class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                    <p class="break-words text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">{{ metric.label }}</p>
+                    <p class="mt-1 break-words text-sm font-black text-slate-900">{{ metric.value }}</p>
                   </div>
                 }
               </div>

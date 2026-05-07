@@ -24,9 +24,29 @@ import { Router } from '@angular/router';
   imports: [CommonModule],
   template: `
     <div class="flex flex-col gap-4">
+      <div class="rounded-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div class="min-w-0">
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-600">Smart Face Attendance</p>
+            <h3 class="mt-1 text-xl font-black text-slate-900">Auto detect and capture</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Keep one registered face centered in the frame. The system verifies the face and captures attendance automatically.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em]" [class]="cameraStateTone()">
+              {{ cameraStateLabel() }}
+            </span>
+            <span class="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">
+              {{ statusBadgeLabel() }}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <!-- Camera Card -->
       <div class="relative group">
-        <div class="h-60 sm:h-64 w-full rounded-2xl bg-slate-900 overflow-hidden shadow-2xl border-4 border-white ring-1 ring-slate-200 relative">
+        <div class="h-64 sm:h-72 w-full rounded-md bg-slate-900 overflow-hidden shadow-2xl border border-slate-200 relative">
           <!-- Video Feed -->
           <video
             #videoElement
@@ -38,15 +58,22 @@ import { Router } from '@angular/router';
           ></video>
 
           <!-- Camera Placeholder / Loading -->
-          <div *ngIf="!isCameraReady()" class="absolute inset-0 flex flex-col items-center justify-center gap-4 text-slate-500">
+          <div *ngIf="!isCameraReady()" class="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center text-slate-500">
              <div class="h-12 w-12 rounded-full border-4 border-slate-800 border-t-teal-500 animate-spin"></div>
              <p class="text-sm font-bold uppercase tracking-widest animate-pulse">{{ cameraFallbackMode() ? 'Camera unavailable. Preparing fallback...' : 'Initializing Camera...' }}</p>
+             <div *ngIf="cameraFallbackMode()" class="max-w-sm rounded-md border border-amber-200 bg-amber-50/90 px-4 py-3 text-left shadow-lg">
+               <p class="text-[10px] font-black uppercase tracking-[0.22em] text-amber-700">Fallback Attendance</p>
+               <p class="mt-1 text-sm font-bold text-amber-900">Camera is not available on this device or browser.</p>
+               <p class="mt-1 text-xs leading-5 text-amber-800">You can still continue attendance with location-based web punch without selfie capture.</p>
+             </div>
           </div>
 
           <!-- Face Guide Overlay -->
           <div *ngIf="isCameraReady() && !capturedImage()" class="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div class="w-2/3 aspect-square border-2 border-dashed border-teal-500/40 rounded-full relative">
-                <div class="absolute inset-0 bg-teal-500/5 rounded-full animate-pulse"></div>
+             <div class="relative w-2/3 max-w-[240px] aspect-square rounded-full border-2 border-dashed border-teal-500/40">
+                <div class="absolute inset-0 rounded-full bg-teal-500/5 animate-pulse"></div>
+                <div class="absolute -inset-4 rounded-full border border-teal-400/20" [style.transform]="'scale(' + scanRingScale() + ')'" [style.opacity]="scanRingOpacity()"></div>
+                <div class="absolute -inset-8 rounded-full border border-cyan-400/10" [style.transform]="'scale(' + secondaryScanRingScale() + ')'" [style.opacity]="secondaryScanRingOpacity()"></div>
                 <!-- Corner Accents -->
                 <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-teal-500 rounded-tl-xl"></div>
                 <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-teal-500 rounded-tr-xl"></div>
@@ -56,9 +83,12 @@ import { Router } from '@angular/router';
           </div>
 
           <div *ngIf="isCameraReady() && !capturedImage()" class="absolute left-4 right-4 top-4 z-10">
-            <div class="rounded-xl border border-white/15 bg-slate-950/65 px-4 py-3 text-white backdrop-blur-md">
+            <div class="rounded-md border border-white/15 bg-slate-950/65 px-4 py-3 text-white backdrop-blur-md">
               <p class="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">Face Scan</p>
               <p class="mt-1 text-sm font-bold">{{ faceStatusMessage() }}</p>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                <div class="h-full rounded-full bg-gradient-to-r from-teal-400 to-cyan-400 transition-all duration-300" [style.width.%]="scanProgress()"></div>
+              </div>
             </div>
           </div>
 
@@ -71,20 +101,54 @@ import { Router } from '@angular/router';
              <span class="text-[10px] font-black text-white uppercase tracking-widest">LIVE FEED</span>
           </div>
 
+          <div *ngIf="isCameraReady() && !capturedImage()" class="absolute bottom-4 left-4 right-4">
+            <div class="grid gap-3 rounded-md border border-white/10 bg-slate-950/70 px-4 py-3 text-white backdrop-blur-md sm:grid-cols-3">
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/55">Registration</p>
+                <p class="mt-1 text-sm font-bold">{{ faceRegistrationStatus() }}</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/55">Progress</p>
+                <p class="mt-1 text-sm font-bold">{{ scanProgress() }}% ready</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/55">Guide</p>
+                <p class="mt-1 text-sm font-bold">{{ overlayGuideMessage() }}</p>
+              </div>
+            </div>
+          </div>
+
           <!-- Processing Overlay -->
           <div *ngIf="isProcessing()" class="absolute inset-0 bg-teal-900/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
              <div class="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>
              <p class="text-white font-black uppercase tracking-[0.2em] drop-shadow-md">Recording Punch...</p>
           </div>
+
+          <div *ngIf="successFlash()" class="absolute inset-0 z-20 flex items-center justify-center bg-emerald-500/18 backdrop-blur-[1px]">
+            <div class="rounded-full bg-emerald-500/95 p-5 shadow-2xl shadow-emerald-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            </div>
+          </div>
         </div>
 
         <!-- Camera Controls -->
-        <div class="mt-4 flex gap-3">
+        <div class="mt-4 flex flex-col gap-3 sm:flex-row">
           <button
-            *ngIf="!capturedImage()"
+            *ngIf="!faceRegistered() && !cameraFallbackMode()"
+            type="button"
+            (click)="openFaceRegistration()"
+            class="flex-1 py-3.5 bg-white text-slate-800 rounded-md font-black text-base border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            REGISTER FACE FIRST
+          </button>
+
+          <button
+            *ngIf="!capturedImage() && (faceRegistered() || cameraFallbackMode())"
             (click)="captureAndPunch()"
             [disabled]="isPrimaryActionDisabled()"
-            class="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-xl font-black text-base shadow-lg shadow-teal-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
+            class="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-md font-black text-base shadow-lg shadow-teal-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
@@ -97,7 +161,7 @@ import { Router } from '@angular/router';
             *ngIf="capturedImage()"
             (click)="retake()"
             [disabled]="isProcessing()"
-            class="flex-1 py-3.5 bg-slate-100 text-slate-700 rounded-xl font-black text-base hover:bg-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+            class="flex-1 py-3.5 bg-slate-100 text-slate-700 rounded-md font-black text-base hover:bg-slate-200 transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -205,6 +269,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   cameraFallbackMode = signal<boolean>(false);
   multiFaceDetected = signal<boolean>(false);
   faceRegistered = signal<boolean>(false);
+  successFlash = signal<boolean>(false);
   currentTime = '';
   
   private mediaStream: MediaStream | null = null;
@@ -368,7 +433,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
       }
 
       this.singleFaceStableFrames += 1;
-      if (this.singleFaceStableFrames < 2) {
+      if (this.singleFaceStableFrames < 3) {
         this.faceStatusMessage.set('One face detected. Hold still for confirmation...');
         return;
       }
@@ -409,8 +474,8 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
           },
           error: () => {
             this.currentLocation.set({ lat, lng });
-            this.locationStatus.set('success');
-            this.geofenceMessage.set('Location acquired');
+            this.locationStatus.set('error');
+            this.geofenceMessage.set('Geofence could not be verified');
           }
         });
       },
@@ -428,15 +493,21 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
       return this.status() === 'out' ? 'CLOCK IN NOW' : 'CLOCK OUT NOW';
     }
     if (!this.faceRegistered()) return 'REGISTER FACE FIRST';
-    return this.status() === 'out' ? 'AUTO FACE CLOCK IN' : 'AUTO FACE CLOCK OUT';
+    return this.status() === 'out' ? 'AUTO FACE CHECK IN' : 'AUTO FACE CHECK OUT';
   }
 
   instructionMessage(): string {
     if (this.hasCompletedPunch()) {
       return 'Your attendance for today is already completed. No further punch is required.';
     }
+    if (this.locationStatus() === 'outside_geofence') {
+      return 'You are outside the assigned geofence. Attendance cannot be marked from this location.';
+    }
+    if (this.locationStatus() === 'error') {
+      return 'Location could not be verified. Allow location access and move within your geofence.';
+    }
     if (this.cameraFallbackMode()) {
-      return 'Camera is unavailable. You can continue with standard attendance fallback.';
+      return 'Camera is unavailable. Attendance can continue only after location is verified within the geofence.';
     }
     if (!this.faceRegistered()) {
       return 'Your face is not registered yet. Complete face registration first, then mark attendance.';
@@ -463,6 +534,55 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     return !this.isCameraReady();
   }
 
+  cameraStateLabel(): string {
+    if (this.cameraFallbackMode()) return 'Fallback Mode';
+    if (this.isProcessing()) return 'Processing';
+    if (this.isCameraReady()) return 'Camera Ready';
+    return 'Preparing Camera';
+  }
+
+  cameraStateTone(): string {
+    if (this.cameraFallbackMode()) return 'bg-amber-50 text-amber-700';
+    if (this.isProcessing()) return 'bg-cyan-50 text-cyan-700';
+    if (this.isCameraReady()) return 'bg-emerald-50 text-emerald-700';
+    return 'bg-slate-100 text-slate-600';
+  }
+
+  scanProgress(): number {
+    if (this.cameraFallbackMode() || !this.faceRegistered()) return 0;
+    return Math.min(100, Math.round((this.singleFaceStableFrames / 3) * 100));
+  }
+
+  scanRingScale(): number {
+    return 1 + this.scanProgress() / 200;
+  }
+
+  scanRingOpacity(): number {
+    return Math.max(0.2, 0.65 - this.scanProgress() / 180);
+  }
+
+  secondaryScanRingScale(): number {
+    return 1.08 + this.scanProgress() / 160;
+  }
+
+  secondaryScanRingOpacity(): number {
+    return Math.max(0.08, 0.38 - this.scanProgress() / 220);
+  }
+
+  overlayGuideMessage(): string {
+    if (this.multiFaceDetected()) return 'Keep only one face visible';
+    if (!this.faceRegistered()) return 'Registration required';
+    if (this.cameraFallbackMode()) return 'Camera fallback active';
+    if (this.scanProgress() >= 100) return 'Capture in progress';
+    return 'Center face and hold still';
+  }
+
+  openFaceRegistration() {
+    void this.router.navigate(['/face-registration'], {
+      queryParams: { returnUrl: '/self-service/attendance?view=punch&openModal=1' },
+    });
+  }
+
   statusBadgeLabel(): string {
     if (this.hasCompletedPunch()) return 'Completed';
     return this.status() === 'in' ? 'Working' : 'Offline';
@@ -472,6 +592,14 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     if (this.isProcessing()) return;
     if (this.hasCompletedPunch()) {
       this.toastService.info('Attendance for today is already completed.');
+      return;
+    }
+    if (this.locationStatus() === 'outside_geofence') {
+      this.toastService.error('Outside Geofence. Attendance cannot be marked.');
+      return;
+    }
+    if (this.locationStatus() === 'error' || this.locationStatus() === 'loading') {
+      this.toastService.error('Location could not be verified. Please allow location and move within your geofence.');
       return;
     }
 
@@ -546,6 +674,15 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   }
 
   private markAttendanceWithoutCamera() {
+    if (this.locationStatus() !== 'success') {
+      this.toastService.error(
+        this.locationStatus() === 'outside_geofence'
+          ? 'Outside Geofence. Attendance cannot be marked.'
+          : 'Location could not be verified. Please allow location and move within your geofence.',
+      );
+      return;
+    }
+
     this.isProcessing.set(true);
     const isClockingIn = this.status() === 'out';
     const location = this.currentLocation();
@@ -565,6 +702,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   private handleSuccessfulPunch(isClockingIn: boolean) {
     this.toastService.success(`Successfully clocked ${isClockingIn ? 'in' : 'out'}!`);
+    this.successFlash.set(true);
     this.status.set(isClockingIn ? 'in' : 'out');
     if (!isClockingIn) {
       this.hasCompletedPunch.set(true);
@@ -575,11 +713,13 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
         ? 'Attendance marked. You are now clocked in.'
         : 'Attendance marked. You are now clocked out.',
     );
+    setTimeout(() => this.successFlash.set(false), 1400);
     setTimeout(() => this.retake(), 3000);
   }
 
   retake() {
     this.capturedImage.set(null);
+    this.successFlash.set(false);
     this.singleFaceStableFrames = 0;
     if (!this.cameraFallbackMode() && this.faceRegistered() && this.isCameraReady()) {
       this.autoPunchTriggered = false;

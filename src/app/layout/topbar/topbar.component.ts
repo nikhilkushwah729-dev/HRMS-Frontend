@@ -1,6 +1,7 @@
-import { Component, HostListener, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, Location } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { NavigationEnd, Router } from '@angular/router';
 import { selectUser } from '../../core/state/auth/auth.selectors';
@@ -71,9 +72,10 @@ type TopNavItem = {
 @Component({
   selector: 'app-topbar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <header class="app-topbar-surface sticky top-0 z-50 w-full border-b border-white/40 px-2 sm:px-3 lg:px-4">
+    <header class="app-topbar-surface sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/90 px-2 sm:px-3 lg:px-4 backdrop-blur-xl">
       @if (showSearchPanel()) {
       <div class="flex min-h-[58px] items-center py-2 md:min-h-[66px]">
         <div class="relative flex w-full items-center gap-2">
@@ -124,27 +126,27 @@ type TopNavItem = {
         </div>
       </div>
       } @else {
-      <div class="flex h-[64px] items-center justify-between gap-4 px-4 md:h-[72px]">
+      <div class="flex h-[62px] items-center justify-between gap-3 px-3 md:h-[68px] md:px-4">
         <!-- Left Section: Menu & Title -->
         <div class="flex min-w-0 items-center gap-3">
-          <button (click)="handleSidebarToggle()" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700 transition hover:bg-slate-900 hover:text-white">
+          <button (click)="handleSidebarToggle()" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-900 hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
           </button>
 
           @if (showBackButton()) {
-            <button type="button" (click)="goBack()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+            <button type="button" (click)="goBack()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
             </button>
           }
 
-          <div class="min-w-0 flex-1 lg:max-w-[20rem]">
+          <div class="min-w-0 flex-1 lg:max-w-[18rem] xl:max-w-[20rem]">
             <p class="truncate text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 leading-none">{{ headerKicker() }}</p>
             <h1 class="mt-1 truncate text-sm font-black tracking-tight text-slate-900 md:text-base" style="font-family: 'Sora', sans-serif;">{{ headerTitle() }}</h1>
           </div>
         </div>
 
         <!-- Center Section: Navigation (Hidden on smaller screens) -->
-        <div class="hidden min-w-0 flex-1 justify-center lg:flex">
+        <div class="hidden min-w-0 flex-1 justify-center 2xl:flex">
           <div class="relative flex max-w-[min(48rem,calc(100vw-40rem))] min-w-0 items-center px-2">
             
             <!-- Left Edge Fade & Arrow -->
@@ -201,7 +203,7 @@ type TopNavItem = {
         </div>
 
         <!-- Right Section: Actions -->
-        <div class="flex shrink-0 items-center gap-2 md:gap-3">
+        <div class="flex shrink-0 items-center gap-2 md:gap-2.5">
           <!-- Dynamic Primary Action -->
           @if (layoutService.primaryAction(); as action) {
             @if (action.isVisible) {
@@ -226,7 +228,7 @@ type TopNavItem = {
             </button>
           </div>
 
-          <div class="relative hidden sm:block">
+          <div class="relative hidden xl:block">
             <button
               type="button" 
               class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
@@ -391,7 +393,7 @@ type TopNavItem = {
         
         <button
           type="button"
-          class="hidden lg:inline-flex items-center gap-2.5 rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg shadow-slate-200"
+          class="hidden xl:inline-flex items-center gap-2.5 rounded-md border px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md shadow-slate-200"
           [ngClass]="billingChipTone()"
           (click)="goToSearchResult('/billing')"
           style="font-family: 'Sora', sans-serif;"
@@ -410,7 +412,7 @@ type TopNavItem = {
         <!-- Notification Bell -->
         @if (canViewNotifications()) {
         <div class="relative">
-          <button (click)="toggleNotifications()" class="relative text-slate-500 p-2 rounded-full hover:bg-slate-100/80 hover:text-indigo-600 transition-colors border border-transparent hover:border-slate-200/50">
+          <button (click)="toggleNotifications()" class="relative flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100/80 hover:text-indigo-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             @if (notifService.unreadCount() > 0) {
               <span class="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white shadow-sm">
@@ -457,7 +459,7 @@ type TopNavItem = {
         <!-- User Profile Dropdown -->
         <div class="relative">
           @if (currentUser(); as user) {
-            <div (click)="toggleProfileDropdown($event)" class="flex items-center gap-2 rounded-xl cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
+            <div (click)="toggleProfileDropdown($event)" class="flex items-center gap-2 rounded-md cursor-pointer border border-slate-200 bg-slate-50/70 p-1 pr-2 hover:border-slate-300 hover:bg-white hover:shadow-sm transition-all group">
               <div class="w-8 h-8 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
                 @if (user.avatar) {
                   <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
@@ -903,6 +905,7 @@ export class TopbarComponent implements OnInit {
   private organizationService = inject(OrganizationService);
   private subscriptionService = inject(SubscriptionService);
   private languageService = inject(LanguageService);
+  private destroyRef = inject(DestroyRef);
   layoutService = inject(LayoutService);
   notifService = inject(NotificationService);
 
@@ -1039,7 +1042,10 @@ export class TopbarComponent implements OnInit {
     this.permissionService.syncForUser(this.currentUser());
     this.updateRoleLabel(this.currentUser());
     
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
+    this.router.events.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+    ).subscribe((event) => {
       const nextRoute = event.urlAfterRedirects || event.url || '/';
       const previousRoute = this.currentPath();
       if (previousRoute && previousRoute !== nextRoute) {
@@ -1051,7 +1057,7 @@ export class TopbarComponent implements OnInit {
     });
 
     // Subscribe to user$ observable to get the latest user data reactively from the store
-    this.user$.subscribe(user => {
+    this.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
       if (user) {
         this.currentUser.set(user);
         this.permissionService.syncForUser(user);
@@ -1061,12 +1067,12 @@ export class TopbarComponent implements OnInit {
 
     this.searchResults.set(this.getVisibleQuickLinks().slice(0, 6));
     this.loadUserDesignation();
-    this.subscriptionService.getStatus().subscribe({
+    this.subscriptionService.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
     });
 
-    this.organizationService.getOrganization().subscribe((org) => {
+    this.organizationService.getOrganization().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((org) => {
       if (org) {
         this.orgLogo.set(org.logo || '');
         this.orgName.set(org.name || '');
@@ -1085,7 +1091,7 @@ export class TopbarComponent implements OnInit {
   private loadUserDesignation() {
     const user = this.currentUser() ?? this.authService.getStoredUser();
     if (user?.designationId) {
-      this.organizationService.getDesignations().subscribe({
+      this.organizationService.getDesignations().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (designations) => {
           const designation = designations.find(d => d.id === user.designationId);
           if (designation) {
@@ -1125,7 +1131,7 @@ export class TopbarComponent implements OnInit {
       projects: canSearchProjects
         ? this.projectService.getProjects().pipe(catchError(() => of([] as Project[])))
         : of([] as Project[])
-    }).subscribe(({ employees, projects }) => {
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ employees, projects }) => {
       this.employeeCache.set(employees);
       this.projectCache.set(projects);
       this.searchDataLoaded.set(true);
@@ -1276,7 +1282,7 @@ export class TopbarComponent implements OnInit {
   toggleNotifications() {
     if (!this.canViewNotifications()) return;
     if (!this.showNotifications() && !this.notificationsLoaded()) {
-      this.notifService.getNotifications().subscribe({
+      this.notifService.getNotifications().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: () => this.notificationsLoaded.set(true),
         error: () => this.notificationsLoaded.set(false),
       });
@@ -1289,11 +1295,11 @@ export class TopbarComponent implements OnInit {
   }
 
   markRead(id: number) {
-    this.notifService.markAsRead(id).subscribe();
+    this.notifService.markAsRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   markAllRead() {
-    this.notifService.markAllAsRead().subscribe();
+    this.notifService.markAllAsRead().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   closeAll() {
@@ -1766,7 +1772,10 @@ export class TopbarComponent implements OnInit {
   private loadAddonLauncher() {
     if (this.addonLauncherLoaded()) return;
 
-    this.organizationService.getAddons().pipe(catchError(() => of([] as any[]))).subscribe((addons) => {
+    this.organizationService.getAddons().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => of([] as any[])),
+    ).subscribe((addons) => {
       this.addonLauncherItems.set((addons || []).map((addon) => this.toAddonLauncherItem(addon)));
       this.addonLauncherLoaded.set(true);
     });
@@ -1829,7 +1838,7 @@ export class TopbarComponent implements OnInit {
     this.authService.clearAuthStorage();
     this.store.dispatch(AuthActions.logout());
     this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-    this.authService.logout(token).subscribe({
+    this.authService.logout(token).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.loggingOut.set(false),
       error: () => this.loggingOut.set(false)
     });

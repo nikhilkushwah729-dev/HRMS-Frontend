@@ -172,10 +172,15 @@ export class TimesheetDetailComponent {
   review(action: 'approve' | 'reject' | 'send_back' | 'lock'): void {
     const item = this.record();
     if (!item) return;
+    const note = this.reviewNote.trim();
+    if ((action === 'reject' || action === 'send_back') && !note) {
+      this.toastService.error(`Add a ${action === 'reject' ? 'rejection' : 'send back'} note before submitting this action.`);
+      return;
+    }
     this.processing.set(true);
     this.timesheetService.reviewTimesheet(item.id, {
       action,
-      note: this.reviewNote,
+      note,
     }).subscribe({
       next: (updated) => {
         this.record.set(updated);

@@ -1,12 +1,14 @@
 const runtimeConfig = globalThis as typeof globalThis & {
     __HRMS_CONFIG__?: {
         apiUrl?: string;
+        googleMapsApiKey?: string;
     };
 };
 
 export const environment = {
     production: false,
     apiUrl: runtimeConfig.__HRMS_CONFIG__?.apiUrl || 'http://localhost:3333/api',
+    googleMapsApiKey: runtimeConfig.__HRMS_CONFIG__?.googleMapsApiKey || 'AIzaSyBPMFA6nwXGdQTpTeJG0SYQdjMGOyNMCBM',
     firebase: {
         apiKey: "AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8",
         authDomain: "hrnexus-8eb7e.firebaseapp.com",

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { RequestWorkflowService } from '../../core/services/request-workflow.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -51,10 +51,15 @@ export class ApprovalCenterComponent {
   private readonly requestService = inject(RequestWorkflowService);
   private readonly permissionService = inject(PermissionService);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   readonly queueCount = signal(0);
   readonly currentUser = this.authService.getStoredUser();
 
   constructor() {
+    if (!this.canManage()) {
+      this.router.navigate(['/self-service/requests']);
+      return;
+    }
     this.requestService.getApprovalQueue({ status: 'pending' }).subscribe({
       next: (items) => this.queueCount.set(items.length),
       error: () => this.queueCount.set(0),
@@ -67,5 +72,9 @@ export class ApprovalCenterComponent {
     if (scope === 'team') return 'Team';
     if (scope === 'global') return 'Global';
     return 'Restricted';
+  }
+
+  canManage(): boolean {
+    return this.permissionService.isManagerialUser(this.currentUser);
   }
 }

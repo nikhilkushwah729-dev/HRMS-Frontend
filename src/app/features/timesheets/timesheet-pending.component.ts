@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+import { PermissionService } from '../../core/services/permission.service';
 import { TimesheetRecord, TimesheetService } from '../../core/services/timesheet.service';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-timesheet-pending',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-6">
       <section class="rounded-md border border-slate-200 bg-white p-5 sm:p-6">
@@ -25,6 +28,11 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       </section>
 
+      @if (!canManage()) {
+        <section class="rounded-md border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          This workspace is reserved for managers, HR, and admins. You currently do not have pending approval scope for timesheets.
+        </section>
+      } @else {
       <section class="grid gap-4 md:grid-cols-3">
         <article class="rounded-md border border-amber-200 bg-amber-50/60 p-5">
           <p class="text-xs font-bold uppercase tracking-[0.22em] text-amber-700">Pending Count</p>
@@ -38,6 +46,16 @@ import { ToastService } from '../../core/services/toast.service';
           <p class="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">Total Pending Hours</p>
           <p class="mt-3 text-3xl font-black text-slate-900">{{ pendingHours() | number:'1.0-2' }}h</p>
         </article>
+      </section>
+
+      <section class="rounded-md border border-slate-200 bg-white p-5 sm:p-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 class="text-lg font-black text-slate-900">Bulk Review Note</h2>
+            <p class="mt-1 text-sm text-slate-500">Add a shared note for bulk rejection or send-back style actions. Approval can be submitted without a note.</p>
+          </div>
+        </div>
+        <textarea [(ngModel)]="bulkNote" class="app-field mt-4 min-h-[120px]" placeholder="Add shared review note, rejection reason, or correction guidance"></textarea>
       </section>
 
       <section class="rounded-md border border-slate-200 bg-white">
@@ -91,16 +109,21 @@ import { ToastService } from '../../core/services/toast.service';
           </table>
         </div>
       </section>
+      }
     </div>
   `,
 })
 export class TimesheetPendingComponent {
+  private authService = inject(AuthService);
+  private permissionService = inject(PermissionService);
   private timesheetService = inject(TimesheetService);
   private toastService = inject(ToastService);
   private router = inject(Router);
 
+  readonly currentUser = signal(this.authService.getStoredUser());
   readonly entries = signal<TimesheetRecord[]>([]);
   readonly selectedIds = signal<number[]>([]);
+  bulkNote = '';
 
   readonly pendingEntries = computed(() => this.entries().filter((entry) => entry.status === 'pending'));
   readonly pendingHours = computed(() =>
@@ -111,7 +134,13 @@ export class TimesheetPendingComponent {
   );
 
   constructor() {
-    this.loadQueue();
+    if (this.canManage()) {
+      this.loadQueue();
+    }
+  }
+
+  canManage(): boolean {
+    return this.permissionService.isManagerialUser(this.currentUser());
   }
 
   loadQueue(): void {
@@ -144,7 +173,11 @@ export class TimesheetPendingComponent {
 
   bulkAction(action: 'approve' | 'reject'): void {
     if (!this.selectedIds().length) return;
-    const note = window.prompt(`Add ${action === 'approve' ? 'approval' : 'rejection'} note`, '') || '';
+    const note = this.bulkNote.trim();
+    if (action === 'reject' && !note) {
+      this.toastService.error('Add a rejection note before running bulk reject.');
+      return;
+    }
     this.timesheetService.bulkReviewTimesheets({
       ids: this.selectedIds(),
       action,
@@ -152,6 +185,7 @@ export class TimesheetPendingComponent {
     }).subscribe({
       next: () => {
         this.toastService.success(`Bulk ${action === 'approve' ? 'approval' : 'rejection'} completed.`);
+        this.bulkNote = '';
         this.loadQueue();
       },
       error: () => this.toastService.error('Unable to process bulk action.'),

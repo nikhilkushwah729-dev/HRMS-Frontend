@@ -10,6 +10,21 @@ export interface Role {
 export type AccessScope = 'global' | 'organization' | 'team' | 'self' | 'finance' | 'all';
 export type RbacRoleName = 'Super Admin' | 'Organization Admin' | 'Admin' | 'Manager' | 'Employee';
 
+export interface AttendanceAreaAssignment {
+  id?: number;
+  name?: string;
+  lat: number | string;
+  long: number | string;
+  radius: number | string;
+}
+
+export interface AttendancePolygonPoint {
+  Id?: number;
+  geo_masterId?: number;
+  lat: number | string;
+  long: number | string;
+}
+
 export interface User {
   id?: number;
   email: string;
@@ -35,6 +50,8 @@ export interface User {
   geofenceId?: number;
   geofenceRequired?: boolean;
   geofenceZoneName?: string;
+  areaIds?: AttendanceAreaAssignment[];
+  polyField?: AttendancePolygonPoint[] | AttendancePolygonPoint[][];
   managerId?: number;
   reportingManagerId?: number;
   subordinateIds?: number[];
@@ -67,6 +84,9 @@ export interface User {
   esslSetupConfig?: number;
   biometricMachinePermission?: number;
   addonDeviceVerification?: number;
+  modeOfAttendance?: number | null;
+  attSelfie?: number | null;
+  attImage?: number | null;
   visitorManagementAddOn?: number;
   settingPerm?: number;
   department?: { id: number; name: string };
