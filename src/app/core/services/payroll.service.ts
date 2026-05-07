@@ -1,9 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { EmployeeService } from './employee.service';
-import { User } from '../models/auth.model';
 
 export interface Payslip {
   id: number;
@@ -133,10 +131,44 @@ export interface PayrollProcessPayload {
 })
 export class PayrollService {
   private http = inject(HttpClient);
-  private employeeService = inject(EmployeeService);
   private readonly apiUrl = environment.apiUrl;
-  private readonly structureKey = 'hrms_payroll_structures_v1';
-  private readonly runsKey = 'hrms_payroll_runs_v1';
+
+  private parseMonthValue(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value >= 1 && value <= 12 ? value : null;
+    }
+
+    const normalized = String(value ?? '').trim();
+    if (!normalized) return null;
+
+    const numeric = Number(normalized);
+    if (Number.isFinite(numeric) && numeric >= 1 && numeric <= 12) {
+      return numeric;
+    }
+
+    const monthIndex = [
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
+    ].findIndex((month) => month.startsWith(normalized.toLowerCase()));
+
+    return monthIndex >= 0 ? monthIndex + 1 : null;
+  }
+
+  private payrollPeriodKey(month: unknown, year: unknown): string {
+    const resolvedYear = Number(year ?? new Date().getFullYear());
+    const resolvedMonth = this.parseMonthValue(month);
+    return `${resolvedYear}-${String(resolvedMonth ?? 0).padStart(2, '0')}`;
+  }
 
   private normalizePayslip(raw: any): Payslip {
     return {
@@ -216,42 +248,43 @@ export class PayrollService {
     };
   }
 
-  private readStorage<T>(key: string, fallback: T): T {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
-  private writeStorage<T>(key: string, value: T): void {
-    localStorage.setItem(key, JSON.stringify(value));
-  }
-
   getPayslips(): Observable<Payslip[]> {
     return this.http.get<any>(`${this.apiUrl}/payroll`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).map((item: any) => this.normalizePayslip(item))),
-      catchError(() => of(this.readStorage<Payslip[]>('hrms_payroll_payslips_v1', []))),
+      catchError(() => of([])),
     );
   }
 
   getMyPayrollDashboard(): Observable<PayrollDashboard> {
     return this.getPayslips().pipe(
       map((payslips) => {
-        const latestPayslip = payslips[0] ?? null;
+        const sortedPayslips = [...payslips].sort((left, right) =>
+          this.payrollPeriodKey(right.month, right.year).localeCompare(
+            this.payrollPeriodKey(left.month, left.year),
+          ),
+        );
+        const latestPayslip = sortedPayslips[0] ?? null;
         return {
           month: latestPayslip?.month ?? '',
           year: latestPayslip?.year ?? new Date().getFullYear(),
-          payslips,
+          payslips: sortedPayslips,
           latestPayslip,
-          ytdEarnings: payslips.reduce((sum, item) => sum + Number(item.ytd_earnings ?? item.net_salary ?? 0), 0),
-          ytdDeductions: payslips.reduce((sum, item) => sum + Number(item.ytd_deductions ?? item.deductions ?? 0), 0),
-          taxSummary: payslips.reduce((sum, item) => sum + Number(item.tax_summary ?? item.tds ?? 0), 0),
+          ytdEarnings:
+            Number(latestPayslip?.ytd_earnings ?? 0) ||
+            sortedPayslips.reduce(
+              (sum, item) => sum + Number(item.gross_salary ?? item.net_salary ?? 0),
+              0,
+            ),
+          ytdDeductions:
+            Number(latestPayslip?.ytd_deductions ?? 0) ||
+            sortedPayslips.reduce((sum, item) => sum + Number(item.deductions ?? 0), 0),
+          taxSummary:
+            Number(latestPayslip?.tax_summary ?? 0) ||
+            sortedPayslips.reduce((sum, item) => sum + Number(item.tds ?? 0), 0),
           reimbursementStatus: {
-            pending: payslips.filter((item) => item.reimbursement_status === 'pending').length,
-            approved: payslips.filter((item) => item.reimbursement_status === 'approved').length,
-            paid: payslips.filter((item) => item.reimbursement_status === 'paid').length,
+            pending: sortedPayslips.filter((item) => item.reimbursement_status === 'pending').length,
+            approved: sortedPayslips.filter((item) => item.reimbursement_status === 'approved').length,
+            paid: sortedPayslips.filter((item) => item.reimbursement_status === 'paid').length,
           },
         };
       }),
@@ -260,7 +293,14 @@ export class PayrollService {
 
   getPayslipByPeriod(period: string): Observable<Payslip | null> {
     return this.getPayslips().pipe(
-      map((items) => items.find((item) => `${item.year}-${String(item.month).padStart(2, '0')}` === period || `${item.month}-${item.year}` === period) ?? null),
+      map(
+        (items) =>
+          items.find((item) => {
+            const direct = this.payrollPeriodKey(item.month, item.year);
+            const alternate = `${item.month}-${item.year}`;
+            return direct === period || alternate === period;
+          }) ?? null,
+      ),
     );
   }
 
@@ -275,110 +315,38 @@ export class PayrollService {
   getSalaryStructures(): Observable<SalaryStructure[]> {
     return this.http.get<any>(`${this.apiUrl}/payroll/structures`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : []).map((item: any) => this.normalizeStructure(item))),
-      catchError(() => of(this.readStorage<SalaryStructure[]>(this.structureKey, []))),
+      catchError(() => of([])),
     );
   }
 
   saveSalaryStructure(payload: SalaryStructure): Observable<SalaryStructure> {
     return this.http.post<any>(`${this.apiUrl}/payroll/structures`, payload).pipe(
       map((res) => this.normalizeStructure(res?.data ?? res)),
-      catchError(() => {
-        const current = this.readStorage<SalaryStructure[]>(this.structureKey, []);
-        const normalized = this.normalizeStructure(payload);
-        const next = [normalized, ...current.filter((item) => item.employeeId !== normalized.employeeId)];
-        this.writeStorage(this.structureKey, next);
-        return of(normalized);
-      }),
     );
   }
 
   getPayrollRuns(): Observable<PayrollRun[]> {
     return this.http.get<any>(`${this.apiUrl}/payroll/runs`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : []).map((item: any) => this.normalizeRun(item))),
-      catchError(() => of(this.readStorage<PayrollRun[]>(this.runsKey, []))),
+      catchError(() => of([])),
     );
   }
 
   processPayroll(payload: PayrollProcessPayload): Observable<PayrollRun> {
     return this.http.post<any>(`${this.apiUrl}/payroll/process`, payload).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
-      catchError(() =>
-        this.employeeService.getEmployees().pipe(
-          map((employees) => {
-            const selectedEmployees = payload.employeeIds?.length
-              ? employees.filter((employee) => payload.employeeIds?.includes(Number(employee.id)))
-              : employees;
-            const items: PayrollRunEmployee[] = selectedEmployees.map((employee) => ({
-              employeeId: Number(employee.id ?? employee.employeeId ?? 0),
-              employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || employee.email,
-              department: employee.department?.name,
-              attendanceDays: 0,
-              absentDays: 0,
-              halfDays: 0,
-              unpaidLeaveDays: 0,
-              lopDays: 0,
-              overtimeHours: 0,
-              grossSalary: Number(employee.salary ?? 0),
-              totalDeductions: 0,
-              netSalary: Number(employee.salary ?? 0),
-              status: 'processed',
-            }));
-            const run = this.normalizeRun({
-              id: Date.now(),
-              month: payload.month,
-              year: payload.year,
-              cycleLabel: `${payload.month} ${payload.year}`,
-              employeeCount: items.length,
-              processedCount: items.length,
-              totalGross: items.reduce((sum, item) => sum + item.grossSalary, 0),
-              totalDeductions: items.reduce((sum, item) => sum + item.totalDeductions, 0),
-              totalNet: items.reduce((sum, item) => sum + item.netSalary, 0),
-              locked: false,
-              status: 'processed',
-              comment: payload.comment ?? 'Frontend fallback run',
-              processedAt: new Date().toISOString(),
-              items,
-            });
-            const current = this.readStorage<PayrollRun[]>(this.runsKey, []);
-            this.writeStorage(this.runsKey, [run, ...current]);
-            return run;
-          }),
-        ),
-      ),
     );
   }
 
   lockPayroll(runId: number): Observable<PayrollRun | null> {
     return this.http.post<any>(`${this.apiUrl}/payroll/runs/${runId}/lock`, {}).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
-      catchError(() => {
-        const current = this.readStorage<PayrollRun[]>(this.runsKey, []);
-        const next = current.map((run) =>
-          run.id === runId ? { ...run, locked: true, status: 'locked' as const } : run,
-        );
-        this.writeStorage(this.runsKey, next);
-        return of(next.find((run) => run.id === runId) ?? null);
-      }),
     );
   }
 
   rerunPayroll(runId: number): Observable<PayrollRun | null> {
     return this.http.post<any>(`${this.apiUrl}/payroll/runs/${runId}/rerun`, {}).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
-      catchError(() => {
-        const current = this.readStorage<PayrollRun[]>(this.runsKey, []);
-        const target = current.find((run) => run.id === runId);
-        if (!target || target.locked) return of(null);
-        const rerun = {
-          ...target,
-          id: Date.now(),
-          createdAt: new Date().toISOString(),
-          processedAt: new Date().toISOString(),
-          comment: 'Rerun generated from previous cycle',
-        };
-        this.writeStorage(this.runsKey, [rerun, ...current]);
-        return of(rerun);
-      }),
     );
   }
 
@@ -397,8 +365,6 @@ export class PayrollService {
         employeeId: String(filters.employeeId ?? ''),
       },
       responseType: 'blob',
-    }).pipe(
-      catchError(() => of(new Blob(['Payroll export unavailable'], { type: 'text/plain' }))),
-    );
+    });
   }
 }

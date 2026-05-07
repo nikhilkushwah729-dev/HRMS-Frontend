@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, Subject, catchError, map, of, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 
 export interface AttendanceRecord {
     id: number;
@@ -124,6 +125,31 @@ export interface GeoFenceSettings {
     require_geofence_for_all: boolean;
 }
 
+export interface GeoFenceViolationLog {
+    id: number;
+    employee_id: number;
+    employee_name: string;
+    employee_code?: string;
+    zone_id?: number | null;
+    zone_name?: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    distance_meters?: number | null;
+    action_type?: string | null;
+    violation_message?: string | null;
+    occurred_at: string;
+}
+
+export interface GeoFenceDashboard {
+    summary: {
+        total_violations: number;
+        unique_employees: number;
+        active_zones: number;
+        strict_mode: boolean;
+    };
+    violations: GeoFenceViolationLog[];
+}
+
 export interface AttendanceFilter {
     startDate?: string;
     endDate?: string;
@@ -200,11 +226,10 @@ export interface AttendanceDashboardResponse {
 })
 export class AttendanceService {
     private http = inject(HttpClient);
+    private authService = inject(AuthService);
     private readonly apiUrl = environment.apiUrl;
     private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly localShiftKey = 'hrms_attendance_shifts';
-    private readonly localZoneKey = 'hrms_attendance_zones';
-    private readonly localGeoFenceSettingsKey = 'hrms_attendance_geofence_settings';
     private readonly sharedCacheTtlMs = 5 * 60 * 1000;
     private shiftsCache$?: Observable<AttendanceShift[]>;
     private shiftsCacheAt = 0;
@@ -291,34 +316,6 @@ export class AttendanceService {
             this.normalizeShift({ id: 9002, name: 'Morning Shift', start_time: '06:00', end_time: '14:00', grace_time: 10, working_hours: 8, shift_type: 'Fixed', is_active: true }),
             this.normalizeShift({ id: 9003, name: 'Night Shift', start_time: '20:00', end_time: '05:00', grace_time: 20, working_hours: 9, shift_type: 'Fixed', is_active: true })
         ];
-    }
-
-    private getLocalZones(): GeoFenceZone[] {
-        const stored = this.readLocalState<any[]>(this.localZoneKey, []);
-        if (stored.length > 0) {
-            return stored.map((item) => this.normalizeZone(item));
-        }
-
-        return [
-            this.normalizeZone({ id: 9101, name: 'HQ Campus', latitude: 28.6139, longitude: 77.209, radius_meters: 150, is_active: true }),
-            this.normalizeZone({ id: 9102, name: 'Warehouse Yard', latitude: 28.5355, longitude: 77.391, radius_meters: 250, is_active: true })
-        ];
-    }
-
-    private getLocalGeoFenceSettings(): GeoFenceSettings {
-        return this.readLocalState<GeoFenceSettings>(this.localGeoFenceSettingsKey, {
-            geofence_enabled: true,
-            require_geofence_for_all: false,
-            zones: this.getLocalZones()
-        });
-    }
-
-    private mergeZones(serverZones: GeoFenceZone[], localZones: GeoFenceZone[]): GeoFenceZone[] {
-        const mapById = new Map<number, GeoFenceZone>();
-        [...serverZones, ...localZones].forEach((zone) => {
-            mapById.set(zone.id, this.normalizeZone(zone));
-        });
-        return Array.from(mapById.values());
     }
 
     private normalizeAssetUrl(value?: string | null): string | null {
@@ -510,7 +507,12 @@ export class AttendanceService {
     }
 
     getTodayAttendance(): Observable<TodayAttendance> {
-        return this.http.get<any>(`${this.apiUrl}/attendance/today`).pipe(
+        let params = new HttpParams();
+        const userContext = this.getUserContext();
+        if (userContext.employeeId) params = params.set('employee_id', String(userContext.employeeId));
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/today`, { params }).pipe(
             map((res) => res.data || res)
         );
     }
@@ -524,7 +526,10 @@ export class AttendanceService {
         selfieUrl?: string;
         notes?: string;
     }): Observable<any> {
-        return this.http.post<any>(`${this.apiUrl}/attendance/check-in`, data).pipe(
+        return this.http.post<any>(`${this.apiUrl}/attendance/check-in`, {
+            ...data,
+            ...this.getUserContextPayload(),
+        }).pipe(
             map((res) => res.data || res)
         );
     }
@@ -536,7 +541,10 @@ export class AttendanceService {
         selfieUrl?: string;
         notes?: string;
     }): Observable<any> {
-        return this.http.post<any>(`${this.apiUrl}/attendance/check-out`, data).pipe(
+        return this.http.post<any>(`${this.apiUrl}/attendance/check-out`, {
+            ...data,
+            ...this.getUserContextPayload(),
+        }).pipe(
             map((res) => res.data || res)
         );
     }
@@ -613,9 +621,12 @@ export class AttendanceService {
     }
 
     validateLocation(lat: number, lng: number): Observable<{ valid: boolean; zone?: GeoFenceZone; distance?: number }> {
-        const params = new HttpParams()
+        const userContext = this.getUserContext();
+        let params = new HttpParams()
             .set('lat', lat.toString())
             .set('lng', lng.toString());
+        if (userContext.employeeId) params = params.set('employee_id', String(userContext.employeeId));
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
 
         return this.http.get<any>(`${this.apiUrl}/attendance/validate-location`, { params }).pipe(
             map((res) => res.data || res)
@@ -623,14 +634,16 @@ export class AttendanceService {
     }
 
     getGeoFenceZones(): Observable<GeoFenceZone[]> {
-        const localZones = this.getLocalZones();
-        return this.http.get<any>(`${this.apiUrl}/attendance/zones`).pipe(
+        let params = new HttpParams();
+        const userContext = this.getUserContext();
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/zones`, { params }).pipe(
             map((res) => {
                 const zones = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-                const normalized = zones.map((zone: any) => this.normalizeZone(zone));
-                return this.mergeZones(normalized, localZones);
+                return zones.map((zone: any) => this.normalizeZone(zone));
             }),
-            catchError(() => of(localZones))
+            catchError(() => of([]))
         );
     }
 
@@ -640,22 +653,11 @@ export class AttendanceService {
         longitude: number;
         radius_meters: number;
     }): Observable<GeoFenceZone> {
-        const fallbackZone = this.normalizeZone({
-            id: Date.now(),
-            name: data.name,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            radius_meters: data.radius_meters,
-            is_active: true
-        });
-
-        return this.http.post<any>(`${this.apiUrl}/attendance/zones`, data).pipe(
-            map((res) => this.normalizeZone(res?.data || res)),
-            catchError(() => {
-                const nextZones = [fallbackZone, ...this.getLocalZones()];
-                this.saveLocalState(this.localZoneKey, nextZones);
-                return of(fallbackZone);
-            })
+        return this.http.post<any>(`${this.apiUrl}/attendance/zones`, {
+            ...data,
+            ...this.getUserContextPayload(),
+        }).pipe(
+            map((res) => this.normalizeZone(res?.data || res))
         );
     }
 
@@ -666,44 +668,40 @@ export class AttendanceService {
         radius_meters?: number;
         is_active?: boolean;
     }): Observable<GeoFenceZone> {
-        return this.http.put<any>(`${this.apiUrl}/attendance/zones/${id}`, data).pipe(
-            map((res) => this.normalizeZone(res?.data || res)),
-            catchError(() => {
-                const nextZones = this.getLocalZones().map((zone) => zone.id === id
-                    ? this.normalizeZone({ ...zone, ...data })
-                    : zone);
-                this.saveLocalState(this.localZoneKey, nextZones);
-                const updatedZone = nextZones.find((zone) => zone.id === id) ?? this.normalizeZone({ id, ...data });
-                return of(updatedZone);
-            })
+        return this.http.put<any>(`${this.apiUrl}/attendance/zones/${id}`, {
+            ...data,
+            ...this.getUserContextPayload(),
+        }).pipe(
+            map((res) => this.normalizeZone(res?.data || res))
         );
     }
 
     deleteGeoFenceZone(id: number): Observable<any> {
-        return this.http.delete<any>(`${this.apiUrl}/attendance/zones/${id}`).pipe(
-            catchError(() => {
-                const nextZones = this.getLocalZones().filter((zone) => zone.id !== id);
-                this.saveLocalState(this.localZoneKey, nextZones);
-                return of({ success: true });
-            })
-        );
+        let params = new HttpParams();
+        const userContext = this.getUserContext();
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
+        return this.http.delete<any>(`${this.apiUrl}/attendance/zones/${id}`, { params });
     }
 
     getGeoFenceSettings(): Observable<GeoFenceSettings> {
-        const fallback = this.getLocalGeoFenceSettings();
-        return this.http.get<any>(`${this.apiUrl}/attendance/geofence-settings`).pipe(
+        let params = new HttpParams();
+        const userContext = this.getUserContext();
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/geofence-settings`, { params }).pipe(
             map((res) => {
                 const payload = res?.data || res || {};
                 return {
-                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? fallback.geofence_enabled),
-                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? fallback.require_geofence_for_all),
-                    zones: this.mergeZones(
-                        Array.isArray(payload.zones) ? payload.zones.map((zone: any) => this.normalizeZone(zone)) : [],
-                        this.getLocalZones()
-                    )
+                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? false),
+                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? false),
+                    zones: Array.isArray(payload.zones) ? payload.zones.map((zone: any) => this.normalizeZone(zone)) : []
                 };
             }),
-            catchError(() => of(fallback))
+            catchError(() => of({
+                geofence_enabled: false,
+                require_geofence_for_all: false,
+                zones: []
+            }))
         );
     }
 
@@ -711,26 +709,17 @@ export class AttendanceService {
         geofence_enabled?: boolean;
         require_geofence_for_all?: boolean;
     }): Observable<GeoFenceSettings> {
-        const fallback = {
-            ...this.getLocalGeoFenceSettings(),
+        return this.http.put<any>(`${this.apiUrl}/attendance/geofence-settings`, {
             ...data,
-            zones: this.getLocalZones()
-        };
-
-        return this.http.put<any>(`${this.apiUrl}/attendance/geofence-settings`, data).pipe(
+            ...this.getUserContextPayload(),
+        }).pipe(
             map((res) => {
-                const payload = res?.data || res || fallback;
-                const settings: GeoFenceSettings = {
-                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? fallback.geofence_enabled),
-                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? fallback.require_geofence_for_all),
-                    zones: this.getLocalZones()
-                };
-                this.saveLocalState(this.localGeoFenceSettingsKey, settings);
-                return settings;
-            }),
-            catchError(() => {
-                this.saveLocalState(this.localGeoFenceSettingsKey, fallback);
-                return of(fallback);
+                const payload = res?.data || res || {};
+                return {
+                    geofence_enabled: Boolean(payload.geofence_enabled ?? payload.geofenceEnabled ?? data.geofence_enabled ?? false),
+                    require_geofence_for_all: Boolean(payload.require_geofence_for_all ?? payload.requireGeofenceForAll ?? data.require_geofence_for_all ?? false),
+                    zones: Array.isArray(payload.zones) ? payload.zones.map((zone: any) => this.normalizeZone(zone)) : []
+                } satisfies GeoFenceSettings;
             })
         );
     }
@@ -745,8 +734,59 @@ export class AttendanceService {
         geofence_zone_id: number | null;
         requires_geofence: boolean;
     }): Observable<any> {
-        return this.http.put<any>(`${this.apiUrl}/employees/${employeeId}/geofence`, data).pipe(
+        return this.http.put<any>(`${this.apiUrl}/employees/${employeeId}/geofence`, {
+            ...data,
+            ...this.getUserContextPayload(),
+        }).pipe(
             map((res) => res.data || res)
+        );
+    }
+
+    getGeoFenceDashboard(filters?: { dateFrom?: string; dateTo?: string }): Observable<GeoFenceDashboard> {
+        let params = new HttpParams();
+        const userContext = this.getUserContext();
+        if (userContext.orgId) params = params.set('org_id', String(userContext.orgId));
+        if (filters?.dateFrom) params = params.set('date_from', filters.dateFrom);
+        if (filters?.dateTo) params = params.set('date_to', filters.dateTo);
+
+        return this.http.get<any>(`${this.apiUrl}/attendance/geofence-dashboard`, { params }).pipe(
+            map((res) => {
+                const payload = res?.data || res || {};
+                const violations = Array.isArray(payload?.violations) ? payload.violations : [];
+                return {
+                    summary: {
+                        total_violations: Number(payload?.summary?.total_violations ?? 0),
+                        unique_employees: Number(payload?.summary?.unique_employees ?? 0),
+                        active_zones: Number(payload?.summary?.active_zones ?? 0),
+                        strict_mode: Boolean(payload?.summary?.strict_mode ?? false),
+                    },
+                    violations: violations.map((item: any) => ({
+                        id: Number(item?.id ?? 0),
+                        employee_id: Number(item?.employee_id ?? item?.employeeId ?? 0),
+                        employee_name: String(item?.employee_name ?? item?.employeeName ?? 'Employee'),
+                        employee_code: item?.employee_code ?? item?.employeeCode ?? undefined,
+                        zone_id: item?.zone_id ?? item?.zoneId ?? null,
+                        zone_name: item?.zone_name ?? item?.zoneName ?? null,
+                        latitude: item?.latitude ?? null,
+                        longitude: item?.longitude ?? null,
+                        distance_meters: item?.distance_meters ?? item?.distanceMeters ?? null,
+                        action_type: item?.action_type ?? item?.actionType ?? null,
+                        violation_message: item?.violation_message ?? item?.violationMessage ?? null,
+                        occurred_at: String(item?.occurred_at ?? item?.occurredAt ?? ''),
+                    })),
+                } satisfies GeoFenceDashboard;
+            }),
+            catchError(() =>
+                of({
+                    summary: {
+                        total_violations: 0,
+                        unique_employees: 0,
+                        active_zones: 0,
+                        strict_mode: false,
+                    },
+                    violations: [],
+                }),
+            ),
         );
     }
 
@@ -799,6 +839,21 @@ export class AttendanceService {
     private clearShiftsCache(): void {
         this.shiftsCache$ = undefined;
         this.shiftsCacheAt = 0;
+    }
+
+    private getUserContext(): { employeeId: number | null; orgId: number | null } {
+        const user = this.authService.getStoredUser();
+        const employeeId = Number(user?.employeeId ?? user?.id ?? 0) || null;
+        const orgId = Number(user?.orgId ?? user?.organizationId ?? 0) || null;
+        return { employeeId, orgId };
+    }
+
+    private getUserContextPayload(): { employee_id?: number; org_id?: number } {
+        const context = this.getUserContext();
+        return {
+            ...(context.employeeId ? { employee_id: context.employeeId } : {}),
+            ...(context.orgId ? { org_id: context.orgId } : {}),
+        };
     }
 
     refreshStatus(): void {

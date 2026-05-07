@@ -7,6 +7,7 @@
   ViewChild,
   ElementRef,
   computed,
+  ChangeDetectorRef,
 } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +19,7 @@ import {
   TodayAttendance,
   AttendanceStats,
   BreakRecord,
+  GeoFenceZone,
 } from '../../core/services/attendance.service';
 import { FaceRecognitionService } from '../../core/services/face-recognition.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -32,7 +34,6 @@ import {
 import { GeofenceManagementComponent } from './components/geofence-management.component';
 import { EmployeeTrackingComponent } from './components/employee-tracking.component';
 import { ShiftPlannerComponent } from './components/shift-planner.component';
-import { CustomModalComponent } from '../../core/components/modal/custom-modal.component';
 import {
   UiSelectAdvancedComponent,
   SelectOption,
@@ -51,7 +52,6 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
     GeofenceManagementComponent,
     EmployeeTrackingComponent,
     ShiftPlannerComponent,
-    CustomModalComponent,
     UiSelectAdvancedComponent,
     AttendanceDataTableComponent,
     AttendancePunchComponent,
@@ -60,47 +60,51 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
     <div class="attendance-clean-panel mx-auto flex max-w-7xl flex-col gap-4 pb-8 sm:gap-5 lg:gap-6 lg:pb-10">
       <!-- Header -->
       <header
-        class="overflow-hidden rounded-2xl border border-slate-200/70 bg-white p-3.5 shadow-xl shadow-slate-200/70 sm:p-4 lg:p-4.5"
+        class="overflow-hidden rounded-2xl border border-slate-900/10 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.24),_transparent_30%),linear-gradient(135deg,#ffffff_0%,#f8fafc_45%,#eefbf8_100%)] p-3.5 shadow-[0_24px_70px_-32px_rgba(15,23,42,0.45)] sm:p-4 lg:p-4.5"
       >
         <div class="grid grid-cols-12 items-start gap-3 lg:gap-4">
           <div class="col-span-12 min-w-0 xl:col-span-5">
-            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-600">
+            <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-700">
               {{ isSelfServiceWorkspace() ? 'My Attendance' : 'Attendance Management' }}
             </p>
-            <h1 class="mt-1.5 break-words text-xl font-black leading-tight text-slate-900 max-sm:text-lg">
+            <h1 class="mt-2 break-words text-[1.7rem] font-black leading-tight text-slate-950 max-sm:text-lg">
               {{
                 isSelfServiceWorkspace()
                   ? 'Check-in, history, working hours, and today status'
                   : 'Register, tracking, shift, and compliance workspaces'
               }}
             </h1>
-            <p class="mt-1.5 max-w-3xl break-words text-sm leading-5 text-slate-500">
+            <p class="mt-2 max-w-3xl break-words text-sm leading-6 text-slate-600">
               {{
                 isSelfServiceWorkspace()
                   ? 'This attendance workspace is focused on your own punches, shift timing, history, overtime, and regularization requests.'
                   : 'This admin workspace is focused on attendance operations, employee tracking, shift planning, and compliance controls.'
               }}
             </p>
+            <div *ngIf="isSelfServiceWorkspace()" class="mt-4 flex flex-wrap gap-2">
+              <span class="rounded-full border border-white/70 bg-white/80 px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-sm">Punch first workflow</span>
+              <span class="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-700">Selfie + biometric ready</span>
+            </div>
           </div>
           <div class="col-span-12 grid grid-cols-1 gap-3 sm:grid-cols-3 xl:col-span-4">
-            <div class="flex h-full min-h-[78px] flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5">
+            <div class="flex h-full min-h-[92px] flex-col justify-between rounded-[20px] border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
               <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Today's status</p>
-              <p class="mt-1.5 text-sm font-black text-slate-900">{{ todayStatusHeadline() }}</p>
-              <p class="mt-0.5 text-xs text-slate-500">
+              <p class="mt-2 text-base font-black text-slate-950">{{ todayStatusHeadline() }}</p>
+              <p class="mt-1 text-xs text-slate-500">
                 {{ todayStatusSupportingText() }}
               </p>
             </div>
-            <div class="flex h-full min-h-[78px] flex-col justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-2.5">
+            <div class="flex h-full min-h-[92px] flex-col justify-between rounded-[20px] border border-emerald-200/80 bg-emerald-50/85 px-4 py-3 shadow-sm">
               <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-500">Mode</p>
-              <p class="mt-1.5 text-sm font-black text-emerald-700">{{ currentViewLabel() }}</p>
-              <p class="mt-0.5 text-xs text-emerald-700/80">
+              <p class="mt-2 text-base font-black text-emerald-800">{{ currentViewLabel() }}</p>
+              <p class="mt-1 text-xs text-emerald-700/80">
                 {{ isSelfServiceWorkspace() ? 'Employee-only workspace' : 'Operations workspace' }}
               </p>
             </div>
-            <div class="flex h-full min-h-[78px] flex-col justify-between rounded-2xl border border-cyan-200 bg-cyan-50 px-3.5 py-2.5">
+            <div class="flex h-full min-h-[92px] flex-col justify-between rounded-[20px] border border-cyan-200/80 bg-cyan-50/85 px-4 py-3 shadow-sm">
               <p class="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">Day Health</p>
-              <p class="mt-1.5 text-sm font-black text-cyan-700">{{ attendanceHealthLabel() }}</p>
-              <p class="mt-0.5 text-xs text-cyan-700/80">
+              <p class="mt-2 text-base font-black text-cyan-800">{{ attendanceHealthLabel() }}</p>
+              <p class="mt-1 text-xs text-cyan-700/80">
                 {{ formatHours(todayAttendance()?.total_work_hours || 0) }} logged so far
               </p>
             </div>
@@ -123,7 +127,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </button>
           </div>
           <div
-            class="app-chip-switch flex max-w-full flex-wrap gap-1.5 overflow-x-auto no-scrollbar rounded-2xl border border-slate-200 bg-slate-50 p-1.5 xl:justify-end"
+            class="app-chip-switch flex max-w-full flex-wrap gap-1.5 overflow-x-auto no-scrollbar rounded-[20px] border border-white/80 bg-white/80 p-1.5 shadow-sm xl:justify-end"
           >
             <button
               *ngIf="isSelfServiceWorkspace()"
@@ -214,7 +218,187 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
         </div>
       </header>
 
+      <!-- Punch Workspace -->
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'punch'" class="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+        <div class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-5 shadow-[0_24px_60px_-38px_rgba(15,23,42,0.45)]">
+          <div class="mb-5 rounded-[28px] border border-slate-900/10 bg-[radial-gradient(circle_at_top_right,_rgba(45,212,191,0.24),_transparent_28%),linear-gradient(135deg,#0f172a_0%,#111827_45%,#134e4a_100%)] px-5 py-5 text-white">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div class="min-w-0">
+                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Today Punch Desk</p>
+                <h3 class="mt-2 break-words text-xl font-black leading-tight sm:text-[2rem]">{{ nextAttendanceActionLabel() }}</h3>
+                <p class="mt-2 max-w-2xl break-words text-sm leading-6 text-white/75">
+                  {{ nextAttendanceActionDescription() }}
+                </p>
+              </div>
+              <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div class="rounded-[22px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Progress</p>
+                  <p class="mt-1 break-words text-xl font-black sm:text-2xl">{{ attendanceProgress() }}%</p>
+                </div>
+                <div class="rounded-[22px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
+                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Work Hours</p>
+                  <p class="mt-1 break-words text-xl font-black sm:text-2xl">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Punch workspace</p>
+              <h3 class="mt-2 break-words text-xl font-black text-slate-950 sm:text-[1.4rem]">Mark attendance</h3>
+              <p class="mt-2 max-w-2xl break-words text-sm leading-6 text-slate-500">
+                Choose a capture mode, review your current status, then mark attendance from one clean modal flow.
+              </p>
+            </div>
+            <span class="break-words rounded-full px-2.5 py-1.5 text-[11px] font-bold self-start shadow-sm sm:px-3 sm:text-xs" [ngClass]="todayAttendance()?.is_clocked_in ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'">
+              {{ todayAttendance()?.is_clocked_in ? 'Ready For Check Out' : 'Ready For Check In' }}
+            </span>
+          </div>
+
+          <div class="mt-5 grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-2">
+            <button
+              *ngFor="let mode of visibleModes()"
+              type="button"
+              (click)="setMode(mode.id)"
+              class="overflow-hidden rounded-[24px] border px-4 py-4 text-left transition-all duration-200"
+              [ngClass]="isModeSelected(mode.id) ? 'border-teal-300 bg-[linear-gradient(180deg,#f0fdfa_0%,#ecfeff_100%)] shadow-[0_18px_35px_-28px_rgba(13,148,136,0.9)]' : 'border-slate-200 bg-slate-50/70 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white hover:shadow-sm'"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex h-11 w-11 items-center justify-center rounded-[18px]" [ngClass]="isModeSelected(mode.id) ? 'bg-teal-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-700'">
+                  <ng-container [ngSwitch]="mode.id">
+                    <svg *ngSwitchCase="'camera'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                      <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"></path>
+                      <path d="M9.5 13a2.5 2.5 0 1 1 5 0"></path>
+                      <path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"></path>
+                    </svg>
+                    <svg *ngSwitchCase="'biometric'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                      <path d="M12 3a4 4 0 0 0-4 4v2"></path>
+                      <path d="M8 18a4 4 0 0 0 8 0v-2"></path>
+                      <path d="M6.2 10.5A6 6 0 0 1 12 6"></path>
+                      <path d="M17.8 10.5A6 6 0 0 0 12 6"></path>
+                      <path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"></path>
+                      <path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"></path>
+                      <path d="M10 12.5v5.5"></path>
+                      <path d="M14 11.5v6.5"></path>
+                      <path d="M12 10.5v8.5"></path>
+                    </svg>
+                  </ng-container>
+                </div>
+                <span *ngIf="isModeSelected(mode.id)" class="rounded-full bg-teal-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">Selected</span>
+              </div>
+              <h4 class="mt-4 text-sm font-black text-slate-900">{{ mode.label }}</h4>
+              <p class="mt-1 text-xs leading-5 text-slate-500">{{ modeCardDescription(mode.id) }}</p>
+            </button>
+          </div>
+
+          <div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)]">
+            <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quick actions</p>
+              <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  (click)="openPrimaryAttendanceModal()"
+                  [disabled]="processing()"
+                  class="rounded-2xl bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_100%)] px-4 py-3.5 text-sm font-black text-white shadow-[0_18px_30px_-20px_rgba(13,148,136,0.85)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
+                >
+                  {{ primaryAttendanceButtonLabel() }}
+                </button>
+                <button
+                  type="button"
+                  (click)="handleBreak()"
+                  [disabled]="processing() || !todayAttendance()?.is_clocked_in || todayAttendance()?.is_clocked_out"
+                  class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
+                >
+                  {{ isOnBreak() ? 'End Break' : 'Start Break' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="openManualRequest()"
+                  class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                >
+                  Manual Request
+                </button>
+              </div>
+              <div class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
+                Use the primary action first. Break and manual request actions stay secondary to avoid accidental punches.
+              </div>
+            </div>
+
+            <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-white p-4">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today snapshot</p>
+              <div class="mt-4 space-y-3">
+                <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Check in</span>
+                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
+                </div>
+                <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Check out</span>
+                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
+                </div>
+                <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Break time</span>
+                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ todayAttendance()?.break_time_minutes || 0 }}m</span>
+                </div>
+                <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
+                  <span class="text-sm font-semibold text-slate-500">Working hours</span>
+                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Current status</p>
+            <h3 class="mt-2 break-words text-lg font-black text-slate-950 sm:text-xl">{{ nextAttendanceActionLabel() }}</h3>
+            <p class="mt-2 break-words text-sm leading-6 text-slate-500">
+              {{ nextAttendanceActionDescription() }}
+            </p>
+            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+              <div class="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all" [style.width.%]="attendanceProgress()"></div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] sm:px-3 sm:text-xs">Mode {{ selectedModeLabel() }}</span>
+              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] sm:px-3 sm:text-xs">{{ currentTime() }}</span>
+              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] sm:px-3 sm:text-xs">Pending requests {{ pendingManualRequestCount() }}</span>
+            </div>
+          </div>
+
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div class="min-w-0">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Recent requests</p>
+                <h3 class="mt-2 break-words text-base font-bold text-slate-900 sm:text-lg">Manual request queue</h3>
+              </div>
+              <span class="self-start rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 sm:px-3 sm:text-xs">{{ manualRequests().length }}</span>
+            </div>
+
+            <div class="mt-4 space-y-3" *ngIf="manualRequests().length; else noManualRequests">
+              <div *ngFor="let request of manualRequests().slice(0, 4)" class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-900">{{ request.date | date:'mediumDate' }}</p>
+                    <p class="mt-1 break-words text-xs text-slate-500">{{ request.reason || 'No reason added' }}</p>
+                  </div>
+                  <span class="self-start rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]" [ngClass]="request.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : request.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'">
+                    {{ request.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <ng-template #noManualRequests>
+              <div class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-500">
+                No manual correction requests yet.
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </section>
+
       <section
+        *ngIf="isAdminAttendanceWorkspace()"
         class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]"
       >
         <div
@@ -320,113 +504,22 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
         </div>
       </section>
 
-      <!-- Attendance Suite Shortcuts -->
-      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <button
-          type="button"
-          (click)="setView('punch')"
-          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
-          [ngClass]="currentView() === 'punch' ? 'border-teal-300 bg-teal-50/70' : 'border-slate-200 bg-white hover:border-teal-200'"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Main action
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Mark Attendance</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Open your check-in or check-out flow with web, selfie, face, or biometric mode.
-              </p>
-            </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'punch' ? 'bg-teal-700 text-white' : 'bg-teal-50 text-teal-700'">
-              {{ todayAttendance()?.is_clocked_in ? 'Checked In' : 'Ready' }}
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          (click)="setView('calendar')"
-          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
-          [ngClass]="currentView() === 'calendar' ? 'border-sky-300 bg-sky-50/70' : 'border-slate-200 bg-white hover:border-sky-200'"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Calendar
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Monthly View</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Review day-by-day status, late marks, leave, and attendance activity.
-              </p>
-            </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'calendar' ? 'bg-sky-700 text-white' : 'bg-sky-50 text-sky-700'">
-              View
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          (click)="setView('stats')"
-          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
-          [ngClass]="currentView() === 'stats' ? 'border-indigo-300 bg-indigo-50/70' : 'border-slate-200 bg-white hover:border-indigo-200'"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Insights
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Statistics</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Track punctuality, work hours, overtime, and present or absent trends.
-              </p>
-            </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'stats' ? 'bg-indigo-700 text-white' : 'bg-indigo-50 text-indigo-700'">
-              Trends
-            </span>
-          </div>
-        </button>
-
-        <button
-          type="button"
-          (click)="setView('records')"
-          class="group text-left rounded-md border p-4 shadow-sm transition-all hover:shadow-md sm:p-5"
-          [ngClass]="currentView() === 'records' ? 'border-slate-400 bg-slate-100/80' : 'border-slate-200 bg-white hover:border-slate-300'"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                Archive
-              </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Records</h3>
-              <p class="mt-2 text-sm text-slate-500">
-                Search your attendance history and review check-in, check-out, and selfie data.
-              </p>
-            </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="currentView() === 'records' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'">
-              {{ history().length }}
-            </span>
-          </div>
-        </button>
-      </section>
-
-      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'punch'" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <a
           routerLink="/timesheets"
-          class="group rounded-md border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+          class="group overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div>
+          <div class="flex min-w-0 items-start justify-between gap-4">
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Logs
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Timesheets</h3>
-              <p class="mt-2 text-sm text-slate-500">
+              <h3 class="mt-2 break-words text-base font-bold text-slate-900 sm:text-lg">Timesheets</h3>
+              <p class="mt-2 break-words text-sm text-slate-500">
                 Track work hours, break time, and daily logs in one timeline.
               </p>
             </div>
-            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+            <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-700 sm:px-3 sm:text-xs">
               Hours
             </span>
           </div>
@@ -435,19 +528,19 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
         <button
           type="button"
           (click)="openSelfServiceRequest('regularization')"
-          class="group rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-amber-300 hover:shadow-md"
+          class="group overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div>
+          <div class="flex min-w-0 items-start justify-between gap-4">
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Corrections
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Regularization</h3>
-              <p class="mt-2 text-sm text-slate-500">
+              <h3 class="mt-2 break-words text-base font-bold text-slate-900 sm:text-lg">Regularization</h3>
+              <p class="mt-2 break-words text-sm text-slate-500">
                 Raise missed punch, correction, or time-fix requests without opening admin attendance.
               </p>
             </div>
-            <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+            <span class="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 sm:px-3 sm:text-xs">
               {{ pendingManualRequestCount() }} Pending
             </span>
           </div>
@@ -456,19 +549,19 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
         <button
           type="button"
           (click)="openSelfServiceRequest('request-center')"
-          class="group rounded-md border border-slate-200 bg-white p-5 text-left shadow-sm transition-all hover:border-sky-300 hover:shadow-md"
+          class="group overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div>
+          <div class="flex min-w-0 items-start justify-between gap-4">
+            <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Requests
               </p>
-              <h3 class="mt-2 text-lg font-bold text-slate-900">Short Day, Under-time, WFH, Outdoor Duty</h3>
-              <p class="mt-2 text-sm text-slate-500">
+              <h3 class="mt-2 break-words text-base font-bold text-slate-900 sm:text-lg">Short Day, Under-time, WFH, Outdoor Duty</h3>
+              <p class="mt-2 break-words text-sm text-slate-500">
                 Submit attendance-related day requests from a separate employee request flow.
               </p>
             </div>
-            <span class="rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+            <span class="rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-bold text-sky-700 sm:px-3 sm:text-xs">
               Open
             </span>
           </div>
@@ -476,14 +569,14 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
       </section>
 
       <!-- Attendance Pulse -->
-      <section *ngIf="isSelfServiceWorkspace()" class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'punch'" class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
                 Attendance Pulse
               </p>
-              <h3 class="mt-2 break-words text-xl font-bold text-slate-900">
+              <h3 class="mt-2 break-words text-lg font-bold text-slate-900 sm:text-xl">
                 Quick view of today and the selected period
               </h3>
               <p class="mt-2 max-w-2xl break-words text-sm text-slate-500">
@@ -491,47 +584,47 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               </p>
             </div>
             <span
-              class="rounded-full px-3 py-1 text-xs font-bold self-start sm:self-auto"
+              class="rounded-full px-2.5 py-1 text-[11px] font-bold self-start sm:self-auto sm:px-3 sm:text-xs"
               [ngClass]="attendanceHealthTone()"
             >
               {{ attendanceHealthLabel() }}
             </span>
           </div>
 
-          <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+          <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-slate-50/80 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Work hours</p>
-              <p class="mt-2 break-words text-xl font-black text-slate-900 sm:text-2xl">{{ formatHours(stats()?.total_work_hours || todayAttendance()?.total_work_hours || 0) }}</p>
-              <p class="mt-1 text-xs text-slate-500">Logged for the current period</p>
+              <p class="mt-2 break-words text-lg font-black text-slate-900 sm:text-2xl">{{ formatHours(stats()?.total_work_hours || todayAttendance()?.total_work_hours || 0) }}</p>
+              <p class="mt-1 text-xs leading-5 text-slate-500">Logged for the current period</p>
             </div>
-            <div class="rounded-2xl border border-slate-100 bg-emerald-50/70 p-4">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-emerald-50/70 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-700/70">Punctuality</p>
-              <p class="mt-2 break-words text-xl font-black text-emerald-700 sm:text-2xl">{{ stats()?.punctuality_percentage || 0 }}%</p>
-              <p class="mt-1 text-xs text-emerald-700/80">Selected period performance</p>
+              <p class="mt-2 break-words text-lg font-black text-emerald-700 sm:text-2xl">{{ stats()?.punctuality_percentage || 0 }}%</p>
+              <p class="mt-1 text-xs leading-5 text-emerald-700/80">Selected period performance</p>
             </div>
-            <div class="rounded-2xl border border-slate-100 bg-amber-50/70 p-4">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-amber-50/70 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-700/70">Break time</p>
-              <p class="mt-2 break-words text-xl font-black text-amber-700 sm:text-2xl">{{ todayAttendance()?.break_time_minutes || 0 }}m</p>
-              <p class="mt-1 text-xs text-amber-700/80">Consumed today</p>
+              <p class="mt-2 break-words text-lg font-black text-amber-700 sm:text-2xl">{{ todayAttendance()?.break_time_minutes || 0 }}m</p>
+              <p class="mt-1 text-xs leading-5 text-amber-700/80">Consumed today</p>
             </div>
-            <div class="rounded-2xl border border-slate-100 bg-rose-50/70 p-4">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-rose-50/70 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-rose-700/70">Late status</p>
-              <p class="mt-2 text-lg font-black text-rose-700">{{ todayLateStatusLabel() }}</p>
-              <p class="mt-1 text-xs text-rose-700/80">Based on today check-in and shift start</p>
+              <p class="mt-2 break-words text-base font-black text-rose-700 sm:text-lg">{{ todayLateStatusLabel() }}</p>
+              <p class="mt-1 text-xs leading-5 text-rose-700/80">Based on today check-in and shift start</p>
             </div>
-            <div class="rounded-2xl border border-slate-100 bg-cyan-50/70 p-4">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-cyan-50/70 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-700/70">Early leaving</p>
-              <p class="mt-2 text-lg font-black text-cyan-700">{{ todayEarlyLeavingLabel() }}</p>
-              <p class="mt-1 text-xs text-cyan-700/80">Based on today check-out and shift end</p>
+              <p class="mt-2 break-words text-base font-black text-cyan-700 sm:text-lg">{{ todayEarlyLeavingLabel() }}</p>
+              <p class="mt-1 text-xs leading-5 text-cyan-700/80">Based on today check-out and shift end</p>
             </div>
-            <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+            <div class="flex h-full min-h-[138px] flex-col rounded-[22px] border border-slate-100 bg-slate-50/80 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Pending</p>
-              <p class="mt-2 break-words text-xl font-black text-slate-900 sm:text-2xl">{{ pendingManualRequestCount() }}</p>
-              <p class="mt-1 text-xs text-slate-500">Manual requests waiting for review</p>
+              <p class="mt-2 break-words text-lg font-black text-slate-900 sm:text-2xl">{{ pendingManualRequestCount() }}</p>
+              <p class="mt-1 text-xs leading-5 text-slate-500">Manual requests waiting for review</p>
             </div>
           </div>
 
-          <div class="mt-5 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+          <div class="mt-5 rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div class="min-w-0">
                 <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today progress</p>
@@ -548,20 +641,20 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               ></div>
             </div>
             <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-              <span class="break-words rounded-full bg-white px-3 py-1 border border-slate-200">Clock in {{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
-              <span class="break-words rounded-full bg-white px-3 py-1 border border-slate-200">Clock out {{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
-              <span class="break-words rounded-full bg-white px-3 py-1 border border-slate-200">Break {{ todayAttendance()?.break_time_minutes || 0 }}m</span>
+              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Clock in {{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
+              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Clock out {{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
+              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Break {{ todayAttendance()?.break_time_minutes || 0 }}m</span>
             </div>
           </div>
         </div>
 
-        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Recent trail</p>
-              <h3 class="mt-2 break-words text-xl font-bold text-slate-900">Latest attendance entries</h3>
+              <h3 class="mt-2 break-words text-lg font-bold text-slate-900 sm:text-xl">Latest attendance entries</h3>
             </div>
-            <span class="self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+            <span class="self-start rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 sm:px-3 sm:text-xs">
               {{ recentHistoryPreview().length }} records
             </span>
           </div>
@@ -569,7 +662,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           <div class="mt-4 space-y-3">
             <div
               *ngFor="let record of recentHistoryPreview()"
-              class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4"
+              class="overflow-hidden rounded-[22px] border border-slate-100 bg-slate-50/70 p-4"
             >
               <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div class="min-w-0">
@@ -604,272 +697,17 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
         </div>
       </section>
 
-      <!-- Real-time Clock Banner -->
-      <div
-        *ngIf="isSelfServiceWorkspace()"
-        class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-md p-4 text-white shadow-lg sm:p-6"
-      >
-        <div
-          class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
-        >
-          <div class="flex min-w-0 items-center gap-4">
-            <div
-              class="h-12 w-12 shrink-0 rounded-md bg-white/10 flex items-center justify-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-            </div>
-            <div class="min-w-0">
-              <p
-                class="text-slate-400 text-xs font-bold uppercase tracking-widest"
-              >
-                Current Time
-              </p>
-              <p class="break-words text-2xl font-black leading-tight">{{ currentTime() }}</p>
-            </div>
-          </div>
-
-          <div class="grid w-full grid-cols-1 gap-4 sm:w-auto sm:grid-cols-3 sm:gap-6">
-            <div class="min-w-0 text-left sm:text-center">
-              <div class="flex items-center gap-2">
-                <div
-                  class="w-2.5 h-2.5 rounded-full animate-pulse"
-                  [ngClass]="
-                    todayAttendance()?.is_clocked_in
-                      ? 'bg-success'
-                      : 'bg-slate-500'
-                  "
-                ></div>
-                <span class="font-bold">{{
-                  todayAttendance()?.is_clocked_in
-                    ? 'Clocked In'
-                    : 'Not Clocked In'
-                }}</span>
-              </div>
-              <p
-                *ngIf="
-                  todayAttendance()?.is_clocked_in &&
-                  todayAttendance()?.check_in
-                "
-                class="mt-1 break-words text-sm text-slate-400"
-              >
-                Since {{ todayAttendance()?.check_in | date: 'shortTime' }}
-              </p>
-            </div>
-
-            <div class="min-w-0 text-left sm:text-center">
-              <p
-                class="text-slate-400 text-xs font-bold uppercase tracking-widest"
-              >
-                Work Hours
-              </p>
-              <p class="break-words text-xl font-bold">
-                {{ formatHours(todayAttendance()?.total_work_hours || 0) }}
-              </p>
-            </div>
-
-            <div class="min-w-0 text-left sm:text-center">
-              <p
-                class="text-slate-400 text-xs font-bold uppercase tracking-widest"
-              >
-                Break
-              </p>
-              <p class="break-words text-xl font-bold">
-                {{ todayAttendance()?.break_time_minutes || 0 }}m
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Punch Workspace -->
-      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'punch'" class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="mb-5 rounded-2xl border border-slate-100 bg-gradient-to-r from-slate-900 via-slate-900 to-teal-900 px-5 py-5 text-white">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div class="min-w-0">
-                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Today Punch Desk</p>
-                <h3 class="mt-2 break-words text-xl font-black leading-tight sm:text-2xl">{{ nextAttendanceActionLabel() }}</h3>
-                <p class="mt-2 max-w-2xl break-words text-sm text-white/75">
-                  {{ nextAttendanceActionDescription() }}
-                </p>
-              </div>
-              <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-                <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Progress</p>
-                  <p class="mt-1 text-lg font-black">{{ attendanceProgress() }}%</p>
-                </div>
-                <div class="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Work Hours</p>
-                  <p class="mt-1 text-lg font-black">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Punch workspace</p>
-              <h3 class="mt-2 break-words text-xl font-bold text-slate-900">Mark attendance</h3>
-              <p class="mt-2 max-w-2xl break-words text-sm text-slate-500">
-                Choose a capture mode, review your current status, then mark attendance from one clean modal flow.
-              </p>
-            </div>
-            <span class="break-words rounded-full px-3 py-1 text-xs font-bold self-start" [ngClass]="todayAttendance()?.is_clocked_in ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'">
-              {{ todayAttendance()?.is_clocked_in ? 'Ready For Check Out' : 'Ready For Check In' }}
-            </span>
-          </div>
-
-          <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <button
-              *ngFor="let mode of modes"
-              type="button"
-              (click)="setMode(mode.id)"
-              class="rounded-2xl border px-4 py-4 text-left transition-all"
-              [ngClass]="checkInMode() === mode.id ? 'border-teal-300 bg-teal-50 shadow-sm' : 'border-slate-200 bg-slate-50/60 hover:border-slate-300 hover:bg-white'"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex h-11 w-11 items-center justify-center rounded-2xl" [ngClass]="checkInMode() === mode.id ? 'bg-teal-600 text-white' : 'bg-white text-slate-700 border border-slate-200'" [innerHTML]="mode.icon"></div>
-                <span *ngIf="checkInMode() === mode.id" class="rounded-full bg-teal-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white">Selected</span>
-              </div>
-              <h4 class="mt-4 text-sm font-black text-slate-900">{{ mode.label }}</h4>
-              <p class="mt-1 text-xs leading-5 text-slate-500">
-                {{
-                  mode.id === 'web'
-                    ? 'Simple browser-based attendance without camera.'
-                    : mode.id === 'camera'
-                      ? 'Capture selfie evidence before submitting your punch.'
-                      : mode.id === 'face'
-                        ? 'Use live face verification for touchless attendance.'
-                        : biometricStatusLabel()
-                }}
-              </p>
-            </button>
-          </div>
-
-          <div class="mt-5 grid gap-4 lg:grid-cols-2">
-            <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quick actions</p>
-              <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  (click)="openPrimaryAttendanceModal()"
-                  [disabled]="processing() || todayAttendance()?.is_clocked_out"
-                  class="rounded-xl bg-teal-600 px-4 py-3 text-sm font-black text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
-                >
-                  {{ primaryAttendanceButtonLabel() }}
-                </button>
-                <button
-                  type="button"
-                  (click)="handleBreak()"
-                  [disabled]="processing() || !todayAttendance()?.is_clocked_in || todayAttendance()?.is_clocked_out"
-                  class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-black text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
-                >
-                  {{ isOnBreak() ? 'End Break' : 'Start Break' }}
-                </button>
-                <button
-                  type="button"
-                  (click)="openManualRequest()"
-                  class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
-                >
-                  Manual Request
-                </button>
-              </div>
-            </div>
-
-            <div class="rounded-2xl border border-slate-200 bg-white p-4">
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today snapshot</p>
-              <div class="mt-4 space-y-3">
-                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Check in</span>
-                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
-                </div>
-                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Check out</span>
-                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
-                </div>
-                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Break time</span>
-                  <span class="text-sm font-black text-slate-900">{{ todayAttendance()?.break_time_minutes || 0 }}m</span>
-                </div>
-                <div class="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Working hours</span>
-                  <span class="text-sm font-black text-slate-900">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="space-y-4">
-          <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Current status</p>
-            <h3 class="mt-2 break-words text-lg font-bold text-slate-900">{{ nextAttendanceActionLabel() }}</h3>
-            <p class="mt-2 break-words text-sm text-slate-500">
-              {{ nextAttendanceActionDescription() }}
-            </p>
-            <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
-              <div class="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-500 transition-all" [style.width.%]="attendanceProgress()"></div>
-            </div>
-            <div class="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Mode {{ checkInMode() | titlecase }}</span>
-              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-3 py-1">{{ currentTime() }}</span>
-              <span class="break-words rounded-full border border-slate-200 bg-slate-50 px-3 py-1">Pending requests {{ pendingManualRequestCount() }}</span>
-            </div>
-          </div>
-
-          <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div class="min-w-0">
-                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Recent requests</p>
-                <h3 class="mt-2 break-words text-lg font-bold text-slate-900">Manual request queue</h3>
-              </div>
-              <span class="self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{{ manualRequests().length }}</span>
-            </div>
-
-            <div class="mt-4 space-y-3" *ngIf="manualRequests().length; else noManualRequests">
-              <div *ngFor="let request of manualRequests().slice(0, 4)" class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div class="min-w-0">
-                    <p class="text-sm font-bold text-slate-900">{{ request.date | date:'mediumDate' }}</p>
-                    <p class="mt-1 break-words text-xs text-slate-500">{{ request.reason || 'No reason added' }}</p>
-                  </div>
-                  <span class="self-start rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em]" [ngClass]="request.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : request.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'">
-                    {{ request.status }}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <ng-template #noManualRequests>
-              <div class="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-500">
-                No manual correction requests yet.
-              </div>
-            </ng-template>
-          </div>
-        </div>
-      </section>
-
       <!-- Calendar View -->
       <div
         *ngIf="currentView() === 'calendar'"
-        class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_380px]"
+        class="grid grid-cols-1 gap-5 xl:items-start xl:grid-cols-[minmax(0,1.12fr)_390px]"
       >
-        <div class="card rounded-md border border-slate-200 p-6">
+        <div class="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)] sm:p-6">
           <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex flex-wrap items-center gap-2 sm:gap-4">
               <button
                 (click)="previousMonth()"
-                class="p-2 hover:bg-slate-100 rounded-lg"
+                class="rounded-xl border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -883,15 +721,16 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
-              <div>
-                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance calendar</p>
-                <h3 class="text-lg font-bold text-slate-900">
+              <div class="min-w-0">
+                <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">My attendance calendar</p>
+                <h3 class="break-words text-lg font-bold text-slate-900">
                   {{ getMonthYearString() }}
                 </h3>
+                <p class="mt-1 text-sm text-slate-500">Select any workday to review your punch timing, status, and proof.</p>
               </div>
               <button
                 (click)="nextMonth()"
-                class="p-2 hover:bg-slate-100 rounded-lg"
+                class="rounded-xl border border-slate-200 bg-white p-2 text-slate-700 transition hover:bg-slate-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -908,36 +747,54 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </div>
             <button
               (click)="goToToday()"
-              class="self-start rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              class="self-start rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-white"
             >
               Today
             </button>
           </div>
 
-          <div class="grid grid-cols-7 gap-1">
+          <div class="mb-5 grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+            <div class="rounded-[22px] border border-slate-100 bg-slate-50/75 px-4 py-3.5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selected view</p>
+              <p class="mt-2 text-sm font-black text-slate-900">Monthly attendance</p>
+              <p class="mt-1 text-xs text-slate-500">Your own workdays only</p>
+            </div>
+            <div class="rounded-[22px] border border-emerald-100 bg-emerald-50/75 px-4 py-3.5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500">Today status</p>
+              <p class="mt-2 text-sm font-black text-emerald-800">{{ todayStatusHeadline() }}</p>
+              <p class="mt-1 text-xs text-emerald-700/80">{{ todayStatusSupportingText() }}</p>
+            </div>
+            <div class="rounded-[22px] border border-cyan-100 bg-cyan-50/75 px-4 py-3.5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-500">Quick help</p>
+              <p class="mt-2 text-sm font-black text-cyan-800">Tap any highlighted date</p>
+              <p class="mt-1 text-xs text-cyan-700/80">Day details open on the right</p>
+            </div>
+          </div>
+
+          <div class="rounded-[26px] border border-slate-100 bg-slate-50/65 p-2.5 sm:p-3">
+          <div class="grid grid-cols-7 gap-1.5 sm:gap-2">
             <div
               *ngFor="let day of weekDays"
-              class="text-center text-xs font-bold text-slate-400 uppercase py-2"
+              class="py-2 text-center text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400"
             >
               {{ day }}
             </div>
             <div
               *ngFor="let day of calendarDays(); let i = index"
-              class="aspect-square p-1 relative"
+              class="relative p-0.5 sm:p-1"
               [ngClass]="{
-                'bg-slate-50': !day.isCurrentMonth,
-                'hover:bg-slate-50': day.isCurrentMonth && day.date,
                 'cursor-pointer': day.date,
               }"
               (click)="day.date && selectDate(day.date)"
             >
               <div
                 *ngIf="day.date"
-                class="w-full h-full flex flex-col items-center justify-center rounded-lg border transition-all"
+                class="flex h-[58px] w-full flex-col items-center justify-center rounded-[20px] border transition-all sm:h-[66px] lg:h-[72px]"
                 [ngClass]="{
-                  'bg-primary-600 text-white border-primary-600': day.isToday,
-                  'bg-slate-100 border-slate-300': day.isSelected && !day.isToday,
-                  'border-transparent': !day.isSelected && !day.isToday
+                  'bg-teal-600 text-white border-teal-600 shadow-sm': day.isToday,
+                  'bg-slate-100 border-slate-300 shadow-sm': day.isSelected && !day.isToday,
+                  'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50': !day.isSelected && !day.isToday && day.isCurrentMonth,
+                  'border-transparent bg-transparent': !day.isCurrentMonth
                 }"
               >
                 <span
@@ -956,61 +813,64 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               </div>
             </div>
           </div>
+          </div>
 
-          <div class="flex flex-wrap gap-4 mt-6 pt-4 border-t border-slate-100">
-            <div
-              *ngFor="let item of statusLegend"
-              class="flex items-center gap-2"
-            >
-              <div class="w-2 h-2 rounded-full" [ngClass]="item.color"></div>
-              <span class="text-xs font-medium text-slate-500">{{
-                item.label
-              }}</span>
+          <div class="mt-6 border-t border-slate-100 pt-4">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Status legend</p>
+            <div class="mt-3 flex flex-wrap gap-2.5">
+              <div
+                *ngFor="let item of statusLegend"
+                class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+              >
+                <div class="h-2.5 w-2.5 shrink-0 rounded-full" [ngClass]="item.color"></div>
+                <span class="whitespace-nowrap">{{ item.label }}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="self-start overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)] xl:sticky xl:top-4">
           <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance details</p>
-              <h3 class="mt-2 text-xl font-bold text-slate-900">
+            <div class="min-w-0">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Workday details</p>
+              <h3 class="mt-2 break-words text-xl font-bold text-slate-900">
                 {{ selectedAttendanceDateLabel() }}
               </h3>
+              <p class="mt-1 text-sm text-slate-500">Your selected day summary, timing, and any captured proof.</p>
             </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold" [ngClass]="selectedAttendanceStatusClass()">
+            <span class="break-words rounded-full px-3 py-1 text-xs font-bold" [ngClass]="selectedAttendanceStatusClass()">
               {{ selectedAttendanceStatusLabel() }}
             </span>
           </div>
 
           <div *ngIf="selectedAttendanceRecord(); else noAttendanceSelected" class="mt-5 space-y-4">
             <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div class="rounded-[20px] border border-slate-100 bg-slate-50/75 p-3.5">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time In</p>
                 <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.check_in ? formatShortTime(selectedAttendanceRecord()?.check_in) : '--:--' }}</p>
               </div>
-              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div class="rounded-[20px] border border-slate-100 bg-slate-50/75 p-3.5">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time Out</p>
                 <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.check_out ? formatShortTime(selectedAttendanceRecord()?.check_out) : '--:--' }}</p>
               </div>
-              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div class="rounded-[20px] border border-slate-100 bg-slate-50/75 p-3.5">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Work Hours</p>
                 <p class="mt-2 text-base font-black text-slate-900">{{ formatHours(selectedAttendanceRecord()?.work_hours || 0) }}</p>
               </div>
-              <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3">
+              <div class="rounded-[20px] border border-slate-100 bg-slate-50/75 p-3.5">
                 <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Late Mark</p>
                 <p class="mt-2 text-base font-black text-slate-900">{{ selectedAttendanceRecord()?.is_late ? 'Yes' : 'No' }}</p>
               </div>
             </div>
 
-            <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+            <div class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Location Details</p>
               <p class="mt-2 text-sm leading-6 text-slate-600">
                 {{ selectedAttendanceRecord()?.location_address || 'Location details were not captured for this record.' }}
               </p>
             </div>
 
-            <div *ngIf="selectedAttendanceRecord()?.selfie_url" class="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+            <div *ngIf="selectedAttendanceRecord()?.selfie_url" class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4">
               <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selfie Proof</p>
               <img [src]="selectedAttendanceRecord()?.selfie_url" alt="Attendance selfie" class="mt-3 h-32 w-32 rounded-2xl object-cover border border-slate-200" />
             </div>
@@ -1021,14 +881,14 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                 (click)="setView('records')"
                 class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-700 transition hover:bg-slate-50"
               >
-                Open Records
+                Open My Records
               </button>
               <button
                 type="button"
                 (click)="openManualRequest()"
                 class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
               >
-                Request Correction
+                Request My Correction
               </button>
             </div>
           </div>
@@ -1036,34 +896,36 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           <ng-template #noAttendanceSelected>
             <div class="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-5 text-center">
               <p class="text-sm font-bold text-slate-700">Select a workday</p>
-              <p class="mt-2 text-sm text-slate-500">Choose any date from the calendar to review attendance timing, status, and captured details.</p>
+              <p class="mt-2 text-sm text-slate-500">Choose any date from your calendar to review your attendance timing, status, and captured details.</p>
             </div>
           </ng-template>
         </div>
       </div>
 
       <!-- Statistics View -->
-      <div *ngIf="currentView() === 'stats'" class="space-y-4">
+      <div *ngIf="currentView() === 'stats'" class="space-y-5">
+        <div class="rounded-[28px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)] sm:p-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-lg font-bold text-slate-900">
-              Statistics Overview
+          <div class="min-w-0">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Performance snapshot</p>
+            <h3 class="mt-2 text-lg font-bold text-slate-900">
+              My Attendance Statistics
             </h3>
-            <p class="text-sm text-slate-500">
-              Switch between weekly, monthly, and yearly performance snapshots.
+            <p class="mt-1 text-sm text-slate-500">
+              Switch between weekly, monthly, and yearly views of your own attendance performance.
             </p>
           </div>
           <div
-            class="flex gap-2 rounded-md border border-slate-200 bg-white p-1 shadow-sm"
+            class="flex gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1.5 shadow-sm"
           >
             <button
               (click)="setStatsPeriod('week')"
               [ngClass]="
                 statsPeriod() === 'week'
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-teal-700 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               "
-              class="px-4 py-2 rounded-lg text-sm font-bold transition-all"
+              class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
             >
               Week
             </button>
@@ -1071,10 +933,10 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               (click)="setStatsPeriod('month')"
               [ngClass]="
                 statsPeriod() === 'month'
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-teal-700 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               "
-              class="px-4 py-2 rounded-lg text-sm font-bold transition-all"
+              class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
             >
               Month
             </button>
@@ -1082,18 +944,18 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               (click)="setStatsPeriod('year')"
               [ngClass]="
                 statsPeriod() === 'year'
-                  ? 'bg-primary-600 text-white'
+                  ? 'bg-teal-700 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
               "
-              class="px-4 py-2 rounded-lg text-sm font-bold transition-all"
+              class="rounded-xl px-4 py-2 text-sm font-bold transition-all"
             >
               Year
             </button>
           </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="card p-5 rounded-md border border-slate-200">
-            <div class="flex items-center gap-3 mb-3">
+        <div class="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div class="mb-3 flex items-center gap-3">
               <div
                 class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center"
               >
@@ -1117,8 +979,8 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </p>
           </div>
 
-          <div class="card p-5 rounded-md border border-slate-200">
-            <div class="flex items-center gap-3 mb-3">
+          <div class="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div class="mb-3 flex items-center gap-3">
               <div
                 class="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center"
               >
@@ -1143,8 +1005,8 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </p>
           </div>
 
-          <div class="card p-5 rounded-md border border-slate-200">
-            <div class="flex items-center gap-3 mb-3">
+          <div class="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div class="mb-3 flex items-center gap-3">
               <div
                 class="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center"
               >
@@ -1171,8 +1033,8 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </p>
           </div>
 
-          <div class="card p-5 rounded-md border border-slate-200">
-            <div class="flex items-center gap-3 mb-3">
+          <div class="rounded-[24px] border border-slate-100 bg-white p-5 shadow-sm">
+            <div class="mb-3 flex items-center gap-3">
               <div
                 class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center"
               >
@@ -1198,7 +1060,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           </div>
 
           <div
-            class="card p-5 rounded-md border border-slate-200 md:col-span-2"
+            class="rounded-[26px] border border-slate-100 bg-slate-50/65 p-5 shadow-sm md:col-span-2"
           >
             <h3 class="font-bold text-slate-800 mb-4">Punctuality Rate</h3>
             <div class="flex items-center gap-4">
@@ -1252,7 +1114,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           </div>
 
           <div
-            class="card p-5 rounded-md border border-slate-200 md:col-span-2"
+            class="rounded-[26px] border border-slate-100 bg-slate-50/65 p-5 shadow-sm md:col-span-2"
           >
             <h3 class="font-bold text-slate-800 mb-4">Average Stats</h3>
             <div class="space-y-3">
@@ -1304,13 +1166,13 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
       ></app-shift-planner>
 
       <!-- Records View -->
-      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'records'" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
+      <section *ngIf="isSelfServiceWorkspace() && currentView() === 'records'" class="rounded-[28px] border border-slate-200/80 bg-white/95 p-5 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.32)] sm:p-6">
         <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Attendance records</p>
-            <h3 class="mt-2 text-xl font-bold text-slate-900">Search and review your attendance history</h3>
-            <p class="mt-2 text-sm text-slate-500">
-              Check every recorded day with status, in and out time, work hours, and available selfie proof.
+          <div class="min-w-0">
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">My attendance records</p>
+            <h3 class="mt-2 break-words text-xl font-bold text-slate-900">Search and review your attendance history</h3>
+            <p class="mt-2 max-w-2xl break-words text-sm leading-6 text-slate-500">
+              Check every recorded workday with your status, in and out time, work hours, and available selfie proof.
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -1331,19 +1193,39 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           </div>
         </div>
 
-        <div class="mt-5">
+        <div class="mt-5 grid gap-3 lg:grid-cols-3">
+          <div class="rounded-[22px] border border-slate-100 bg-slate-50/75 px-4 py-3.5">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">History loaded</p>
+            <p class="mt-2 text-sm font-black text-slate-900">{{ history().length }} records</p>
+            <p class="mt-1 text-xs text-slate-500">Visible workdays in your current timeline</p>
+          </div>
+          <div class="rounded-[22px] border border-cyan-100 bg-cyan-50/75 px-4 py-3.5">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-500">Quick action</p>
+            <p class="mt-2 text-sm font-black text-cyan-800">Open calendar for day review</p>
+            <p class="mt-1 text-xs text-cyan-700/80">Switch to daily proof and timing view anytime</p>
+          </div>
+          <div class="rounded-[22px] border border-emerald-100 bg-emerald-50/75 px-4 py-3.5">
+            <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500">Correction support</p>
+            <p class="mt-2 text-sm font-black text-emerald-800">Raise a correction when needed</p>
+            <p class="mt-1 text-xs text-emerald-700/80">Use this if timing or status needs a manual update</p>
+          </div>
+        </div>
+
+        <div class="mt-5 overflow-hidden rounded-[24px] border border-slate-100 bg-white">
           <app-attendance-table [adminMode]="false"></app-attendance-table>
         </div>
       </section>
 
-      <!-- Mark Attendance Modal -->
-      <div
-        *ngIf="showCameraModal()"
-        class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/55 p-3 backdrop-blur-sm sm:p-4"
-      >
-        <div class="mx-auto flex min-h-full w-full max-w-4xl items-center justify-center">
-        <div class="my-4 w-full overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl shadow-slate-900/10">
-          <header class="flex items-start justify-between gap-4 border-b border-slate-100 bg-slate-50/80 px-5 py-4 sm:px-6">
+    </div>
+
+    <!-- Mark Attendance Modal -->
+    <div
+      *ngIf="showCameraModal()"
+      class="fixed inset-0 z-[10001] overflow-y-auto bg-slate-950/50 p-3 sm:p-4 backdrop-blur-sm"
+    >
+      <div class="absolute inset-0" (click)="closeCameraModal()"></div>
+      <div class="relative z-[10002] mx-auto my-3 w-full max-w-3xl overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-2xl shadow-slate-900/10 text-left sm:my-5">
+          <header class="flex items-start justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3.5 sm:px-5">
             <div class="min-w-0">
               <h2 class="text-lg font-black text-slate-900">{{ punchModalTitle() }}</h2>
               <p class="mt-1 max-w-2xl break-words text-sm leading-6 text-slate-500">{{ punchModalDescription() }}</p>
@@ -1360,8 +1242,8 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </button>
           </header>
 
-          <div class="max-h-[calc(100vh-2rem)] overflow-y-auto px-5 py-5 sm:px-6">
-            <div class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(320px,1.05fr)]">
+          <div class="max-h-[min(calc(100vh-10rem),680px)] overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
+            <div class="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(280px,0.95fr)]">
             <div class="space-y-4">
             <div class="grid grid-cols-1 gap-4 rounded-2xl bg-slate-50 p-4 sm:grid-cols-2">
               <div>
@@ -1452,22 +1334,48 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Mode</p>
               <div class="mt-3 grid gap-2 sm:grid-cols-2">
                 <button
-                  *ngFor="let mode of modes"
+                  *ngFor="let mode of visibleModes()"
                   type="button"
                   (click)="setMode(mode.id)"
                   class="rounded-xl border px-3 py-3 text-left text-sm font-bold transition"
-                  [ngClass]="checkInMode() === mode.id ? 'border-teal-300 bg-teal-50 text-teal-700 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
+                  [ngClass]="isModeSelected(mode.id) ? 'border-teal-300 bg-teal-50 text-teal-700 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'"
                 >
-                  {{ mode.label }}
+                  <span class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full" [ngClass]="isModeSelected(mode.id) ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'">
+                      <ng-container [ngSwitch]="mode.id">
+                        <svg *ngSwitchCase="'camera'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"></path>
+                          <path d="M9.5 13a2.5 2.5 0 1 1 5 0"></path>
+                          <path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"></path>
+                        </svg>
+                        <svg *ngSwitchCase="'biometric'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 3a4 4 0 0 0-4 4v2"></path>
+                          <path d="M8 18a4 4 0 0 0 8 0v-2"></path>
+                          <path d="M6.2 10.5A6 6 0 0 1 12 6"></path>
+                          <path d="M17.8 10.5A6 6 0 0 0 12 6"></path>
+                          <path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"></path>
+                          <path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"></path>
+                          <path d="M10 12.5v5.5"></path>
+                          <path d="M14 11.5v6.5"></path>
+                          <path d="M12 10.5v8.5"></path>
+                        </svg>
+                      </ng-container>
+                    </span>
+                    <span>{{ mode.label }}</span>
+                  </span>
                 </button>
               </div>
-              <p class="mt-3 text-xs text-slate-500">Switch the attendance mode here if you want web, selfie, face, or biometric flow before submitting.</p>
+              <p class="mt-3 text-xs text-slate-500">Choose selfie or biometric. Selfie mode already includes smart face detect, automatic capture, and no-camera fallback when needed.</p>
             </div>
             </div>
 
             <div class="space-y-4">
             <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-              <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Selfie</p>
+              <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                {{ checkInMode() === 'biometric' ? 'Biometric Verification' : 'Selfie' }}
+              </p>
+
+              <ng-container *ngIf="checkInMode() !== 'biometric'; else biometricVerificationPanel">
 
               <div *ngIf="cameraAvailability() === 'idle' && !attendanceSuccess()" class="mt-2 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                 <p class="break-words">Selfie is optional. Allow camera permission if you want to attach a live capture.</p>
@@ -1481,7 +1389,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               </div>
 
               <div *ngIf="cameraAvailability() === 'checking' && !attendanceSuccess()" class="mt-2 text-sm text-amber-700">
-                Opening camera preview...
+                Starting selfie camera...
               </div>
 
               <div *ngIf="cameraAvailability() === 'unavailable' && !attendanceSuccess()" class="mt-2 rounded-lg border-s-4 border-red-500 bg-red-50 p-4">
@@ -1492,31 +1400,31 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                       <path d="m6 6 12 12"></path>
                     </svg>
                   </span>
-                  <div>
+                  <div class="min-w-0 flex-1">
                     <p class="font-semibold text-slate-900">Camera unavailable</p>
                     <p class="text-sm text-slate-600">{{ punchModalStatusText() }}</p>
+                    <button
+                      type="button"
+                      (click)="retryPunchCamera()"
+                      class="mt-3 rounded-lg bg-white px-4 py-2 text-xs font-semibold text-slate-800 transition hover:bg-slate-100"
+                    >
+                      Retry Camera
+                    </button>
                   </div>
                 </div>
               </div>
 
               <div class="mt-5 flex justify-center">
-                <div class="relative flex h-44 w-44 items-center justify-center rounded-full bg-slate-100 ring-8 ring-slate-100 shadow-inner shadow-slate-200/70 sm:h-56 sm:w-56">
-                <div class="relative h-40 w-40 overflow-hidden rounded-full bg-slate-950 shadow-inner sm:h-52 sm:w-52">
+                <div class="relative flex h-40 w-40 items-center justify-center rounded-full bg-slate-100 ring-8 ring-slate-100 shadow-inner shadow-slate-200/70 sm:h-48 sm:w-48">
+                <div class="relative h-36 w-36 overflow-hidden rounded-full bg-slate-950 shadow-inner sm:h-44 sm:w-44">
                   <video
                     #videoElement
-                    *ngIf="checkInMode() !== 'face' && !capturedPhotoData() && !attendanceSuccess()"
+                    id="attendance-camera-preview"
                     autoplay
                     muted
                     playsinline
                     class="h-full w-full object-cover"
-                  ></video>
-                  <video
-                    #faceVideo
-                    *ngIf="checkInMode() === 'face' && !attendanceSuccess()"
-                    autoplay
-                    muted
-                    playsinline
-                    class="h-full w-full object-cover"
+                    [class.hidden]="capturedPhotoData() || attendanceSuccess()"
                   ></video>
                   <img
                     *ngIf="capturedPhotoData() && checkInMode() !== 'face' && !attendanceSuccess()"
@@ -1530,20 +1438,71 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                     </svg>
                   </div>
                   <div *ngIf="!isCameraReady() && !attendanceSuccess()" class="absolute inset-0 flex items-center justify-center bg-slate-950 text-center text-xs font-semibold text-white">
-                    {{ cameraAvailability() === 'checking' ? 'Opening camera...' : 'Camera preview unavailable' }}
+                    {{
+                      cameraAvailability() === 'checking'
+                        ? 'Preparing selfie...'
+                        : cameraAvailability() === 'unavailable'
+                          ? 'Camera preview unavailable'
+                          : 'Tap retry to start selfie camera'
+                    }}
                   </div>
                 </div>
                 </div>
               </div>
 
               <div *ngIf="checkInMode() === 'face' && !attendanceSuccess()" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-center text-sm text-slate-600">
-                {{ faceScanStatus() || 'Look at the camera and blink slightly for live attendance capture.' }}
+                {{ faceScanStatus() || 'Look at the camera and turn slightly. Selfie detect will capture attendance automatically.' }}
               </div>
 
               <div *ngIf="attendanceSuccess()" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
                 <p class="text-sm font-black text-emerald-700">Attendance marked successfully</p>
                 <p class="mt-1 text-xs text-emerald-600">Thank you. Closing this window...</p>
               </div>
+              </ng-container>
+
+              <ng-template #biometricVerificationPanel>
+                <div class="mt-3 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+                  <div class="flex items-start gap-3">
+                    <span class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-600 text-white shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a4 4 0 0 0-4 4v2"></path>
+                        <path d="M8 18a4 4 0 0 0 8 0v-2"></path>
+                        <path d="M6.2 10.5A6 6 0 0 1 12 6"></path>
+                        <path d="M17.8 10.5A6 6 0 0 0 12 6"></path>
+                        <path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"></path>
+                        <path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"></path>
+                        <path d="M10 12.5v5.5"></path>
+                        <path d="M14 11.5v6.5"></path>
+                        <path d="M12 10.5v8.5"></path>
+                      </svg>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="text-sm font-black text-slate-900">Use your fingerprint or Windows Hello</p>
+                      <p class="mt-1 text-sm leading-6 text-slate-600">{{ biometricPromptText() }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Biometric Status</p>
+                    <p class="mt-1 text-sm font-black text-slate-900">{{ biometricStatusLabel() }}</p>
+                  </div>
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Verification Flow</p>
+                    <p class="mt-1 text-sm font-black text-slate-900">Confirm and mark attendance</p>
+                  </div>
+                </div>
+
+                <div class="mt-4 rounded-xl border border-dashed border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                  {{ biometricSupportMessage() }}
+                </div>
+
+                <div *ngIf="attendanceSuccess()" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center">
+                  <p class="text-sm font-black text-emerald-700">Attendance marked successfully</p>
+                  <p class="mt-1 text-xs text-emerald-600">Thank you. Closing this window...</p>
+                </div>
+              </ng-template>
             </div>
 
             <div class="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
@@ -1563,7 +1522,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             </div>
           </div>
 
-          <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <button
               type="button"
               (click)="closeCameraModal()"
@@ -1576,7 +1535,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
             <button
               *ngIf="checkInMode() === 'face'"
               type="button"
-              (click)="restartFaceModalScan()"
+              (click)="handleFaceModalPrimaryAction()"
               [disabled]="processing() || attendanceSuccess()"
               class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
@@ -1586,25 +1545,24 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               *ngIf="checkInMode() !== 'face'"
               type="button"
               (click)="submitCameraModalPunch()"
-              [disabled]="processing() || attendanceSuccess() || (cameraAvailability() === 'checking')"
+              [disabled]="processing() || attendanceSuccess() || (cameraAvailability() === 'checking') || isPunchBlockedByLocation()"
               class="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {{ processing() ? 'Submitting Attendance...' : punchModalPrimaryLabel() }}
             </button>
             </div>
           </div>
-        </div>
       </div>
-      </div>
+    </div>
 
-      <!-- Manual Request Modal -->
+    <!-- Manual Request Modal -->
+    <div
+      *ngIf="showManualModal()"
+      class="fixed inset-0 z-[10001] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+    >
       <div
-        *ngIf="showManualModal()"
-        class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        class="relative z-[10002] w-full max-w-md overflow-hidden rounded-md bg-white shadow-2xl"
       >
-        <div
-          class="bg-white rounded-md shadow-2xl w-full max-w-md overflow-hidden"
-        >
           <header
             class="p-5 border-b border-slate-100 flex justify-between items-center"
           >
@@ -1772,10 +1730,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   private liveRefreshService = inject(LiveRefreshService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
 
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
-  @ViewChild('faceVideoElement')
-  faceVideoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvasElement') canvasElement!: ElementRef<HTMLCanvasElement>;
 
   // Core data signals
@@ -1791,18 +1748,20 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   currentView = signal<
     'punch' | 'calendar' | 'stats' | 'tracking' | 'geofence' | 'shift-planner' | 'records'
   >('punch');
-  checkInMode = signal<'web' | 'camera' | 'biometric' | 'face'>('web');
+  checkInMode = signal<'web' | 'camera' | 'biometric' | 'face'>('camera');
   processing = signal<boolean>(false);
   isCameraReady = signal<boolean>(false);
   cameraAvailability = signal<'idle' | 'checking' | 'ready' | 'unavailable'>('idle');
   punchLocationAvailability = signal<'idle' | 'checking' | 'ready' | 'unavailable'>('idle');
   punchLocationLabel = signal<string>('Location not checked yet');
   punchLocationCoords = signal<string>('');
+  punchLocationAddress = signal<string>('');
   punchModalDate = signal<Date>(new Date());
   punchModalTime = signal<string>('');
   capturedPhotoData = signal<string | null>(null);
   faceScanStatus = signal<string>('');
   faceScanAttempts = signal<number>(0);
+  faceConfirmationReady = signal<boolean>(false);
   facePresenceStreak = signal<number>(0);
   attendanceSuccess = signal<boolean>(false);
   showCameraModal = signal<boolean>(false);
@@ -1872,6 +1831,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   isAdminAttendanceWorkspace = computed(() => this.workspaceMode() === 'admin');
   biometricAvailability = signal<'checking' | 'available' | 'unsupported' | 'restricted'>('checking');
   biometricConfiguredForUser = signal(false);
+  biometricTestMode = signal(false);
 
   modes: {
     id: 'web' | 'camera' | 'face' | 'biometric';
@@ -1879,37 +1839,34 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     icon: string;
   }[] = [
     {
-      id: 'web',
-      label: 'Web',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg>',
-    },
-    {
       id: 'camera',
       label: 'Selfie',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><path d="M9.5 13a2.5 2.5 0 1 1 5 0"/><path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"/></svg>',
     },
     {
       id: 'face',
-      label: 'Face',
+      label: 'Auto Detect',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M3 17v2a2 2 0 0 0 2 2h2"/><path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/></svg>',
     },
     {
       id: 'biometric',
       label: 'Bio',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4v2"/><path d="M8 18a4 4 0 0 0 8 0v-2"/><path d="M6.2 10.5A6 6 0 0 1 12 6"/><path d="M17.8 10.5A6 6 0 0 0 12 6"/><path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"/><path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"/><path d="M10 12.5v5.5"/><path d="M14 11.5v6.5"/><path d="M12 10.5v8.5"/></svg>',
     },
   ];
+  visibleModes = computed(() =>
+    this.modes.filter((mode) => mode.id !== 'web' && mode.id !== 'face'),
+  );
 
   weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   statusLegend = [
     { status: 'present', label: 'Present', color: 'bg-green-500' },
-    { status: 'absent', label: 'Absent', color: 'bg-red-500' },
     { status: 'late', label: 'Late', color: 'bg-amber-500' },
-    { status: 'half_day', label: 'Half Day', color: 'bg-orange-500' },
-    { status: 'on_leave', label: 'On Leave', color: 'bg-blue-500' },
+    { status: 'absent', label: 'Absent', color: 'bg-red-500' },
+    { status: 'on_leave', label: 'Leave', color: 'bg-blue-500' },
     { status: 'holiday', label: 'Holiday', color: 'bg-purple-500' },
-    { status: 'weekend', label: 'Weekend', color: 'bg-slate-400' },
+    { status: 'weekend', label: 'Weekly Off', color: 'bg-slate-400' },
   ];
 
   // Computed
@@ -1995,7 +1952,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       punch: {
         title: 'Punch in, break tracking, and shift-aware actions',
         description:
-          'Use this view for real-time attendance actions including web, selfie, face, or biometric-based check-ins.',
+          'Use this view for real-time attendance actions including selfie, smart auto detect, biometric, or no-camera fallback check-ins.',
       },
       calendar: {
         title: 'Monthly attendance calendar and day-by-day review',
@@ -2534,28 +2491,47 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   setMode(mode: 'web' | 'camera' | 'biometric' | 'face') {
     if (this.processing()) return;
 
-    if (mode === 'biometric' && !this.canUseBiometricMode()) {
+    const resolvedMode: 'web' | 'camera' | 'biometric' | 'face' =
+      mode === 'camera' ? 'face' : mode;
+
+    if (resolvedMode === 'biometric' && !this.canUseBiometricMode()) {
       this.toastService.error(this.biometricSupportMessage());
-      this.checkInMode.set('web');
+      this.checkInMode.set('camera');
       return;
     }
 
-    this.checkInMode.set(mode);
+    this.checkInMode.set(resolvedMode);
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
+    this.faceConfirmationReady.set(false);
     this.facePresenceStreak.set(0);
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
 
-    if ((mode === 'camera' || mode === 'face') && this.showCameraModal()) {
-      this.startCamera(mode);
-    } else {
-      this.showCameraModal.set(false);
-      this.pendingPunchAction.set(null);
+    if (this.showCameraModal()) {
+      if (resolvedMode === 'face') {
+        void this.startCameraAfterModalRender('face');
+        return;
+      }
+
+      if (resolvedMode === 'web') {
+        this.cameraAvailability.set('idle');
+        this.stopCamera();
+        this.stopFaceAutoScan();
+        void this.startCameraAfterModalRender('camera', true);
+        return;
+      }
+
+      this.cameraAvailability.set('idle');
       this.stopCamera();
       this.stopFaceAutoScan();
+      return;
     }
+
+    this.pendingPunchAction.set(null);
+    this.stopCamera();
+    this.stopFaceAutoScan();
   }
 
   // Wrapper for template - handles string from template binding
@@ -2569,20 +2545,39 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   onPunchAction(action: 'in' | 'out') {
-    if (this.checkInMode() === 'biometric') {
-      void this.handlePunch(action);
-      return;
-    }
-
     this.openCameraModal(action);
   }
 
   openPrimaryAttendanceModal() {
-    if (this.todayAttendance()?.is_clocked_out) {
+    if (this.todayAttendance()?.is_clocked_out || this.processing()) {
       return;
     }
 
-    this.onPunchAction(this.primaryAttendanceAction());
+    this.checkInMode.set('face');
+    this.pendingPunchAction.set(this.primaryAttendanceAction());
+    this.showCameraModal.set(true);
+    this.cameraAvailability.set('idle');
+    this.punchLocationAvailability.set('idle');
+    this.punchLocationLabel.set('Location not checked yet');
+    this.punchLocationCoords.set('');
+    this.punchLocationAddress.set('');
+    this.capturedPhotoData.set(null);
+    this.faceScanStatus.set('');
+    this.faceScanAttempts.set(0);
+    this.faceConfirmationReady.set(false);
+    this.facePresenceStreak.set(0);
+    this.attendanceSuccess.set(false);
+    this.faceAutoTriggered = false;
+    this.stopCamera();
+    this.stopFaceAutoScan();
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      if (this.showCameraModal()) {
+        this.preparePunchModal();
+        void this.startCameraAfterModalRender('face');
+      }
+    }, 80);
   }
 
   openCameraModal(action: 'in' | 'out') {
@@ -2590,25 +2585,35 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.preparePunchModal();
     this.pendingPunchAction.set(action);
     this.showCameraModal.set(true);
+    this.cdr.detectChanges();
     this.cameraAvailability.set('idle');
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
+    this.faceConfirmationReady.set(false);
     this.facePresenceStreak.set(0);
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
-    const mode = this.checkInMode();
-    if (mode === 'face') {
-      this.startCamera('face');
-      return;
-    }
+    this.stopCamera();
+    this.stopFaceAutoScan();
 
-    if (mode === 'camera' || mode === 'web') {
-      this.startCamera('camera', true);
-    }
+    setTimeout(() => {
+      if (!this.showCameraModal()) {
+        return;
+      }
+
+      this.preparePunchModal();
+      const mode = this.checkInMode();
+      if (mode === 'face') {
+        void this.startCameraAfterModalRender('face');
+        return;
+      }
+      if (mode === 'camera' || mode === 'web') {
+        void this.startCameraAfterModalRender('camera', true);
+      }
+    }, 120);
   }
 
   closeCameraModal() {
@@ -2621,6 +2626,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
+    this.faceConfirmationReady.set(false);
     this.facePresenceStreak.set(0);
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
@@ -2630,11 +2636,24 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   submitCameraModalPunch() {
     const action = this.pendingPunchAction();
-    if (!action || this.checkInMode() === 'face') {
+    if (!action) {
+      return;
+    }
+
+    if (this.checkInMode() === 'face' && !this.faceConfirmationReady()) {
       return;
     }
 
     void this.handlePunch(action);
+  }
+
+  handleFaceModalPrimaryAction() {
+    if (this.faceConfirmationReady()) {
+      this.submitCameraModalPunch();
+      return;
+    }
+
+    this.restartFaceModalScan();
   }
 
   restartFaceModalScan() {
@@ -2646,6 +2665,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.faceScanAttempts.set(0);
     this.facePresenceStreak.set(0);
     this.faceScanStatus.set('');
+    this.faceConfirmationReady.set(false);
     this.attendanceSuccess.set(false);
     this.faceAutoTriggered = false;
 
@@ -2667,6 +2687,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.faceAutoTriggered = false;
 
     try {
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        throw new Error(
+          'Camera works only on HTTPS or localhost. Open this HRMS page on a secure URL and try again.',
+        );
+      }
+
       if (!navigator?.mediaDevices?.getUserMedia) {
         throw new Error('Camera API is not available in this browser.');
       }
@@ -2684,6 +2710,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
             width: { ideal: 640 },
             height: { ideal: 640 },
           },
+          audio: false,
+        },
+        {
+          video: true,
           audio: false,
         },
       ];
@@ -2704,56 +2734,117 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       }
 
       this.cameraStream = stream;
+      const video = await this.waitForCameraElement(mode);
+      if (!video) {
+        throw new Error('Camera preview could not be prepared in time.');
+      }
 
-      setTimeout(() => {
-        const video =
-          mode === 'face'
-            ? this.faceVideoElement?.nativeElement
-            : this.videoElement?.nativeElement;
-        if (video) {
-          video.setAttribute('playsinline', 'true');
-          video.muted = true;
-          video.srcObject = this.cameraStream;
-          video.onloadedmetadata = async () => {
-            try {
-              await video.play();
-            } catch {
-              // Ignore autoplay timing issues; the video element still becomes usable.
-            }
-            this.isCameraReady.set(true);
-            this.cameraAvailability.set('ready');
-            if (mode === 'face') {
-              this.startFaceAutoScan();
-            }
-          };
+      video.setAttribute('playsinline', 'true');
+      video.muted = true;
+      video.autoplay = true;
+      video.srcObject = this.cameraStream;
+      video.onloadedmetadata = async () => {
+        try {
+          await video.play();
+        } catch {
+          // Ignore autoplay timing issues; the video element still becomes usable.
         }
-      }, 100);
+        this.isCameraReady.set(true);
+        this.cameraAvailability.set('ready');
+        if (mode === 'face') {
+          this.startFaceAutoScan();
+        }
+      };
+
+      if (video.readyState >= 1) {
+        video.onloadedmetadata?.(new Event('loadedmetadata'));
+      }
     } catch (err) {
       console.error('Camera error:', err);
       this.stopCamera();
       this.cameraAvailability.set('unavailable');
-      const errorMessage =
-        err instanceof Error ? err.message : 'Camera access failed on this device.';
+      const errorMessage = this.formatCameraAccessError(err);
       if (allowFallback) {
-        this.toastService.error('Camera not available. You can continue without selfie.');
+        this.toastService.error(errorMessage);
         this.faceScanStatus.set(`${errorMessage} You can still continue without selfie.`);
         return;
       }
       if (mode === 'face') {
-        this.toastService.info(
-          'Face camera is unavailable. Switching to normal attendance without selfie so your punch is not blocked.',
-        );
-        this.checkInMode.set('web');
+        this.checkInMode.set('camera');
         this.faceScanStatus.set(
-          `${errorMessage} Face scan could not start, but you can continue with a normal attendance punch.`,
+          `${errorMessage} Smart detect is unavailable on this device. You can continue with a normal selfie punch.`,
         );
         return;
       }
-      this.toastService.error('Could not access camera');
       this.faceScanStatus.set(`${errorMessage} Please allow permission and try again.`);
-      this.showCameraModal.set(false);
-      this.pendingPunchAction.set(null);
-      this.setMode('web');
+      this.cameraAvailability.set('unavailable');
+    }
+  }
+
+  private formatCameraAccessError(error: unknown): string {
+    if (error && typeof error === 'object') {
+      const namedError = error as { name?: string; message?: string };
+      switch (namedError.name) {
+        case 'NotAllowedError':
+        case 'PermissionDeniedError':
+          return 'Camera permission was denied. Allow camera access in your browser site settings and try again.';
+        case 'NotFoundError':
+        case 'DevicesNotFoundError':
+          return 'No camera device was found on this system.';
+        case 'NotReadableError':
+        case 'TrackStartError':
+          return 'Camera is busy in another app or browser tab. Close the other app and try again.';
+        case 'SecurityError':
+          return 'Camera is blocked by browser security rules. Open this page on HTTPS or localhost and try again.';
+        case 'AbortError':
+          return 'Camera start was interrupted. Please try again.';
+        case 'OverconstrainedError':
+        case 'ConstraintNotSatisfiedError':
+          return 'This camera does not support the requested capture settings. Try again and we will use a simpler mode.';
+      }
+
+      if (typeof namedError.message === 'string' && namedError.message.trim()) {
+        return namedError.message.trim();
+      }
+    }
+
+    return 'Camera access failed on this device.';
+  }
+
+  private async waitForCameraElement(
+    mode: 'camera' | 'face',
+    attempts = 140,
+  ): Promise<HTMLVideoElement | null> {
+    for (let index = 0; index < attempts; index += 1) {
+      const video =
+        this.videoElement?.nativeElement ??
+        (document.getElementById('attendance-camera-preview') as HTMLVideoElement | null) ??
+        (document.querySelector('video[autoplay][playsinline]') as HTMLVideoElement | null);
+
+      if (video) {
+        return video;
+      }
+
+      this.cdr.detectChanges();
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+
+    return null;
+  }
+
+  private async startCameraAfterModalRender(
+    mode: 'camera' | 'face',
+    allowFallback = false,
+  ): Promise<void> {
+    try {
+      this.cdr.detectChanges();
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      await this.startCamera(mode, allowFallback);
+    } catch (error) {
+      this.cameraAvailability.set('unavailable');
+      this.faceScanStatus.set(this.formatCameraAccessError(error));
     }
   }
 
@@ -2812,9 +2903,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     this.faceScanAttempts.set(0);
     this.facePresenceStreak.set(0);
+    this.faceConfirmationReady.set(false);
     this.faceTurnAway = false;
     this.faceScanStatus.set(
-      'Scanning for a registered face. Turn your head slightly left or right to confirm.',
+      'Scanning your selfie. Turn your head slightly left or right to confirm.',
     );
 
     void this.runFaceAutoScanTick();
@@ -2833,8 +2925,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const video =
-      this.faceVideoElement?.nativeElement || this.videoElement?.nativeElement;
+    const video = this.videoElement?.nativeElement;
     if (!video || !video.videoWidth) return;
 
     this.faceScanBusy = true;
@@ -2850,8 +2941,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.faceScanAttempts.set(attempts);
         this.faceScanStatus.set(
           attempts >= 3
-            ? 'No face detected. Please face the camera clearly.'
-            : `No face detected yet. Retrying ${attempts}/3...`,
+            ? 'No face detected in the selfie frame. Please face the camera clearly.'
+            : `No clear selfie detected yet. Retrying ${attempts}/3...`,
         );
 
         if (attempts >= 3) {
@@ -2864,8 +2955,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.facePresenceStreak.set(streak);
       this.faceScanStatus.set(
         streak >= 1
-          ? 'Face detected. Step 1: turn your head slightly left or right.'
-          : 'Face detected. Hold still for confirmation...',
+          ? 'Selfie detected. Step 1: turn your head slightly left or right.'
+          : 'Selfie detected. Hold still for confirmation...',
       );
 
       if (streak < 1) {
@@ -2895,13 +2986,14 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           this.capturedPhotoData.set(frame);
         }
         this.faceAutoTriggered = true;
+        this.faceConfirmationReady.set(true);
         this.stopFaceAutoScan();
-        await this.handlePunch(
-          this.isClockedIn() && !this.isClockedOut() ? 'out' : 'in',
+        this.faceScanStatus.set(
+          `Selfie captured successfully. Review and confirm to ${this.pendingPunchAction() === 'out' ? 'check out' : 'check in'}.`,
         );
       } else {
         this.faceScanStatus.set(
-          'Step 2: return your head to center to confirm liveness.',
+          'Step 2: return your head to center to confirm your selfie.',
         );
       }
     } finally {
@@ -2910,10 +3002,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   captureFrame(): string | null {
-    const videoEl =
-      this.checkInMode() === 'face'
-        ? this.faceVideoElement?.nativeElement
-        : this.videoElement?.nativeElement;
+    const videoEl = this.videoElement?.nativeElement;
     if (!videoEl || !this.canvasElement) return null;
 
     const video = videoEl;
@@ -2934,17 +3023,21 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   // ============ ATTENDANCE ACTIONS ============
 
   async handlePunch(action: 'in' | 'out') {
+    const user = this.currentUser || this.authService.getStoredUser();
+    if (!user) {
+      this.toastService.error('Please sign in again to mark attendance.');
+      return;
+    }
+
+    const locationAllowed = await this.ensurePunchWithinGeofence();
+    if (!locationAllowed) {
+      return;
+    }
+
     this.processing.set(true);
 
     let payload: any = { source: this.checkInMode() };
-    const user = this.currentUser || this.authService.getStoredUser();
     const orgId = Number(user?.orgId ?? user?.organizationId ?? 0) || 0;
-
-    if (!user) {
-      this.toastService.error('Please sign in again to mark attendance.');
-      this.processing.set(false);
-      return;
-    }
 
     if (this.checkInMode() === 'face') {
       if (!orgId) {
@@ -3008,9 +3101,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     if (this.checkInMode() === 'face') {
       try {
-        const video =
-          this.faceVideoElement?.nativeElement ||
-          this.videoElement?.nativeElement;
+        const video = this.videoElement?.nativeElement;
 
         const verification = video
           ? await firstValueFrom(
@@ -3047,10 +3138,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           }
           this.processing.set(false);
           this.capturedPhotoData.set(null);
+          this.faceConfirmationReady.set(false);
           return;
         }
 
-        const frame = this.captureFrame();
+        const frame = this.capturedPhotoData() || this.captureFrame();
         if (frame) {
           this.capturedPhotoData.set(frame);
           payload.selfieUrl = frame;
@@ -3064,6 +3156,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.toastService.error(message);
         this.processing.set(false);
         this.capturedPhotoData.set(null);
+        this.faceConfirmationReady.set(false);
         this.faceAutoTriggered = false;
         this.facePresenceStreak.set(0);
         this.faceTurnAway = false;
@@ -3109,6 +3202,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.refreshData();
         this.processing.set(false);
         this.capturedPhotoData.set(null);
+        this.faceConfirmationReady.set(false);
         this.faceScanStatus.set('Attendance captured successfully.');
         this.attendanceSuccess.set(true);
         setTimeout(() => this.closeCameraModal(), 1800);
@@ -3119,6 +3213,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         );
         this.processing.set(false);
         this.capturedPhotoData.set(null);
+        this.faceConfirmationReady.set(false);
         this.faceAutoTriggered = false;
         this.facePresenceStreak.set(0);
         this.faceTurnAway = false;
@@ -3139,7 +3234,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   biometricPromptText(): string {
     return this.canUseBiometricMode()
-      ? 'Use your laptop fingerprint, Windows Hello, or approved device verification'
+      ? this.biometricAvailability() === 'available' || this.biometricTestMode()
+        ? 'Use your laptop fingerprint or Windows Hello before attendance is marked'
+        : 'Use your laptop fingerprint, Windows Hello, or approved device verification'
       : 'Biometric attendance is not ready on this device';
   }
 
@@ -3148,9 +3245,20 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return 'Biometric attendance is not enabled for your account or organization yet.';
     }
 
+    if (this.biometricTestMode()) {
+      switch (this.biometricAvailability()) {
+        case 'available':
+          return 'Laptop biometric test mode is ready. We will use Windows Hello or the available platform authenticator for attendance testing.';
+        case 'restricted':
+          return 'Biometric test mode is on. Browser support is limited, so we will use device-level verification as the attendance reference.';
+        case 'unsupported':
+          return 'This laptop browser does not expose a supported biometric authenticator for testing.';
+      }
+    }
+
     switch (this.biometricAvailability()) {
       case 'available':
-        return 'Platform biometric support detected. We can use Windows Hello or the built-in fingerprint flow when your browser supports it.';
+        return 'Platform biometric support detected. We will ask for your laptop fingerprint or Windows Hello before attendance is marked.';
       case 'restricted':
         return 'This browser can detect biometric capability, but direct fingerprint verification still needs configured WebAuthn or native device integration.';
       case 'unsupported':
@@ -3166,7 +3274,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   punchModalDescription(): string {
     if (this.checkInMode() === 'face') {
-      return 'Center your face in the frame, turn slightly, and return to center. Attendance submits automatically after a successful liveness match.';
+      return 'Keep your selfie centered in the frame, turn slightly, and return to center. We will auto detect, capture, then ask you to confirm before attendance is marked.';
+    }
+
+    if (this.checkInMode() === 'biometric') {
+      return 'Use fingerprint, Windows Hello, or the approved platform authenticator. Attendance will be marked only after biometric verification is completed.';
     }
 
     if (this.cameraAvailability() === 'ready') {
@@ -3192,15 +3304,38 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   punchModalBadge(): string {
-    if (this.checkInMode() === 'face') return 'Liveness Scan';
+    if (this.checkInMode() === 'face') return 'Selfie Auto Detect';
+    if (this.checkInMode() === 'biometric') return 'Biometric Verify';
     if (this.cameraAvailability() === 'ready') return 'Selfie Ready';
     if (this.cameraAvailability() === 'checking') return 'Checking Camera';
     return 'No Camera Required';
   }
 
   punchModalStatusText(): string {
+    if (this.faceScanStatus()) {
+      return this.faceScanStatus();
+    }
+
+    if (this.locationStatus() === 'outside') {
+      return 'Outside Geofence. Attendance cannot be marked from this location.';
+    }
+
+    if (
+      this.punchLocationAvailability() === 'unavailable' ||
+      (this.punchLocationAvailability() === 'ready' && this.locationStatus() !== 'inside')
+    ) {
+      return 'Verify your location and move within the assigned geofence before marking attendance.';
+    }
+
     if (this.checkInMode() === 'face') {
-      return this.faceScanStatus() || 'Waiting for a clear face in the frame.';
+      if (this.faceConfirmationReady()) {
+        return 'Selfie captured. Review the preview and confirm to continue.';
+      }
+      return this.faceScanStatus() || 'Waiting for a clear selfie frame for smart auto capture.';
+    }
+
+    if (this.checkInMode() === 'biometric') {
+      return this.biometricPromptText();
     }
 
     if (this.cameraAvailability() === 'ready') {
@@ -3217,7 +3352,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   punchModalPrimaryLabel(): string {
     const verb = this.pendingPunchAction() === 'out' ? 'Check Out' : 'Check In';
     if (this.checkInMode() === 'face') {
-      return 'Restart Face Scan';
+      return this.faceConfirmationReady()
+        ? `Confirm ${verb}`
+        : 'Retry Selfie Detect';
+    }
+    if (this.checkInMode() === 'biometric') {
+      return `Verify Biometric & ${verb}`;
     }
     return this.cameraAvailability() === 'ready'
       ? `Capture Selfie & ${verb}`
@@ -3226,8 +3366,24 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   punchLocationSummary(): string {
     const label = this.punchLocationLabel();
+    const address = this.punchLocationAddress();
     const coords = this.punchLocationCoords();
-    return coords ? `${label}, ${coords}` : label;
+    return address ? `${label}, ${address}` : coords ? `${label}, ${coords}` : label;
+  }
+
+  isPunchBlockedByLocation(): boolean {
+    if (this.punchLocationAvailability() === 'checking') {
+      return true;
+    }
+
+    if (this.locationStatus() === 'outside') {
+      return true;
+    }
+
+    return (
+      this.punchLocationAvailability() !== 'ready' ||
+      this.locationStatus() !== 'inside'
+    );
   }
 
   primaryAttendanceAction(): 'in' | 'out' {
@@ -3250,10 +3406,39 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       : 'Mark Attendance For Check In';
   }
 
+  selectedModeLabel(): string {
+    if (this.checkInMode() === 'face') {
+      return 'Selfie';
+    }
+    return this.modes.find((mode) => mode.id === this.checkInMode())?.label || 'Selfie';
+  }
+
+  isModeSelected(modeId: 'web' | 'camera' | 'face' | 'biometric'): boolean {
+    if (modeId === 'camera') {
+      return this.checkInMode() === 'camera' || this.checkInMode() === 'face';
+    }
+
+    return this.checkInMode() === modeId;
+  }
+
+  modeCardDescription(modeId: 'web' | 'camera' | 'face' | 'biometric'): string {
+    switch (modeId) {
+      case 'camera':
+        return 'Use one selfie flow for face detect, automatic capture, and attendance submit. If camera is blocked, normal attendance can still continue.';
+      case 'face':
+        return 'Use one selfie flow for face detect, automatic capture, and attendance submit.';
+      case 'biometric':
+        return this.biometricStatusLabel();
+      default:
+        return 'Continue with a normal browser attendance flow.';
+    }
+  }
+
   async requestPunchLocationPreview(): Promise<void> {
     this.punchLocationAvailability.set('checking');
     this.punchLocationLabel.set('Checking your current location...');
     this.punchLocationCoords.set('');
+    this.punchLocationAddress.set('');
     this.locationStatus.set('unknown');
     this.currentDistance.set(null);
 
@@ -3267,32 +3452,410 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
       const lat = Number(position.coords.latitude.toFixed(5));
       const lng = Number(position.coords.longitude.toFixed(5));
-      const validation = await firstValueFrom(this.attendanceService.validateLocation(lat, lng));
-
       this.punchLocationAvailability.set('ready');
       this.punchLocationCoords.set(
         `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
       );
-      this.locationStatus.set(validation?.valid ? 'inside' : 'outside');
-      this.currentDistance.set(
-        typeof validation?.distance === 'number' ? Number(validation.distance.toFixed(2)) : null,
-      );
-      this.punchLocationLabel.set(
-        validation?.valid
-          ? validation?.zone?.name
-            ? `Within ${validation.zone.name}`
-            : 'Within authorized geofence'
-          : validation?.zone?.name
-            ? `Outside ${validation.zone.name}`
-            : 'Outside authorized geofence',
-      );
+      this.punchLocationAddress.set(await this.resolvePunchLocationAddress(lat, lng));
+
+      const validation =
+        (await this.resolveAssignedGeofenceValidation(lat, lng)) ??
+        (await this.resolveRemoteGeofenceValidation(lat, lng));
+
+      if (validation) {
+        this.locationStatus.set(validation.valid ? 'inside' : 'outside');
+        this.currentDistance.set(validation.distance);
+        this.punchLocationLabel.set(validation.label);
+        return;
+      }
+
+      this.locationStatus.set('unknown');
+      this.currentDistance.set(null);
+      this.punchLocationLabel.set('Geofence could not be verified for this location');
     } catch {
       this.punchLocationAvailability.set('unavailable');
       this.punchLocationLabel.set('Location permission unavailable');
+      this.punchLocationAddress.set('');
       this.punchLocationCoords.set('You can still continue if location access is blocked.');
       this.locationStatus.set('unknown');
       this.currentDistance.set(null);
     }
+  }
+
+  private async ensurePunchWithinGeofence(): Promise<boolean> {
+    if (
+      this.punchLocationAvailability() !== 'ready' ||
+      this.locationStatus() === 'unknown'
+    ) {
+      await this.requestPunchLocationPreview();
+    }
+
+    if (this.locationStatus() === 'inside') {
+      return true;
+    }
+
+    if (this.locationStatus() === 'outside') {
+      this.toastService.error('Outside Geofence. Attendance cannot be marked.');
+      return false;
+    }
+
+    this.toastService.error(
+      'Location could not be verified. Please allow location and move within your geofence.',
+    );
+    return false;
+  }
+
+  private async resolveRemoteGeofenceValidation(
+    lat: number,
+    lng: number,
+  ): Promise<{ valid: boolean; label: string; distance: number | null } | null> {
+    try {
+      const validation = await firstValueFrom(this.attendanceService.validateLocation(lat, lng));
+      if (!validation) {
+        return null;
+      }
+
+      return {
+        valid: Boolean(validation.valid),
+        label: validation.valid ? 'Within Geofence' : 'Outside Geofence',
+        distance:
+          typeof validation.distance === 'number'
+            ? Number(validation.distance.toFixed(2))
+            : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolvePunchLocationAddress(lat: number, lng: number): Promise<string> {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        },
+      );
+
+      if (!response.ok) {
+        return '';
+      }
+
+      const payload = await response.json();
+      if (typeof payload?.display_name === 'string' && payload.display_name.trim()) {
+        return payload.display_name.trim();
+      }
+
+      const address = payload?.address ?? {};
+      return [
+        address?.road,
+        address?.suburb,
+        address?.city ?? address?.town ?? address?.village,
+        address?.state,
+      ]
+        .filter((part: unknown) => typeof part === 'string' && part.trim())
+        .join(', ');
+    } catch {
+      return '';
+    }
+  }
+
+  private async resolveAssignedGeofenceValidation(
+    lat: number,
+    lng: number,
+  ): Promise<{ valid: boolean; label: string; distance: number | null } | null> {
+    const user = this.currentUser ?? this.authService.getStoredUser();
+    if (!user) {
+      return null;
+    }
+
+    const assignedCircles = this.extractAssignedCircularGeofences(user);
+    const assignedPolygons = this.extractAssignedPolygonGeofences(user);
+
+    if (assignedCircles.length || assignedPolygons.length) {
+      const circleValidation = this.validateCircularGeofences(lat, lng, assignedCircles);
+      if (circleValidation?.valid) {
+        return circleValidation;
+      }
+
+      const polygonValidation = this.validatePolygonGeofences(lat, lng, assignedPolygons);
+      if (polygonValidation?.valid) {
+        return polygonValidation;
+      }
+
+      return polygonValidation ?? circleValidation ?? null;
+    }
+
+    if (user.geofenceId) {
+      try {
+        const zones = await firstValueFrom(this.attendanceService.getGeoFenceZones());
+        const matchedZone = zones.find((zone) => zone.id === user.geofenceId);
+        if (matchedZone) {
+          return this.validateCircularGeofences(lat, lng, [matchedZone]);
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    return null;
+  }
+
+  private extractAssignedCircularGeofences(user: User): Array<GeoFenceZone | {
+    name?: string;
+    center_lat: number;
+    center_lng: number;
+    radius_meters: number;
+  }> {
+    const rawUser = user as User & {
+      area_ids?: unknown;
+      userInfo?: { areaIds?: unknown; area_ids?: unknown };
+    };
+    const directAssignments = this.asArray(
+      user.areaIds ??
+        rawUser.area_ids ??
+        rawUser.userInfo?.areaIds ??
+        rawUser.userInfo?.area_ids,
+    );
+
+    return directAssignments
+      .map((assignment) => ({
+        name:
+          this.readString(assignment, ['name', 'area_name', 'label']) ??
+          user.geofenceZoneName ??
+          'authorized geofence',
+        center_lat: this.readNumber(assignment, ['lat', 'latitude', 'center_lat']),
+        center_lng: this.readNumber(assignment, ['long', 'lng', 'longitude', 'center_lng']),
+        radius_meters:
+          this.readRadiusMeters(assignment),
+      }))
+      .filter(
+        (assignment) =>
+          Number.isFinite(assignment.center_lat) &&
+          Number.isFinite(assignment.center_lng) &&
+          Number.isFinite(assignment.radius_meters) &&
+          assignment.radius_meters > 0,
+      );
+  }
+
+  private extractAssignedPolygonGeofences(user: User): Array<{
+    name: string;
+    points: Array<{ lat: number; lng: number }>;
+  }> {
+    const rawUser = user as User & {
+      poly_field?: unknown;
+      userInfo?: { polyField?: unknown; poly_field?: unknown };
+    };
+    const rawPolygons =
+      user.polyField ??
+      rawUser.poly_field ??
+      rawUser.userInfo?.polyField ??
+      rawUser.userInfo?.poly_field;
+    if (!Array.isArray(rawPolygons) || rawPolygons.length === 0) {
+      return [];
+    }
+
+    const polygonGroups = Array.isArray(rawPolygons[0])
+      ? (rawPolygons as Array<Array<{ lat: number | string; long: number | string }>>)
+      : [rawPolygons as Array<{ lat: number | string; long: number | string }>];
+
+    return polygonGroups
+      .map((group) => ({
+        name: user.geofenceZoneName ?? 'authorized geofence',
+        points: group
+          .map((point) => ({
+            lat: this.readNumber(point, ['lat', 'latitude', 'x']),
+            lng: this.readNumber(point, ['long', 'lng', 'longitude', 'y']),
+          }))
+          .filter(
+            (point) =>
+              Number.isFinite(point.lat) &&
+              Number.isFinite(point.lng),
+          ),
+      }))
+      .filter((polygon) => polygon.points.length >= 3);
+  }
+
+  private validateCircularGeofences(
+    lat: number,
+    lng: number,
+    geofences: Array<GeoFenceZone | {
+      name?: string;
+      center_lat: number;
+      center_lng: number;
+      radius_meters: number;
+    }>,
+  ): { valid: boolean; label: string; distance: number | null } | null {
+    if (!geofences.length) {
+      return null;
+    }
+
+    let nearest: {
+      zoneName: string;
+      distanceKm: number;
+      inside: boolean;
+    } | null = null;
+
+    for (const geofence of geofences) {
+      const distanceKm = this.calculateGeoDistanceKm(
+        Number(geofence.center_lat),
+        Number(geofence.center_lng),
+        lat,
+        lng,
+      );
+      const allowedRadiusKm = Number(geofence.radius_meters) / 1000;
+      const zoneName = geofence.name?.trim() || 'authorized geofence';
+      const inside = distanceKm <= allowedRadiusKm;
+
+      if (!nearest || distanceKm < nearest.distanceKm) {
+        nearest = {
+          zoneName,
+          distanceKm,
+          inside,
+        };
+      }
+
+      if (inside) {
+        return {
+          valid: true,
+          label: 'Within Geofence',
+          distance: Number(distanceKm.toFixed(2)),
+        };
+      }
+    }
+
+    if (!nearest) {
+      return null;
+    }
+
+    return {
+      valid: false,
+      label: 'Outside Geofence',
+      distance: Number(nearest.distanceKm.toFixed(2)),
+    };
+  }
+
+  private validatePolygonGeofences(
+    lat: number,
+    lng: number,
+    polygons: Array<{ name: string; points: Array<{ lat: number; lng: number }> }>,
+  ): { valid: boolean; label: string; distance: number | null } | null {
+    if (!polygons.length) {
+      return null;
+    }
+
+    const insidePolygon = polygons.find((polygon) =>
+      this.isPointInsidePolygon(lat, lng, polygon.points),
+    );
+
+    if (insidePolygon) {
+      return {
+        valid: true,
+        label: 'Within Geofence',
+        distance: null,
+      };
+    }
+
+    return {
+      valid: false,
+      label: 'Outside Geofence',
+      distance: null,
+    };
+  }
+
+  private isPointInsidePolygon(
+    lat: number,
+    lng: number,
+    polygon: Array<{ lat: number; lng: number }>,
+  ): boolean {
+    let inside = false;
+
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i].lat;
+      const yi = polygon[i].lng;
+      const xj = polygon[j].lat;
+      const yj = polygon[j].lng;
+
+      const intersects =
+        yi > lng !== yj > lng &&
+        lat < ((xj - xi) * (lng - yi)) / ((yj - yi) || Number.EPSILON) + xi;
+
+      if (intersects) {
+        inside = !inside;
+      }
+    }
+
+    return inside;
+  }
+
+  private calculateGeoDistanceKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const p = 0.017453292519943295;
+    const a =
+      0.5 -
+      Math.cos((lat2 - lat1) * p) / 2 +
+      (Math.cos(lat1 * p) *
+        Math.cos(lat2 * p) *
+        (1 - Math.cos((lon2 - lon1) * p))) /
+        2;
+
+    return 12742 * Math.asin(Math.sqrt(a));
+  }
+
+  private asArray<T>(value: T[] | unknown): T[] {
+    return Array.isArray(value) ? value : [];
+  }
+
+  private readNumber(source: unknown, keys: string[]): number {
+    if (!source || typeof source !== 'object') {
+      return 0;
+    }
+
+    for (const key of keys) {
+      const value = (source as Record<string, unknown>)[key];
+      const parsed = Number(value ?? 0);
+      if (Number.isFinite(parsed) && parsed !== 0) {
+        return parsed;
+      }
+    }
+
+    const fallback = Number((source as Record<string, unknown>)[keys[0]] ?? 0);
+    return Number.isFinite(fallback) ? fallback : 0;
+  }
+
+  private readString(source: unknown, keys: string[]): string | null {
+    if (!source || typeof source !== 'object') {
+      return null;
+    }
+
+    for (const key of keys) {
+      const value = (source as Record<string, unknown>)[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    return null;
+  }
+
+  private readRadiusMeters(source: unknown): number {
+    if (!source || typeof source !== 'object') {
+      return 0;
+    }
+
+    const explicitMeters = this.readNumber(source, ['radius_meters', 'radiusMeters']);
+    if (explicitMeters > 0) {
+      return explicitMeters;
+    }
+
+    const radiusValue = this.readNumber(source, ['radius']);
+    return radiusValue > 0 ? radiusValue * 1000 : 0;
   }
 
   retryPunchCamera(): void {
@@ -3300,7 +3863,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return;
     }
     this.cameraAvailability.set('idle');
-    void this.startCamera('camera', true);
+    void this.startCameraAfterModalRender('camera', true);
   }
 
   private resolveWorkspaceMode(): 'self' | 'admin' {
@@ -3315,15 +3878,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   private async detectBiometricSupport(): Promise<void> {
     const user = this.currentUser ?? this.authService.getStoredUser();
-    const configured = Boolean(
+    const configuredByAccount = Boolean(
       user?.biometricMachinePermission || user?.addonDeviceVerification,
     );
-    this.biometricConfiguredForUser.set(configured);
-
-    if (!configured) {
-      this.biometricAvailability.set('restricted');
-      return;
-    }
 
     const credentialApi =
       typeof window !== 'undefined'
@@ -3335,25 +3892,25 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         : undefined;
 
     if (!credentialApi?.isUserVerifyingPlatformAuthenticatorAvailable) {
-      this.biometricAvailability.set('unsupported');
+      this.biometricConfiguredForUser.set(configuredByAccount);
+      this.biometricTestMode.set(false);
+      this.biometricAvailability.set(configuredByAccount ? 'restricted' : 'unsupported');
       return;
     }
 
     try {
       const isAvailable =
         await credentialApi.isUserVerifyingPlatformAuthenticatorAvailable();
+      const allowTestMode = !configuredByAccount && isAvailable;
+      this.biometricTestMode.set(allowTestMode);
+      this.biometricConfiguredForUser.set(configuredByAccount || allowTestMode);
       this.biometricAvailability.set(isAvailable ? 'available' : 'unsupported');
     } catch {
-      this.biometricAvailability.set('restricted');
+      this.biometricTestMode.set(false);
+      this.biometricConfiguredForUser.set(configuredByAccount);
+      this.biometricAvailability.set(configuredByAccount ? 'restricted' : 'unsupported');
     }
 
-    if (
-      this.canUseBiometricMode() &&
-      this.checkInMode() === 'web' &&
-      !this.showCameraModal()
-    ) {
-      this.checkInMode.set('biometric');
-    }
   }
 
   private async prepareBiometricRef(): Promise<string | null> {
@@ -3373,13 +3930,145 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     if (this.biometricAvailability() === 'restricted') {
       this.toastService.info(
-        'Direct fingerprint validation is limited in browsers. Using verified device availability as the biometric attendance reference.',
+        this.biometricTestMode()
+          ? 'Direct fingerprint validation is limited in browsers. Using laptop biometric test verification as the attendance reference.'
+          : 'Direct fingerprint validation is limited in browsers. Using verified device availability as the biometric attendance reference.',
       );
     }
 
-    await new Promise((r) => setTimeout(r, 700));
+    if (
+      this.biometricAvailability() === 'available' ||
+      this.biometricTestMode()
+    ) {
+      const verified = await this.runLocalBiometricPrompt();
+      if (!verified) {
+        this.toastService.error(
+          'Fingerprint or Windows Hello verification was not completed. Attendance was not marked.',
+        );
+        return null;
+      }
+    } else {
+      await new Promise((r) => setTimeout(r, 700));
+    }
+
     const userId = this.currentUser?.id ?? this.authService.getStoredUser()?.id ?? 'user';
     return `BIO-${userId}-${Date.now()}`;
+  }
+
+  private biometricCredentialStorageKey(): string {
+    const user = this.currentUser ?? this.authService.getStoredUser();
+    const orgId = user?.orgId ?? user?.organizationId ?? 'global';
+    const employeeId = user?.employeeId ?? user?.id ?? 'user';
+    return `hrms_biometric_test_credential_${orgId}_${employeeId}`;
+  }
+
+  private createRandomBuffer(length: number): Uint8Array {
+    const buffer = new Uint8Array(length);
+    crypto.getRandomValues(buffer);
+    return buffer;
+  }
+
+  private bufferToBase64Url(buffer: ArrayBuffer | Uint8Array): string {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    let binary = '';
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  private base64UrlToUint8Array(value: string): Uint8Array {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const binary = atob(padded);
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  }
+
+  private async ensureLocalBiometricCredential(): Promise<string | null> {
+    const storageKey = this.biometricCredentialStorageKey();
+    const existingId = localStorage.getItem(storageKey);
+    if (existingId) {
+      return existingId;
+    }
+
+    const user = this.currentUser ?? this.authService.getStoredUser();
+    const userId = Number(user?.employeeId ?? user?.id ?? 0) || Date.now();
+    const credential = (await navigator.credentials.create({
+      publicKey: {
+        challenge: this.createRandomBuffer(32),
+        rp: {
+          name: 'HRMS Biometric Test',
+          id: window.location.hostname,
+        },
+        user: {
+          id: this.createRandomBuffer(16),
+          name: `employee-${userId}@hrms.local`,
+          displayName: `${user?.firstName || 'Employee'} ${user?.lastName || ''}`.trim() || 'Employee',
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },
+          { alg: -257, type: 'public-key' },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        timeout: 60000,
+        attestation: 'none',
+      },
+    })) as PublicKeyCredential | null;
+
+    const rawId = credential?.rawId;
+    if (!rawId) {
+      return null;
+    }
+
+    const credentialId = this.bufferToBase64Url(rawId);
+    localStorage.setItem(storageKey, credentialId);
+    return credentialId;
+  }
+
+  private async runLocalBiometricPrompt(): Promise<boolean> {
+    if (
+      typeof window === 'undefined' ||
+      !window.isSecureContext ||
+      typeof navigator === 'undefined' ||
+      !navigator.credentials
+    ) {
+      this.toastService.error(
+        'Biometric testing requires a secure browser context with credential support.',
+      );
+      return false;
+    }
+
+    try {
+      const credentialId = await this.ensureLocalBiometricCredential();
+      if (!credentialId) {
+        return false;
+      }
+
+      const assertion = (await navigator.credentials.get({
+        publicKey: {
+          challenge: this.createRandomBuffer(32),
+          allowCredentials: [
+            {
+              id: this.base64UrlToUint8Array(credentialId),
+              type: 'public-key',
+              transports: ['internal'],
+            },
+          ],
+          userVerification: 'required',
+          timeout: 60000,
+          rpId: window.location.hostname,
+        },
+      })) as PublicKeyCredential | null;
+
+      return Boolean(assertion);
+    } catch (error) {
+      console.error('Biometric prompt failed', error);
+      return false;
+    }
   }
 
   async handleBreak() {
@@ -3507,7 +4196,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = this.toLocalIsoDate(date);
       const attendance = this.history().find((h) => h.date === dateStr);
 
       days.push({
@@ -3574,7 +4263,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
               this.currentMonth() === today.getMonth() &&
               this.currentYear() === today.getFullYear()
             ) {
-              this.selectedDate.set(today.toISOString().split('T')[0]);
+              this.selectedDate.set(this.toLocalIsoDate(today));
             }
           }
           this.generateCalendar();
@@ -3684,11 +4373,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   selectedAttendanceDateLabel(): string {
     const selected = this.selectedDate();
     if (!selected) return 'Pick a date';
-    return new Date(selected).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    return this.formatIsoDateLabel(selected);
   }
 
   selectedAttendanceStatusLabel(): string {
@@ -3714,9 +4399,39 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     });
   }
 
+  private toLocalIsoDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private formatIsoDateLabel(value: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) {
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+    }
+
+    const [, year, month, day] = match;
+    return new Date(Number(year), Number(month) - 1, Number(day)).toLocaleDateString(
+      'en-US',
+      {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      },
+    );
+  }
+
   nextAttendanceActionLabel(): string {
     if (this.todayAttendance()?.is_clocked_out) {
-      return 'Attendance cycle complete for today';
+      return 'Today attendance is complete';
     }
 
     if (this.todayAttendance()?.is_clocked_in) {
@@ -3728,7 +4443,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   nextAttendanceActionDescription(): string {
     if (this.todayAttendance()?.is_clocked_out) {
-      return 'Your check-in and check-out are already recorded. Review the records or raise a correction if anything needs adjustment.';
+      return 'Your check-in and check-out have been saved for today. You can review the record below or raise a correction request if any update is needed.';
     }
 
     if (this.todayAttendance()?.is_clocked_in) {
@@ -3761,9 +4476,9 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       absent: 'Absent',
       late: 'Late',
       half_day: 'Half Day',
-      on_leave: 'On Leave',
+      on_leave: 'Leave',
       holiday: 'Holiday',
-      weekend: 'Weekend',
+      weekend: 'Weekly Off',
     };
     return labels[status] || status;
   }
@@ -3783,6 +4498,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       on_leave: 'bg-blue-50 text-blue-600 border-blue-200',
       holiday: 'bg-purple-50 text-purple-600 border-purple-200',
       weekend: 'bg-slate-50 text-slate-500 border-slate-200',
+      weekly_off: 'bg-slate-50 text-slate-500 border-slate-200',
     };
     return classes[status] || 'bg-slate-50 text-slate-600';
   }
@@ -3796,6 +4512,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       on_leave: 'bg-blue-500',
       holiday: 'bg-purple-500',
       weekend: 'bg-slate-400',
+      weekly_off: 'bg-slate-400',
     };
     return colors[status] || 'bg-slate-300';
   }

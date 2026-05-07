@@ -2,18 +2,18 @@ declare global {
   interface Window {
     __HRMS_CONFIG__?: {
       apiUrl: string;
+      googleMapsApiKey?: string;
     };
   }
 }
 
 const runtimeApiUrl = window.__HRMS_CONFIG__?.apiUrl;
+const runtimeGoogleMapsApiKey = window.__HRMS_CONFIG__?.googleMapsApiKey;
 
 export const environment = {
   production: true,
-
-  // Runtime config (priority) → fallback to Render backend
   apiUrl: runtimeApiUrl || 'https://hrms-backend-r5ed.onrender.com/api',
-
+  googleMapsApiKey: runtimeGoogleMapsApiKey || 'AIzaSyBPMFA6nwXGdQTpTeJG0SYQdjMGOyNMCBM',
   firebase: {
     apiKey: 'AIzaSyCykZJKsYtyQ8xY8uGsTBa-42LY2Fdf-k8',
     authDomain: 'hrnexus-8eb7e.firebaseapp.com',

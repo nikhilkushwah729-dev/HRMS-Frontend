@@ -84,6 +84,11 @@
             </div>
             <h2 class="text-xl font-black text-white tracking-tight">{{ t('auth.signup.cardTitle') }}</h2>
             <p class="text-[11px] text-slate-500 mt-1 uppercase font-bold tracking-wider">{{ t('auth.signup.cardSubtitle') }}</p>
+            <div class="mt-4 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-left">
+              <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-300">{{ t('auth.signup.roleNoticeKicker') }}</p>
+              <p class="mt-1 text-xs font-semibold leading-5 text-emerald-100">{{ t('auth.signup.roleNotice') }}</p>
+              <p class="mt-1 text-[11px] leading-5 text-slate-300">{{ t('auth.signup.superAdminNote') }}</p>
+            </div>
           </div>
 
           @if (error()) {

@@ -26,19 +26,8 @@ export class LayoutService {
     }
 
     cycleDesktopSidebar() {
-        if (this.showSideBar()) {
-            this.showSideBar.set(false);
-            this.showSidebarMenu.set(true);
-            return;
-        }
-
-        if (this.showSidebarMenu()) {
-            this.showSideBar.set(false);
-            this.showSidebarMenu.set(false);
-            return;
-        }
-
-        this.showSideBar.set(true);
+        const shouldExpand = !this.showSideBar();
+        this.showSideBar.set(shouldExpand);
         this.showSidebarMenu.set(true);
     }
 

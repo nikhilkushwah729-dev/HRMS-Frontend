@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+import { PermissionService } from '../../core/services/permission.service';
 import { TimesheetFilters, TimesheetReportResponse, TimesheetService } from '../../core/services/timesheet.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -25,6 +27,11 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
       </section>
 
+      @if (!canManage()) {
+        <section class="rounded-md border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          Timesheet reporting is available only for managers, HR, and admins with reporting scope.
+        </section>
+      } @else {
       <section class="rounded-md border border-slate-200 bg-white p-5 sm:p-6">
         <form [formGroup]="filtersForm" class="grid gap-4 lg:grid-cols-5">
           <input class="app-field" type="date" formControlName="startDate" />
@@ -141,13 +148,19 @@ import { ToastService } from '../../core/services/toast.service';
           </table>
         </div>
       </section>
+      }
     </div>
   `,
 })
 export class TimesheetReportsComponent {
+  private authService = inject(AuthService);
+  private permissionService = inject(PermissionService);
   private timesheetService = inject(TimesheetService);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
+  private router = inject(Router);
+
+  readonly currentUser = signal(this.authService.getStoredUser());
 
   readonly filtersForm = this.fb.group({
     startDate: [''],
@@ -171,7 +184,15 @@ export class TimesheetReportsComponent {
   });
 
   constructor() {
-    this.loadReports();
+    if (this.canManage()) {
+      this.loadReports();
+    } else {
+      this.router.navigate(['/self-service/timesheet']);
+    }
+  }
+
+  canManage(): boolean {
+    return this.permissionService.isManagerialUser(this.currentUser());
   }
 
   loadReports(): void {
@@ -185,6 +206,10 @@ export class TimesheetReportsComponent {
   }
 
   exportEntries(): void {
+    if (!this.report().entries.length) {
+      this.toastService.error('No report entries available to export.');
+      return;
+    }
     const rows = [
       ['Employee', 'Code', 'Date', 'Project', 'Client', 'Hours', 'Billable', 'Status'],
       ...this.report().entries.map((entry) => [

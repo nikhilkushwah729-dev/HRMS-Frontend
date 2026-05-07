@@ -1,0 +1,23 @@
+:host {
+  display: block;
+}
+
+.geofence-map {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+:host ::ng-deep .leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+}
+
+.search-shell {
+  min-width: 0;
+}
+
+.search-shell input::-webkit-search-cancel-button {
+  appearance: none;
+}

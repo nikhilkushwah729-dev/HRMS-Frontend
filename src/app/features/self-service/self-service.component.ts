@@ -108,7 +108,7 @@ interface HolidayCalendarItem {
   ],
   template: `
     <div class="ess-clean-panel min-h-full bg-[#f8fafc]">
-      <div class="mx-auto w-full max-w-[1440px] space-y-4 p-4 sm:p-5 lg:p-6">
+      <div class="mx-auto w-full max-w-[1440px] space-y-5 p-4 sm:p-5 lg:p-6">
         <app-ess-announcements [announcements]="announcements()" [announcement]="announcements()[0]"></app-ess-announcements>
 
         <app-ess-greeting
@@ -122,7 +122,7 @@ interface HolidayCalendarItem {
 
         <app-ess-stats [stats]="workspaceStats()"></app-ess-stats>
 
-        <div class="grid grid-cols-1 gap-4 xl:auto-rows-[165px] xl:grid-cols-12">
+        <div class="grid grid-cols-1 gap-5 xl:auto-rows-[168px] xl:grid-cols-12">
           <div class="min-w-0 xl:col-span-7 xl:row-span-4">
               <app-ess-network-hub
                 [teammates]="teammates()"
@@ -199,23 +199,41 @@ interface HolidayCalendarItem {
   styles: [`
     :host { display: block; }
 
+    .ess-clean-panel {
+      color: #0f172a;
+    }
+
     :host ::ng-deep .ess-clean-panel .app-surface-card,
     :host ::ng-deep .ess-clean-panel .app-glass-card {
       background: #ffffff !important;
       border: 0 !important;
-      border-radius: 0.75rem !important;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+      border-radius: 1.5rem !important;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04) !important;
       --tw-ring-color: transparent !important;
     }
 
     :host ::ng-deep .ess-clean-panel .app-surface-card:hover,
     :host ::ng-deep .ess-clean-panel .app-glass-card:hover {
       transform: none !important;
-      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.09), 0 4px 10px rgba(15, 23, 42, 0.05) !important;
     }
 
     :host ::ng-deep .ess-clean-panel .hover\\:-translate-y-1:hover {
       transform: none !important;
+    }
+
+    :host ::ng-deep .ess-clean-panel .custom-scrollbar::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    :host ::ng-deep .ess-clean-panel .custom-scrollbar::-webkit-scrollbar-thumb {
+      border-radius: 9999px;
+      background: rgba(148, 163, 184, 0.45);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+    }
+
+    :host ::ng-deep .ess-clean-panel .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
     }
 
     :host ::ng-deep .ess-clean-panel app-ess-network-hub,
@@ -287,6 +305,10 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
   calendarGrid = computed(() => this.buildCalendarDays());
   readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
     this.languageService.t(key, params);
+  readonly tOr = (key: string, fallback: string, params?: Record<string, string | number | null | undefined>) => {
+    const translated = this.languageService.t(key, params);
+    return translated === key ? fallback : translated;
+  };
 
   workspaceStats = computed<InsightCard[]>(() => [
     {
@@ -433,11 +455,11 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
     const record = this.calendarAttendance().find((r) => this.tryIsoDate(r.date) === iso);
 
     return [
-      { label: this.t('selfService.calendar.status'), value: day.label || this.t('selfService.notAvailable') },
-      { label: this.t('selfService.calendar.checkIn'), value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : this.t('selfService.notAvailable') },
-      { label: this.t('selfService.calendar.duration'), value: record?.work_hours ? `${record.work_hours}H` : '0H' },
-      { label: this.t('selfService.calendar.overtime'), value: '0H' },
-      { label: this.t('selfService.calendar.location'), value: record?.location_address || 'HQ' }
+      { label: this.tOr('selfService.calendar.status', 'Status'), value: day.label || this.tOr('selfService.notAvailable', 'Not Available') },
+      { label: this.tOr('selfService.calendar.checkIn', 'Check-In'), value: record?.check_in ? new Date(record.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : this.tOr('selfService.notAvailable', 'Not Available') },
+      { label: this.tOr('selfService.calendar.duration', 'Duration'), value: record?.work_hours ? `${record.work_hours}H` : '0H' },
+      { label: this.tOr('selfService.calendar.overtime', 'Overtime'), value: '0H' },
+      { label: this.tOr('selfService.calendar.location', 'Location'), value: record?.location_address || 'HQ' }
     ];
   });
 
@@ -507,6 +529,8 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
             this.t('selfService.specialMessageBody')
           ]);
           this.playConfetti();
+        } else {
+          this.specialMessage.set([]);
         }
       },
       error: () => {
@@ -922,11 +946,21 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
   }
 
   private toIsoDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private tryIsoDate(value: Date | string | null | undefined): string | null {
     if (!value) return null;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      const directIsoMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (directIsoMatch) {
+        return directIsoMatch[1];
+      }
+    }
     const date = value instanceof Date ? value : new Date(value);
     if (Number.isNaN(date.getTime())) return null;
     return this.toIsoDate(date);

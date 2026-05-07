@@ -34,6 +34,12 @@ import { ToastService } from '../../core/services/toast.service';
         <button type="button" (click)="bulkApprove()" class="rounded-2xl border border-emerald-200 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-50">Bulk Approve</button>
       </div>
 
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 class="text-sm font-black text-slate-900">Approval Note</h2>
+        <p class="mt-1 text-xs text-slate-500">Use this note for send back, reject, or optional approval comments. Bulk approval can use the same shared note.</p>
+        <textarea [(ngModel)]="actionNote" class="app-field mt-4 min-h-[120px]" placeholder="Add approval comment, correction guidance, or rejection reason"></textarea>
+      </section>
+
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200">
           <thead>
@@ -89,6 +95,7 @@ export class ApprovalCenterPendingComponent {
   readonly items = signal<RequestRecord[]>([]);
   readonly selectedIds = signal<Set<number>>(new Set());
   readonly requestTypes = signal(this.requestService.getRequestTypes());
+  actionNote = '';
 
   search = '';
   type = '';
@@ -148,14 +155,16 @@ export class ApprovalCenterPendingComponent {
   }
 
   process(id: number, action: 'approved' | 'rejected' | 'sent_back'): void {
-    const comment =
-      action === 'approved'
-        ? window.prompt('Approval comment (optional)') ?? ''
-        : window.prompt(
-            action === 'rejected'
-              ? 'Rejection reason'
-              : 'Correction / send-back reason',
-          ) ?? '';
+    const comment = this.actionNote.trim();
+    if ((action === 'rejected' || action === 'sent_back') && !comment) {
+      this.toastService.show(
+        action === 'rejected'
+          ? 'Add a rejection reason before rejecting.'
+          : 'Add a correction reason before sending back.',
+        'error',
+      );
+      return;
+    }
     this.requestService.processRequest(id, action, comment || undefined).subscribe({
       next: (item) => {
         if (!item) {
@@ -163,6 +172,7 @@ export class ApprovalCenterPendingComponent {
           return;
         }
         this.toastService.show(`Request ${action.replace('_', ' ')} successfully.`, 'success');
+        this.actionNote = '';
         this.load();
       },
       error: () =>
@@ -176,10 +186,15 @@ export class ApprovalCenterPendingComponent {
       this.toastService.show('Select requests before using bulk approval.', 'error');
       return;
     }
-    this.requestService.bulkProcessRequests(ids, 'approved', 'Bulk approved by approver.').subscribe({
+    this.requestService.bulkProcessRequests(
+      ids,
+      'approved',
+      this.actionNote.trim() || 'Bulk approved by approver.',
+    ).subscribe({
       next: () => {
         this.toastService.show('Selected requests approved successfully.', 'success');
         this.selectedIds.set(new Set());
+        this.actionNote = '';
         this.load();
       },
       error: () =>

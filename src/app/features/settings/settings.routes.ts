@@ -1,8 +1,6 @@
 import { Routes } from '@angular/router';
 import { SettingsLayoutComponent } from './settings-layout.component';
 import { AllSettingsComponent } from './all-settings.component';
-import { SettingsGenericPageComponent } from './shared/settings-generic-page.component';
-import { SETTINGS_PAGE_CONFIGS } from './shared/settings-page.config';
 
 export const SETTINGS_ROUTES: Routes = [
   {
@@ -51,33 +49,32 @@ export const SETTINGS_ROUTES: Routes = [
       },
       {
         path: 'attendance/regularization',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['attendanceRegularization'] }
+        redirectTo: '/attendance/regularizations',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/attendance-mode',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['attendanceMode'] }
+        loadComponent: () => import('./attendance/attendance-mode/attendance-mode.component').then(m => m.AttendanceModeComponent)
       },
       {
         path: 'attendance/kiosk-manager',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['kioskManager'] }
+        redirectTo: '/admin/kiosks',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/kiosk-setup',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['kioskSetup'] }
+        redirectTo: '/admin/kiosks/settings',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/device-restriction',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['deviceRestriction'] }
+        redirectTo: '/admin/kiosks/settings',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/advance-settings',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['advanceAttendance'] }
+        redirectTo: '/attendance/workspace',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/geo-fence',
@@ -93,8 +90,8 @@ export const SETTINGS_ROUTES: Routes = [
       },
       {
         path: 'attendance/flexi-holiday',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['flexiHoliday'] }
+        redirectTo: '/settings/organisation/holiday',
+        pathMatch: 'full'
       },
       {
         path: 'attendance/face-recognition',
@@ -102,38 +99,38 @@ export const SETTINGS_ROUTES: Routes = [
       },
       {
         path: 'organisation/penalty',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['penalty'] }
+        redirectTo: '/settings/organisation/organisation-profile',
+        pathMatch: 'full'
       },
       {
         path: 'organisation/designation-hierarchy',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['hierarchy'] }
+        redirectTo: '/settings/organisation/designation',
+        pathMatch: 'full'
       },
       {
         path: 'organisation/divisions',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['divisions'] }
+        redirectTo: '/settings/organisation/departments',
+        pathMatch: 'full'
       },
       {
         path: 'organisation/policies',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['policies'] }
+        redirectTo: '/settings/organisation/holiday',
+        pathMatch: 'full'
       },
       {
         path: 'leave/short-day-leave',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['shortDayLeave'] }
+        redirectTo: '/leave/settings',
+        pathMatch: 'full'
       },
       {
         path: 'leave/time-off',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['timeOff'] }
+        redirectTo: '/self-service/requests/time-off',
+        pathMatch: 'full'
       },
       {
         path: 'leave/comp-off',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['compOff'] }
+        redirectTo: '/leave/settings',
+        pathMatch: 'full'
       },
       {
         path: 'leave/leave-types',
@@ -141,18 +138,18 @@ export const SETTINGS_ROUTES: Routes = [
       },
       {
         path: 'employee/onboarding',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['onboarding'] }
+        redirectTo: '/employees/invitations',
+        pathMatch: 'full'
       },
       {
         path: 'visit-management-settings',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['visitManagementSettings'] }
+        redirectTo: '/visit-management',
+        pathMatch: 'full'
       },
       {
         path: 'approval-flow',
-        component: SettingsGenericPageComponent,
-        data: { config: SETTINGS_PAGE_CONFIGS['approvalFlow'] }
+        redirectTo: '/approval-center',
+        pathMatch: 'full'
       },
       {
         path: 'import-wizard',

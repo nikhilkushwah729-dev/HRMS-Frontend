@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PayrollDashboard, PayrollService, Payslip } from '../../core/services/payroll.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -8,6 +8,7 @@ import { ToastService } from '../../core/services/toast.service';
   selector: 'app-self-service-payroll',
   standalone: true,
   imports: [CommonModule, RouterLink],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
       <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -206,7 +207,31 @@ export class SelfServicePayrollComponent {
   }
 
   payslipPeriod(item: Payslip): string {
-    return `${item.year}-${String(item.month).padStart(2, '0')}`;
+    return `${item.year}-${this.monthKey(item.month)}`;
+  }
+
+  private monthKey(month: string): string {
+    const normalized = String(month ?? '').trim().toLowerCase();
+    const monthMap: Record<string, string> = {
+      january: '01',
+      february: '02',
+      march: '03',
+      april: '04',
+      may: '05',
+      june: '06',
+      july: '07',
+      august: '08',
+      september: '09',
+      october: '10',
+      november: '11',
+      december: '12',
+    };
+    return (
+      monthMap[normalized] ??
+      (Number.isFinite(Number(month))
+        ? String(Number(month)).padStart(2, '0')
+        : '00')
+    );
   }
 
   statusBadge(status: Payslip['status']): string {

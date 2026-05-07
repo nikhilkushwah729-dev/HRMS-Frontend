@@ -53,6 +53,25 @@ import { CustomModalComponent } from '../../../core/components/modal/custom-moda
         </div>
       </div>
 
+      <div *ngIf="pendingPolygonDraft()" class="bg-blue-50 border border-blue-200 rounded-md p-4 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Polygon Draft Received</p>
+            <h3 class="mt-1 text-lg font-bold text-slate-900">{{ pendingPolygonDraft()?.name || 'Polygon Geofence Draft' }}</h3>
+            <p class="mt-1 text-sm text-slate-600">
+              {{ pendingPolygonDraft()?.points?.length || 0 }} point(s) were carried from settings. Final polygon persistence still needs the dedicated backend save endpoint.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="clearPendingPolygonDraft()"
+            class="rounded-md border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+          >
+            Clear Draft Notice
+          </button>
+        </div>
+      </div>
+
       <!-- Zones List -->
       <div class="bg-white border border-slate-200 rounded-md overflow-hidden shadow-sm">
         <div class="p-5 border-b border-slate-100 flex justify-between items-center">
@@ -212,6 +231,8 @@ export class GeofenceManagementComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
   @ViewChild('zoneMapContainer') zoneMapContainer?: ElementRef<HTMLDivElement>;
+  pendingPolygonDraft = signal<{ name?: string; points?: Array<{ lat: number; lng: number }> } | null>(null);
+  private readonly polygonDraftStorageKey = 'hrms_polygon_geofence_draft';
 
   settings = signal<GeoFenceSettings>({ geofence_enabled: false, zones: [], require_geofence_for_all: false });
   zones = signal<GeoFenceZone[]>([]);
@@ -234,7 +255,32 @@ export class GeofenceManagementComponent implements OnInit {
   private zoneRadiusCircle: any = null;
 
   ngOnInit() {
+    this.loadPendingPolygonDraft();
     this.loadData();
+  }
+
+  loadPendingPolygonDraft() {
+    try {
+      const raw = localStorage.getItem(this.polygonDraftStorageKey);
+      if (!raw) {
+        this.pendingPolygonDraft.set(null);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      this.pendingPolygonDraft.set(parsed);
+    } catch {
+      this.pendingPolygonDraft.set(null);
+    }
+  }
+
+  clearPendingPolygonDraft() {
+    try {
+      localStorage.removeItem(this.polygonDraftStorageKey);
+    } catch {
+      // Ignore cleanup errors.
+    }
+    this.pendingPolygonDraft.set(null);
+    this.toastService.success('Polygon draft notice cleared');
   }
 
   loadData() {
