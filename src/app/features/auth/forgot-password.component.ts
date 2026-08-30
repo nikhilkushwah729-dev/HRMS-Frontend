@@ -15,14 +15,8 @@ import { AuthLanguageSwitcherComponent } from './auth-language-switcher.componen
   <!-- Left Banner -->
   <div class="hidden lg:flex w-[45%] xl:w-[42%] bg-gradient-to-br from-slate-900 via-primary-900/60 to-slate-900 p-10 xl:p-14 flex-col justify-center relative overflow-hidden text-white flex-shrink-0">
     <div class="relative z-10 max-w-[440px]">
-      <div class="flex items-center gap-3 mb-10">
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 w-12 h-12 rounded-md flex items-center justify-center shadow-lg shadow-primary-500/30">
-          <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
-        </div>
-        <div>
-          <h1 class="text-2xl xl:text-3xl font-black tracking-tight">HRNexus</h1>
-          <span class="text-[10px] font-bold text-primary-300 uppercase tracking-[0.2em]">Technology</span>
-        </div>
+      <div class="mb-10 group cursor-pointer">
+        <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="h-14 w-auto max-w-[220px] object-contain transition-transform duration-500 group-hover:scale-[1.02] xl:h-16 xl:max-w-[250px]">
       </div>
       <h2 class="text-3xl xl:text-4xl leading-tight mb-4 font-bold">
         {{ t('auth.forgot.heroTitlePrefix') }} <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-teal-300">{{ t('auth.forgot.heroTitleAccent') }}</span>
@@ -49,12 +43,12 @@ import { AuthLanguageSwitcherComponent } from './auth-language-switcher.componen
 
       <div class="lg:hidden mb-4 w-full max-w-[480px] rounded-[24px] border border-white/10 bg-white/5 p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:mb-5 sm:rounded-[28px]">
         <div class="flex items-center gap-3">
-          <div class="bg-gradient-to-br from-primary-500 to-primary-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/30">
-            <svg xmlns="http://www.w3.org/2000/svg" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+          <div class="flex h-12 w-[148px] items-center justify-center overflow-hidden px-3">
+            <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="h-7 w-auto object-contain">
           </div>
           <div>
             <p class="text-[10px] font-black uppercase tracking-[0.24em] text-teal-100/70">{{ t('auth.forgot.mobileKicker') }}</p>
-            <p class="mt-1 text-sm font-black tracking-tight text-white">HRNexus Security</p>
+            <p class="mt-1 text-sm font-black tracking-tight text-white">Account Security</p>
           </div>
         </div>
         <h2 class="mt-2 text-xl font-black tracking-tight sm:text-2xl">{{ t('auth.forgot.mobileTitle') }}</h2>
@@ -63,8 +57,8 @@ import { AuthLanguageSwitcherComponent } from './auth-language-switcher.componen
       <div class="w-full max-w-[480px]">
         <div class="rounded-[24px] border border-white/10 bg-slate-800/80 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:rounded-[30px] sm:p-7">
           <div class="text-center mb-5">
-            <div class="w-12 h-12 rounded-full bg-primary-500/10 flex items-center justify-center mx-auto mb-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <div class="mx-auto mb-3 flex h-16 w-[182px] items-center justify-center overflow-hidden px-3">
+              <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="h-8 w-auto object-contain">
             </div>
             <h2 class="text-xl font-bold text-white mb-0.5">{{ t('auth.forgot.cardTitle') }}</h2>
             <p class="text-xs text-slate-400">{{ t('auth.forgot.cardSubtitle') }}</p>

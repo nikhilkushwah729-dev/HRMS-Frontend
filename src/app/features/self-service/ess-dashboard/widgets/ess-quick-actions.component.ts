@@ -16,10 +16,10 @@ export interface QuickAction {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col overflow-hidden rounded-[2.5rem] bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
+    <div class="flex h-full flex-col overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
       <div class="flex flex-col shrink-0 gap-4 p-8 border-b border-slate-50 bg-slate-50/20 sm:flex-row sm:items-center justify-between">
         <div class="flex items-center gap-4">
-           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+           <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white text-emerald-600 shadow-sm">
              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><path d="M18 10l2 2 4-4"/></svg>
            </div>
            <div>
@@ -32,8 +32,8 @@ export interface QuickAction {
       <div class="p-8">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @for (action of actions(); track action.title) {
-          <button (click)="navigate.emit(action.route)" class="group relative flex flex-col items-start rounded-[2rem] bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 ring-1 ring-transparent hover:ring-slate-100">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm text-emerald-600 transition-transform group-hover:scale-110">
+          <button (click)="navigate.emit(action.route)" class="group relative flex flex-col items-start rounded-md bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 ring-1 ring-transparent hover:ring-slate-100">
+            <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white shadow-sm text-emerald-600 transition-transform group-hover:scale-110">
                <span [innerHTML]="getIcon(action.icon)"></span>
             </div>
             
@@ -44,7 +44,7 @@ export interface QuickAction {
 
             <div class="mt-6 flex w-full items-center justify-between border-t border-slate-200/50 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Launch Module</span>
-               <div class="h-8 w-8 flex items-center justify-center rounded-xl bg-slate-900 text-white">
+               <div class="h-8 w-8 flex items-center justify-center rounded-md bg-slate-900 text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                </div>
             </div>

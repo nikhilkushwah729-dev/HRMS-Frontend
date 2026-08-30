@@ -34,7 +34,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
         class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/55 px-2 py-3 backdrop-blur-sm sm:px-4 sm:py-6"
       >
         <div
-          class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
+          class="relative w-full max-w-2xl overflow-hidden rounded-md border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
         >
           <div
             class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6"
@@ -143,14 +143,14 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
           >
             <button
               (click)="closeModals()"
-              class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+              class="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
             >
               Cancel
             </button>
             <button
               (click)="saveExperience()"
               [disabled]="experienceForm.invalid || saving()"
-              class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
+              class="rounded-md bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
             >
               {{ saving() ? 'Saving...' : 'Save Record' }}
             </button>
@@ -164,7 +164,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
         class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/55 px-2 py-3 backdrop-blur-sm sm:px-4 sm:py-6"
       >
         <div
-          class="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
+          class="relative w-full max-w-2xl overflow-hidden rounded-md border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
         >
           <div
             class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6"
@@ -274,14 +274,14 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
           >
             <button
               (click)="closeModals()"
-              class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+              class="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
             >
               Cancel
             </button>
             <button
               (click)="saveEducation()"
               [disabled]="educationForm.invalid || saving()"
-              class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
+              class="rounded-md bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
             >
               {{ saving() ? 'Saving...' : 'Save Record' }}
             </button>
@@ -295,7 +295,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
         class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/55 px-2 py-3 backdrop-blur-sm sm:px-4 sm:py-6"
       >
         <div
-          class="relative w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
+          class="relative w-full max-w-lg overflow-hidden rounded-md border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
         >
           <div
             class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-3 sm:px-6"
@@ -328,7 +328,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                   >Select File</label
                 >
                 <div
-                  class="relative flex items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 transition hover:bg-slate-100"
+                  class="relative flex items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 p-6 transition hover:bg-slate-100"
                 >
                   <input
                     type="file"
@@ -360,14 +360,14 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
           >
             <button
               (click)="closeModals()"
-              class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+              class="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
             >
               Cancel
             </button>
             <button
               (click)="uploadNewDocument()"
               [disabled]="documentForm.invalid || !selectedFile || saving()"
-              class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
+              class="rounded-md bg-slate-900 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
             >
               {{ saving() ? 'Uploading...' : 'Upload Now' }}
             </button>
@@ -381,7 +381,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
         class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden bg-slate-950/55 px-2 py-3 backdrop-blur-sm sm:px-4 sm:py-6"
       >
         <div
-          class="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
+          class="relative w-full max-w-4xl overflow-hidden rounded-md border border-slate-200 bg-white shadow-2xl flex flex-col max-h-full"
         >
           <div
             class="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-4 py-2.5 sm:px-6 sm:py-3.5"
@@ -399,7 +399,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
             <button
               type="button"
               (click)="cancelCrop()"
-              class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              class="rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
               Close
             </button>
@@ -409,7 +409,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
             <div class="grid gap-5 lg:grid-cols-[1fr_300px]">
               <div class="space-y-4">
                 <div
-                  class="rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-5"
+                  class="rounded-md border border-slate-200 bg-slate-100 p-3 sm:p-5"
                 >
                   <div
                     class="mx-auto w-full max-w-[240px] sm:max-w-[320px] lg:max-w-[360px]"
@@ -565,14 +565,14 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                       type="button"
                       (click)="applyCrop()"
                       [disabled]="avatarSaving()"
-                      class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
+                      class="w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-slate-800 disabled:opacity-50"
                     >
                       {{ avatarSaving() ? 'Saving...' : 'Apply Crop' }}
                     </button>
                     <button
                       type="button"
                       (click)="cancelCrop()"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+                      class="w-full rounded-md border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100"
                     >
                       Cancel
                     </button>
@@ -666,28 +666,28 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 <button
                   type="button"
                   (click)="selectTab('personal')"
-                  class="rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
+                  class="rounded-md bg-slate-900 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Edit Profile
                 </button>
                 <button
                   type="button"
                   (click)="router.navigateByUrl('/self-service')"
-                  class="rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
+                  class="rounded-md border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Open ESS Center
                 </button>
                 <button
                   type="button"
                   (click)="downloadIdCard()"
-                  class="rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
+                  class="rounded-md border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Download ID Card
                 </button>
                 <button
                   type="button"
                   (click)="refreshProfile()"
-                  class="rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
+                  class="rounded-md border border-slate-200 bg-white px-6 py-3.5 text-sm font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:-translate-y-0.5 active:translate-y-0"
                 >
                   Refresh
                 </button>
@@ -707,7 +707,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
           >
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
               <div
-                class="rounded-2xl border border-white bg-white/80 backdrop-blur-md p-6 shadow-xl shadow-slate-200/40"
+                class="rounded-md border border-white bg-white/80 backdrop-blur-md p-6 shadow-xl shadow-slate-200/40"
               >
                 <p
                   class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500"
@@ -723,7 +723,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 </p>
               </div>
               <div
-                class="rounded-2xl border border-white bg-white/80 backdrop-blur-md p-6 shadow-xl shadow-slate-200/40"
+                class="rounded-md border border-white bg-white/80 backdrop-blur-md p-6 shadow-xl shadow-slate-200/40"
               >
                 <p
                   class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500"
@@ -757,11 +757,11 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               [class.text-white]="currentTab() === tab.id"
               [class.shadow-xl]="currentTab() === tab.id"
               [class.shadow-slate-200]="currentTab() === tab.id"
-              class="flex w-full items-center gap-4 rounded-xl px-4 py-3.5 text-left transition-all duration-300 hover:bg-slate-100 group"
+              class="flex w-full items-center gap-4 rounded-md px-4 py-3.5 text-left transition-all duration-300 hover:bg-slate-100 group"
               [ngClass]="currentTab() === tab.id ? '' : 'hover:translate-x-1'"
             >
               <span
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black transition-transform group-hover:scale-110"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-black transition-transform group-hover:scale-110"
                 [ngClass]="
                   currentTab() === tab.id
                     ? 'bg-white/15 text-white'
@@ -811,7 +811,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
             </div>
 
             <div
-              class="mb-8 grid gap-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-6 sm:grid-cols-[112px_minmax(0,1fr)]"
+              class="mb-8 grid gap-6 rounded-md border border-slate-100 bg-slate-50/50 p-6 sm:grid-cols-[112px_minmax(0,1fr)]"
             >
               <button
                 type="button"
@@ -861,7 +861,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                     type="button"
                     *ngIf="avatarPreview()"
                     (click)="openCropForCurrentImage()"
-                    class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
+                    class="rounded-md border border-slate-200 bg-white px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50 hover:border-slate-300"
                   >
                     Crop Image
                   </button>
@@ -869,7 +869,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                     type="button"
                     *ngIf="avatarPreview()"
                     (click)="removeAvatar()"
-                    class="rounded-xl border border-rose-100 bg-rose-50 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-rose-700 shadow-sm transition hover:bg-rose-100 hover:border-rose-200"
+                    class="rounded-md border border-rose-100 bg-rose-50 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-rose-700 shadow-sm transition hover:bg-rose-100 hover:border-rose-200"
                   >
                     Remove Photo
                   </button>
@@ -971,7 +971,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               <button
                 type="button"
                 (click)="resetForm()"
-                class="rounded-xl border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
+                class="rounded-md border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
               >
                 Reset
               </button>
@@ -979,7 +979,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 type="button"
                 (click)="saveProfile()"
                 [disabled]="profileForm.invalid || saving()"
-                class="rounded-xl bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                class="rounded-md bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {{ saving() ? 'Saving...' : 'Save Profile' }}
               </button>
@@ -1003,7 +1003,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
 
             <div class="grid gap-5 md:grid-cols-2">
               <div
-                class="rounded-xl bg-slate-50 border border-slate-100/50 p-6 transition-all hover:bg-slate-100/40"
+                class="rounded-md bg-slate-50 border border-slate-100/50 p-6 transition-all hover:bg-slate-100/40"
                 *ngFor="let item of employmentDetails()"
               >
                 <p
@@ -1066,7 +1066,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               <button
                 type="button"
                 (click)="resetForm()"
-                class="rounded-xl border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
+                class="rounded-md border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
               >
                 Reset
               </button>
@@ -1074,7 +1074,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 type="button"
                 (click)="saveProfile()"
                 [disabled]="profileForm.invalid || saving()"
-                class="rounded-xl bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                class="rounded-md bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {{ saving() ? 'Saving...' : 'Save Contact' }}
               </button>
@@ -1098,7 +1098,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
 
             <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               <div
-                class="rounded-xl bg-slate-50 border border-slate-100/50 p-6 transition-all hover:bg-slate-100/40"
+                class="rounded-md bg-slate-50 border border-slate-100/50 p-6 transition-all hover:bg-slate-100/40"
                 *ngFor="let item of securityDetails()"
               >
                 <p
@@ -1186,7 +1186,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 />
               </div>
               <div
-                class="rounded-xl bg-emerald-50 border border-emerald-100 p-5 text-xs leading-relaxed text-emerald-800 md:col-span-2"
+                class="rounded-md bg-emerald-50 border border-emerald-100 p-5 text-xs leading-relaxed text-emerald-800 md:col-span-2"
               >
                 <p class="font-black uppercase tracking-widest text-emerald-900">
                   Note for payroll
@@ -1204,7 +1204,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               <button
                 type="button"
                 (click)="resetForm()"
-                class="rounded-xl border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
+                class="rounded-md border border-slate-200 px-6 py-3 text-[11px] font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 hover:border-slate-300"
               >
                 Reset
               </button>
@@ -1212,7 +1212,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 type="button"
                 (click)="saveProfile()"
                 [disabled]="profileForm.invalid || saving()"
-                class="rounded-xl bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
+                class="rounded-md bg-slate-900 px-8 py-3 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 disabled:opacity-50"
               >
                 {{ saving() ? 'Saving...' : 'Save Payment Details' }}
               </button>
@@ -1236,7 +1236,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
               </div>
               <button
                 (click)="openAddDocument()"
-                class="flex items-center gap-3 rounded-xl bg-slate-900 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
+                class="flex items-center gap-3 rounded-md bg-slate-900 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-200 transition hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -1259,10 +1259,10 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
             <div class="space-y-3">
               <div
                 *ngFor="let doc of documents()"
-                class="group flex items-center gap-5 rounded-2xl border border-white bg-white p-5 shadow-xl shadow-slate-200/40 ring-1 ring-slate-100/50 transition-all hover:bg-slate-50 hover:scale-[1.01]"
+                class="group flex items-center gap-5 rounded-md border border-white bg-white p-5 shadow-xl shadow-slate-200/40 ring-1 ring-slate-100/50 transition-all hover:bg-slate-50 hover:scale-[1.01]"
               >
                 <div
-                  class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors"
+                  class="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -1294,13 +1294,13 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                 </div>
                 <div class="flex gap-2">
                   <button
-                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    class="rounded-md border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm transition hover:bg-slate-50"
                   >
                     Download
                   </button>
                   <button
                     (click)="deleteDocument(doc.id)"
-                    class="rounded-xl border border-rose-100 bg-rose-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-700 shadow-sm transition hover:bg-rose-100"
+                    class="rounded-md border border-rose-100 bg-rose-50 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-rose-700 shadow-sm transition hover:bg-rose-100"
                   >
                     Delete
                   </button>
@@ -1343,13 +1343,13 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                   </p>
                   <button
                     (click)="openAddExperience()"
-                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm transition hover:bg-slate-50"
+                    class="rounded-md border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm transition hover:bg-slate-50"
                   >
                     + Add Experience
                   </button>
                 </div>
                 <div class="space-y-6">
-                  <div *ngFor="let exp of experience()" class="group relative rounded-2xl border border-white bg-white/50 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40">
+                  <div *ngFor="let exp of experience()" class="group relative rounded-md border border-white bg-white/50 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40">
                     <div
                       class="absolute -left-[27px] top-7 h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-900 ring-2 ring-slate-100"
                     ></div>
@@ -1403,13 +1403,13 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                   </p>
                   <button
                     (click)="openAddEducation()"
-                    class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm transition hover:bg-slate-50"
+                    class="rounded-md border border-slate-200 bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-slate-900 shadow-sm transition hover:bg-slate-50"
                   >
                     + Add Education
                   </button>
                 </div>
                 <div class="space-y-6">
-                  <div *ngFor="let edu of education()" class="group relative rounded-2xl border border-white bg-white/50 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40">
+                  <div *ngFor="let edu of education()" class="group relative rounded-md border border-white bg-white/50 p-5 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40">
                     <div
                       class="absolute -left-[27px] top-7 h-2.5 w-2.5 rounded-full border-2 border-white bg-slate-400 ring-2 ring-slate-100"
                     ></div>
@@ -1439,7 +1439,7 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                     </p>
                     <p
                       *ngIf="edu.grade"
-                      class="mt-3 inline-flex rounded-lg bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700"
+                      class="mt-3 inline-flex rounded-md bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-700"
                     >
                       Grade: {{ edu.grade }}
                     </p>

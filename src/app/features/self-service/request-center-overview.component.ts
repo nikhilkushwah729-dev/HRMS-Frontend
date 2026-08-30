@@ -25,7 +25,7 @@ import { Expense, ExpenseService } from '../../core/services/expense.service';
 
       <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         @for (card of cards(); track card.title) {
-          <a [routerLink]="card.route" class="rounded-lg border border-slate-200 bg-slate-50/80 p-4 transition hover:border-violet-200 hover:bg-violet-50/60">
+          <a [routerLink]="card.route" class="rounded-md border border-slate-200 bg-slate-50/80 p-4 transition hover:border-violet-200 hover:bg-violet-50/60">
             <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">{{ card.kicker }}</p>
             <p class="mt-3 text-2xl font-black text-slate-900">{{ card.count }}</p>
             <p class="mt-2 text-sm font-semibold text-slate-900">{{ card.title }}</p>

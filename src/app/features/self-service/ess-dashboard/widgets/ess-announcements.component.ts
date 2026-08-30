@@ -7,13 +7,13 @@ import { LanguageService } from '../../../../core/services/language.service';
   standalone: true,
   imports: [CommonModule, DatePipe],
   template: `
-    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="overflow-hidden rounded-md border border-slate-200 bg-white shadow-sm">
       @if (currentAnnouncement()) {
         <div class="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-white">
           <div class="absolute inset-y-0 right-0 w-40 bg-white/10 blur-3xl"></div>
           <div class="relative flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex min-w-0 items-start gap-4">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/16 ring-1 ring-white/25">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-white/16 ring-1 ring-white/25">
                 <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               </div>
 
@@ -42,8 +42,8 @@ import { LanguageService } from '../../../../core/services/language.service';
             </div>
 
             <div class="flex shrink-0 items-center gap-3">
-              <div class="flex items-center gap-3 rounded-2xl bg-slate-950/15 px-4 py-3 ring-1 ring-white/15">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/16 text-white">
+              <div class="flex items-center gap-3 rounded-md bg-slate-950/15 px-4 py-3 ring-1 ring-white/15">
+                <div class="flex h-10 w-10 items-center justify-center rounded-md bg-white/16 text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
                 </div>
                 <div>
@@ -59,14 +59,14 @@ import { LanguageService } from '../../../../core/services/language.service';
                   <button
                     type="button"
                     (click)="previous()"
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/14 text-white transition hover:bg-white/25"
+                    class="flex h-10 w-10 items-center justify-center rounded-md bg-white/14 text-white transition hover:bg-white/25"
                     aria-label="Previous announcement">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
                   </button>
                   <button
                     type="button"
                     (click)="next()"
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/14 text-white transition hover:bg-white/25"
+                    class="flex h-10 w-10 items-center justify-center rounded-md bg-white/14 text-white transition hover:bg-white/25"
                     aria-label="Next announcement">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
                   </button>
@@ -77,7 +77,7 @@ import { LanguageService } from '../../../../core/services/language.service';
         </div>
       } @else {
         <div class="flex min-h-[140px] items-center gap-4 p-5 sm:p-6">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-300">
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-300">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
           </div>
           <div class="min-w-0">

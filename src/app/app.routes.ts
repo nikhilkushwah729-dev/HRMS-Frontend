@@ -30,6 +30,14 @@ export const routes: Routes = [
         (m) => m.KioskHomeComponent,
       ),
   },
+  {
+    path: 'billing',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/billing/billing.component').then(
+        (m) => m.BillingComponent,
+      ),
+  },
 
   {
     path: '',
@@ -700,14 +708,6 @@ export const routes: Routes = [
       },
       { path: '', redirectTo: '', pathMatch: 'full' },
     ],
-  },
-  {
-    path: 'billing',
-    canActivate: [authGuard],
-    loadComponent: () =>
-      import('./features/billing/billing.component').then(
-        (m) => m.BillingComponent,
-      ),
   },
   { path: '**', redirectTo: '' },
 ];

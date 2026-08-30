@@ -8,7 +8,7 @@
     ? 'http://localhost:3333/api'
     : 'https://hrms-backend-r5ed.onrender.com/api';
 
-  window.__HRMS_CONFIG__ = window.__HRMS_CONFIG__ || {
+  window.__HRMS_CONFIG__ = Object.assign({
     apiUrl: liveApiUrl,
-  };
+  }, window.__HRMS_CONFIG__ || {});
 })();

@@ -372,7 +372,7 @@
     }
 
     .app-surface-card {
-        @apply rounded-xl border;
+        @apply rounded-md border;
         border-color: rgba(120, 113, 108, 0.12);
         background: rgba(255, 255, 255, 0.88);
         box-shadow: var(--app-shadow-soft);
@@ -442,7 +442,7 @@
 
     /* ===== SHARED PANEL STYLES - rounded-md for all panels ===== */
     .panel {
-        @apply bg-white rounded-xl border border-slate-200 shadow-sm transition-all duration-200;
+        @apply bg-white rounded-md border border-slate-200 shadow-sm transition-all duration-200;
         box-shadow: var(--app-shadow-soft);
     }
 

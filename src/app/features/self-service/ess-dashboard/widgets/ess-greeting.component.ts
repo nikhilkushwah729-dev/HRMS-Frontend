@@ -10,7 +10,7 @@ import { LanguageService } from '../../../../core/services/language.service';
   template: `
     <div class="grid grid-cols-12 gap-5">
       <div class="col-span-12">
-        <div class="relative overflow-hidden rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-xl hover:shadow-slate-200/40 sm:p-7 lg:p-8">
+        <div class="relative overflow-hidden rounded-md bg-white p-6 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-xl hover:shadow-slate-200/40 sm:p-7 lg:p-8">
           <div class="relative z-10 flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex min-w-0 items-center gap-5 sm:gap-6">
               <div class="relative cursor-pointer group" (click)="navigate.emit('/profile')">
@@ -45,14 +45,14 @@ import { LanguageService } from '../../../../core/services/language.service';
             <div class="flex flex-wrap items-center gap-3 lg:justify-end">
               <button
                 (click)="navigate.emit('/profile')"
-                class="flex h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
+                class="flex h-12 items-center gap-3 rounded-md border border-slate-200 bg-white px-5 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
                 Profile
               </button>
               <button
                 (click)="punchAction.emit()"
-                class="flex h-12 items-center gap-3 rounded-2xl bg-slate-900 px-6 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]"
+                class="flex h-12 items-center gap-3 rounded-md bg-slate-900 px-6 text-sm font-black text-white shadow-xl shadow-slate-200 transition hover:bg-slate-800 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>
                 {{ t('selfService.greeting.dailyPunch') }}
@@ -67,10 +67,10 @@ import { LanguageService } from '../../../../core/services/language.service';
       @if (specialMessage().length > 0) {
         <div class="col-span-12">
           @for (msg of specialMessage(); track msg) {
-            <div class="group relative overflow-hidden rounded-[1.75rem] bg-emerald-600 p-5 text-white shadow-lg shadow-emerald-200 sm:p-6">
+            <div class="group relative overflow-hidden rounded-md bg-emerald-600 p-5 text-white shadow-lg shadow-emerald-200 sm:p-6">
               <div class="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex min-w-0 items-center gap-4">
-                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md">
+                  <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-white/20 backdrop-blur-md">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                   </div>
                   <div class="min-w-0">
@@ -78,7 +78,7 @@ import { LanguageService } from '../../../../core/services/language.service';
                     <p class="text-sm font-bold text-emerald-100 opacity-80">This is an automated system update for your workspace.</p>
                   </div>
                 </div>
-                <button (click)="closeBanner.emit()" class="self-start rounded-xl bg-white/10 p-2 transition hover:bg-white/20 sm:self-auto">
+                <button (click)="closeBanner.emit()" class="self-start rounded-md bg-white/10 p-2 transition hover:bg-white/20 sm:self-auto">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
                 </button>
               </div>

@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "dist/hrms-frontend/browser"
+  publish = "dist/hrms-frontend"
 
 [[redirects]]
   from = "/*"

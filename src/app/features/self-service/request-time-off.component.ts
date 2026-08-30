@@ -14,7 +14,7 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, RouterLink],
   template: `
     <div class="mx-auto max-w-7xl space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-rose-600">Time Off Request</p>
@@ -24,20 +24,20 @@ import { ToastService } from '../../core/services/toast.service';
             </p>
           </div>
           <div class="flex flex-wrap gap-3">
-            <a routerLink="/self-service/requests" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back to Request Center</a>
-            <a routerLink="/self-service/requests/time-off/apply" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">Apply Time Off</a>
+            <a routerLink="/self-service/requests" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back to Request Center</a>
+            <a routerLink="/self-service/requests/time-off/apply" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">Apply Time Off</a>
           </div>
         </div>
       </section>
 
       <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Requests</p><p class="mt-3 text-3xl font-black text-slate-900">{{ requests().length }}</p></article>
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('approved') }}</p></article>
-        <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Cancelled / Rejected</p><p class="mt-3 text-3xl font-black text-rose-600">{{ countByStatus('cancelled') + countByStatus('rejected') }}</p></article>
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Requests</p><p class="mt-3 text-3xl font-black text-slate-900">{{ requests().length }}</p></article>
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('approved') }}</p></article>
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Cancelled / Rejected</p><p class="mt-3 text-3xl font-black text-rose-600">{{ countByStatus('cancelled') + countByStatus('rejected') }}</p></article>
       </section>
 
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex items-start justify-between gap-4">
           <div>
             <h2 class="text-lg font-black text-slate-900">My Time Off Requests</h2>
@@ -46,7 +46,7 @@ import { ToastService } from '../../core/services/toast.service';
         </div>
 
         @if (loading()) {
-          <div class="mt-5 rounded-2xl border border-dashed border-slate-300 px-5 py-10 text-center text-sm font-semibold text-slate-500">Loading time off requests...</div>
+          <div class="mt-5 rounded-md border border-dashed border-slate-300 px-5 py-10 text-center text-sm font-semibold text-slate-500">Loading time off requests...</div>
         } @else {
           <div class="mt-5 overflow-x-auto">
             <table class="min-w-full divide-y divide-slate-200">
@@ -73,9 +73,9 @@ import { ToastService } from '../../core/services/toast.service';
                     <td class="px-4 py-4"><span class="rounded-full px-3 py-1 text-xs font-black" [ngClass]="statusBadge(item.status)">{{ prettyStatus(item.status) }}</span></td>
                     <td class="px-4 py-4">
                       <div class="flex justify-end gap-2">
-                        <a [routerLink]="['/self-service/requests', item.id]" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">View</a>
+                        <a [routerLink]="['/self-service/requests', item.id]" class="rounded-md border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">View</a>
                         @if (canCancel(item)) {
-                          <button type="button" (click)="cancel(item.id)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">Cancel</button>
+                          <button type="button" (click)="cancel(item.id)" class="rounded-md border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">Cancel</button>
                         }
                       </div>
                     </td>

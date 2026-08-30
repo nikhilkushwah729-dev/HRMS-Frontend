@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
+import { AuthService } from '../../core/services/auth.service';
 import {
   BillingPlan,
   SubscriptionStatusPayload,
@@ -12,7 +13,7 @@ import {
   SubscriptionService,
 } from '../../core/services/subscription.service';
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize, take } from 'rxjs/operators';
+import { catchError, finalize, take, timeout } from 'rxjs/operators';
 
 type CheckoutStep =
   | 'PLAN_SELECTION'
@@ -31,43 +32,9 @@ type CheckoutStep =
   
   <!-- Subtle Background Watermark -->
   <div class="absolute inset-0 pointer-events-none opacity-[0.03] flex items-center justify-center overflow-hidden select-none">
-    <img src="/hrnexus-logo.png" alt="" aria-hidden="true" class="w-[120%] max-w-6xl -rotate-12 scale-150 object-contain" />
+    <img src="/hrnexus-logo-dark.svg" alt="" aria-hidden="true" class="w-[120%] max-w-6xl -rotate-12 scale-150 object-contain" />
   </div>
 
-  <!-- Authentication Loading State -->
-  <div *ngIf="isAuthenticating"
-    class="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-white via-gray-50/95 to-white backdrop-blur-xl">
-    <div
-      class="mx-4 w-full max-w-md rounded-2xl border border-gray-100/50 bg-white/95 px-6 py-8 text-center shadow-xl backdrop-blur-sm">
-      <div class="relative mb-6">
-        <div class="absolute inset-0 -m-4">
-          <div
-            class="absolute inset-0 animate-pulse rounded-full bg-gradient-to-r from-emerald-400/10 via-teal-400/10 to-green-400/10">
-          </div>
-        </div>
-        <div class="relative mx-auto h-20 w-20">
-          <div
-            class="absolute inset-0 animate-spin rounded-full border-[4px] border-dashed border-emerald-100 border-t-emerald-500">
-          </div>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <div
-              class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 shadow-md shadow-emerald-500/20">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="text-white w-4 h-4">
-                <path fill="currentColor"
-                  d="M256 0c4.6 0 9.2 1 13.4 2.9L457.7 82.8c22 9.3 38.4 31 38.3 57.2c-.5 99.2-41.3 280.7-213.6 363.2c-16.7 8-36.1 8-52.8 0C57.3 420.7 16.5 239.2 16 140c-.1-26.2 16.3-47.9 38.3-57.2L242.7 2.9C246.8 1 251.4 0 256 0zm0 66.8V444.8C394 378 431.1 230.1 432 141.4L256 66.8l0 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-      <h3 class="mb-2 text-lg font-semibold text-gray-900">Verifying Access Credentials</h3>
-      <p class="mb-4 text-xs text-gray-600">Securing your HRMS upgrade experience</p>
-      <div class="mx-auto h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-gray-100">
-        <div class="h-full animate-[pulse_2s_ease-in-out_infinite] bg-gradient-to-r from-emerald-400 via-teal-500 to-green-500"></div>
-      </div>
-    </div>
-  </div>
-  
   <!-- Session Expired State -->
   <div *ngIf="isSessionExpired"
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-white via-gray-50/95 to-white backdrop-blur-xl">
@@ -90,7 +57,7 @@ type CheckoutStep =
   </div>
 
   <!-- Main Wrapper -->
-  <div class="flex h-screen flex-col overflow-hidden" [ngClass]="{ 'overflow-hidden': isAuthenticating || isRedirecting }">
+  <div class="flex h-screen flex-col overflow-hidden" [ngClass]="{ 'overflow-hidden': isRedirecting }">
 
     <!-- Professional Header -->
     <header class="sticky top-0 z-50 flex-shrink-0 border-b border-gray-200/60 bg-white/95 shadow-sm shadow-gray-100/50 backdrop-blur-xl">
@@ -99,7 +66,7 @@ type CheckoutStep =
           <div class="flex min-w-0 items-center gap-3">
             <div class="relative shrink-0">
               <div class="flex h-14 w-auto max-w-[250px] items-center justify-center overflow-hidden">
-                <img src="/hrnexus-logo.png" alt="HRNexus" class="h-full w-auto object-contain" loading="eager" />
+                <img src="/hrnexus-logo-dark.svg" alt="HRNexus" class="h-full w-auto object-contain" loading="eager" />
               </div>
             </div>
           </div>
@@ -154,6 +121,31 @@ type CheckoutStep =
       </div>
     </header>
 
+    <div *ngIf="isAuthenticating && !isSessionExpired"
+      class="flex-shrink-0 border-b border-emerald-100/80 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 px-4 py-3">
+      <div class="mx-auto flex max-w-6xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex items-center gap-3 text-sm font-medium text-emerald-800">
+          <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 shadow-sm shadow-emerald-200/60">
+            <div class="absolute inset-0 rounded-2xl border border-emerald-200/80"></div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512" class="relative h-4 w-4" fill="currentColor">
+              <path d="M112 96a48 48 0 1 0 0 96 48 48 0 1 0 0-96zm0 224a80 80 0 1 1 0-160 80 80 0 1 1 0 160zm160-64c0-17.7 14.3-32 32-32l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32zm32-128l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32s14.3-32 32-32zM272 384c0-17.7 14.3-32 32-32l160 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-160 0c-17.7 0-32-14.3-32-32zM0 128C0 57.3 57.3 0 128 0l384 0c70.7 0 128 57.3 128 128l0 256c0 70.7-57.3 128-128 128L128 512C57.3 512 0 454.7 0 384L0 128zm128-64c-35.3 0-64 28.7-64 64l0 256c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-256c0-35.3-28.7-64-64-64L128 64z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="font-bold">Preparing your billing workspace</p>
+            <p class="text-xs font-medium text-emerald-700/80">Fetching subscription, pricing and gateway status in one go.</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-600">
+          <div *ngFor="let step of getLoadingSteps(); let idx = index"
+            class="rounded-2xl border px-3 py-2"
+            [ngClass]="idx === 0 ? 'border-emerald-200 bg-white text-emerald-700 shadow-sm' : 'border-white/70 bg-white/70'">
+            {{ step }}
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Plan Expired Banner -->
     <div *ngIf="planContext.isPlanExpired && currentStep === 'PLAN_SELECTION'"
       class="relative flex-shrink-0 overflow-hidden border-b border-amber-100/50 bg-gradient-to-r from-amber-50 via-orange-50/50 to-red-50/30 px-4 py-3 sm:py-4">
@@ -199,124 +191,242 @@ type CheckoutStep =
       <div class="mx-auto px-4 py-6">
 
         <!-- PLAN SELECTION STEP -->
-        <div id="plan-selection-area" *ngIf="currentStep === 'PLAN_SELECTION' && !isRedirecting" class="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          
-          <div class="space-y-6 lg:col-span-8">
-            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h2 class="text-2xl font-bold text-gray-900">Configure Your Plan</h2>
-              <p class="mt-1 text-sm text-gray-500">{{ getPlanStatusMessage() }}</p>
+        <div *ngIf="currentStep === 'PLAN_SELECTION' && isAuthenticating && !isRedirecting" class="space-y-4">
+          <section class="billing-skeleton-card overflow-hidden rounded-[28px] border border-white/70 p-5 sm:p-6">
+            <div class="grid gap-3 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+              <div class="space-y-3">
+                <div class="skeleton h-3 w-28 rounded-full"></div>
+                <div class="skeleton h-8 w-full max-w-lg rounded-2xl"></div>
+                <div class="skeleton h-4 w-full max-w-2xl rounded-full"></div>
+              </div>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <div class="billing-skeleton-tile !p-3">
+                  <div class="skeleton h-3 w-16 rounded-full"></div>
+                  <div class="skeleton mt-3 h-6 w-20 rounded-2xl"></div>
+                </div>
+                <div class="billing-skeleton-tile !p-3">
+                  <div class="skeleton h-3 w-20 rounded-full"></div>
+                  <div class="skeleton mt-3 h-6 w-16 rounded-2xl"></div>
+                </div>
+                <div class="billing-skeleton-tile !p-3">
+                  <div class="skeleton h-3 w-20 rounded-full"></div>
+                  <div class="skeleton mt-3 h-6 w-24 rounded-2xl"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
 
-              <div class="mt-8">
-                <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
-                <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <button *ngFor="let option of getDurationOptions()" (click)="selectDurationOption(option.months)"
-                    [class]="durationInputValue === option.months ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 bg-white text-gray-600'"
-                    class="rounded-xl border p-4 text-center transition-all hover:border-emerald-200">
-                    <p class="text-lg font-bold">{{ option.label }}</p>
-                    <p class="text-xs opacity-70">{{ option.months }} Months</p>
-                  </button>
+        <div id="plan-selection-area" *ngIf="currentStep === 'PLAN_SELECTION' && !isRedirecting" class="space-y-6">
+          <section class="relative overflow-hidden rounded-[28px] border border-emerald-100/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,253,245,0.92),rgba(239,248,255,0.94))] p-6 shadow-[0_30px_80px_-50px_rgba(16,185,129,0.45)] sm:p-8">
+            <div class="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-emerald-200/40 blur-3xl"></div>
+            <div class="absolute bottom-0 right-16 h-24 w-24 rounded-full bg-cyan-200/30 blur-2xl"></div>
+            <div class="relative grid gap-6 lg:grid-cols-[1.25fr_0.95fr]">
+              <div class="space-y-5">
+                <span class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-700">
+                  Premium Billing Control
+                </span>
+                <div>
+                  <h1 class="font-['Sora'] text-3xl font-extrabold tracking-[-0.05em] text-slate-950 sm:text-4xl">
+                    Scale your HRMS plan with a cleaner, faster billing flow.
+                  </h1>
+                  <p class="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                    Tune seats, extend duration, and activate add-ons from one focused workspace. Pricing, tax, and renewal timing stay visible while you build the right package.
+                  </p>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <article class="rounded-[24px] border border-white/80 bg-white/88 p-4 shadow-sm shadow-slate-200/60">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Workspace Mode</p>
+                    <p class="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950">{{ planContext.mode }}</p>
+                    <p class="mt-2 text-xs text-slate-500">{{ planContext.isPlanExpired ? 'Plan needs renewal' : 'Plan currently active' }}</p>
+                  </article>
+                  <article class="rounded-[24px] border border-white/80 bg-white/88 p-4 shadow-sm shadow-slate-200/60">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Access Window</p>
+                    <p class="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950">{{ getRemainingDaysDisplay() }}</p>
+                    <p class="mt-2 text-xs text-slate-500">Ends {{ getFormattedEndDate() }}</p>
+                  </article>
+                  <article class="rounded-[24px] border border-white/80 bg-white/88 p-4 shadow-sm shadow-slate-200/60">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Currency</p>
+                    <p class="mt-3 text-2xl font-black tracking-[-0.04em] text-slate-950">{{ isINR ? 'INR' : 'USD' }}</p>
+                    <p class="mt-2 text-xs text-slate-500">{{ getCurrencySymbol() }} billing with live tax calculation</p>
+                  </article>
                 </div>
               </div>
 
-              <div class="mt-8">
-                <div class="flex items-center justify-between">
-                  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">User Capacity</h3>
-                  <div class="flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-1 border border-gray-200">
-                    <span class="text-xl font-bold text-gray-900">{{ targetUsers }}</span>
-                    <span class="text-xs text-gray-500">Users</span>
+              <aside class="rounded-[28px] border border-slate-200/70 bg-slate-950 p-5 text-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.9)]">
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300/80">Plan Snapshot</p>
+                    <h2 class="mt-2 text-2xl font-extrabold tracking-[-0.04em]">Everything finance needs, already aligned.</h2>
+                  </div>
+                  <div class="rounded-2xl border border-white/10 bg-white/10 px-3 py-2 text-right">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-slate-300">Current Seats</p>
+                    <p class="text-xl font-black">{{ targetUsers }}</p>
                   </div>
                 </div>
-                <div class="mt-6 px-2">
-                  <input type="range" [min]="getMinUsersForDuration()" max="10000" [value]="targetUsers"
-                    (input)="targetUsers = +$any($event.target).value; updateTargetUsers()"
-                    [style.background]="getSliderGradient()"
-                    class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 focus:outline-none" />
-                  <div class="mt-2 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                    <span>Min: {{ getMinUsersForDuration() }} Users</span>
-                    <span>Max: 10,000 Users</span>
+                <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div *ngFor="let feature of planFeatures" class="rounded-2xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-100">
+                    {{ feature }}
                   </div>
                 </div>
-              </div>
-            </section>
+              </aside>
+            </div>
+          </section>
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div class="flex items-center justify-between mb-4">
-                <h2 class="text-2xl font-bold text-gray-900">Premium Add-ons</h2>
-                <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{{ getSelectedAddonsCount() }} Selected</span>
-              </div>
-              <div class="divide-y divide-gray-100">
-                <div *ngFor="let addon of addOns" class="flex items-center justify-between gap-4 py-4 group">
-                  <div class="flex-1">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <h4 class="text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{{ addon.label }}</h4>
-                      <span *ngIf="addon.isInstalled" class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">Active</span>
-                      <span *ngIf="addon.isLocked" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600 ring-1 ring-slate-200">Locked</span>
+          <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            <div class="space-y-6 lg:col-span-8">
+              <section class="rounded-[28px] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                <div class="flex flex-col gap-4 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-600">Customize Subscription</p>
+                    <h2 class="mt-2 text-3xl font-extrabold tracking-[-0.05em] text-gray-900">Configure Your Plan</h2>
+                    <p class="mt-2 max-w-2xl text-sm text-gray-500">{{ getPlanStatusMessage() }}</p>
+                  </div>
+                  <div class="rounded-[24px] border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-900">
+                    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">Projected End Date</p>
+                    <p class="mt-2 text-lg font-black">{{ planEndDate || getFormattedEndDate() }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-8">
+                  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
+                  <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <button *ngFor="let option of getDurationOptions()" (click)="selectDurationOption(option.months)"
+                      [class]="durationInputValue === option.months ? 'border-emerald-500 bg-emerald-50/80 text-emerald-700 shadow-[0_18px_32px_-24px_rgba(16,185,129,0.6)]' : 'border-gray-200/80 bg-white text-gray-600'"
+                      class="rounded-[24px] border p-4 text-center transition-all hover:-translate-y-0.5 hover:border-emerald-200">
+                      <p class="text-lg font-bold">{{ option.label }}</p>
+                      <p class="text-xs opacity-70">{{ option.months }} Months</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-8">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">User Capacity</h3>
+                    <div class="flex items-center gap-2 rounded-2xl bg-gray-50 px-3 py-2 border border-gray-200">
+                      <span class="text-xl font-bold text-gray-900">{{ targetUsers }}</span>
+                      <span class="text-xs text-gray-500">Users</span>
                     </div>
-                    <p class="text-sm text-gray-500">{{ addon.description }}</p>
                   </div>
-                  <button (click)="toggleAddOn(addon)" [disabled]="addon.isLocked"
-                    [title]="addon.isLocked ? 'This add-on is already active and cannot be removed from this purchase.' : (addon.selected ? 'Remove add-on' : 'Add add-on')"
-                    [class]="addon.selected ? (addon.isLocked ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 cursor-not-allowed' : 'bg-emerald-500 text-white') : 'bg-gray-100 text-gray-400'"
-                    class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm disabled:hover:scale-100">
-                    <svg *ngIf="!addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
-                    <svg *ngIf="addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
-                  </button>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          <div class="lg:col-span-4">
-            <div class="sticky top-24 space-y-6">
-              <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl ring-1 ring-emerald-500/10">
-                <h3 class="text-xl font-bold text-gray-900 border-b border-gray-100 pb-4">Order Summary</h3>
-                <div class="mt-4 space-y-4">
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">Users ({{ targetUsers }})</span>
-                    <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</span>
-                  </div>
-                  <div class="flex justify-between text-sm">
-                    <span class="text-gray-500">Duration</span>
-                    <span class="font-bold text-gray-900">{{ durationLabel }}</span>
-                  </div>
-                  <div *ngIf="getSelectedAddonsCount() > 0" class="pt-2 border-t border-dashed border-gray-100">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Add-ons</p>
-                    <div *ngFor="let addon of addOns">
-                      <div *ngIf="addon.selected" class="flex justify-between text-sm mb-1">
-                        <span class="text-gray-600 italic text-xs">{{ addon.label }}</span>
-                        <span class="font-medium text-gray-800 text-xs">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</span>
+                  <div class="mt-6 rounded-[24px] border border-slate-100 bg-slate-50/70 px-4 py-5">
+                    <input type="range" [min]="getMinUsersForDuration()" max="10000" [value]="targetUsers"
+                      (input)="targetUsers = +$any($event.target).value; updateTargetUsers()"
+                      [style.background]="getSliderGradient()"
+                      class="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 focus:outline-none" />
+                    <div class="mt-2 flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                      <span>Min: {{ getMinUsersForDuration() }} Users</span>
+                      <span>Max: 10,000 Users</span>
+                    </div>
+                    <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div class="rounded-2xl border border-white bg-white px-3 py-3">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Existing Seats</p>
+                        <p class="mt-2 text-lg font-black text-slate-900">{{ planContext.existingUsers || targetUsers }}</p>
+                      </div>
+                      <div class="rounded-2xl border border-white bg-white px-3 py-3">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Added Seats</p>
+                        <p class="mt-2 text-lg font-black text-slate-900">{{ planContext.additionalUsers }}</p>
+                      </div>
+                      <div class="rounded-2xl border border-white bg-white px-3 py-3">
+                        <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Billing Cycle</p>
+                        <p class="mt-2 text-lg font-black text-slate-900">{{ durationLabel }}</p>
                       </div>
                     </div>
                   </div>
-                  <div class="pt-4 border-t border-gray-100 space-y-2">
-                    <div class="flex justify-between text-sm">
-                      <span class="text-gray-500">Subtotal</span>
-                      <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ subTotal | number:'1.2-2' }}</span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                      <span class="text-gray-500">Tax ({{ isINR ? '18%' : '0%' }})</span>
-                      <span class="font-bold text-gray-900">{{ getCurrencySymbol() }}{{ tax | number:'1.2-2' }}</span>
-                    </div>
-                  </div>
-                  <div class="mt-6 rounded-xl bg-emerald-600 p-4 text-white shadow-lg shadow-emerald-200">
-                    <div class="flex items-center justify-between">
-                      <span class="text-sm font-medium opacity-90">Grand Total</span>
-                      <span class="text-2xl font-bold">{{ getCurrencySymbol() }}{{ grandTotal | number:'1.2-2' }}</span>
-                    </div>
-                  </div>
-                </div>
-                <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || !legacyBillingConfigured || isSubmitting"
-                  class="mt-6 w-full rounded-xl bg-gray-900 py-4 text-lg font-bold text-white transition-all hover:bg-black hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
-                  {{ getPlanActionButtonText() }}
-                </button>
-                <p *ngIf="!legacyBillingConfigured" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
-                  Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway before starting a purchase.
-                </p>
-                <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                  Secure End-to-End Payment
                 </div>
               </section>
+
+              <section class="rounded-[28px] border border-white/80 bg-white/92 p-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                <div class="flex items-center justify-between mb-4">
+                  <h2 class="text-2xl font-bold text-gray-900">Premium Add-ons</h2>
+                  <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">{{ getSelectedAddonsCount() }} Selected</span>
+                </div>
+                <div *ngIf="addOns.length === 0" class="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 px-5 py-10 text-center">
+                  <p class="text-sm font-semibold text-slate-700">Add-on catalog is loading from billing configuration.</p>
+                  <p class="mt-2 text-sm text-slate-500">As soon as the backend shares available modules, they will appear here with pricing.</p>
+                </div>
+                <div *ngIf="addOns.length > 0" class="divide-y divide-gray-100">
+                  <div *ngFor="let addon of addOns" class="flex items-center justify-between gap-4 py-4 group">
+                    <div class="flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <h4 class="text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{{ addon.label }}</h4>
+                        <span *ngIf="addon.isInstalled" class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">Active</span>
+                        <span *ngIf="addon.isLocked" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600 ring-1 ring-slate-200">Locked</span>
+                      </div>
+                      <p class="text-sm text-gray-500">{{ addon.description }}</p>
+                    </div>
+                    <button (click)="toggleAddOn(addon)" [disabled]="addon.isLocked"
+                      [title]="addon.isLocked ? 'This add-on is already active and cannot be removed from this purchase.' : (addon.selected ? 'Remove add-on' : 'Add add-on')"
+                      [class]="addon.selected ? (addon.isLocked ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200 cursor-not-allowed' : 'bg-emerald-500 text-white') : 'bg-gray-100 text-gray-400'"
+                      class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center transition-all hover:scale-110 shadow-sm disabled:hover:scale-100">
+                      <svg *ngIf="!addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4" /></svg>
+                      <svg *ngIf="addon.selected" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div class="lg:col-span-4">
+              <div class="sticky top-24 space-y-6">
+                <section class="rounded-[28px] border border-slate-200/80 bg-slate-950 p-6 text-white shadow-[0_32px_80px_-44px_rgba(15,23,42,0.9)] ring-1 ring-emerald-500/10">
+                  <div class="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
+                    <div>
+                      <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-300/80">Order Summary</p>
+                      <h3 class="mt-2 text-2xl font-extrabold tracking-[-0.04em] text-white">Checkout Preview</h3>
+                    </div>
+                    <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-right">
+                      <p class="text-[10px] uppercase tracking-[0.18em] text-slate-400">Status</p>
+                      <p class="text-sm font-bold text-emerald-300">{{ legacyBillingConfigured ? 'Ready' : 'Setup Needed' }}</p>
+                    </div>
+                  </div>
+                  <div class="mt-4 space-y-4">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-slate-300">Users ({{ targetUsers }})</span>
+                      <span class="font-bold text-white">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-slate-300">Duration</span>
+                      <span class="font-bold text-white">{{ durationLabel }}</span>
+                    </div>
+                    <div *ngIf="getSelectedAddonsCount() > 0" class="pt-2 border-t border-dashed border-white/10">
+                      <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Add-ons</p>
+                      <div *ngFor="let addon of addOns">
+                        <div *ngIf="addon.selected" class="flex justify-between text-sm mb-1">
+                          <span class="text-slate-300 italic text-xs">{{ addon.label }}</span>
+                          <span class="font-medium text-white text-xs">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="pt-4 border-t border-white/10 space-y-2">
+                      <div class="flex justify-between text-sm">
+                        <span class="text-slate-300">Subtotal</span>
+                        <span class="font-bold text-white">{{ getCurrencySymbol() }}{{ subTotal | number:'1.2-2' }}</span>
+                      </div>
+                      <div class="flex justify-between text-sm">
+                        <span class="text-slate-300">Tax ({{ isINR ? '18%' : '0%' }})</span>
+                        <span class="font-bold text-white">{{ getCurrencySymbol() }}{{ tax | number:'1.2-2' }}</span>
+                      </div>
+                    </div>
+                    <div class="mt-6 rounded-[24px] bg-[linear-gradient(135deg,#10b981,#0f766e)] p-4 text-white shadow-lg shadow-emerald-950/30">
+                      <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium opacity-90">Grand Total</span>
+                        <span class="text-2xl font-bold">{{ getCurrencySymbol() }}{{ grandTotal | number:'1.2-2' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || !legacyBillingConfigured || isSubmitting"
+                    class="mt-6 w-full rounded-[24px] bg-white py-4 text-lg font-bold text-slate-950 transition-all hover:bg-slate-100 hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
+                    {{ getPlanActionButtonText() }}
+                  </button>
+                  <p *ngIf="!legacyBillingConfigured" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
+                    Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway before starting a purchase.
+                  </p>
+                  <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    Secure End-to-End Payment
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         </div>
@@ -521,12 +631,38 @@ type CheckoutStep =
     :host { display: block; height: 100vh; }
     .animate-spin { animation: spin 1s linear infinite; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
     
     .upgrade-plan-root {
       background:
         radial-gradient(circle at top left, rgba(16, 185, 129, 0.05), transparent 18rem),
         radial-gradient(circle at top right, rgba(14, 165, 233, 0.05), transparent 20rem),
         linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    }
+
+    .billing-skeleton-card {
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.95)),
+        rgba(255, 255, 255, 0.9);
+      box-shadow: 0 28px 70px -52px rgba(15, 23, 42, 0.34);
+      backdrop-filter: blur(18px);
+    }
+
+    .billing-skeleton-tile {
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.82);
+      border-radius: 24px;
+      padding: 1rem;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, rgba(226, 232, 240, 0.85) 25%, rgba(241, 245, 249, 1) 37%, rgba(226, 232, 240, 0.85) 63%);
+      background-size: 400% 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
     }
     
     .backdrop-blur-xl {
@@ -552,6 +688,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
+  private readonly authService = inject(AuthService);
 
   // States
   isAuthenticating = false;
@@ -671,11 +808,31 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   private getBrandLogoUrl() {
-    return `${window.location.origin}/hrnexus-logo.png`;
+    return `${window.location.origin}/hrnexus-logo-dark.svg`;
+  }
+
+  private bootstrapUserContext() {
+    const storedUser = this.authService.getStoredUser();
+    if (!storedUser) return;
+
+    this.userInfo.name =
+      [storedUser.firstName, storedUser.lastName].filter(Boolean).join(' ').trim() ||
+      storedUser.companyName ||
+      storedUser.organizationName ||
+      this.userInfo.name;
+    this.userInfo.email = storedUser.email || this.userInfo.email;
+    this.userInfo.contact = storedUser.phone || this.userInfo.contact;
+    this.billingDetails.companyName =
+      storedUser.companyName ||
+      storedUser.organizationName ||
+      this.billingDetails.companyName;
+    this.billingDetails.email = storedUser.email || this.billingDetails.email;
+    this.billingDetails.phone = storedUser.phone || this.billingDetails.phone;
   }
 
   loadInitialData() {
     this.isAuthenticating = true;
+    this.bootstrapUserContext();
     
     // Safety timeout: If data doesn't load within 15 seconds, stop the spinner
     const safetyTimeout = setTimeout(() => {
@@ -688,16 +845,18 @@ export class BillingComponent implements OnInit, OnDestroy {
     forkJoin({
       status: this.subscriptionService.getStatus().pipe(
         take(1),
+        timeout(8000),
         catchError(err => {
           console.error('Status fetch failed', err);
-          return of(null);
+          return of({ data: null as SubscriptionStatusPayload | null, error: err });
         })
       ),
       context: this.subscriptionService.getLegacyContext().pipe(
         take(1),
+        timeout(8000),
         catchError(err => {
           console.error('Context fetch failed', err);
-          return of(null);
+          return of({ data: null as LegacyBillingContext | null, error: err });
         })
       )
     }).pipe(
@@ -707,19 +866,32 @@ export class BillingComponent implements OnInit, OnDestroy {
       })
     ).subscribe({
       next: ({ status, context }) => {
-        if (!status) {
+        const statusPayload = (status as any)?.data === undefined ? status as SubscriptionStatusPayload | null : (status as any).data as SubscriptionStatusPayload | null;
+        const statusError = (status as any)?.error;
+        const contextPayload = (context as any)?.data === undefined ? context as LegacyBillingContext | null : (context as any).data as LegacyBillingContext | null;
+        const contextError = (context as any)?.error;
+
+        if (!statusPayload && statusError?.status === 401) {
           this.isSessionExpired = true;
           return;
         }
 
+        if (!statusPayload && statusError) {
+          this.toastService.warning('Billing status could not be loaded right now. Showing available billing details.');
+        }
+
+        if (contextError && contextError?.status !== 401) {
+          this.toastService.warning('Some billing details are temporarily unavailable.');
+        }
+
         // Populate User Info from Status
-        if (status.organization) {
-          this.userInfo.name = status.organization.companyName || 'Organization';
-          this.planContext.isPlanExpired = status.organization.subscriptionStatus === 'expired';
+        if (statusPayload?.organization) {
+          this.userInfo.name = statusPayload.organization.companyName || this.userInfo.name || 'Organization';
+          this.planContext.isPlanExpired = statusPayload.organization.subscriptionStatus === 'expired';
         }
 
         // Handle Subscription Dates
-        const endDate = status.currentSubscription?.endDate ? new Date(status.currentSubscription.endDate) : null;
+        const endDate = statusPayload?.currentSubscription?.endDate ? new Date(statusPayload.currentSubscription.endDate) : null;
         this.planContext.expiryDate = endDate;
         
         if (endDate && !isNaN(endDate.getTime())) {
@@ -737,25 +909,25 @@ export class BillingComponent implements OnInit, OnDestroy {
         }
 
         // Handle Context
-        if (context) {
-          this.legacyBillingConfigured = context.configured !== false;
-          this.appName = context.appName || '';
-          this.userInfo.email = context.existingPlan?.email || '';
-          this.userInfo.contact = context.existingPlan?.phoneNumber || '';
-          this.planContext.existingUsers = context.existingPlan?.userlimit || 0;
-          this.planContext.mode = context.suggestedAction === 'Upgrade' ? 'Upgrade' : 'Buy';
-          this.targetUsers = Math.max(this.targetUsers, context.existingPlan?.userlimit || 10);
+        if (contextPayload) {
+          this.legacyBillingConfigured = contextPayload.configured !== false;
+          this.appName = contextPayload.appName || '';
+          this.userInfo.email = contextPayload.existingPlan?.email || this.userInfo.email;
+          this.userInfo.contact = contextPayload.existingPlan?.phoneNumber || this.userInfo.contact;
+          this.planContext.existingUsers = contextPayload.existingPlan?.userlimit || 0;
+          this.planContext.mode = contextPayload.suggestedAction === 'Upgrade' ? 'Upgrade' : 'Buy';
+          this.targetUsers = Math.max(this.targetUsers, contextPayload.existingPlan?.userlimit || 10);
           
-          this.billingDetails.companyName = context.existingPlan?.orgName || status.organization?.companyName || '';
-          this.billingDetails.email = context.existingPlan?.email || '';
-          this.billingDetails.phone = context.existingPlan?.phoneNumber || '';
+          this.billingDetails.companyName = contextPayload.existingPlan?.orgName || statusPayload?.organization?.companyName || this.billingDetails.companyName;
+          this.billingDetails.email = contextPayload.existingPlan?.email || this.billingDetails.email;
+          this.billingDetails.phone = contextPayload.existingPlan?.phoneNumber || this.billingDetails.phone;
           
-          const city = context.existingPlan?.cityName || '';
-          const state = context.existingPlan?.stateName || '';
+          const city = contextPayload.existingPlan?.cityName || '';
+          const state = contextPayload.existingPlan?.stateName || '';
           this.billingDetails.address = city + (state ? ', ' + state : '');
-          this.isINR = context.existingPlan?.countryname === 'India';
+          this.isINR = contextPayload.existingPlan?.countryname === 'India';
 
-          this.addOns = this.normalizeAddonCatalog(context.addonCatalog || []);
+          this.addOns = this.normalizeAddonCatalog(contextPayload.addonCatalog || []);
         }
 
         this.calculatePricing();
@@ -871,6 +1043,10 @@ export class BillingComponent implements OnInit, OnDestroy {
       { label: 'Yearly', months: 12 },
       { label: '2 Years', months: 24 }
     ];
+  }
+
+  getLoadingSteps() {
+    return ['Authenticate', 'Sync Pricing', 'Render Checkout'];
   }
 
   selectDurationOption(months: number) {

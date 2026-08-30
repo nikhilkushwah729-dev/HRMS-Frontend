@@ -1,28 +1,52 @@
-# HRMSFRONTEND
+# HRMS Frontend
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.0.1.
+Angular frontend for the multi-tenant HRMS SaaS application.
 
-## Development server
+## Stack
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- Angular 18
+- Tailwind CSS
+- REST API integration with AdonisJS backend
 
-## Code scaffolding
+## Local development
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+1. Install dependencies:
 
-## Build
+```bash
+npm ci
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+2. Start the app:
 
-## Running unit tests
+```bash
+npm start
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+3. Open [http://localhost:4200](http://localhost:4200)
 
-## Running end-to-end tests
+The frontend expects the backend API at `http://localhost:3333/api` by default.
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+## Production build
 
-## Further help
+```bash
+npm run build
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
-"# HRMS-frontend" 
+The current Angular build outputs to:
+
+```text
+dist/hrms-frontend
+```
+
+This is the correct static publish directory for Netlify and Render static hosting.
+
+## Runtime API configuration
+
+The frontend reads runtime config from [public/app-config.js](d:/HRMS_FRONTEND/public/app-config.js).
+
+Default behavior:
+
+- `localhost` -> `http://localhost:3333/api`
+- non-localhost -> `https://hrms-backend-r5ed.onrender.com/api`
+
+You can override `window.__HRMS_CONFIG__.apiUrl` at deploy time if your backend URL changes.

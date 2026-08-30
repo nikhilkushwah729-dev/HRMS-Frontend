@@ -9,19 +9,14 @@ import { LanguageService } from '../../services/language.service';
   template: `
     <div class="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center space-y-8 animate-fade-in">
       <!-- Logo Container with Glow effect -->
-      <div class="relative">
+      <div class="relative flex h-24 w-[280px] items-center justify-center rounded-[28px] border border-white/10 bg-slate-900/50 px-6 shadow-2xl shadow-primary-500/20">
         <div class="absolute inset-0 bg-primary-500/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
-        <div class="relative bg-gradient-to-br from-primary-500 to-primary-600 w-24 h-24 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary-500/30 ring-1 ring-white/10">
-          <svg xmlns="http://www.w3.org/2000/svg" width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-bounce-slow">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/>
-          </svg>
-        </div>
+        <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="relative h-11 w-auto object-contain animate-bounce-slow">
       </div>
 
       <!-- Text and Progress -->
       <div class="flex flex-col items-center gap-4">
         <div class="flex items-center gap-2">
-          <h1 class="text-3xl font-black text-white tracking-tight">HRNexus</h1>
           <div class="w-2 h-2 rounded-full bg-primary-500 animate-pulse"></div>
         </div>
         

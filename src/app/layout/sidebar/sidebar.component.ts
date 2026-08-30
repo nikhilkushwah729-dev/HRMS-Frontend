@@ -46,7 +46,7 @@ import { LanguageService } from '../../core/services/language.service';
         <div class="flex items-center justify-between">
           <div class="flex min-w-0 items-center gap-3 group cursor-pointer" routerLink="/dashboard">
             <div class="flex shrink-0 overflow-hidden items-center justify-center transition-transform duration-500 group-hover:scale-[1.02]">
-               <img [src]="showExpandedSidebar() ? '/hrnexus-logo.png' : '/hrnexus-brand-mark.png'" alt="HRNexus" [class]="showExpandedSidebar() ? 'h-12 w-auto max-w-[200px] object-contain' : 'h-11 w-11 rounded-md bg-slate-950 p-1 shadow-md shadow-emerald-500/20 ring-1 ring-emerald-100 object-contain'" />
+               <img [src]="showExpandedSidebar() ? '/hrnexus-logo-dark.svg' : '/hrnexus-brand-mark.png'" alt="HRNexus" [class]="showExpandedSidebar() ? 'h-12 w-auto max-w-[210px] object-contain' : 'h-11 w-11 rounded-md p-1 shadow-md shadow-emerald-500/20 ring-1 ring-emerald-100 object-contain'" />
             </div>
           </div>
 
@@ -67,13 +67,9 @@ import { LanguageService } from '../../core/services/language.service';
               <div class="relative">
                 <div class="h-11 w-11 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm transition-transform duration-500 group-hover:scale-105">
                   @if (orgLogo()) {
-                    <img [src]="orgLogo()" [alt]="orgName()" class="h-full w-full object-contain p-1">
-                  } @else if (currentUser()?.avatar) {
-                    <img [src]="currentUser()?.avatar" class="h-full w-full object-cover">
+                    <img [src]="orgLogo()" [alt]="orgName()" class="h-full w-full object-contain p-1" (error)="onOrgLogoError()">
                   } @else {
-                    <div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-base font-black text-white">
-                      {{ userInitials() }}
-                    </div>
+                    <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-contain p-1">
                   }
                 </div>
                 <div class="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></div>

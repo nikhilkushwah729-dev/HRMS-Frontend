@@ -16,74 +16,74 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="mx-auto max-w-5xl space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex items-start justify-between gap-4">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600">Create Request</p>
             <h1 class="mt-2 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">Raise a new employee request</h1>
             <p class="mt-2 max-w-3xl text-sm text-slate-500">Choose the request type, add details, attach support, and submit it to the approval workflow.</p>
           </div>
-          <a routerLink="/self-service/requests" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back</a>
+          <a routerLink="/self-service/requests" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back</a>
         </div>
       </section>
 
       <section class="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
-        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="grid gap-4 md:grid-cols-2">
-            <select [(ngModel)]="requestType" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2">
+            <select [(ngModel)]="requestType" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2">
               @for (option of requestTypes; track option.key) {
                 <option [value]="option.key">{{ option.label }}</option>
               }
             </select>
-            <input [(ngModel)]="title" placeholder="Request title" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
-            <input [(ngModel)]="reason" placeholder="Reason / summary" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
+            <input [(ngModel)]="title" placeholder="Request title" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
+            <input [(ngModel)]="reason" placeholder="Reason / summary" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Application Date</label>
-              <input [(ngModel)]="requestDate" type="date" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
+              <input [(ngModel)]="requestDate" type="date" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
               <p class="mt-2 text-[11px] text-slate-500">This is the date when you are submitting the request.</p>
             </div>
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400">Start Date</label>
-              <input [(ngModel)]="startDate" type="date" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
+              <input [(ngModel)]="startDate" type="date" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
               <p class="mt-2 text-[11px] text-slate-500">Use this when the request should start from a specific date.</p>
             </div>
             <div class="md:col-span-2">
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.16em] text-slate-400">End Date</label>
-              <input [(ngModel)]="endDate" type="date" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
+              <input [(ngModel)]="endDate" type="date" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
               <p class="mt-2 text-[11px] text-slate-500">Use this when the request continues for more than one day. For a single-day request, keep start and end date the same.</p>
             </div>
             @if (requestType === 'time_off') {
-              <input [(ngModel)]="startTime" type="time" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
-              <input [(ngModel)]="endTime" type="time" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
+              <input [(ngModel)]="startTime" type="time" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
+              <input [(ngModel)]="endTime" type="time" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400" />
             }
-            <select [(ngModel)]="priority" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+            <select [(ngModel)]="priority" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
               <option value="low">Low</option>
               <option value="medium">Medium</option>
               <option value="high">High</option>
               <option value="urgent">Urgent</option>
             </select>
-            <select [(ngModel)]="mode" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+            <select [(ngModel)]="mode" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
               <option value="pending">Submit for approval</option>
               <option value="draft">Save as draft</option>
             </select>
           </div>
 
-          <textarea [(ngModel)]="description" rows="6" placeholder="Description, details, justification, or request notes" class="mt-4 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400"></textarea>
+          <textarea [(ngModel)]="description" rows="6" placeholder="Description, details, justification, or request notes" class="mt-4 w-full rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400"></textarea>
 
-          <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
             <div class="flex items-center justify-between gap-3">
               <h2 class="text-sm font-black text-slate-900">Attachments</h2>
-              <button type="button" (click)="addAttachment()" class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">Add Attachment</button>
+              <button type="button" (click)="addAttachment()" class="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">Add Attachment</button>
             </div>
             <div class="mt-4 space-y-3">
               @for (item of attachments(); track item.id) {
                 <div class="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3">
-                    <input type="file" (change)="onAttachmentSelected(item.id, $event)" class="block w-full text-sm text-slate-600 file:mr-4 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white hover:file:bg-slate-800" />
+                  <div class="rounded-md border border-slate-200 bg-white px-4 py-3">
+                    <input type="file" (change)="onAttachmentSelected(item.id, $event)" class="block w-full text-sm text-slate-600 file:mr-4 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-xs file:font-black file:text-white hover:file:bg-slate-800" />
                     <p class="mt-2 text-sm font-black text-slate-900">{{ item.name || 'No file selected yet' }}</p>
                     <p class="mt-1 text-[11px] text-slate-500">{{ item.url ? 'Attachment ready to submit.' : 'Choose a file to attach with this request.' }}</p>
                   </div>
-                  <button type="button" (click)="removeAttachment(item.id)" class="rounded-xl border border-rose-200 px-4 py-3 text-xs font-black text-rose-600 transition hover:bg-rose-50">Remove</button>
+                  <button type="button" (click)="removeAttachment(item.id)" class="rounded-md border border-rose-200 px-4 py-3 text-xs font-black text-rose-600 transition hover:bg-rose-50">Remove</button>
                 </div>
               } @empty {
                 <p class="text-sm text-slate-500">Add actual support files here. The first attachment is also sent to the backend when supported.</p>
@@ -92,37 +92,37 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="mt-5 flex justify-end gap-3">
-            <button type="button" (click)="save()" [disabled]="submitting() || !canPersist('draft')" class="rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" (click)="save()" [disabled]="submitting() || !canPersist('draft')" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
               Save Draft
             </button>
-            <button type="button" (click)="submit()" [disabled]="submitting() || !canPersist('pending')" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" (click)="submit()" [disabled]="submitting() || !canPersist('pending')" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
               Submit Request
             </button>
           </div>
         </article>
 
-        <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <h2 class="text-lg font-black text-slate-900">Workflow Preview</h2>
-          <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
             <p class="text-sm font-black text-slate-900">{{ selectedType()?.label }}</p>
             <p class="mt-1 text-sm text-slate-500">{{ selectedType()?.description }}</p>
           </div>
           <div class="mt-4 space-y-3 text-sm text-slate-600">
-            <div class="rounded-2xl border border-slate-200 px-4 py-3">
+            <div class="rounded-md border border-slate-200 px-4 py-3">
               <p class="font-black text-slate-900">Submission Mode</p>
               <p class="mt-1">{{ mode === 'draft' ? 'Draft only, no approval yet.' : 'Request goes into approval workflow immediately.' }}</p>
             </div>
-            <div class="rounded-2xl border border-slate-200 px-4 py-3">
+            <div class="rounded-md border border-slate-200 px-4 py-3">
               <p class="font-black text-slate-900">Attachments</p>
               <p class="mt-1">{{ attachments().length }} support item(s) attached to this request.</p>
             </div>
             @if (requestType === 'time_off') {
-              <div class="rounded-2xl border border-slate-200 px-4 py-3">
+              <div class="rounded-md border border-slate-200 px-4 py-3">
                 <p class="font-black text-slate-900">Time Off Window</p>
                 <p class="mt-1">{{ startTime || '--:--' }} to {{ endTime || '--:--' }}</p>
               </div>
             }
-            <div class="rounded-2xl border border-slate-200 px-4 py-3">
+            <div class="rounded-md border border-slate-200 px-4 py-3">
               <p class="font-black text-slate-900">Timeline</p>
               <p class="mt-1">Each request automatically records create, submit, approve, reject, cancel, and send-back actions.</p>
             </div>

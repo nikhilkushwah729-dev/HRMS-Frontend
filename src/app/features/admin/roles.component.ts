@@ -11,161 +11,254 @@ declare const Object: any;
     standalone: true,
     imports: [CommonModule, FormsModule],
     template: `
-        <div class="p-6 space-y-6">
-            <!-- Header -->
-            <div class="app-module-hero flex flex-col xl:flex-row xl:items-end xl:justify-between gap-5">
-                <div class="max-w-2xl">
-                    <p class="app-module-kicker">Access Control</p>
-                    <h1 class="app-module-title mt-3">Roles and permission governance</h1>
-                    <p class="app-module-text mt-3">Manage role definitions, assign permission bundles, and keep access boundaries organized for the whole HRMS.</p>
-                </div>
-                <div class="flex flex-col gap-3 xl:items-end">
-                    <div class="app-module-highlight min-w-[240px]">
-                        <span class="app-module-highlight-label">Roles available</span>
-                        <div class="app-module-highlight-value mt-3">{{ roles.length }}</div>
-                        <p class="mt-2 text-sm text-white/80">Configured role profiles currently available inside the permission system.</p>
+        <div class="space-y-6 p-6">
+            <section class="rounded-[28px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_32%),linear-gradient(135deg,#ffffff_0%,#f8fafc_48%,#eff6ff_100%)] p-6 shadow-[0_28px_70px_-42px_rgba(15,23,42,0.34)]">
+                <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+                    <div class="max-w-3xl">
+                        <p class="text-[11px] font-black uppercase tracking-[0.24em] text-sky-700">Access Governance</p>
+                        <h1 class="mt-3 text-3xl font-black tracking-tight text-slate-950">Permission audit and role control</h1>
+                        <p class="mt-3 text-sm leading-6 text-slate-600">
+                            Review role definitions, permission coverage, and module access from one cleaner workspace so access changes stay easy to understand and audit.
+                        </p>
                     </div>
-                <button (click)="openModal()" 
-                    class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-md flex items-center gap-2 font-bold">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                    </svg>
-                    Add Role
-                </button>
+                    <div class="flex flex-col gap-3 xl:items-end">
+                        <button
+                            (click)="openModal()"
+                            class="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-sky-700"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Role
+                        </button>
+                        <p class="text-xs font-semibold text-slate-500">Role updates are meant to stay explicit, reviewable, and audit-friendly.</p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Tabs -->
-            <div class="app-chip-switch">
-                <nav class="flex flex-wrap gap-2">
-                    <button (click)="activeTab = 'roles'" 
-                        [class]="activeTab === 'roles' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:bg-stone-100'"
-                        class="app-chip-button whitespace-nowrap">
-                        Roles
+                <div class="mt-6 grid gap-4 md:grid-cols-3">
+                    <article class="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Roles</p>
+                        <p class="mt-2 text-3xl font-black text-slate-950">{{ roles.length }}</p>
+                        <p class="mt-1 text-sm text-slate-500">Total role profiles available in this workspace.</p>
+                    </article>
+                    <article class="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700/70">Editable Roles</p>
+                        <p class="mt-2 text-3xl font-black text-emerald-800">{{ editableRoleCount() }}</p>
+                        <p class="mt-1 text-sm text-emerald-700/80">Organization-owned roles that can be adjusted here.</p>
+                    </article>
+                    <article class="rounded-2xl border border-sky-200 bg-sky-50/90 p-4 shadow-sm">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-sky-700/70">Permission Catalog</p>
+                        <p class="mt-2 text-3xl font-black text-sky-800">{{ permissions.length }}</p>
+                        <p class="mt-1 text-sm text-sky-700/80">{{ governedModuleCount() }} modules currently mapped to access control.</p>
+                    </article>
+                </div>
+            </section>
+
+            <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        (click)="activeTab = 'roles'"
+                        [class]="activeTab === 'roles' ? 'bg-slate-950 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                        class="rounded-xl px-4 py-2 text-sm font-black transition"
+                    >
+                        Role Matrix
                     </button>
-                    <button (click)="activeTab = 'permissions'; loadPermissions();" 
-                        [class]="activeTab === 'permissions' ? 'bg-white text-slate-900 shadow-sm' : 'text-gray-500 hover:bg-stone-100'"
-                        class="app-chip-button whitespace-nowrap">
-                        Permissions
+                    <button
+                        (click)="activeTab = 'permissions'; loadPermissions()"
+                        [class]="activeTab === 'permissions' ? 'bg-slate-950 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                        class="rounded-xl px-4 py-2 text-sm font-black transition"
+                    >
+                        Permission Catalog
                     </button>
-                </nav>
+                </div>
+            </section>
+
+            <div *ngIf="loading" class="flex justify-center items-center py-16">
+                <div class="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-sky-600"></div>
             </div>
 
-            <!-- Loading State -->
-            <div *ngIf="loading" class="flex justify-center items-center py-12">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
+            <section *ngIf="!loading && activeTab === 'roles'" class="space-y-5">
+                <div *ngIf="roles.length === 0" class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+                    No roles found
+                </div>
 
-            <!-- Roles Tab -->
-            <div *ngIf="!loading && activeTab === 'roles'" class="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role Name</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permissions</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr *ngFor="let role of roles" class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <span class="font-medium text-gray-900">{{ role.name }}</span>
+                <div *ngIf="roles.length > 0" class="grid gap-5 xl:grid-cols-2">
+                    <article *ngFor="let role of roles" class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-100/60">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h2 class="text-xl font-black text-slate-950">{{ role.name }}</h2>
+                                    <span *ngIf="role.isDefault" class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">Default</span>
+                                    <span *ngIf="role.isSystem" class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">System</span>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">
-                                {{ role.description || '-' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">
-                                <span class="px-2 py-1 bg-gray-100 rounded text-xs">
-                                    {{ role.permissions?.length || 0 }} permissions
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span *ngIf="role.isDefault" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                    Default
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <button
-                                    (click)="editRole(role)"
-                                    [disabled]="!canEditRole(role)"
-                                    [class]="canEditRole(role) ? 'text-blue-600 hover:text-blue-900 mr-3' : 'text-slate-300 cursor-not-allowed mr-3'"
-                                >
-                                    Edit
-                                </button>
-                            </td>
-                        </tr>
-                        <tr *ngIf="roles.length === 0">
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                                No roles found
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Permissions Tab -->
-            <div *ngIf="!loading && activeTab === 'permissions'" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div *ngFor="let module of permissionModules" class="bg-white rounded-md shadow-sm border border-gray-200 p-4">
-                    <h3 class="font-semibold text-gray-800 mb-4 capitalize">{{ module }}</h3>
-                    <div class="space-y-2">
-                        <div *ngFor="let perm of permissionsByModule[module]" class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">{{ perm.name }}</p>
-                                <p class="text-xs text-gray-500">{{ perm.description }}</p>
+                                <p class="mt-2 text-sm leading-6 text-slate-500">{{ role.description || 'No description added for this role yet.' }}</p>
                             </div>
-                            <span class="text-xs text-gray-400">{{ perm.slug }}</span>
+                            <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center">
+                                <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Permissions</p>
+                                <p class="mt-1 text-2xl font-black text-slate-900">{{ role.permissions?.length || 0 }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex flex-wrap gap-2">
+                            <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
+                                {{ canEditRole(role) ? 'Editable in org scope' : 'Read-only role' }}
+                            </span>
+                            <span class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
+                                {{ getRolePermissionSummary(role) }}
+                            </span>
+                        </div>
+
+                        <div class="mt-5 rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                            <div class="flex items-center justify-between gap-3">
+                                <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Permission Preview</p>
+                                <span class="text-[11px] font-bold text-slate-500">{{ getRolePreviewPermissions(role).length }} shown</span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <span *ngFor="let permission of getRolePreviewPermissions(role)" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-bold text-sky-700">
+                                    {{ permission }}
+                                </span>
+                                <span *ngIf="getRolePreviewPermissions(role).length === 0" class="text-sm text-slate-400">
+                                    Detailed permission labels will appear after the catalog loads.
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex items-center justify-between gap-3">
+                            <p class="text-xs text-slate-400">
+                                {{ role.updatedAt ? ('Updated ' + (role.updatedAt | date:'medium')) : 'No recent update timestamp available' }}
+                            </p>
+                            <button
+                                (click)="editRole(role)"
+                                [disabled]="!canEditRole(role)"
+                                [class]="canEditRole(role) ? 'bg-slate-950 text-white hover:bg-sky-700' : 'bg-slate-100 text-slate-400 cursor-not-allowed'"
+                                class="rounded-xl px-4 py-2 text-sm font-black transition"
+                            >
+                                Edit Role
+                            </button>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section *ngIf="!loading && activeTab === 'permissions'" class="space-y-5">
+                <div class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                        <div>
+                            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Catalog Filters</p>
+                            <h2 class="mt-2 text-xl font-black text-slate-950">Review permissions by module</h2>
+                            <p class="mt-1 text-sm text-slate-500">Search module access keys and quickly narrow the catalog before editing any role.</p>
+                        </div>
+                        <div class="flex w-full flex-col gap-3 xl:w-auto xl:flex-row">
+                            <input
+                                [(ngModel)]="permissionSearchQuery"
+                                type="text"
+                                placeholder="Search permission name or key"
+                                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300 xl:w-80"
+                            />
+                            <select
+                                [(ngModel)]="selectedPermissionModule"
+                                class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-sky-300"
+                            >
+                                <option value="all">All Modules</option>
+                                <option *ngFor="let module of permissionModules" [value]="module">{{ formatModuleLabel(module) }}</option>
+                            </select>
                         </div>
                     </div>
                 </div>
-                <div *ngIf="getPermissionModuleCount() === 0" class="col-span-full text-center py-12 text-gray-500">
-                    No permissions found
+
+                <div *ngIf="filteredPermissionModules().length === 0" class="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+                    No permissions found for the current filter.
                 </div>
-            </div>
+
+                <div *ngIf="filteredPermissionModules().length > 0" class="grid gap-5 xl:grid-cols-2">
+                    <article *ngFor="let module of filteredPermissionModules()" class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Module</p>
+                                <h3 class="mt-2 text-xl font-black text-slate-950">{{ formatModuleLabel(module) }}</h3>
+                                <p class="mt-1 text-sm text-slate-500">{{ getModulePermissionCount(module) }} permissions available in this access area.</p>
+                            </div>
+                            <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-center">
+                                <p class="text-[10px] font-black uppercase tracking-[0.16em] text-sky-600">Count</p>
+                                <p class="mt-1 text-2xl font-black text-sky-800">{{ getModulePermissionCount(module) }}</p>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 space-y-3">
+                            <div *ngFor="let perm of filteredPermissionsForModule(module)" class="rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-black text-slate-900">{{ perm.name }}</p>
+                                        <p class="mt-1 text-xs leading-5 text-slate-500">{{ perm.description || 'No description available.' }}</p>
+                                    </div>
+                                    <span class="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+                                        {{ perm.slug }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
         </div>
 
         <!-- Modal -->
-        <div *ngIf="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-md shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
-                    <h3 class="text-lg font-semibold text-gray-800">
+        <div *ngIf="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+            <div class="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[28px] border border-white/70 bg-white shadow-2xl">
+                <div class="border-b border-slate-200 bg-white px-6 py-5">
+                    <h3 class="text-xl font-black text-slate-900">
                         {{ editingId ? 'Edit' : 'Add' }} Role
                     </h3>
+                    <p class="mt-1 text-sm text-slate-500">Choose the role name and permission bundle carefully so future audit entries remain easy to review.</p>
                 </div>
                 <div class="p-6">
-                    <div class="space-y-4">
+                    <div class="space-y-5">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Role Name *</label>
+                            <label class="mb-1 block text-sm font-bold text-slate-700">Role Name *</label>
                             <input type="text" [(ngModel)]="formData.name" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-300"
                                 placeholder="e.g., Manager">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <label class="mb-1 block text-sm font-bold text-slate-700">Description</label>
                             <textarea [(ngModel)]="formData.description" rows="2"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-sky-300"
                                 placeholder="Role description"></textarea>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Permissions</label>
-                            <div class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 space-y-2">
-                                <div *ngFor="let module of permissionModules" class="border-b border-gray-100 pb-2 last:border-0">
-                                    <h4 class="text-sm font-medium text-gray-600 capitalize mb-2">{{ module }}</h4>
-                                    <div class="space-y-1 ml-2">
+                            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+                                <label class="block text-sm font-bold text-slate-700">Permissions</label>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                                        Selected {{ formData.permissions.length }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="max-h-[28rem] overflow-y-auto rounded-[24px] border border-slate-200 p-4 space-y-4">
+                                <div *ngFor="let module of permissionModules" class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                                    <div class="flex flex-wrap items-center justify-between gap-3">
+                                        <div>
+                                            <h4 class="text-sm font-black capitalize text-slate-800">{{ formatModuleLabel(module) }}</h4>
+                                            <p class="mt-1 text-xs text-slate-500">{{ getModulePermissionCount(module) }} permissions in this module.</p>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button type="button" (click)="selectAllPermissionsForModule(module)"
+                                                class="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-black text-emerald-700 transition hover:bg-emerald-100">
+                                                Select All
+                                            </button>
+                                            <button type="button" (click)="clearPermissionsForModule(module)"
+                                                class="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 transition hover:bg-rose-100">
+                                                Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 grid gap-2 md:grid-cols-2">
                                         <label *ngFor="let perm of permissionsByModule[module]" class="flex items-center gap-2 cursor-pointer">
                                             <input type="checkbox" 
                                                 [checked]="isPermissionSelected(perm.id)"
                                                 (change)="togglePermission(perm.id)"
-                                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                            <span class="text-sm text-gray-700">{{ perm.name }}</span>
+                                                class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                                            <span class="text-sm font-semibold text-slate-700">{{ perm.name }}</span>
                                         </label>
                                     </div>
                                 </div>
@@ -173,13 +266,13 @@ declare const Object: any;
                         </div>
                     </div>
                 </div>
-                <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 sticky bottom-0">
+                <div class="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
                     <button (click)="closeModal()" 
-                        class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+                        class="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-100">
                         Cancel
                     </button>
                     <button (click)="saveRole()" [disabled]="saving || !formData.name"
-                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        class="rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-sky-700 disabled:opacity-50">
                         {{ saving ? 'Saving...' : 'Save' }}
                     </button>
                 </div>
@@ -199,6 +292,8 @@ export class RolesComponent implements OnInit {
     showModal = false;
     editingId: number | null = null;
     activeTab = 'roles';
+    permissionSearchQuery = '';
+    selectedPermissionModule = 'all';
 
     formData = {
         name: '',
@@ -216,6 +311,14 @@ export class RolesComponent implements OnInit {
 
     getPermissionModuleCount(): number {
         return Object.keys(this.permissionsByModule).length;
+    }
+
+    editableRoleCount(): number {
+        return this.roles.filter((role) => this.canEditRole(role)).length;
+    }
+
+    governedModuleCount(): number {
+        return this.permissionModules.length;
     }
 
     ngOnInit() {
@@ -261,6 +364,68 @@ export class RolesComponent implements OnInit {
         return grouped;
     }
 
+    formatModuleLabel(module: string): string {
+        return module
+            .replace(/[_-]+/g, ' ')
+            .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+
+    getModulePermissionCount(module: string): number {
+        return this.filteredPermissionsForModule(module).length;
+    }
+
+    filteredPermissionModules(): string[] {
+        const search = this.permissionSearchQuery.trim().toLowerCase();
+        return this.permissionModules.filter((module) => {
+            if (this.selectedPermissionModule !== 'all' && module !== this.selectedPermissionModule) {
+                return false;
+            }
+
+            const permissions = this.permissionsByModule[module] || [];
+            if (!search) {
+                return permissions.length > 0;
+            }
+
+            return permissions.some((permission) =>
+                `${permission.name} ${permission.slug} ${permission.description || ''}`
+                    .toLowerCase()
+                    .includes(search)
+            );
+        });
+    }
+
+    filteredPermissionsForModule(module: string): Permission[] {
+        const permissions = this.permissionsByModule[module] || [];
+        const search = this.permissionSearchQuery.trim().toLowerCase();
+        if (!search) {
+            return permissions;
+        }
+
+        return permissions.filter((permission) =>
+            `${permission.name} ${permission.slug} ${permission.description || ''}`
+                .toLowerCase()
+                .includes(search)
+        );
+    }
+
+    getRolePreviewPermissions(role: Role): string[] {
+        const permissionIds = (role.permissions || [])
+            .map((permission) => Number(permission))
+            .filter((permission) => !Number.isNaN(permission));
+
+        const labels = permissionIds
+            .map((permissionId) => this.permissions.find((item) => item.id === permissionId)?.name)
+            .filter((permission): permission is string => !!permission);
+
+        return labels.slice(0, 6);
+    }
+
+    getRolePermissionSummary(role: Role): string {
+        if (!role.permissions?.length) return 'No permissions assigned';
+        if (role.permissions.length === 1) return '1 permission assigned';
+        return `${role.permissions.length} permissions assigned`;
+    }
+
     openModal() {
         this.loadPermissions();
         this.editingId = null;
@@ -302,6 +467,16 @@ export class RolesComponent implements OnInit {
         } else {
             this.formData.permissions.push(permissionId);
         }
+    }
+
+    selectAllPermissionsForModule(module: string) {
+        const modulePermissionIds = (this.permissionsByModule[module] || []).map((permission) => permission.id);
+        this.formData.permissions = Array.from(new Set([...this.formData.permissions, ...modulePermissionIds]));
+    }
+
+    clearPermissionsForModule(module: string) {
+        const modulePermissionIds = new Set((this.permissionsByModule[module] || []).map((permission) => permission.id));
+        this.formData.permissions = this.formData.permissions.filter((permissionId) => !modulePermissionIds.has(permissionId));
     }
 
     saveRole() {

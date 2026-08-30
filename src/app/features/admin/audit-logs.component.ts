@@ -88,6 +88,7 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     { label: 'Expenses', value: 'expenses' },
     { label: 'Organization', value: 'organization' },
     { label: 'Settings', value: 'settings' },
+    { label: 'Audit', value: 'audit' },
   ];
 
   actionOptions: SelectOption[] = [

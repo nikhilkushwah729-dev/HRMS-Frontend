@@ -1,0 +1,30 @@
+<svg width="520" height="124" viewBox="0 0 520 124" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">HRNexus Light Logo</title>
+  <desc id="desc">HRNexus combination logo for dark backgrounds</desc>
+  <defs>
+    <linearGradient id="orbGradientLight" x1="24" y1="20" x2="101" y2="101" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B7CFF"/>
+      <stop offset="1" stop-color="#4161E6"/>
+    </linearGradient>
+    <linearGradient id="lineGradientLight" x1="38" y1="40" x2="96" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#86EFAC"/>
+      <stop offset="1" stop-color="#7DD3FC"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(6 8)">
+    <circle cx="60" cy="54" r="48" fill="url(#orbGradientLight)" fill-opacity="0.96"/>
+    <path d="M32 22V86" stroke="#4F6EF6" stroke-width="11" stroke-linecap="round"/>
+    <path d="M87 22V86" stroke="#4F6EF6" stroke-width="11" stroke-linecap="round"/>
+    <path d="M50 28V86" stroke="#4F6EF6" stroke-width="11" stroke-linecap="round" opacity="0.84"/>
+    <path d="M50 28L76 79V28" stroke="#4F6EF6" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <path d="M38 54L52 38L69 50L93 26" stroke="url(#lineGradientLight)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="38" cy="54" r="6" fill="#86EFAC"/>
+    <circle cx="52" cy="38" r="6" fill="#86EFAC"/>
+    <circle cx="69" cy="50" r="6" fill="#86EFAC"/>
+    <circle cx="93" cy="26" r="6" fill="#7DD3FC"/>
+  </g>
+  <g transform="translate(132 14)">
+    <text x="0" y="48" fill="#F8FAFC" font-size="40" font-weight="800" font-family="Segoe UI, Arial, sans-serif" letter-spacing="-1.2">HRNexus</text>
+    <text x="1" y="88" fill="#CBD5E1" font-size="26" font-weight="500" font-family="Segoe UI, Arial, sans-serif" letter-spacing="-0.4">Technologies</text>
+  </g>
+</svg>

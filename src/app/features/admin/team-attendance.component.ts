@@ -26,6 +26,8 @@ interface NormalizedAttendance {
   employeeId: number;
   employeeName: string;
   employeeCode: string;
+  avatar: string | null;
+  selfieUrl: string | null;
   department: string;
   designation: string;
   shiftName: string;
@@ -55,7 +57,7 @@ type AttendanceScope = 'self' | 'team' | 'organization' | 'monitoring';
   ],
   template: `
     <div class="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
-      <header class="sticky top-3 z-20 rounded-lg border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
+      <header class="rounded-lg border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5">
         <div class="grid grid-cols-12 gap-4">
           <div class="col-span-12 xl:col-span-6">
             <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-sky-600">Attendance Module</p>
@@ -239,10 +241,14 @@ type AttendanceScope = 'self' | 'team' | 'organization' | 'monitoring';
                   <tr class="hover:bg-slate-50/60">
                     <td class="px-4 py-3">
                       <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-sm font-black text-sky-700">{{ getEmployeeInitials(record) }}</div>
+                        <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-sky-50 text-sm font-black text-sky-700">
+                          <img *ngIf="record.avatar" [src]="record.avatar" [alt]="record.employeeName" class="h-full w-full object-cover" />
+                          <span *ngIf="!record.avatar">{{ getEmployeeInitials(record) }}</span>
+                        </div>
                         <div class="min-w-0">
                           <p class="truncate text-sm font-bold text-slate-900">{{ record.employeeName }}</p>
                           <p class="text-[11px] text-slate-500">{{ record.employeeCode }}</p>
+                          <p *ngIf="record.selfieUrl" class="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-600">Photo</p>
                         </div>
                       </div>
                     </td>
@@ -614,6 +620,8 @@ export class TeamAttendanceComponent implements OnInit {
       employeeId,
       employeeName: fullName,
       employeeCode: record?.employee_code || employee?.employeeCode || 'N/A',
+      avatar: record?.employee?.avatar || employee?.avatar || null,
+      selfieUrl: record?.selfie_url || null,
       department: departmentName,
       designation: designationName,
       shiftName,

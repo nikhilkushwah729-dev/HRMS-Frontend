@@ -16,7 +16,7 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   template: `
     <div class="mx-auto max-w-6xl space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">Apply Leave</p>
@@ -27,7 +27,7 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
           <a
             routerLink="/self-service/leave"
-            class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            class="inline-flex items-center justify-center rounded-md border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
           >
             Back to My Leave
           </a>
@@ -35,11 +35,11 @@ import { ToastService } from '../../core/services/toast.service';
       </section>
 
       <section class="grid gap-5 xl:grid-cols-[1fr_0.7fr]">
-        <form [formGroup]="form" (ngSubmit)="submit()" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <form [formGroup]="form" (ngSubmit)="submit()" class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="grid gap-5 md:grid-cols-2">
             <div class="md:col-span-2">
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Leave Type</label>
-              <select formControlName="leaveTypeId" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
+              <select formControlName="leaveTypeId" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
                 <option [ngValue]="null">Select leave type</option>
                 @for (type of leaveTypes(); track type.id) {
                   <option [ngValue]="type.id">{{ type.typeName }} ({{ type.remaining }} left)</option>
@@ -49,7 +49,7 @@ import { ToastService } from '../../core/services/toast.service';
 
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Duration</label>
-              <select formControlName="durationType" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
+              <select formControlName="durationType" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
                 <option value="full_day">Full day</option>
                 <option value="half_day">Half day</option>
               </select>
@@ -57,7 +57,7 @@ import { ToastService } from '../../core/services/toast.service';
 
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Request Mode</label>
-              <select formControlName="requestKind" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
+              <select formControlName="requestKind" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400">
                 <option value="leave">Leave</option>
                 <option value="short-day">Short Day</option>
                 <option value="under-time">Under-time</option>
@@ -68,23 +68,23 @@ import { ToastService } from '../../core/services/toast.service';
 
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Start Date</label>
-              <input type="date" formControlName="startDate" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" />
+              <input type="date" formControlName="startDate" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" />
             </div>
 
             <div>
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">End Date</label>
-              <input type="date" formControlName="endDate" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" />
+              <input type="date" formControlName="endDate" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" />
             </div>
 
             @if (form.value.durationType === 'half_day') {
               <div class="md:col-span-2">
                 <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Half Day Session</label>
                 <div class="grid gap-3 sm:grid-cols-2">
-                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
+                  <label class="flex items-center gap-3 rounded-md border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
                     <input type="radio" formControlName="halfDaySession" value="first_half" />
                     First Half
                   </label>
-                  <label class="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
+                  <label class="flex items-center gap-3 rounded-md border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700">
                     <input type="radio" formControlName="halfDaySession" value="second_half" />
                     Second Half
                   </label>
@@ -94,12 +94,12 @@ import { ToastService } from '../../core/services/toast.service';
 
             <div class="md:col-span-2">
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Reason / Description</label>
-              <textarea formControlName="reason" rows="5" class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" placeholder="Explain the leave reason, travel plan, medical note, or manager context."></textarea>
+              <textarea formControlName="reason" rows="5" class="w-full rounded-md border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-emerald-400" placeholder="Explain the leave reason, travel plan, medical note, or manager context."></textarea>
             </div>
 
             <div class="md:col-span-2">
               <label class="mb-2 block text-xs font-black uppercase tracking-[0.18em] text-slate-400">Attachment</label>
-              <label class="flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center transition hover:border-emerald-300 hover:bg-emerald-50/30">
+              <label class="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center transition hover:border-emerald-300 hover:bg-emerald-50/30">
                 <span class="text-sm font-black text-slate-700">Upload supporting document</span>
                 <span class="mt-1 text-xs text-slate-500">Sick leave certificate, approval note, or proof document</span>
                 <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" class="hidden" (change)="onFileSelected($event)" />
@@ -111,22 +111,22 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-            <a routerLink="/self-service/leave" class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
+            <a routerLink="/self-service/leave" class="inline-flex items-center justify-center rounded-md border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">
               Cancel
             </a>
-            <button type="submit" [disabled]="form.invalid || submitting()" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="submit" [disabled]="form.invalid || submitting()" class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
               {{ submitting() ? 'Submitting...' : 'Submit Leave Request' }}
             </button>
           </div>
         </form>
 
         <div class="space-y-5">
-          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-black text-slate-900">Available Leave Balance</h2>
             <p class="mt-1 text-sm text-slate-500">Pick a leave type with enough remaining balance before you apply.</p>
             <div class="mt-4 space-y-3">
               @for (balance of leaveTypes(); track balance.id) {
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                   <div class="flex items-center justify-between gap-3">
                     <div>
                       <p class="text-sm font-black text-slate-900">{{ balance.typeName }}</p>
@@ -141,7 +141,7 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
           </article>
 
-          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-black text-slate-900">Request Guidance</h2>
             <div class="mt-4 space-y-3 text-sm text-slate-500">
               <p>Use full day for planned absence and half day when you need only one session off.</p>

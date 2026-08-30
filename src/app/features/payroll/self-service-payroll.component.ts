@@ -11,7 +11,7 @@ import { ToastService } from '../../core/services/toast.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-fuchsia-600">Self Service Payroll</p>
@@ -24,27 +24,27 @@ import { ToastService } from '../../core/services/toast.service';
       </section>
 
       @if (loading()) {
-        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+        <div class="rounded-md border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
           Loading payroll details...
         </div>
       } @else {
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Net Salary</p>
             <p class="mt-3 text-3xl font-black text-slate-900">{{ latestPayslip()?.net_salary || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
             <p class="mt-2 text-sm text-slate-500">Latest published payslip amount</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">YTD Earnings</p>
             <p class="mt-3 text-3xl font-black text-emerald-600">{{ dashboard()?.ytdEarnings || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
             <p class="mt-2 text-sm text-slate-500">Year-to-date taxable and non-taxable earnings</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">YTD Deductions</p>
             <p class="mt-3 text-3xl font-black text-rose-600">{{ dashboard()?.ytdDeductions || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
             <p class="mt-2 text-sm text-slate-500">PF, ESI, TDS, professional tax, and LOP</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Tax Summary</p>
             <p class="mt-3 text-3xl font-black text-sky-600">{{ dashboard()?.taxSummary || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
             <p class="mt-2 text-sm text-slate-500">TDS and yearly tax visibility</p>
@@ -53,7 +53,7 @@ import { ToastService } from '../../core/services/toast.service';
 
         <section class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
           <div class="space-y-5">
-            <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div class="flex items-start justify-between gap-4">
                 <div>
                   <h2 class="text-lg font-black text-slate-900">Latest Salary Breakdown</h2>
@@ -62,7 +62,7 @@ import { ToastService } from '../../core/services/toast.service';
                 @if (latestPayslip()) {
                   <a
                     [routerLink]="['/self-service/payslip', payslipPeriod(latestPayslip()!)]"
-                    class="inline-flex items-center rounded-xl border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+                    class="inline-flex items-center rounded-md border border-slate-200 px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
                   >
                     View Payslip
                   </a>
@@ -71,7 +71,7 @@ import { ToastService } from '../../core/services/toast.service';
 
               <div class="mt-5 grid gap-4 md:grid-cols-2">
                 @for (row of breakdownRows(); track row.label) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                     <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">{{ row.label }}</p>
                     <p class="mt-2 text-xl font-black" [ngClass]="row.tone">{{ row.value | currency:'INR':'symbol':'1.0-0' }}</p>
                   </div>
@@ -79,7 +79,7 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </article>
 
-            <article class="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white shadow-sm">
               <div class="border-b border-slate-100 px-5 py-4">
                 <h2 class="text-lg font-black text-slate-900">Payslip History</h2>
                 <p class="mt-1 text-sm text-slate-500">Download or preview your monthly payslips only.</p>
@@ -108,10 +108,10 @@ import { ToastService } from '../../core/services/toast.service';
                         </td>
                         <td class="px-4 py-4">
                           <div class="flex justify-end gap-2">
-                            <a [routerLink]="['/self-service/payslip', payslipPeriod(item)]" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">
+                            <a [routerLink]="['/self-service/payslip', payslipPeriod(item)]" class="rounded-md border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">
                               Preview
                             </a>
-                            <button type="button" (click)="download(item)" class="rounded-lg bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800">
+                            <button type="button" (click)="download(item)" class="rounded-md bg-slate-900 px-3 py-2 text-xs font-black text-white transition hover:bg-slate-800">
                               PDF
                             </button>
                           </div>
@@ -129,36 +129,36 @@ import { ToastService } from '../../core/services/toast.service';
           </div>
 
           <div class="space-y-5">
-            <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 class="text-lg font-black text-slate-900">Tax Summary</h2>
               <div class="mt-4 space-y-3">
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">TDS</p>
                   <p class="mt-2 text-xl font-black text-slate-900">{{ latestPayslip()?.tds || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Professional Tax</p>
                   <p class="mt-2 text-xl font-black text-slate-900">{{ latestPayslip()?.professional_tax || 0 | currency:'INR':'symbol':'1.0-0' }}</p>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">PF & ESI</p>
                   <p class="mt-2 text-xl font-black text-slate-900">{{ ((latestPayslip()?.pf || 0) + (latestPayslip()?.esi || 0)) | currency:'INR':'symbol':'1.0-0' }}</p>
                 </div>
               </div>
             </article>
 
-            <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 class="text-lg font-black text-slate-900">Reimbursement Status</h2>
               <div class="mt-4 grid gap-3 sm:grid-cols-3">
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4 text-center">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Pending</p>
                   <p class="mt-2 text-2xl font-black text-amber-500">{{ dashboard()?.reimbursementStatus?.pending || 0 }}</p>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4 text-center">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Approved</p>
                   <p class="mt-2 text-2xl font-black text-sky-600">{{ dashboard()?.reimbursementStatus?.approved || 0 }}</p>
                 </div>
-                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div class="rounded-md border border-slate-200 bg-slate-50 p-4 text-center">
                   <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Paid</p>
                   <p class="mt-2 text-2xl font-black text-emerald-600">{{ dashboard()?.reimbursementStatus?.paid || 0 }}</p>
                 </div>

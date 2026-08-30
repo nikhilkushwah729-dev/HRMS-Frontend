@@ -7,7 +7,7 @@ import { LanguageService } from '../../../../core/services/language.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col rounded-lg bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
+    <div class="flex h-full flex-col rounded-md bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
       <h2 class="border-b-2 border-slate-200 pb-2 text-lg font-semibold text-slate-900">
         {{ t('selfService.network.title') }}
       </h2>
@@ -26,7 +26,7 @@ import { LanguageService } from '../../../../core/services/language.service';
           </div>
         </div>
       } @else {
-        <div class="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-slate-700">
+        <div class="mt-3 rounded-md bg-emerald-50 px-4 py-3 text-sm font-semibold text-slate-700">
           {{ reporteeHierarchySummary() }}
         </div>
       }
@@ -74,7 +74,7 @@ import { LanguageService } from '../../../../core/services/language.service';
                     <div class="text-xs text-slate-400">{{ peer.designation?.name || t('selfService.network.collaborator') }}</div>
                   </div>
                 </div>
-                <button class="rounded-lg bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:text-emerald-600">
+                <button class="rounded-md bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500 transition hover:text-emerald-600">
                   View
                 </button>
               </div>
@@ -106,7 +106,7 @@ import { LanguageService } from '../../../../core/services/language.service';
                 @if (canViewEmployeeProfiles() && hasValidEmployeeId(rep?.id)) {
                   <button
                     (click)="openEmployeeProfile(rep?.id)"
-                    class="rounded-lg bg-emerald-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700 transition hover:bg-emerald-100">
+                    class="rounded-md bg-emerald-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700 transition hover:bg-emerald-100">
                     {{ t('selfService.network.viewPortfolio') }}
                   </button>
                 }

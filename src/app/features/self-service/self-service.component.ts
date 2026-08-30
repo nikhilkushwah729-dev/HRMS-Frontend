@@ -207,7 +207,7 @@ interface HolidayCalendarItem {
     :host ::ng-deep .ess-clean-panel .app-glass-card {
       background: #ffffff !important;
       border: 0 !important;
-      border-radius: 1.5rem !important;
+      border-radius: 0.375rem !important;
       box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04) !important;
       --tw-ring-color: transparent !important;
     }
