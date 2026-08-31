@@ -21,7 +21,7 @@ import {
   template: `
     <div class="min-h-full bg-[linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] p-4 sm:p-6 lg:p-8">
       <div class="mx-auto max-w-4xl space-y-6">
-        <section class="rounded-[2rem] border border-slate-200 bg-white/95 p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
+        <section class="rounded-md border border-slate-200 bg-white/95 p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
           <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p class="text-[11px] font-black uppercase tracking-[0.3em] text-sky-600">
@@ -35,7 +35,7 @@ import {
               </p>
             </div>
 
-            <div class="rounded-3xl border border-sky-100 bg-sky-50 px-5 py-4 text-sm text-sky-900">
+            <div class="rounded-md border border-sky-100 bg-sky-50 px-5 py-4 text-sm text-sky-900">
               <p class="text-[10px] font-black uppercase tracking-[0.28em] text-sky-600">
                 Expiry
               </p>
@@ -50,7 +50,7 @@ import {
         </section>
 
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
+          <div class="rounded-md border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)] sm:p-8">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p class="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
@@ -66,7 +66,7 @@ import {
                   type="button"
                   (click)="copyToken()"
                   [disabled]="!qrToken()"
-                  class="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="rounded-md bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {{ copied() ? 'Copied' : 'Copy Token' }}
                 </button>
@@ -74,7 +74,7 @@ import {
                   type="button"
                   (click)="loadQrToken()"
                   [disabled]="loading()"
-                  class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="rounded-md border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {{ loading() ? 'Refreshing...' : 'Refresh Token' }}
                 </button>
@@ -82,22 +82,22 @@ import {
             </div>
 
             @if (errorMessage()) {
-              <div class="mt-6 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+              <div class="mt-6 rounded-md border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
                 {{ errorMessage() }}
               </div>
             }
 
-            <div class="mt-6 rounded-[1.75rem] border border-slate-200 bg-slate-950 p-5 text-slate-50">
+            <div class="mt-6 rounded-md border border-slate-200 bg-slate-950 p-5 text-slate-50">
               <p class="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
                 Token Payload
               </p>
-              <div class="mt-4 break-all rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm leading-7">
+              <div class="mt-4 break-all rounded-md border border-white/10 bg-white/5 px-4 py-4 text-sm leading-7">
                 {{ qrToken()?.token || 'No token available yet.' }}
               </div>
             </div>
 
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
-              <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                 <p class="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                   Expires At
                 </p>
@@ -105,7 +105,7 @@ import {
                   {{ qrToken()?.expiresAt ? (qrToken()!.expiresAt | date: 'dd MMM yyyy, hh:mm:ss a') : '--' }}
                 </p>
               </div>
-              <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                 <p class="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
                   Best Use
                 </p>
@@ -117,7 +117,7 @@ import {
           </div>
 
           <aside class="space-y-6">
-            <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
+            <div class="rounded-md border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
               <p class="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
                 How To Use
               </p>
@@ -129,20 +129,20 @@ import {
               </ol>
             </div>
 
-            <div class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
+            <div class="rounded-md border border-slate-200 bg-white p-6 shadow-[0_24px_80px_-40px_rgba(15,23,42,0.35)]">
               <p class="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">
                 Quick Links
               </p>
               <div class="mt-4 flex flex-col gap-3">
                 <a
                   routerLink="/self-service/attendance"
-                  class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  class="rounded-md border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Back To My Attendance
                 </a>
                 <a
                   routerLink="/dashboard"
-                  class="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                  class="rounded-md border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Back To Dashboard
                 </a>

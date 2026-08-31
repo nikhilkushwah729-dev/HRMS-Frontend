@@ -901,7 +901,18 @@ export class FaceRecognitionService {
       this.isCameraReady.set(true);
       return true;
     } catch (error) {
-      console.error('Camera error:', error);
+      const cameraErrorName =
+        error && typeof error === 'object' && 'name' in error
+          ? String((error as { name?: string }).name)
+          : '';
+      if (
+        cameraErrorName === 'NotAllowedError' ||
+        cameraErrorName === 'PermissionDeniedError'
+      ) {
+        console.warn('Camera access was denied by the browser.');
+      } else {
+        console.error('Camera error:', error);
+      }
       this.isCameraReady.set(false);
       return false;
     }
@@ -942,7 +953,18 @@ export class FaceRecognitionService {
       this.isCameraReady.set(true);
       return true;
     } catch (error) {
-      console.error('Best camera auto-detect failed:', error);
+      const cameraErrorName =
+        error && typeof error === 'object' && 'name' in error
+          ? String((error as { name?: string }).name)
+          : '';
+      if (
+        cameraErrorName === 'NotAllowedError' ||
+        cameraErrorName === 'PermissionDeniedError'
+      ) {
+        console.warn('Best camera auto-detect was blocked by browser permissions.');
+      } else {
+        console.error('Best camera auto-detect failed:', error);
+      }
       this.isCameraReady.set(false);
       return false;
     }

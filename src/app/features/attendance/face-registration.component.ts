@@ -823,7 +823,18 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       await this.faceRecognitionService.primeFaceEngine();
       this.startAutoScan();
     } catch (error) {
-      console.error('Camera error:', error);
+      const cameraErrorName =
+        error && typeof error === 'object' && 'name' in error
+          ? String((error as { name?: string }).name)
+          : '';
+      if (
+        cameraErrorName === 'NotAllowedError' ||
+        cameraErrorName === 'PermissionDeniedError'
+      ) {
+        console.warn('Camera access was denied by the browser.');
+      } else {
+        console.error('Camera error:', error);
+      }
       this.toastService.error(
         error instanceof Error
           ? error.message

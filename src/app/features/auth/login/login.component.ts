@@ -610,6 +610,15 @@ export class LoginComponent implements OnInit {
           this.loading.set(false);
           console.error('Firebase Phone Auth Error:', error);
 
+          // Firebase can surface this configuration issue either with its own
+          // error code or as an `auth/internal-error` whose message mentions
+          // billing. Check both so we do not treat it as a reCAPTCHA failure.
+          const firebaseMessage = String(error?.message || '').toLowerCase();
+          const billingIsRequired =
+            error?.code === 'auth/billing-not-enabled' ||
+            (firebaseMessage.includes('billing') &&
+              (firebaseMessage.includes('not enabled') || firebaseMessage.includes('blaze')));
+
           let errorMsg = this.t('auth.login.failedSendOtp');
           if (error.code === 'auth/invalid-phone-number') {
             errorMsg = this.t('auth.login.invalidPhoneNumber');
@@ -617,6 +626,8 @@ export class LoginComponent implements OnInit {
             errorMsg = this.t('auth.login.tooManyRequests');
           } else if (error.code === 'auth/quota-exceeded') {
             errorMsg = this.t('auth.login.smsQuotaExceeded');
+          } else if (billingIsRequired) {
+            errorMsg = this.t('auth.login.billingNotEnabled');
           } else if (error.code === 'auth/internal-error') {
             errorMsg = this.t('auth.login.internalFirebase');
             // Try to reset the verifier on internal error
@@ -624,8 +635,6 @@ export class LoginComponent implements OnInit {
               this.recaptchaVerifier.clear();
               this.recaptchaVerifier = null;
             }
-          } else if (error.code === 'auth/billing-not-enabled') {
-            errorMsg = this.t('auth.login.billingNotEnabled');
           } else {
             errorMsg += ': ' + (error.message || 'Unknown error');
           }

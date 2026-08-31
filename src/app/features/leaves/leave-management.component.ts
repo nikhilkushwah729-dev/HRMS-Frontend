@@ -340,7 +340,11 @@ export class LeaveManagementComponent {
   }
 
   canProcess(item: LeaveRequest): boolean {
-    return item.status === 'pending' && (this.canSeeAllOrganization() || this.isManagerScope());
+    return (
+      item.status === 'pending' &&
+      !this.isOwnLeave(item) &&
+      (this.canSeeAllOrganization() || this.isManagerScope())
+    );
   }
 
   setReviewNote(id: number, value: string): void {
@@ -348,14 +352,42 @@ export class LeaveManagementComponent {
   }
 
   process(item: LeaveRequest, status: 'approved' | 'rejected'): void {
+    if (this.isOwnLeave(item)) {
+      this.toastService.show(
+        'You cannot approve or reject your own leave request.',
+        'error',
+      );
+      return;
+    }
+
     const note = this.reviewNotes()[item.id] || '';
     this.leaveService.updateLeaveStatus(item.id, status, note).subscribe({
       next: () => {
         this.toastService.show(`Leave request ${status} successfully.`, 'success');
         this.load();
       },
-      error: () => this.toastService.show(`Unable to ${status} this leave request.`, 'error'),
+      error: (err) =>
+        this.toastService.show(
+          err?.error?.message || `Unable to ${status} this leave request.`,
+          'error',
+        ),
     });
+  }
+
+  private currentActorIds(): number[] {
+    const current = this.currentUser();
+    return [current?.employeeId, current?.id]
+      .map((value) => Number(value ?? 0))
+      .filter((value, index, array) => value > 0 && array.indexOf(value) === index);
+  }
+
+  private isOwnLeave(item: LeaveRequest): boolean {
+    const actorIds = this.currentActorIds();
+    const requestIds = [item.employeeId, item.employee?.id]
+      .map((value) => Number(value ?? 0))
+      .filter((value, index, array) => value > 0 && array.indexOf(value) === index);
+
+    return requestIds.some((value) => actorIds.includes(value));
   }
 
   exportCsv(): void {

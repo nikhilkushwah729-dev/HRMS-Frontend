@@ -15,7 +15,7 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="p-4 sm:p-5">
 
 
-      <div class="overflow-hidden rounded-lg border border-slate-200">
+      <div class="overflow-hidden rounded-md border border-slate-200">
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-slate-100">
             <thead class="bg-slate-50/80">

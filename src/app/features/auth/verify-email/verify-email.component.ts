@@ -16,6 +16,9 @@ import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.compone
       <app-auth-language-switcher />
       <div class="grid w-full overflow-hidden rounded-[2rem] border border-white/10 bg-white/10 shadow-[0_28px_90px_rgba(15,23,42,0.34)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
       <section class="border-b border-white/10 p-8 lg:border-b-0 lg:border-r lg:p-12">
+        <div class="mb-4">
+          <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="h-14 w-auto max-w-[220px] object-contain xl:h-16 xl:max-w-[250px]" />
+        </div>
         <p class="text-xs font-bold uppercase tracking-[0.28em] text-teal-100/80">{{ t('auth.verify.kicker') }}</p>
         <h1 class="mt-4 text-4xl font-black tracking-tight">
           @if (loading()) {
@@ -54,6 +57,9 @@ import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.compone
 
       <section class="p-8 lg:p-12">
         <div class="flex h-full flex-col justify-center">
+          <div class="mx-auto mb-5 flex h-16 w-[182px] items-center justify-center overflow-hidden px-3">
+            <img src="/hrnexus-logo-light.svg" alt="HRNexus" class="h-8 w-auto object-contain">
+          </div>
           <div class="verify-icon" [class.success]="verificationSuccess()" [class.error]="!loading() && !verificationSuccess()">
             @if (loading()) {
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin">

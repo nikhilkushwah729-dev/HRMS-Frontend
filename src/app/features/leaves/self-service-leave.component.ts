@@ -21,7 +21,7 @@ type CalendarCell = {
   imports: [CommonModule, RouterModule, DatePipe],
   template: `
     <div class="space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">Self Service Leave</p>
@@ -33,13 +33,13 @@ type CalendarCell = {
           <div class="flex flex-col gap-2 sm:flex-row">
             <a
               routerLink="/self-service/leave/apply"
-              class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700"
+              class="inline-flex items-center justify-center rounded-md bg-emerald-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-emerald-100 transition hover:bg-emerald-700"
             >
               Apply Leave
             </a>
             <a
               routerLink="/self-service/requests/leave"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              class="inline-flex items-center justify-center rounded-md border border-slate-200 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
             >
               Open Request Ledger
             </a>
@@ -48,27 +48,27 @@ type CalendarCell = {
       </section>
 
       @if (loading()) {
-        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+        <div class="rounded-md border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
           Loading your leave workspace...
         </div>
       } @else {
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Entitlement</p>
             <p class="mt-3 text-3xl font-black text-slate-900">{{ totalEntitlement() }}</p>
             <p class="mt-2 text-sm text-slate-500">Across all available leave types</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Remaining</p>
             <p class="mt-3 text-3xl font-black text-emerald-600">{{ totalRemaining() }}</p>
             <p class="mt-2 text-sm text-slate-500">Available to apply right now</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending Requests</p>
             <p class="mt-3 text-3xl font-black text-amber-500">{{ pendingCount() }}</p>
             <p class="mt-2 text-sm text-slate-500">Waiting for manager or HR action</p>
           </article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
             <p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved This Year</p>
             <p class="mt-3 text-3xl font-black text-sky-600">{{ approvedCount() }}</p>
             <p class="mt-2 text-sm text-slate-500">Approved leave records in your history</p>
@@ -77,7 +77,7 @@ type CalendarCell = {
 
         <section class="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
           <div class="space-y-5">
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
               <div class="flex items-center justify-between gap-3">
                 <div>
                   <h2 class="text-lg font-black text-slate-900">Leave Balance</h2>
@@ -86,7 +86,7 @@ type CalendarCell = {
               </div>
               <div class="mt-4 grid gap-3 md:grid-cols-2">
                 @for (balance of balances(); track balance.id) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                     <div class="flex items-start justify-between gap-3">
                       <div>
                         <p class="text-sm font-black text-slate-900">{{ balance.typeName }}</p>
@@ -110,7 +110,7 @@ type CalendarCell = {
               </div>
             </article>
 
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
               <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 class="text-lg font-black text-slate-900">My Leave History</h2>
@@ -121,12 +121,12 @@ type CalendarCell = {
                     [value]="search()"
                     (input)="search.set(($any($event.target).value || '').toString())"
                     placeholder="Search by type or reason"
-                    class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400"
+                    class="rounded-md border border-slate-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400"
                   />
                   <select
                     [value]="statusFilter()"
                     (change)="statusFilter.set(($any($event.target).value || 'all').toString())"
-                    class="rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400"
+                    class="rounded-md border border-slate-200 px-4 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400"
                   >
                     <option value="all">All status</option>
                     <option value="pending">Pending</option>
@@ -173,7 +173,7 @@ type CalendarCell = {
                             <button
                               type="button"
                               (click)="cancelLeave(item)"
-                              class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50"
+                              class="rounded-md border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50"
                             >
                               Cancel
                             </button>
@@ -196,12 +196,12 @@ type CalendarCell = {
           </div>
 
           <div class="space-y-5">
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
               <h2 class="text-lg font-black text-slate-900">Upcoming Approved Leaves</h2>
               <p class="mt-1 text-sm text-slate-500">Your next approved time off, ready for planning.</p>
               <div class="mt-4 space-y-3">
                 @for (leave of upcomingApproved(); track leave.id) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div class="rounded-md border border-slate-200 bg-slate-50 p-4">
                     <div class="flex items-start justify-between gap-3">
                       <div>
                         <p class="text-sm font-black text-slate-900">{{ leave.leaveType?.typeName || 'Leave' }}</p>
@@ -214,14 +214,14 @@ type CalendarCell = {
                     <p class="mt-3 text-sm text-slate-500">{{ leave.reason || 'No reason added' }}</p>
                   </div>
                 } @empty {
-                  <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
+                  <div class="rounded-md border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm font-semibold text-slate-500">
                     No upcoming approved leaves.
                   </div>
                 }
               </div>
             </article>
 
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
               <div class="flex items-center justify-between">
                 <div>
                   <h2 class="text-lg font-black text-slate-900">Leave Calendar</h2>
@@ -234,7 +234,7 @@ type CalendarCell = {
               </div>
               <div class="mt-3 grid grid-cols-7 gap-2">
                 @for (cell of calendarDays(); track $index) {
-                  <div class="min-h-[76px] rounded-2xl border p-2" [ngClass]="cell.day ? 'border-slate-200 bg-white' : 'border-transparent bg-transparent'">
+                  <div class="min-h-[76px] rounded-md border p-2" [ngClass]="cell.day ? 'border-slate-200 bg-white' : 'border-transparent bg-transparent'">
                     @if (cell.day) {
                       <p class="text-xs font-black text-slate-700">{{ cell.day }}</p>
                       <div class="mt-2 space-y-1">
@@ -253,7 +253,7 @@ type CalendarCell = {
               </div>
             </article>
 
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
               <h2 class="text-lg font-black text-slate-900">Quick Leave Requests</h2>
               <p class="mt-1 text-sm text-slate-500">Separate employee request shortcuts for short day, under-time, WFH, and outdoor duty.</p>
               <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -261,7 +261,7 @@ type CalendarCell = {
                   <button
                     type="button"
                     (click)="openShortcut(shortcut.kind)"
-                    class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50/40"
+                    class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4 text-left transition hover:border-emerald-200 hover:bg-emerald-50/40"
                   >
                     <p class="text-sm font-black text-slate-900">{{ shortcut.label }}</p>
                     <p class="mt-1 text-xs text-slate-500">{{ shortcut.helper }}</p>

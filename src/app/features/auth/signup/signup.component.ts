@@ -27,6 +27,7 @@ export class SignupComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   success = signal('');
+  oauthProvider = signal<'google' | 'microsoft' | null>(null);
   showPassword = signal(false);
   showConfirmPassword = false;
   termsAccepted = false;
@@ -58,6 +59,17 @@ export class SignupComponent implements OnInit {
     this.route.queryParamMap.subscribe(params => {
       const identifier = (params.get('identifier') || '').trim();
       const type = params.get('type');
+      const oauthProvider = params.get('provider');
+
+      // New Google/Microsoft users are redirected here by the backend after
+      // the provider has verified their identity. Keep the organization form
+      // intact, while removing the need to type their provider profile again.
+      if (oauthProvider === 'google' || oauthProvider === 'microsoft') {
+        this.oauthProvider.set(oauthProvider);
+        this.form.email = (params.get('email') || '').trim().toLowerCase();
+        this.form.adminFirstName = (params.get('firstName') || '').trim();
+        this.form.adminLastName = (params.get('lastName') || '').trim();
+      }
 
       if (!identifier) return;
 
@@ -105,7 +117,8 @@ export class SignupComponent implements OnInit {
     const adminFirstName = this.form.adminFirstName.trim();
     const adminLastName = this.form.adminLastName.trim();
     const email = this.form.email.trim().toLowerCase();
-    const adminPassword = this.form.adminPassword;
+    const provider = this.oauthProvider();
+    const adminPassword = provider ? this.createOAuthOnlyPassword() : this.form.adminPassword;
     const phone = this.form.phone.replace(/\D/g, '');
 
     if (!companyName || !adminFirstName || !email || !adminPassword) {
@@ -118,7 +131,7 @@ export class SignupComponent implements OnInit {
       return;
     }
 
-    if (adminPassword !== this.confirmPassword) {
+    if (!provider && adminPassword !== this.confirmPassword) {
       this.error.set(this.t('auth.signup.passwordsNoMatch'));
       return;
     }
@@ -169,6 +182,12 @@ export class SignupComponent implements OnInit {
     this.authService.register(payload).subscribe({
       next: (res) => {
         this.loading.set(false);
+        if (provider) {
+          // The organization now exists. Restarting the OAuth redirect links
+          // the provider identity to it and finishes at the dashboard.
+          this.signInWithOAuth(provider);
+          return;
+        }
         this.success.set(this.t('auth.signup.successMessage'));
       },
       error: (err) => {
@@ -176,6 +195,12 @@ export class SignupComponent implements OnInit {
         this.error.set(this.extractErrorMessage(err));
       }
     });
+  }
+
+  private createOAuthOnlyPassword(): string {
+    const bytes = crypto.getRandomValues(new Uint8Array(24));
+    const randomPart = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `OAuth-${randomPart}aA1!`;
   }
 
   t(key: string, params?: Record<string, string | number | null | undefined>): string {

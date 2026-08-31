@@ -870,9 +870,21 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               </p>
             </div>
 
-            <div *ngIf="selectedAttendanceRecord()?.selfie_url" class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4">
-              <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Selfie Proof</p>
-              <img [src]="selectedAttendanceRecord()?.selfie_url" alt="Attendance selfie" class="mt-3 h-32 w-32 rounded-2xl object-cover border border-slate-200" />
+            <div *ngIf="selectedAttendanceCheckInImage() || selectedAttendanceCheckOutImage() || selectedAttendanceAvatarFallback()" class="grid gap-4 sm:grid-cols-2">
+              <div *ngIf="selectedAttendanceCheckInImage()" class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time In Image</p>
+                <img [src]="selectedAttendanceCheckInImage()" alt="Time In Image" class="mt-3 h-32 w-full rounded-2xl object-cover border border-slate-200" />
+              </div>
+
+              <div *ngIf="selectedAttendanceCheckOutImage()" class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Time Out Image</p>
+                <img [src]="selectedAttendanceCheckOutImage()" alt="Time Out Image" class="mt-3 h-32 w-full rounded-2xl object-cover border border-slate-200" />
+              </div>
+
+              <div *ngIf="!selectedAttendanceCheckInImage() && !selectedAttendanceCheckOutImage() && selectedAttendanceAvatarFallback()" class="rounded-[22px] border border-slate-100 bg-slate-50/75 p-4 sm:col-span-2">
+                <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Profile Avatar</p>
+                <img [src]="selectedAttendanceAvatarFallback()" alt="Profile Avatar" class="mt-3 h-32 w-32 rounded-2xl object-cover border border-slate-200" />
+              </div>
             </div>
 
             <div class="flex flex-wrap gap-2 pt-1">
@@ -2760,7 +2772,18 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         video.onloadedmetadata?.(new Event('loadedmetadata'));
       }
     } catch (err) {
-      console.error('Camera error:', err);
+      const cameraErrorName =
+        err && typeof err === 'object' && 'name' in err
+          ? String((err as { name?: string }).name)
+          : '';
+      if (
+        cameraErrorName === 'NotAllowedError' ||
+        cameraErrorName === 'PermissionDeniedError'
+      ) {
+        console.warn('Camera access was denied by the browser.');
+      } else {
+        console.error('Camera error:', err);
+      }
       this.stopCamera();
       this.cameraAvailability.set('unavailable');
       const errorMessage = this.formatCameraAccessError(err);
@@ -4387,6 +4410,21 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return record
       ? this.getStatusClass(record.status)
       : 'bg-slate-100 text-slate-700 border-slate-200';
+  }
+
+  selectedAttendanceCheckInImage(): string | null {
+    const record = this.selectedAttendanceRecord();
+    return record?.check_in_photo || record?.selfie_url || null;
+  }
+
+  selectedAttendanceCheckOutImage(): string | null {
+    const record = this.selectedAttendanceRecord();
+    return record?.check_out_photo || null;
+  }
+
+  selectedAttendanceAvatarFallback(): string | null {
+    const record = this.selectedAttendanceRecord();
+    return record?.employee?.avatar || this.currentUser?.avatar || null;
   }
 
   formatShortTime(value?: string | null): string {

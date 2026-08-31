@@ -23,6 +23,7 @@ import {
 } from '../../core/services/announcement.service';
 import { TrialBannerComponent } from './trial-banner/trial-banner.component';
 import { SubscriptionService } from '../../core/services/subscription.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface UpcomingHoliday {
   date: string;
@@ -140,8 +141,9 @@ interface ModuleCard {
               class="hero-wide-action"
               type="button"
               (click)="markAttendance()"
+              [disabled]="isMarkingAttendance()"
             >
-              {{ t('dashboard.markAttendanceNow') }}
+              {{ isMarkingAttendance() ? 'Marking attendance...' : t('dashboard.markAttendanceNow') }}
             </button>
           }
         </aside>
@@ -590,6 +592,7 @@ interface ModuleCard {
         gap: 1.5rem;
         color: #0f172a;
         min-width: 0;
+        width: 100%;
       }
 
       .hero {
@@ -597,15 +600,12 @@ interface ModuleCard {
         grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
         padding: 1.25rem;
-        border-radius: 14px;
+        border-radius: 18px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: #ffffff;
         box-shadow: 0 18px 42px -28px rgba(15, 23, 42, 0.18);
         align-items: stretch;
-        position: sticky;
-        top: 0.75rem;
-        z-index: 20;
-        backdrop-filter: blur(12px);
+        overflow: hidden;
       }
 
       .hero-copy,
@@ -617,6 +617,8 @@ interface ModuleCard {
       }
 
       .hero-copy {
+        display: flex;
+        flex-direction: column;
         padding: 0.25rem;
       }
 
@@ -663,7 +665,8 @@ interface ModuleCard {
         display: flex;
         gap: 0.8rem;
         flex-wrap: wrap;
-        margin-top: 1.5rem;
+        margin-top: auto;
+        padding-top: 1.5rem;
       }
 
       .hero-btn,
@@ -705,6 +708,13 @@ interface ModuleCard {
         border: 1px solid rgba(148, 163, 184, 0.16);
         background: #ffffff;
         box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.14);
+      }
+
+      .hero-panel,
+      .stat-card,
+      .module-card {
+        display: flex;
+        flex-direction: column;
       }
 
       .hero-panel-top {
@@ -779,7 +789,8 @@ interface ModuleCard {
 
       .hero-wide-action {
         width: 100%;
-        margin-top: 1.15rem;
+        margin-top: auto;
+        padding-top: 0.9rem;
         border: 0;
       }
 
@@ -1047,7 +1058,8 @@ interface ModuleCard {
 
       .stat-card span {
         display: block;
-        margin-top: 0.7rem;
+        margin-top: auto;
+        padding-top: 0.7rem;
         color: #475569;
         line-height: 1.55;
       }
@@ -1064,6 +1076,7 @@ interface ModuleCard {
 
       .content-grid {
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        align-items: stretch;
       }
 
       .panel-dark {
@@ -1094,7 +1107,9 @@ interface ModuleCard {
       }
 
       .quick-link {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        min-height: 7.25rem;
         padding: 1rem;
         border-radius: 22px;
         border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1108,6 +1123,11 @@ interface ModuleCard {
       .empty-state strong {
         display: block;
         color: #0f172a;
+      }
+
+      .quick-link span {
+        margin-top: auto;
+        padding-top: 0.45rem;
       }
 
       .tone-teal {
@@ -1183,6 +1203,15 @@ interface ModuleCard {
       .empty-state {
         border: 1px solid rgba(148, 163, 184, 0.12);
         background: rgba(248, 250, 252, 0.78);
+      }
+
+      .list-row > div {
+        min-width: 0;
+      }
+
+      .list-row strong,
+      .list-row span {
+        overflow-wrap: anywhere;
       }
 
       .badge {
@@ -1408,7 +1437,7 @@ interface ModuleCard {
         }
       }
 
-      @media (max-width: 1279px) {
+      @media (max-width: 1180px) {
         .hero,
         .content-grid {
           grid-template-columns: 1fr;
@@ -1416,10 +1445,6 @@ interface ModuleCard {
       }
 
       @media (max-width: 1023px) {
-        .hero {
-          grid-template-columns: 1fr;
-        }
-
         .hero-panel {
           order: -1;
         }
@@ -1443,6 +1468,10 @@ interface ModuleCard {
         .hero {
           padding: 1rem;
           border-radius: 24px;
+        }
+
+        .hero-copy {
+          padding: 0;
         }
 
         .hero-panel,
@@ -1503,6 +1532,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private announcementService = inject(AnnouncementService);
   private languageService = inject(LanguageService);
   private readonly subscriptionService = inject(SubscriptionService);
+  private readonly toastService = inject(ToastService);
 
   currentUser = signal<User | null>(null);
   employees = signal<User[]>([]);
@@ -1516,6 +1546,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   workAnniversaries = signal<WorkAnniversary[]>([]);
   currentTime = signal('');
   currentDay = signal('');
+  isMarkingAttendance = signal(false);
   private employeesLoaded = signal(false);
 
   activeAnnouncements = computed(() => {
@@ -1975,9 +2006,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   markAttendance(): void {
+    if (this.isMarkingAttendance()) {
+      return;
+    }
+
+    this.isMarkingAttendance.set(true);
     this.attendanceService.checkIn({ source: 'dashboard' }).subscribe({
-      next: (response) => this.todayAttendance.set(response),
-      error: () => this.todayAttendance.set(this.todayAttendance()),
+      next: (response) => {
+        this.todayAttendance.set(response);
+        this.toastService.success('Attendance marked successfully.');
+        this.isMarkingAttendance.set(false);
+      },
+      error: () => {
+        this.todayAttendance.set(this.todayAttendance());
+        this.toastService.error(
+          'Unable to mark attendance right now. Please try again in a moment.',
+        );
+        this.isMarkingAttendance.set(false);
+      },
     });
   }
 }

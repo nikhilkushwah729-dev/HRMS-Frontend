@@ -90,7 +90,7 @@ import { ToastService } from '../../core/services/toast.service';
       <div class="overflow-hidden rounded-lg">
         <div class="max-h-[560px] overflow-auto">
           <table class="min-w-full">
-            <thead class="sticky top-0 bg-white">
+            <thead class="bg-white">
               <tr class="border-b border-slate-200 text-left">
                 <th class="px-5 py-4 text-sm font-semibold text-slate-800">
                   <button type="button" class="inline-flex items-center gap-2">
@@ -202,19 +202,13 @@ export class ApprovalCenterLeaveComponent implements OnInit {
   readonly filterKind = signal<'all' | 'short-day' | 'time-off'>('all');
   searchTerm = '';
 
-  private readonly currentEmployeeId = Number(
-    this.authService.getStoredUser()?.employeeId ??
-      this.authService.getStoredUser()?.id ??
-      0,
-  );
-
   readonly filteredRows = computed(() => {
     const query = this.searchTerm.trim().toLowerCase();
     const start = this.rangeStart().getTime();
     const end = this.rangeEnd().getTime();
 
     return [...this.rows()]
-      .filter((item) => item.employeeId !== this.currentEmployeeId)
+      .filter((item) => !this.isOwnLeave(item))
       .filter((item) => this.matchesRouteFilter(item))
       .filter((item) => {
         const created = this.startOfDay(new Date(item.createdAt)).getTime();
@@ -276,6 +270,15 @@ export class ApprovalCenterLeaveComponent implements OnInit {
 
   updateStatus(id: number, status: string): void {
     this.openRowId.set(null);
+    const item = this.rows().find((entry) => entry.id === id);
+    if (item && this.isOwnLeave(item)) {
+      this.toastService.show(
+        'You cannot approve or reject your own leave request.',
+        'error',
+      );
+      return;
+    }
+
     let rejectionNote: string | undefined;
     if (status === 'rejected') {
       rejectionNote =
@@ -291,14 +294,34 @@ export class ApprovalCenterLeaveComponent implements OnInit {
           );
           this.loadData();
         },
-        error: () => {
+        error: (err) => {
           this.toastService.show(
-            `Failed to ${status} leave request. Please try again.`,
+            err?.error?.message ||
+              `Failed to ${status} leave request. Please try again.`,
             'error',
           );
         },
       });
     }
+  }
+
+  private currentActorIds(): number[] {
+    const user = this.authService.getStoredUser();
+    return [user?.employeeId, user?.id]
+      .map((value) => Number(value ?? 0))
+      .filter((value, index, array) => value > 0 && array.indexOf(value) === index);
+  }
+
+  private isOwnLeave(item: LeaveRequest): boolean {
+    const actorIds = this.currentActorIds();
+    const requestIds = [
+      item.employeeId,
+      item.employee?.id,
+    ]
+      .map((value) => Number(value ?? 0))
+      .filter((value, index, array) => value > 0 && array.indexOf(value) === index);
+
+    return requestIds.some((value) => actorIds.includes(value));
   }
 
   employeeCode(item: LeaveRequest): string {

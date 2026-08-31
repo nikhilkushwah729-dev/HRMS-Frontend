@@ -56,7 +56,7 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
       </div>
 
-      <div class="overflow-hidden rounded-lg">
+      <div class="overflow-hidden rounded-md">
         <div class="overflow-x-auto">
           <table class="min-w-full">
             <thead>

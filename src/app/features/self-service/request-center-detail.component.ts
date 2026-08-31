@@ -15,9 +15,9 @@ import { ToastService } from '../../core/services/toast.service';
   template: `
     <div class="mx-auto max-w-6xl space-y-6">
       @if (loading()) {
-        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">Loading request details...</div>
+        <div class="rounded-md border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">Loading request details...</div>
       } @else if (request()) {
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <p class="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600">Request Detail</p>
@@ -27,32 +27,32 @@ import { ToastService } from '../../core/services/toast.service';
             <div class="flex flex-wrap gap-2">
               <span class="rounded-full px-3 py-2 text-xs font-black" [ngClass]="statusBadge(request()!.status)">{{ prettyStatus(request()!.status) }}</span>
               @if (canCancel(request()!)) {
-                <button type="button" (click)="cancel(request()!.id)" class="rounded-xl border border-rose-200 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-50">Cancel Request</button>
+                <button type="button" (click)="cancel(request()!.id)" class="rounded-md border border-rose-200 px-4 py-3 text-sm font-black text-rose-600 transition hover:bg-rose-50">Cancel Request</button>
               }
-              <a routerLink="/self-service/requests" class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back</a>
+              <a routerLink="/self-service/requests" class="rounded-md border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50">Back</a>
             </div>
           </div>
         </section>
 
         <section class="grid gap-5 xl:grid-cols-[1fr_0.95fr]">
-          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-black text-slate-900">Request Information</h2>
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
-              <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Type</p><p class="mt-2 text-sm font-black text-slate-900">{{ prettyType(request()!.requestType) }}</p></div>
-              <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Priority</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.priority }}</p></div>
-              <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Application Date</p><p class="mt-2 text-sm font-black text-slate-900">{{ displayApplicationDate(request()!) | date:'mediumDate' }}</p></div>
-              <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Date Range</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.startDate || '-' }} to {{ request()!.endDate || '-' }}</p></div>
+              <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Type</p><p class="mt-2 text-sm font-black text-slate-900">{{ prettyType(request()!.requestType) }}</p></div>
+              <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Priority</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.priority }}</p></div>
+              <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Application Date</p><p class="mt-2 text-sm font-black text-slate-900">{{ displayApplicationDate(request()!) | date:'mediumDate' }}</p></div>
+              <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Date Range</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.startDate || '-' }} to {{ request()!.endDate || '-' }}</p></div>
               @if (request()!.requestType === 'time_off') {
-                <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Time Off Window</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.startTime || '--:--' }} to {{ request()!.endTime || '--:--' }}</p></div>
+                <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Time Off Window</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.startTime || '--:--' }} to {{ request()!.endTime || '--:--' }}</p></div>
               }
-              <div class="rounded-2xl border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Workflow</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.workflowLabel || 'Standard Workflow' }}</p></div>
+              <div class="rounded-md border border-slate-200 px-4 py-3"><p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Workflow</p><p class="mt-2 text-sm font-black text-slate-900">{{ request()!.workflowLabel || 'Standard Workflow' }}</p></div>
             </div>
-            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
               <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Description</p>
               <p class="mt-2 text-sm text-slate-600">{{ request()!.description || 'No extra description added.' }}</p>
             </div>
             @if (request()!.attachments?.length) {
-              <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div class="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
                 <p class="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Attachments</p>
                 <div class="mt-3 flex flex-wrap gap-2">
                   @for (attachment of request()!.attachments; track attachment.id) {
@@ -63,13 +63,13 @@ import { ToastService } from '../../core/services/toast.service';
             }
           </article>
 
-          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 class="text-lg font-black text-slate-900">Timeline</h2>
             <div class="mt-5 space-y-4">
               @for (event of request()!.timeline; track event.id) {
                 <div class="flex gap-3">
                   <div class="mt-1 h-3 w-3 rounded-full bg-sky-500"></div>
-                  <div class="flex-1 rounded-2xl border border-slate-200 px-4 py-3">
+                  <div class="flex-1 rounded-md border border-slate-200 px-4 py-3">
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <p class="text-sm font-black text-slate-900">{{ prettyEvent(event.action) }}</p>
                       <p class="text-xs text-slate-500">{{ event.createdAt | date:'medium' }}</p>
@@ -81,13 +81,13 @@ import { ToastService } from '../../core/services/toast.service';
                   </div>
                 </div>
               } @empty {
-                <div class="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center text-sm font-semibold text-slate-500">No request timeline available.</div>
+                <div class="rounded-md border border-dashed border-slate-300 px-5 py-8 text-center text-sm font-semibold text-slate-500">No request timeline available.</div>
               }
             </div>
           </article>
         </section>
       } @else {
-        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">Request not found or access denied.</div>
+        <div class="rounded-md border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">Request not found or access denied.</div>
       }
     </div>
   `,

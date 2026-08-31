@@ -7,10 +7,10 @@ import { LanguageService } from '../../../../core/services/language.service';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col overflow-hidden rounded-[1.9rem] bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
+    <div class="flex h-full flex-col overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
       <div class="flex shrink-0 flex-col justify-between gap-4 border-b border-slate-100 bg-slate-50/30 p-6 sm:flex-row sm:items-center sm:p-7">
         <div class="flex items-center gap-4">
-           <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
+           <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white text-emerald-600 shadow-sm">
              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
            </div>
            <div>
@@ -18,17 +18,17 @@ import { LanguageService } from '../../../../core/services/language.service';
              <p class="text-sm font-bold text-slate-500 mt-1">{{ t('selfService.team.subtitle') }}</p>
            </div>
         </div>
-        <div class="rounded-xl bg-emerald-50 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-emerald-600">
+        <div class="rounded-md bg-emerald-50 px-4 py-2 text-[11px] font-black uppercase tracking-widest text-emerald-600">
           {{ t('selfService.team.events', { count: occasions().length }) }}
         </div>
       </div>
 
       <div class="custom-scrollbar flex-1 space-y-4 overflow-y-auto p-6 sm:p-7">
         @for (item of occasions(); track item.id) {
-          <div class="group relative flex flex-col gap-4 rounded-[1.5rem] bg-slate-50 p-5 transition-all ring-1 ring-transparent hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 hover:ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
+          <div class="group relative flex flex-col gap-4 rounded-md bg-slate-50 p-5 transition-all ring-1 ring-transparent hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 hover:ring-slate-100 sm:flex-row sm:items-center sm:justify-between">
             <div class="flex min-w-0 items-center gap-4 sm:gap-5">
               <div class="relative">
-                <div class="h-16 w-16 overflow-hidden rounded-2xl shadow-sm transition-transform duration-500 group-hover:scale-105">
+                <div class="h-16 w-16 overflow-hidden rounded-md shadow-sm transition-transform duration-500 group-hover:scale-105">
                   @if (item.avatar) {
                     <img [src]="item.avatar" class="h-full w-full object-cover">
                   } @else {
@@ -37,7 +37,7 @@ import { LanguageService } from '../../../../core/services/language.service';
                     </div>
                   }
                 </div>
-                <div class="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white shadow-lg ring-2 ring-white">
+                <div class="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-md bg-slate-900 text-[10px] font-black text-white shadow-lg ring-2 ring-white">
                   {{ item.isBirthday ? t('selfService.team.birthdayShort') : t('selfService.team.anniversaryShort') }}
                 </div>
               </div>
@@ -52,7 +52,7 @@ import { LanguageService } from '../../../../core/services/language.service';
               </div>
             </div>
 
-            <button class="self-start rounded-xl bg-emerald-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-100 transition-all hover:bg-slate-900 sm:self-auto sm:translate-x-4 sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100">
+            <button class="self-start rounded-md bg-emerald-600 px-5 py-2.5 text-[11px] font-black uppercase tracking-widest text-white shadow-lg shadow-emerald-100 transition-all hover:bg-slate-900 sm:self-auto sm:translate-x-4 sm:opacity-0 sm:group-hover:translate-x-0 sm:group-hover:opacity-100">
               {{ t('selfService.team.wishNow') }}
             </button>
           </div>
@@ -60,7 +60,7 @@ import { LanguageService } from '../../../../core/services/language.service';
 
         @if (occasions().length === 0) {
           <div class="flex h-full flex-col items-center justify-center text-center py-10">
-            <div class="mb-6 h-16 w-16 flex items-center justify-center rounded-3xl bg-slate-50 text-slate-300">
+            <div class="mb-6 h-16 w-16 flex items-center justify-center rounded-md bg-slate-50 text-slate-300">
                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4Z"/></svg>
             </div>
             <p class="text-sm font-bold text-slate-400">{{ t('selfService.team.empty') }}</p>

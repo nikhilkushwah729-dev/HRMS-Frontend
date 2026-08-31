@@ -30,7 +30,7 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="flex flex-col gap-4 sm:gap-5 lg:gap-6">
       <!-- Header Section -->
       <section
-        class="sticky top-3 z-20 overflow-hidden rounded-lg border border-slate-100 bg-white/95 shadow-lg shadow-slate-200/60 backdrop-blur"
+        class="overflow-hidden rounded-lg border border-slate-100 bg-white/95 shadow-lg shadow-slate-200/60 backdrop-blur"
       >
         <div
           class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:px-8 lg:py-8"

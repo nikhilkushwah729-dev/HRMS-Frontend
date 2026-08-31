@@ -14,10 +14,10 @@ export interface DashboardHighlight {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex h-full flex-col rounded-lg bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
+    <div class="flex h-full flex-col rounded-md bg-white px-5 py-4 shadow-sm ring-1 ring-slate-200">
       <div class="flex items-center justify-between gap-3 border-b-2 border-slate-200 pb-2">
         <h2 class="text-lg font-semibold text-slate-900">{{ t('selfService.pulse.title') }}</h2>
-        <div class="rounded-lg bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+        <div class="rounded-md bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
           {{ highlights().length }}
         </div>
       </div>

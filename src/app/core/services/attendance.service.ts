@@ -11,6 +11,8 @@ export interface AttendanceRecord {
     date: string;
     check_in: string | null;
     check_out: string | null;
+    check_in_photo?: string | null;
+    check_out_photo?: string | null;
     work_hours: number | null;
     net_work_hours?: number | null;
     total_break_min?: number;
@@ -375,11 +377,21 @@ export class AttendanceService {
             date: String(raw?.date ?? raw?.attendance_date ?? new Date().toISOString().slice(0, 10)),
             check_in: raw?.checkInTime ?? raw?.check_in ?? raw?.checkIn ?? null,
             check_out: raw?.checkOutTime ?? raw?.check_out ?? raw?.checkOut ?? null,
+            check_in_photo: this.normalizeAssetUrl(raw?.checkInPhoto ?? raw?.check_in_photo ?? null),
+            check_out_photo: this.normalizeAssetUrl(raw?.checkOutPhoto ?? raw?.check_out_photo ?? null),
             work_hours: raw?.workHours ?? raw?.work_hours ?? null,
             net_work_hours: raw?.netWorkHours ?? raw?.net_work_hours ?? null,
             total_break_min: Number(raw?.totalBreakMin ?? raw?.total_break_min ?? 0),
             status: raw?.status ?? 'present',
-            selfie_url: this.normalizeAssetUrl(raw?.selfieUrl ?? raw?.selfie_url ?? null),
+            selfie_url: this.normalizeAssetUrl(
+                raw?.selfieUrl ??
+                raw?.selfie_url ??
+                raw?.checkInPhoto ??
+                raw?.check_in_photo ??
+                raw?.checkOutPhoto ??
+                raw?.check_out_photo ??
+                null
+            ),
             is_late: Boolean(raw?.lateMinutes ?? raw?.isLate ?? raw?.status === 'late'),
             is_half_day: Boolean(raw?.isHalfDay ?? raw?.status === 'half_day'),
             shift_id: raw?.shiftId ?? raw?.shift_id,
@@ -399,7 +411,17 @@ export class AttendanceService {
                 firstName: (raw?.employee?.firstName ?? raw?.employee?.first_name ?? firstName) || 'Employee',
                 lastName: raw?.employee?.lastName ?? raw?.employee?.last_name ?? lastName,
                 email: raw?.email ?? raw?.employee?.email ?? '',
-                avatar: raw?.avatar ?? raw?.employee?.avatar ?? null,
+                avatar: this.normalizeAssetUrl(
+                    raw?.avatar ??
+                    raw?.photo ??
+                    raw?.profileImage ??
+                    raw?.profile_image ??
+                    raw?.employee?.avatar ??
+                    raw?.employee?.photo ??
+                    raw?.employee?.profileImage ??
+                    raw?.employee?.profile_image ??
+                    null
+                ) ?? undefined,
                 department: employeeDepartment || undefined,
             },
         };
@@ -432,7 +454,13 @@ export class AttendanceService {
                     employeeName: String(item?.employeeName ?? item?.employee_name ?? 'Employee'),
                     employeeCode: String(item?.employeeCode ?? item?.employee_code ?? 'N/A'),
                     department: String(item?.department ?? 'General'),
-                    avatar: item?.avatar ?? null,
+                    avatar: this.normalizeAssetUrl(
+                        item?.avatar ??
+                        item?.photo ??
+                        item?.profileImage ??
+                        item?.profile_image ??
+                        null
+                    ),
                     records: Number(item?.records ?? 0),
                     present: Number(item?.present ?? 0),
                     late: Number(item?.late ?? 0),

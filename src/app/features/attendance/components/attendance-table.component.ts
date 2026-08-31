@@ -75,13 +75,14 @@ import { finalize } from 'rxjs';
               <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Punch Out</th>
               <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Hours</th>
               <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</th>
-              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Selfie</th>
+              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Time In Image</th>
+              <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Time Out Image</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             @if (loading()) {
               <tr>
-                <td colspan="7" class="px-6 py-12 text-center">
+                <td colspan="8" class="px-6 py-12 text-center">
                   <div class="flex flex-col items-center gap-3">
                     <div class="h-8 w-8 animate-spin rounded-full border-4 border-slate-100 border-t-teal-600"></div>
                     <p class="text-sm font-bold text-slate-500">Loading attendance records...</p>
@@ -90,7 +91,7 @@ import { finalize } from 'rxjs';
               </tr>
             } @else if (filteredRecords().length === 0) {
               <tr>
-                <td colspan="7" class="px-6 py-12 text-center">
+                <td colspan="8" class="px-6 py-12 text-center">
                   <div class="flex flex-col items-center gap-2">
                     <span class="text-3xl">📅</span>
                     <p class="text-sm font-bold text-slate-500">No records found for the selected filters.</p>
@@ -136,10 +137,20 @@ import { finalize } from 'rxjs';
                     </span>
                   </td>
                   <td class="px-6 py-4">
-                    @if (record.selfie_url) {
+                    @if (getTimeInImage(record)) {
                       <div class="relative group/image">
-                        <img [src]="record.selfie_url" class="h-10 w-10 rounded-md object-cover border border-slate-200 cursor-pointer hover:scale-110 transition-transform" />
+                        <img [src]="getTimeInImage(record)" class="h-10 w-10 rounded-md object-cover border border-slate-200 cursor-pointer hover:scale-110 transition-transform" />
                         <div class="absolute bottom-0 right-0 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                      </div>
+                    } @else {
+                      <span class="text-[10px] font-bold text-slate-300">N/A</span>
+                    }
+                  </td>
+                  <td class="px-6 py-4">
+                    @if (record.check_out_photo) {
+                      <div class="relative group/image">
+                        <img [src]="record.check_out_photo" class="h-10 w-10 rounded-md object-cover border border-slate-200 cursor-pointer hover:scale-110 transition-transform" />
+                        <div class="absolute bottom-0 right-0 h-3 w-3 bg-sky-500 border-2 border-white rounded-full"></div>
                       </div>
                     } @else {
                       <span class="text-[10px] font-bold text-slate-300">N/A</span>
@@ -249,5 +260,9 @@ export class AttendanceDataTableComponent implements OnInit {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
     return `${h}h ${m}m`;
+  }
+
+  getTimeInImage(record: AttendanceRecord): string | null {
+    return record.check_in_photo || record.selfie_url || null;
   }
 }

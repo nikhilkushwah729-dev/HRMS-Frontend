@@ -16,7 +16,7 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="space-y-6">
-      <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <p class="text-[11px] font-black uppercase tracking-[0.24em] text-sky-600">Request Center</p>
@@ -25,27 +25,27 @@ import { ToastService } from '../../core/services/toast.service';
               Create requests, track approval status, review timelines, and cancel requests before approval without mixing approver workflows into this page.
             </p>
           </div>
-          <a routerLink="/self-service/requests/create" class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">
+          <a routerLink="/self-service/requests/create" class="inline-flex items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800">
             Create New Request
           </a>
         </div>
       </section>
 
       @if (loading()) {
-        <div class="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
+        <div class="rounded-md border border-slate-200 bg-white px-6 py-10 text-center text-sm font-semibold text-slate-500 shadow-sm">
           Loading your request center...
         </div>
       } @else {
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Requests</p><p class="mt-3 text-3xl font-black text-slate-900">{{ requests().length }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('approved') }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Rejected</p><p class="mt-3 text-3xl font-black text-rose-600">{{ countByStatus('rejected') }}</p></article>
-          <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Upcoming Approved</p><p class="mt-3 text-3xl font-black text-sky-700">{{ upcomingApproved().length }}</p></article>
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Total Requests</p><p class="mt-3 text-3xl font-black text-slate-900">{{ requests().length }}</p></article>
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Pending</p><p class="mt-3 text-3xl font-black text-amber-500">{{ countByStatus('pending') }}</p></article>
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Approved</p><p class="mt-3 text-3xl font-black text-emerald-600">{{ countByStatus('approved') }}</p></article>
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Rejected</p><p class="mt-3 text-3xl font-black text-rose-600">{{ countByStatus('rejected') }}</p></article>
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm"><p class="text-xs font-black uppercase tracking-[0.18em] text-slate-400">Upcoming Approved</p><p class="mt-3 text-3xl font-black text-sky-700">{{ upcomingApproved().length }}</p></article>
         </section>
 
         <section class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-          <article class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <article class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div class="flex items-start justify-between gap-4">
               <div>
                 <h2 class="text-lg font-black text-slate-900">My Requests</h2>
@@ -54,14 +54,14 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
 
             <div class="mt-5 grid gap-3 md:grid-cols-4">
-              <input [(ngModel)]="search" placeholder="Search title or reason" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
-              <select [(ngModel)]="type" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+              <input [(ngModel)]="search" placeholder="Search title or reason" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400 md:col-span-2" />
+              <select [(ngModel)]="type" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
                 <option value="">All request types</option>
                 @for (option of requestTypes(); track option.key) {
                   <option [value]="option.key">{{ option.label }}</option>
                 }
               </select>
-              <select [(ngModel)]="status" class="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
+              <select [(ngModel)]="status" class="rounded-md border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-sky-400">
                 <option value="">All status</option>
                 <option value="draft">Draft</option>
                 <option value="pending">Pending</option>
@@ -100,9 +100,9 @@ import { ToastService } from '../../core/services/toast.service';
                       <td class="px-4 py-4"><span class="rounded-full px-3 py-1 text-xs font-black" [ngClass]="priorityBadge(item.priority)">{{ item.priority }}</span></td>
                       <td class="px-4 py-4">
                         <div class="flex justify-end gap-2">
-                          <a [routerLink]="['/self-service/requests', item.id]" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">View</a>
+                          <a [routerLink]="['/self-service/requests', item.id]" class="rounded-md border border-slate-200 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50">View</a>
                           @if (canCancel(item)) {
-                            <button type="button" (click)="cancel(item)" class="rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">Cancel</button>
+                            <button type="button" (click)="cancel(item)" class="rounded-md border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 transition hover:bg-rose-50">Cancel</button>
                           }
                         </div>
                       </td>
@@ -116,11 +116,11 @@ import { ToastService } from '../../core/services/toast.service';
           </article>
 
           <article class="space-y-5">
-            <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 class="text-lg font-black text-slate-900">Request Types</h2>
               <div class="mt-4 grid gap-3">
                 @for (option of requestTypes(); track option.key) {
-                  <a [routerLink]="requestTypeRoute(option.key)" [queryParams]="option.key === 'time_off' ? null : { type: option.key }" class="rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-50">
+                  <a [routerLink]="requestTypeRoute(option.key)" [queryParams]="option.key === 'time_off' ? null : { type: option.key }" class="rounded-md border border-slate-200 px-4 py-3 transition hover:border-sky-200 hover:bg-sky-50">
                     <p class="text-sm font-black text-slate-900">{{ option.label }}</p>
                     <p class="mt-1 text-xs text-slate-500">{{ option.description }}</p>
                   </a>
@@ -128,16 +128,16 @@ import { ToastService } from '../../core/services/toast.service';
               </div>
             </section>
 
-            <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <section class="rounded-md border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 class="text-lg font-black text-slate-900">Upcoming Approved Requests</h2>
               <div class="mt-4 space-y-3">
                 @for (item of upcomingApproved(); track item.id) {
-                  <a [routerLink]="['/self-service/requests', item.id]" class="block rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50">
+                  <a [routerLink]="['/self-service/requests', item.id]" class="block rounded-md border border-slate-200 px-4 py-3 transition hover:bg-slate-50">
                     <p class="text-sm font-black text-slate-900">{{ item.title }}</p>
                     <p class="mt-1 text-xs text-slate-500">{{ requestTypeLabel(item.requestType) }} • {{ displayApplicationDate(item) | date:'mediumDate' }}{{ item.requestType === 'time_off' && (item.startTime || item.endTime) ? (' • ' + (item.startTime || '--:--') + ' to ' + (item.endTime || '--:--')) : '' }}</p>
                   </a>
                 } @empty {
-                  <div class="rounded-2xl border border-dashed border-slate-300 px-5 py-8 text-center text-sm font-semibold text-slate-500">
+                  <div class="rounded-md border border-dashed border-slate-300 px-5 py-8 text-center text-sm font-semibold text-slate-500">
                     No upcoming approved requests.
                   </div>
                 }

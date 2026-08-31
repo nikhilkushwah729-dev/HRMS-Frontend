@@ -17,9 +17,9 @@ export interface InsightCard {
   template: `
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
       @for (stat of stats(); track stat.label) {
-        <div class="group relative flex h-full flex-col items-start rounded-[1.75rem] bg-white p-6 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40 sm:p-7">
+        <div class="group relative flex h-full flex-col items-start rounded-md bg-white p-6 shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40 sm:p-7">
           <div class="flex w-full items-start justify-between">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-800 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
+            <div class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-800 transition-colors group-hover:bg-emerald-50 group-hover:text-emerald-600">
                <div class="h-6 w-6" [innerHTML]="sanitizeIcon(stat.icon)"></div>
             </div>
             <div class="flex h-6 items-center rounded-full bg-emerald-50 px-3 text-[10px] font-black uppercase tracking-wider text-emerald-600 opacity-70 transition-opacity group-hover:opacity-100">
