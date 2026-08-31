@@ -35,7 +35,7 @@ npm run build
 The current Angular build outputs to:
 
 ```text
-dist/hrms-frontend
+dist/hrms-frontend/browser
 ```
 
 This is the correct static publish directory for Netlify and Render static hosting.
