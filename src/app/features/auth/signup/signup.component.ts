@@ -118,7 +118,7 @@ export class SignupComponent implements OnInit {
     const adminLastName = this.form.adminLastName.trim();
     const email = this.form.email.trim().toLowerCase();
     const provider = this.oauthProvider();
-    const adminPassword = provider ? this.createOAuthOnlyPassword() : this.form.adminPassword;
+    const adminPassword = this.form.adminPassword;
     const phone = this.form.phone.replace(/\D/g, '');
 
     if (!companyName || !adminFirstName || !email || !adminPassword) {
@@ -131,7 +131,7 @@ export class SignupComponent implements OnInit {
       return;
     }
 
-    if (!provider && adminPassword !== this.confirmPassword) {
+    if (adminPassword !== this.confirmPassword) {
       this.error.set(this.t('auth.signup.passwordsNoMatch'));
       return;
     }
@@ -195,12 +195,6 @@ export class SignupComponent implements OnInit {
         this.error.set(this.extractErrorMessage(err));
       }
     });
-  }
-
-  private createOAuthOnlyPassword(): string {
-    const bytes = crypto.getRandomValues(new Uint8Array(24));
-    const randomPart = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
-    return `OAuth-${randomPart}aA1!`;
   }
 
   t(key: string, params?: Record<string, string | number | null | undefined>): string {

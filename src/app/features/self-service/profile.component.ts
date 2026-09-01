@@ -853,8 +853,8 @@ import { compressImageDataUrl } from '../../core/utils/image-compression.util';
                   Profile image
                 </p>
                 <p class="mt-1 text-sm leading-6 text-slate-600">
-                  Image par click karke change karo. Crop apply karte hi image
-                  save ho jayegi.
+                  Click the image to change it. Once you apply the crop, the
+                  image will be saved automatically.
                 </p>
                  <div class="mt-5 flex flex-wrap gap-3">
                   <button
