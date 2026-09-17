@@ -20,6 +20,8 @@ import {
   UiSelectAdvancedComponent,
 } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
+import { AiEmployeeAssistantService } from '../../core/services/ai-employee-assistant.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-add-employee',
@@ -27,6 +29,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
   imports: [
     CommonModule,
     ReactiveFormsModule,
+    FormsModule,
     UiPhoneInputComponent,
     UiSelectAdvancedComponent,
   ],
@@ -79,24 +82,34 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               </div>
 
               <div class="relative shrink-0">
-                <button
-                  type="button"
-                  (click)="toggleOnboardingMenu()"
-                  class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
-                >
-                  <span>{{ t('common.onboarding') }}</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="openAiResumeModal()"
+                    class="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm transition hover:brightness-110"
                   >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </button>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                    <span>AI Resume Fill</span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="toggleOnboardingMenu()"
+                    class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <span>{{ t('common.onboarding') }}</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                </div>
 
                 @if (showOnboardingMenu()) {
                   <div class="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
@@ -363,6 +376,34 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
           </button>
         </div>
       </form>
+
+      <!-- AI Resume Parser Modal -->
+      @if (showAiResumeModal()) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2 text-purple-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <h3 class="font-bold text-slate-900 text-lg">AI Smart Resume Data Auto-Fill</h3>
+              </div>
+              <button (click)="closeAiResumeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <p class="text-xs text-slate-600">Paste raw resume or profile text below. Antigravity AI will automatically extract and pre-fill candidate details into the form!</p>
+            <textarea
+              [(ngModel)]="aiResumeRawText"
+              rows="6"
+              class="w-full rounded-lg border border-slate-300 p-3 text-xs focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500"
+              placeholder="e.g. John Doe, Senior Software Engineer. Email: john@example.com, Phone: +91 9876543210..."
+            ></textarea>
+            <div class="flex justify-end gap-3 pt-2">
+              <button (click)="closeAiResumeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+              <button [disabled]="parsingAiResume || !aiResumeRawText.trim()" (click)="parseAiResume()" class="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50">
+                {{ parsingAiResume ? 'Extracting Data...' : 'Auto-Fill Form' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: [],
@@ -371,12 +412,16 @@ export class AddEmployeeComponent implements OnInit {
   private fb = inject(FormBuilder);
   private employeeService = inject(EmployeeService);
   private orgService = inject(OrganizationService);
+  private aiAssistant = inject(AiEmployeeAssistantService);
   private toastService = inject(ToastService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
 
   loading = false;
   showOnboardingMenu = signal(false);
+  showAiResumeModal = signal(false);
+  parsingAiResume = false;
+  aiResumeRawText = '';
   orgPrefix = signal<string>('EMP');
   departments = signal<Department[]>([]);
   designations = signal<Designation[]>([]);
@@ -518,5 +563,38 @@ export class AddEmployeeComponent implements OnInit {
   openInvitations() {
     this.showOnboardingMenu.set(false);
     this.router.navigate(['/employees/invitations']);
+  }
+
+  openAiResumeModal() {
+    this.showAiResumeModal.set(true);
+  }
+
+  closeAiResumeModal() {
+    this.showAiResumeModal.set(false);
+    this.aiResumeRawText = '';
+  }
+
+  parseAiResume() {
+    if (!this.aiResumeRawText.trim()) return;
+    this.parsingAiResume = true;
+    this.aiAssistant.parseResumeText(this.aiResumeRawText).subscribe({
+      next: (res: any) => {
+        this.parsingAiResume = false;
+        if (res.data) {
+          this.employeeForm.patchValue({
+            firstName: res.data.firstName || this.employeeForm.value.firstName,
+            lastName: res.data.lastName || this.employeeForm.value.lastName,
+            email: res.data.email || this.employeeForm.value.email,
+            phone: res.data.phone || this.employeeForm.value.phone,
+          });
+          this.toastService.success('Candidate data extracted successfully with AI!');
+          this.closeAiResumeModal();
+        }
+      },
+      error: () => {
+        this.parsingAiResume = false;
+        this.toastService.error('Failed to parse resume text.');
+      },
+    });
   }
 }

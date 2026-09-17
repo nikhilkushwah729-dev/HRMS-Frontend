@@ -14,6 +14,7 @@ import {
   LeaveTypeBalance,
 } from '../../core/services/leave.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AiEmployeeAssistantService, AiLeaveRecommendationResponse } from '../../core/services/ai-employee-assistant.service';
 
 type LeaveStatusFilter = 'all' | LeaveRequest['status'];
 
@@ -154,6 +155,9 @@ type LeaveStatusFilter = 'all' | LeaveRequest['status'];
                     <td class="px-4 py-4">
                       <div class="flex justify-end gap-2">
                         @if (canProcess(item)) {
+                          <button type="button" (click)="runAiLeaveRecommendation(item)" class="rounded-lg bg-purple-50 border border-purple-200 px-2.5 py-2 text-xs font-black text-purple-700 transition hover:bg-purple-100">
+                            ✨ AI Advice
+                          </button>
                           <button type="button" (click)="process(item, 'approved')" class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-black text-white transition hover:bg-emerald-700">
                             Approve
                           </button>
@@ -177,6 +181,64 @@ type LeaveStatusFilter = 'all' | LeaveRequest['status'];
             </table>
           </div>
         </section>
+      }
+
+      <!-- AI Leave Recommendation Modal -->
+      @if (showAiLeaveModal) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+          <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2 text-purple-700">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+                <h3 class="font-bold text-slate-900 text-lg">AI Leave Approval & Conflict Analysis</h3>
+              </div>
+              <button (click)="closeAiLeaveModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            @if (aiLeaveLoading) {
+              <div class="flex flex-col items-center py-8 space-y-3">
+                <div class="h-8 w-8 animate-spin rounded-full border-4 border-purple-200 border-t-purple-600"></div>
+                <p class="text-xs font-semibold text-slate-600">Analyzing Department Coverage & Overlapping Leaves...</p>
+              </div>
+            } @else if (aiLeaveResult) {
+              <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="rounded-lg p-3" [ngClass]="{
+                    'bg-emerald-50 border border-emerald-200 text-emerald-800': aiLeaveResult.riskLevel === 'low',
+                    'bg-amber-50 border border-amber-200 text-amber-800': aiLeaveResult.riskLevel === 'medium',
+                    'bg-rose-50 border border-rose-200 text-rose-800': aiLeaveResult.riskLevel === 'high'
+                  }">
+                    <p class="text-[10px] font-bold uppercase tracking-wider">Risk Assessment</p>
+                    <p class="mt-1 text-sm font-extrabold uppercase">{{ aiLeaveResult.riskLevel }} Risk</p>
+                  </div>
+                  <div class="rounded-lg bg-slate-50 border border-slate-200 p-3">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Team Coverage</p>
+                    <p class="mt-1 text-sm font-extrabold text-slate-900">{{ aiLeaveResult.coveragePct }}% Active</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Schedule & Balance Checks</p>
+                  <ul class="space-y-1 text-xs text-slate-700">
+                    <li *ngFor="let warning of aiLeaveResult.warnings" class="flex items-start gap-2">
+                      <span class="text-purple-600 font-bold">•</span>
+                      <span>{{ warning }}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div class="rounded-lg bg-slate-50 p-3 border border-slate-200">
+                  <p class="text-xs font-bold uppercase tracking-wider text-slate-500">AI Recommendation</p>
+                  <p class="mt-1 text-xs font-semibold text-slate-800">{{ aiLeaveResult.recommendation }}</p>
+                </div>
+              </div>
+            }
+
+            <div class="flex justify-end pt-2">
+              <button (click)="closeAiLeaveModal()" class="px-5 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg">Close Analysis</button>
+            </div>
+          </div>
+        </div>
       }
     </div>
   `,
@@ -411,9 +473,43 @@ export class LeaveManagementComponent {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'leave-management-report.csv';
-    link.click();
     URL.revokeObjectURL(url);
+  }
+
+  private readonly aiAssistant = inject(AiEmployeeAssistantService);
+  showAiLeaveModal = false;
+  aiLeaveLoading = false;
+  aiLeaveResult: AiLeaveRecommendationResponse['data'] | null = null;
+
+  runAiLeaveRecommendation(item: LeaveRequest): void {
+    this.showAiLeaveModal = true;
+    this.aiLeaveLoading = true;
+    this.aiLeaveResult = null;
+
+    this.aiAssistant
+      .recommendLeaveApproval({
+        durationDays: item.totalDays,
+        leaveBalance: 12,
+        teamMembersCount: this.employees().length || 5,
+        overlappingLeavesCount: this.requests().filter((r) => r.status === 'approved').length,
+        leaveType: item.leaveType?.typeName || 'Leave',
+      })
+      .subscribe({
+        next: (res: any) => {
+          this.aiLeaveLoading = false;
+          if (res.data) {
+            this.aiLeaveResult = res.data;
+          }
+        },
+        error: () => {
+          this.aiLeaveLoading = false;
+          this.toastService.show('Failed to run AI Leave Analysis.', 'error');
+        },
+      });
+  }
+
+  closeAiLeaveModal(): void {
+    this.showAiLeaveModal = false;
+    this.aiLeaveResult = null;
   }
 }
