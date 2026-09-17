@@ -17,6 +17,10 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
+import {
+  AiEmployeeAssistantService,
+  AiExpenseAuditResponse,
+} from '../../core/services/ai-employee-assistant.service';
 
 @Component({
   selector: 'app-expenses',
@@ -120,6 +124,11 @@ import {
                   formControlName="description"
                   rows="2"
                   class="app-field resize-none"
+                >
+                <textarea
+                  formControlName="description"
+                  rows="2"
+                  class="app-field resize-none"
                   placeholder="Any additional details..."
                 ></textarea>
               </div>
@@ -142,6 +151,91 @@ import {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      }
+
+      <!-- AI Expense Claim Audit Modal -->
+      @if (aiAuditModalOpen()) {
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
+            <header class="p-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-primary-500/20 border border-primary-400/30 flex items-center justify-center text-primary-400 font-bold">
+                  ✨
+                </div>
+                <div>
+                  <h3 class="font-bold text-base text-white">AI Expense Audit</h3>
+                  <p class="text-xs text-slate-400">Smart Compliance & Fraud Risk Assessment</p>
+                </div>
+              </div>
+              <button (click)="closeAiAuditModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                ✕
+              </button>
+            </header>
+
+            <div class="p-6 space-y-5">
+              @if (aiAuditLoading()) {
+                <div class="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
+                  <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent"></div>
+                  <p class="text-sm font-medium animate-pulse">Auditing claim details & policy compliance...</p>
+                </div>
+              } @else {
+                @if (aiAuditResult(); as audit) {
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col justify-between">
+                      <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Risk Rating</span>
+                      <div class="mt-2 inline-flex items-center gap-1.5 font-bold text-sm">
+                        @if (audit.riskLevel === 'low') {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">🟢 LOW RISK</span>
+                        } @else if (audit.riskLevel === 'medium') {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">🟡 MEDIUM RISK</span>
+                        } @else {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">🔴 HIGH RISK</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col justify-between">
+                      <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Claim Amount</span>
+                      <div class="mt-2 font-black text-lg text-slate-800">
+                        {{ selectedExpenseForAudit()?.amount | currency: 'INR' : 'symbol' : '1.0-0' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Audit Findings</span>
+                    <div class="space-y-2">
+                      @for (flag of audit.flags; track flag) {
+                        <div class="p-3 rounded-xl border border-slate-100 bg-white text-xs text-slate-700 flex items-start gap-2 shadow-sm">
+                          <span class="text-primary-500 text-sm">🔍</span>
+                          <span class="leading-relaxed">{{ flag }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="p-4 rounded-xl border border-primary-100 bg-primary-50/50 space-y-1">
+                    <span class="text-xs font-bold text-primary-700 uppercase tracking-wider">AI Recommendation</span>
+                    <p class="text-xs text-primary-900 font-medium leading-relaxed">
+                      {{ audit.recommendation }}
+                    </p>
+                  </div>
+
+                  <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button (click)="closeAiAuditModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">
+                      Dismiss
+                    </button>
+                    @if (isApprover() && selectedExpenseForAudit()?.status === 'pending') {
+                      <button (click)="updateExpenseStatus(selectedExpenseForAudit().id, 'approved'); closeAiAuditModal()" class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">
+                        Approve Expense
+                      </button>
+                    }
+                  </div>
+                }
+              }
+            </div>
           </div>
         </div>
       }
@@ -371,13 +465,11 @@ import {
                 >
                   {{ t('common.status') }}
                 </th>
-                @if (isApprover() && activeModule() === 'approval') {
-                  <th
-                    class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
-                  >
-                    {{ t('expense.action') }}
-                  </th>
-                }
+                <th
+                  class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
+                >
+                  {{ t('expense.action') }}
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -443,9 +535,16 @@ import {
                       {{ expense.status }}
                     </span>
                   </td>
-                  @if (isApprover() && activeModule() === 'approval') {
-                    <td class="px-6 py-4 text-right">
-                      <div class="flex justify-end gap-1">
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex justify-end items-center gap-1.5">
+                      <button
+                        (click)="openAiAudit(expense)"
+                        class="px-2.5 py-1 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm"
+                        title="AI Expense Audit"
+                      >
+                        <span>✨ Audit</span>
+                      </button>
+                      @if (isApprover() && activeModule() === 'approval') {
                         @if (expense.status === 'pending') {
                           <button
                             (click)="
@@ -490,19 +589,19 @@ import {
                           </button>
                         } @else {
                           <span
-                            class="text-[11px] font-bold text-slate-300 px-2 italic"
+                            class="text-[11px] font-bold text-slate-300 px-1 italic"
                             >Processed</span
                           >
                         }
-                      </div>
-                    </td>
-                  }
+                      }
+                    </div>
+                  </td>
                 </tr>
               } @empty {
                 <tr>
                   <td
                     [attr.colspan]="
-                      isApprover() && activeModule() === 'approval' ? 8 : 6
+                      isApprover() && activeModule() === 'approval' ? 8 : 7
                     "
                     class="px-6 py-16 text-center"
                   >
@@ -568,6 +667,7 @@ export class ExpensesComponent implements OnInit {
   private languageService = inject(LanguageService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private aiAssistant = inject(AiEmployeeAssistantService);
 
   currentUser = signal<User | null>(null);
   expenses = signal<any[]>([]);
@@ -576,6 +676,17 @@ export class ExpensesComponent implements OnInit {
   processing = signal(false);
   statusUpdatingId = signal<number | null>(null);
   activeModule = signal<'approval' | 'mine'>('mine');
+
+  // AI Audit Modal Signals
+  aiAuditModalOpen = signal(false);
+  aiAuditLoading = signal(false);
+  selectedExpenseForAudit = signal<any>(null);
+  aiAuditResult = signal<AiExpenseAuditResponse['data'] | null>(null);
+
+  // Summary signals
+  myPendingTotal = signal(0);
+  myApprovedTotal = signal(0);
+  myTotalClaimed = signal(0);
 
   categoryOptions: SelectOption[] = [
     { label: 'Travel', value: 'travel' },
@@ -588,10 +699,35 @@ export class ExpensesComponent implements OnInit {
     { label: 'Other', value: 'other' },
   ];
 
-  // My expense summary signals
-  myPendingTotal = signal(0);
-  myApprovedTotal = signal(0);
-  myTotalClaimed = signal(0);
+  openAiAudit(expense: any) {
+    this.selectedExpenseForAudit.set(expense);
+    this.aiAuditModalOpen.set(true);
+    this.aiAuditLoading.set(true);
+    this.aiAuditResult.set(null);
+
+    this.aiAssistant
+      .auditExpenseClaim({
+        title: expense.title || expense.description,
+        amount: expense.amount,
+        category: expense.category,
+        receiptUrl: expense.receiptUrl || expense.receipt_url,
+      })
+      .subscribe({
+        next: (res) => {
+          this.aiAuditResult.set(res.data);
+          this.aiAuditLoading.set(false);
+        },
+        error: () => {
+          this.aiAuditLoading.set(false);
+        },
+      });
+  }
+
+  closeAiAuditModal() {
+    this.aiAuditModalOpen.set(false);
+    this.selectedExpenseForAudit.set(null);
+    this.aiAuditResult.set(null);
+  }
 
   expenseForm: FormGroup = this.fb.group({
     title: ['', [Validators.required]],
