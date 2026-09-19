@@ -16,6 +16,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
+import { LanguageService } from '../../../core/services/language.service';
 import * as AuthActions from '../../../core/state/auth/auth.actions';
 import {
   COUNTRIES as countryCodes,
@@ -23,6 +24,7 @@ import {
 } from '../../../core/constants/countries';
 
 import { UiPhoneInputComponent } from '../../../core/components/ui';
+import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.component';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
@@ -33,7 +35,7 @@ import {
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent, AuthLanguageSwitcherComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
@@ -44,6 +46,7 @@ export class LoginComponent implements OnInit {
 
   private el = inject(ElementRef);
   private authService = inject(AuthService);
+  private languageService = inject(LanguageService);
   private store = inject(Store);
   private router = inject(Router);
 
@@ -198,24 +201,29 @@ export class LoginComponent implements OnInit {
 
   identifierHint = computed(() => {
     if (this.credentialsStep() === 'password') {
-      return 'Enter your password to continue.';
+      return this.t('auth.login.identifierHintPassword');
     }
 
     return this.loginMethod() === 'phone'
-      ? 'Phone detected. We will verify it with OTP.'
-      : 'Email detected. We will check if your account exists.';
+      ? this.t('auth.login.identifierHintPhone')
+      : this.t('auth.login.identifierHintEmail');
   });
 
   otpTargetHint = computed(() => {
     if (this.loginMethod() === 'phone') {
       return this.buildE164Phone() || 'your phone number';
+      
     }
 
     return (
       (this.identifier || this.loginForm.email || '').trim().toLowerCase() ||
-      'your email'
+      this.t('auth.login.yourEmail')
     );
   });
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
+  }
 
   onIdentifierChange(value: string) {
     if (this.loading()) return;
@@ -317,15 +325,15 @@ export class LoginComponent implements OnInit {
     if (this.loginMethod() === 'email') {
       const email = (this.identifier || '').trim().toLowerCase();
       if (!email) {
-        this.error.set('Please enter your email.');
+        this.error.set(this.t('auth.login.enterEmail'));
         return;
       }
       if (!this.looksLikeEmail(email)) {
-        this.error.set('Please enter a valid email address.');
+        this.error.set(this.t('auth.login.validEmail'));
         return;
       }
 
-      this.info.set('Checking your account...');
+      this.info.set(this.t('auth.login.checkingAccount'));
       this.loading.set(true);
       this.authService.checkIdentifier(email).subscribe({
         next: (res: any) => {
@@ -336,7 +344,7 @@ export class LoginComponent implements OnInit {
             return;
           }
           this.openSignupPrompt(
-            'No account found with this email. Do you want to sign up?',
+            this.t('auth.login.noEmailAccount'),
           );
         },
         error: () => {
@@ -352,13 +360,11 @@ export class LoginComponent implements OnInit {
 
     const phoneNumber = this.buildE164Phone();
     if (!phoneNumber || !/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
-      this.error.set(
-        'Please enter a valid phone number (for example 9876543210).',
-      );
+      this.error.set(this.t('auth.login.validPhone'));
       return;
     }
 
-    this.info.set('Checking your account...');
+    this.info.set(this.t('auth.login.checkingAccount'));
     this.loading.set(true);
     this.authService.checkIdentifier(phoneNumber).subscribe({
       next: (res: any) => {
@@ -369,7 +375,7 @@ export class LoginComponent implements OnInit {
           return;
         }
         this.openSignupPrompt(
-          'No account found with this phone number. Do you want to sign up?',
+          this.t('auth.login.noPhoneAccount'),
         );
       },
       error: () => {
@@ -450,15 +456,15 @@ export class LoginComponent implements OnInit {
     const emailLooksValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
     if (!email) {
-      this.error.set('Please enter your email.');
+      this.error.set(this.t('auth.login.enterEmail'));
       return;
     }
     if (!emailLooksValid) {
-      this.error.set('Please enter a valid email address.');
+      this.error.set(this.t('auth.login.validEmail'));
       return;
     }
     if (!password) {
-      this.error.set('Please enter your password.');
+      this.error.set(this.t('auth.login.enterPassword'));
       return;
     }
 
@@ -481,30 +487,42 @@ export class LoginComponent implements OnInit {
 
         if (res?.requiresOtp || res?.requires2fa) {
           const ref = res?.otpReference ?? '';
+          if (res?.emailDelivered === false && !ref) {
+            this.error.set(
+              res?.message ||
+                this.t('auth.login.otpEmailDeliveryFailed'),
+            );
+            return;
+          }
           if (!ref) {
             this.error.set(
               res?.message ||
-                'OTP verification is required, but no OTP reference was returned.',
+                this.t('auth.login.otpMissingReference'),
             );
             return;
           }
           this.otpReference = String(ref);
           this.stage.set('otp');
           this.otpCode = '';
-          this.info.set(`Enter the OTP sent to ${email}.`);
+          this.info.set(
+            res?.emailDelivered === false
+              ? res?.message ||
+                  this.t('auth.login.otpGeneratedForEmail', { email })
+              : this.t('auth.login.otpSentToEmail', { email }),
+          );
           return;
         }
 
-        this.error.set(res?.message || 'Login failed. Please try again.');
+        this.error.set(res?.message || this.t('auth.login.failed'));
       },
       error: (err) => {
         this.loading.set(false);
         const message =
-          err?.error?.message || 'Login failed. Please try again.';
+          err?.error?.message || this.t('auth.login.failed');
         this.error.set(message);
         if (err?.status === 401 || err?.status === 404) {
           this.openSignupPrompt(
-            'Invalid credentials or account not found. Do you want to sign up?',
+            this.t('auth.login.invalidCredentialsSignup'),
           );
         }
       },
@@ -558,9 +576,7 @@ export class LoginComponent implements OnInit {
     // Double check E.164 format for Firebase: +[country code][number]
     const e164Regex = /^\+[1-9]\d{1,14}$/;
     if (!phoneNumber || !e164Regex.test(phoneNumber)) {
-      this.error.set(
-        'Please enter a valid phone number (e.g., 9876543210 or +919876543210)',
-      );
+      this.error.set(this.t('auth.login.validPhoneLong'));
       this.loading.set(false);
       return;
     }
@@ -571,14 +587,14 @@ export class LoginComponent implements OnInit {
     }
 
     if (!this.auth || !this.recaptchaVerifier) {
-      this.error.set('Firebase not ready. Please refresh the page.');
+      this.error.set(this.t('auth.login.firebaseNotReady'));
       this.loading.set(false);
       return;
     }
 
     this.loading.set(true);
     this.error.set('');
-    this.info.set('Sending OTP to your phone...');
+    this.info.set(this.t('auth.login.sendingPhoneOtp'));
 
     // Wait a tiny bit to ensure Recaptcha is rendered if it was just created
     setTimeout(() => {
@@ -588,30 +604,37 @@ export class LoginComponent implements OnInit {
           this.confirmationResult = confirmationResult;
           this.stage.set('otp');
           this.otpCode = '';
-          this.info.set(`OTP sent successfully to ${phoneNumber}.`);
+          this.info.set(this.t('auth.login.otpSentSuccess', { phone: phoneNumber }));
         })
         .catch((error: any) => {
           this.loading.set(false);
           console.error('Firebase Phone Auth Error:', error);
 
-          let errorMsg = 'Failed to send OTP';
+          // Firebase can surface this configuration issue either with its own
+          // error code or as an `auth/internal-error` whose message mentions
+          // billing. Check both so we do not treat it as a reCAPTCHA failure.
+          const firebaseMessage = String(error?.message || '').toLowerCase();
+          const billingIsRequired =
+            error?.code === 'auth/billing-not-enabled' ||
+            (firebaseMessage.includes('billing') &&
+              (firebaseMessage.includes('not enabled') || firebaseMessage.includes('blaze')));
+
+          let errorMsg = this.t('auth.login.failedSendOtp');
           if (error.code === 'auth/invalid-phone-number') {
-            errorMsg = 'Invalid phone number. Please check and try again.';
+            errorMsg = this.t('auth.login.invalidPhoneNumber');
           } else if (error.code === 'auth/too-many-requests') {
-            errorMsg = 'Too many attempts. Please try again later.';
+            errorMsg = this.t('auth.login.tooManyRequests');
           } else if (error.code === 'auth/quota-exceeded') {
-            errorMsg = 'SMS quota exceeded. Please try again later.';
+            errorMsg = this.t('auth.login.smsQuotaExceeded');
+          } else if (billingIsRequired) {
+            errorMsg = this.t('auth.login.billingNotEnabled');
           } else if (error.code === 'auth/internal-error') {
-            errorMsg =
-              'Internal Firebase error. Please try again or use another number.';
+            errorMsg = this.t('auth.login.internalFirebase');
             // Try to reset the verifier on internal error
             if (this.recaptchaVerifier) {
               this.recaptchaVerifier.clear();
               this.recaptchaVerifier = null;
             }
-          } else if (error.code === 'auth/billing-not-enabled') {
-            errorMsg =
-              'Firebase billing is not enabled for SMS. Please use a Test Phone Number (configured in Firebase Console) or enable Blaze plan.';
           } else {
             errorMsg += ': ' + (error.message || 'Unknown error');
           }
@@ -636,7 +659,7 @@ export class LoginComponent implements OnInit {
       .trim()
       .toLowerCase();
     if (!email) {
-      this.error.set('Missing email. Please go back and enter your email.');
+      this.error.set(this.t('auth.login.missingEmail'));
       this.stage.set('credentials');
       return;
     }
@@ -646,12 +669,24 @@ export class LoginComponent implements OnInit {
       next: (res: any) => {
         this.loading.set(false);
         const ref = res?.otpReference ?? '';
+        if (res?.emailDelivered === false && !ref) {
+          this.error.set(
+            res?.message ||
+              this.t('auth.login.otpEmailDeliveryFailed'),
+          );
+          return;
+        }
         if (ref) this.otpReference = String(ref);
-        this.info.set(res?.message || 'OTP resent.');
+        this.info.set(
+          res?.emailDelivered === false
+            ? res?.message ||
+                this.t('auth.login.otpGeneratedFresh')
+            : res?.message || this.t('auth.login.otpResent'),
+        );
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message || 'Failed to resend OTP.');
+        this.error.set(err?.error?.message || this.t('auth.login.failedResendOtp'));
       },
     });
   }
@@ -659,7 +694,7 @@ export class LoginComponent implements OnInit {
   private verifyOtp() {
     const otp = (this.otpCode || '').replace(/\D/g, '').trim();
     if (otp.length !== 6) {
-      this.error.set('Please enter the 6-digit OTP.');
+      this.error.set(this.t('auth.login.enterSixDigitOtp'));
       return;
     }
 
@@ -670,9 +705,7 @@ export class LoginComponent implements OnInit {
     if (this.loginMethod() === 'phone') {
       if (!this.confirmationResult) {
         this.loading.set(false);
-        this.error.set(
-          'Session expired or OTP not requested. Please try again.',
-        );
+        this.error.set(this.t('auth.login.sessionExpired'));
         this.stage.set('credentials');
         return;
       }

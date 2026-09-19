@@ -701,6 +701,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   autoScanAttempts = signal<number>(0);
   facePresenceStreak = signal<number>(0);
   registrationSuccess = signal<boolean>(false);
+  multiFaceDetected = signal<boolean>(false);
 
   currentUser: User | null = null;
   private mediaStream: MediaStream | null = null;
@@ -734,6 +735,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     return this.faceRegistered();
   }
 
+  private currentOrgId(): number | null {
+    return Number(this.currentUser?.orgId ?? this.currentUser?.organizationId ?? 0) || null;
+  }
+
   // ==================== CHECK REGISTRATION ====================
 
   checkFaceRegistration() {
@@ -755,27 +760,62 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
   async startCamera() {
     try {
+      if (!navigator?.mediaDevices?.getUserMedia) {
+        throw new Error('Camera API is not available in this browser.');
+      }
       this.stopCamera();
       this.stopAutoScan();
       this.autoRegisterTriggered = false;
       this.registrationSuccess.set(false);
 
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 640 },
+      const constraintsToTry: MediaStreamConstraints[] = [
+        {
+          video: {
+            facingMode: { ideal: 'user' },
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
         },
-        audio: false,
-      });
+        {
+          video: {
+            width: { ideal: 640 },
+            height: { ideal: 640 },
+          },
+          audio: false,
+        },
+      ];
+
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+      for (const constraints of constraintsToTry) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) {
+        throw lastError instanceof Error ? lastError : new Error('Unable to access camera.');
+      }
+
+      this.mediaStream = stream;
 
       const video = this.videoElement.nativeElement;
+      video.setAttribute('playsinline', 'true');
+      video.muted = true;
       video.srcObject = this.mediaStream;
 
       await new Promise<void>((resolve) => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve();
+        video.onloadedmetadata = async () => {
+          try {
+            await video.play();
+            resolve();
+          } catch {
+            resolve();
+          }
         };
       });
 
@@ -783,9 +823,22 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       await this.faceRecognitionService.primeFaceEngine();
       this.startAutoScan();
     } catch (error) {
-      console.error('Camera error:', error);
+      const cameraErrorName =
+        error && typeof error === 'object' && 'name' in error
+          ? String((error as { name?: string }).name)
+          : '';
+      if (
+        cameraErrorName === 'NotAllowedError' ||
+        cameraErrorName === 'PermissionDeniedError'
+      ) {
+        console.warn('Camera access was denied by the browser.');
+      } else {
+        console.error('Camera error:', error);
+      }
       this.toastService.error(
-        'Could not access camera. Please allow camera permission.',
+        error instanceof Error
+          ? error.message
+          : 'Could not access camera. Please allow camera permission.',
       );
     }
   }
@@ -814,6 +867,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     this.autoScanAttempts.set(0);
     this.facePresenceStreak.set(0);
     this.faceTurnAway = false;
+    this.multiFaceDetected.set(false);
     this.autoScanStatus.set(
       'Looking for your face. Turn your head slightly left or right to register.',
     );
@@ -841,6 +895,38 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
     this.autoScanBusy = true;
     try {
+      const frameSummary = await firstValueFrom(
+        this.faceRecognitionService.getLiveFaceFrameSummary(video),
+      ).catch(() => null);
+
+      if (frameSummary?.status === 'multiple_faces') {
+        this.multiFaceDetected.set(true);
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        this.autoScanStatus.set(
+          'Multiple faces detected. Keep only your face in the frame.',
+        );
+        return;
+      }
+
+      if (frameSummary?.status === 'no_face') {
+        this.multiFaceDetected.set(false);
+        this.facePresenceStreak.set(0);
+        this.faceTurnAway = false;
+        const attempts = this.autoScanAttempts() + 1;
+        this.autoScanAttempts.set(attempts);
+        this.autoScanStatus.set(
+          attempts >= 3
+            ? 'No face detected. Please face the camera clearly.'
+            : `No face detected yet. Retrying ${attempts}/3...`,
+        );
+        if (attempts >= 3) {
+          this.stopAutoScan();
+        }
+        return;
+      }
+
+      this.multiFaceDetected.set(false);
       const sample = await firstValueFrom(
         this.faceRecognitionService.detectLivenessSampleFromVideo(video),
       ).catch(() => null);
@@ -919,7 +1005,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       const res = await firstValueFrom(
         this.faceRecognitionService.registerFaceFromVideo(
           this.currentUser.id!,
-          this.currentUser.orgId!,
+          this.currentOrgId() ?? 0,
           video,
         ),
       );
@@ -1017,6 +1103,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
   registerFace() {
     if (!this.capturedImage() || !this.currentUser) return;
+    if (!this.currentOrgId()) {
+      this.toastService.error('Organization context missing. Please sign in again.');
+      return;
+    }
 
     this.isProcessing.set(true);
     this.registrationSuccess.set(false);
@@ -1027,7 +1117,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
     this.faceRecognitionService
       .registerFace(
         this.currentUser.id!,
-        this.currentUser.orgId!,
+        this.currentOrgId() ?? 0,
         this.capturedImage()!,
       )
       .subscribe({
@@ -1084,6 +1174,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== TEST ATTENDANCE ====================
 
   testAttendance() {
+    if (!this.currentOrgId()) {
+      this.toastService.error('Organization context missing. Please sign in again.');
+      return;
+    }
     this.isProcessing.set(true);
 
     // Start camera and capture
@@ -1114,7 +1208,7 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       this.faceRecognitionService
         .verifyAndMarkAttendance(
           this.currentUser!.id!,
-          this.currentUser!.orgId!,
+          this.currentOrgId() ?? 0,
           imageData,
           'check_in',
         )
@@ -1150,10 +1244,11 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== EMPLOYEE MANAGEMENT ====================
 
   loadRegisteredEmployees() {
-    if (!this.currentUser?.orgId) return;
+    const orgId = this.currentOrgId();
+    if (!orgId) return;
 
     this.faceRecognitionService
-      .getEmployeesWithFaces(this.currentUser.orgId)
+      .getEmployeesWithFaces(orgId)
       .subscribe({
         next: (employees) => {
           this.registeredEmployees.set(employees);
@@ -1187,6 +1282,10 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
   // ==================== NAVIGATION ====================
 
   goBack() {
-    this.router.navigate(['/attendance']);
+    if (this.returnUrl()) {
+      void this.router.navigateByUrl(this.returnUrl()!);
+      return;
+    }
+    void this.router.navigate(['/self-service/attendance']);
   }
 }

@@ -21,28 +21,28 @@ export interface AddonCard {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <section class="rounded-[32px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 shadow-sm sm:p-6">
+    <section class="rounded-md border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-4 shadow-sm sm:rounded-md sm:p-5 lg:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="max-w-2xl">
           <p class="text-[11px] font-black uppercase tracking-[0.22em] text-slate-500">Add-on Workspace</p>
-          <h2 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Manage active modules and review suggested upgrades from one launcher</h2>
-          <p class="mt-3 text-sm leading-6 text-slate-500">
+          <h2 class="mt-2 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">Manage active modules and review suggested upgrades from one launcher</h2>
+          <p class="mt-3 text-[13px] leading-6 text-slate-500 sm:text-sm">
             This launcher now follows the same active-versus-suggested pattern as Angular_Web. Users can manage live modules directly, or move locked modules into a guide-first upgrade journey.
           </p>
         </div>
         <div class="grid grid-cols-2 gap-3 sm:min-w-[260px]">
-          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div class="rounded-md border border-slate-200 bg-white px-4 py-4">
             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Active</p>
             <p class="mt-2 text-2xl font-black text-slate-900">{{ activeCount() }}</p>
           </div>
-          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+          <div class="rounded-md border border-slate-200 bg-white px-4 py-4">
             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Suggested</p>
             <p class="mt-2 text-2xl font-black text-slate-900">{{ lockedCount() }}</p>
           </div>
         </div>
       </div>
 
-      <div class="mt-6 flex flex-wrap items-center gap-3">
+      <div class="mt-6 flex flex-wrap items-center gap-2.5">
         <button
           type="button"
           (click)="activeTab.set('active')"
@@ -68,15 +68,15 @@ export interface AddonCard {
         </button>
       </div>
 
-      <div class="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 sm:gap-5">
         @for (addon of visibleAddons(); track addon.id) {
           <div class="relative group h-full">
             <div
-              class="flex h-full flex-col rounded-[30px] border border-slate-200/80 bg-white/95 p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+              class="flex h-full flex-col rounded-md border border-slate-200/80 bg-white/95 p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl sm:rounded-md sm:p-5 lg:rounded-md lg:p-6"
               [ngClass]="addon.accent"
             >
               <div class="flex items-start justify-between gap-4">
-                <div class="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100">
+                <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100 sm:h-14 sm:w-14 sm:rounded-md">
                   <div class="h-8 w-8" [innerHTML]="getIcon(addon.icon)"></div>
                 </div>
                 <span
@@ -88,15 +88,15 @@ export interface AddonCard {
               </div>
 
               <div class="mt-5">
-                <h3 class="text-lg font-black tracking-tight text-slate-900">{{ addon.name }}</h3>
-                <p class="mt-3 text-sm leading-6 text-slate-500">
+                <h3 class="text-base font-black tracking-tight text-slate-900 sm:text-lg">{{ addon.name }}</h3>
+                <p class="mt-3 text-[13px] leading-6 text-slate-500 sm:text-sm">
                   {{ addon.description }}
                 </p>
               </div>
 
-              <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div class="mt-5 rounded-md border border-slate-200 bg-slate-50/80 px-4 py-3">
                 <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Access flow</p>
-                <p class="mt-2 text-sm font-semibold text-slate-700">
+                <p class="mt-2 text-[13px] font-semibold text-slate-700 sm:text-sm">
                   {{ addon.isActive ? 'Open the live module workspace from a dedicated page.' : 'Review the module first, then continue into the upgrade flow.' }}
                 </p>
               </div>
@@ -105,7 +105,7 @@ export interface AddonCard {
                 <button
                   type="button"
                   (click)="openGuide(addon)"
-                  class="inline-flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  class="inline-flex w-full items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-3 text-[13px] font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:text-sm"
                 >
                   <span>{{ addon.isActive ? 'View Flow' : 'View Guide' }}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -114,7 +114,7 @@ export interface AddonCard {
                 <button
                   type="button"
                   (click)="handleAddonClick(addon, $event)"
-                  class="inline-flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-bold transition"
+                  class="inline-flex w-full items-center justify-between rounded-md px-4 py-3 text-[13px] font-bold transition sm:text-sm"
                   [ngClass]="addon.isActive ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-amber-500 text-white hover:bg-amber-600'"
                 >
                   <span>{{ addon.isActive ? 'Manage' : 'Upgrade Plan' }}</span>
@@ -127,7 +127,7 @@ export interface AddonCard {
       </div>
 
       @if (visibleAddons().length === 0) {
-        <div class="mt-6 rounded-[28px] border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center">
+        <div class="mt-6 rounded-md border border-dashed border-slate-200 bg-slate-50/80 p-8 text-center">
           <h3 class="text-lg font-black tracking-tight text-slate-900">No modules in this view yet</h3>
           <p class="mt-2 text-sm leading-6 text-slate-500">
             Switch between active and suggested tabs, or open the dedicated add-ons page to review all modules with the full launcher flow.
@@ -135,7 +135,7 @@ export interface AddonCard {
           <button
             type="button"
             (click)="openAddonsHub()"
-            class="mt-4 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800"
+            class="mt-4 rounded-md bg-slate-900 px-4 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800"
           >
             Open Add-ons Page
           </button>

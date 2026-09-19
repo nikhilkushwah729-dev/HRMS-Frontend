@@ -3,7 +3,7 @@ services:
     name: hrms-frontend
     runtime: static
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist/hrms-frontend/browser
+    staticPublishPath: dist/hrms-frontend
     envVars:
       - key: NODE_VERSION
         value: 20.11.1

@@ -15,32 +15,26 @@ import { LeaveService } from '../../core/services/leave.service';
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
-    <div class="mx-auto flex h-full max-w-7xl flex-col gap-6">
-      <section class="grid gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
+    <div class="mx-auto flex h-full max-w-7xl flex-col gap-4 sm:gap-5 lg:gap-6">
+      <section class="grid gap-4 sm:gap-5 lg:grid-cols-[1fr_360px] lg:gap-6 xl:grid-cols-[1fr_400px]">
   
         <!-- Main Control Center Area -->
-        <div class="flex flex-col gap-6">
+        <div class="min-w-0 flex flex-col gap-5 sm:gap-6">
           <!-- Hero Header -->
-          <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <!-- Decor -->
-            <div class="absolute right-0 top-0 h-[500px] w-[500px] -translate-y-1/2 translate-x-1/3 rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-100/60 via-slate-50/20 to-transparent blur-3xl"></div>
-            
+          <div class="sticky top-3 z-20 overflow-hidden rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-lg shadow-slate-200/60 backdrop-blur sm:p-5 lg:p-6">
             <div class="relative">
-              <div class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700 shadow-sm">
-                <span class="relative flex h-2 w-2">
-                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                </span>
+              <div class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-700 shadow-sm">
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
                 Control Center
               </div>
-              <h1 class="mt-5 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">System Settings</h1>
-              <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base sm:leading-7">
+              <h1 class="mt-4 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">System Settings</h1>
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                 Manage configurations, organizations, policies, and system-wide behavior from one polished admin surface designed for faster day-to-day operations.
               </p>
             </div>
 
-            <div class="relative mt-8 grid gap-4 sm:grid-cols-2">
-              <div class="flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 shadow-sm transition hover:border-slate-200 hover:bg-white hover:shadow">
+            <div class="relative mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2">
+              <div class="flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm" [ngClass]="controlCenterTone()">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 </div>
@@ -51,7 +45,7 @@ import { LeaveService } from '../../core/services/leave.service';
                 </div>
               </div>
 
-              <div class="flex items-start gap-4 rounded-xl border border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4 text-white shadow-md transition hover:border-slate-700 hover:shadow-lg">
+              <div class="flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-900 p-4 text-white shadow-sm">
                 <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 shadow-inner">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
                 </div>
@@ -65,20 +59,20 @@ import { LeaveService } from '../../core/services/leave.service';
           </div>
 
           <!-- Quick Metrics -->
-          <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow">
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
               <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Employees</p>
               <p class="mt-1 text-2xl font-black text-slate-900">{{ employeeCount() }}</p>
             </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
               <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Locations</p>
               <p class="mt-1 text-2xl font-black text-slate-900">{{ locationCount() }}</p>
             </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
               <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Departments</p>
               <p class="mt-1 text-2xl font-black text-slate-900">{{ departmentCount() }}</p>
             </div>
-            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow">
+            <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
               <p class="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Shifts</p>
               <p class="mt-1 text-2xl font-black text-slate-900">{{ shiftCount() }}</p>
             </div>
@@ -86,68 +80,55 @@ import { LeaveService } from '../../core/services/leave.service';
         </div>
 
         <!-- Search & Pinned Section -->
-        <div class="flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div class="border-b border-slate-100 p-5 sm:p-6">
-            <div class="flex justify-between items-start gap-3">
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500">Navigator</p>
-                <p class="mt-1 text-sm font-semibold text-slate-900">Quick jump to any configuration module.</p>
-              </div>
-              <button type="button" (click)="closeSettings()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-              </button>
-            </div>
-
-            <div class="relative mt-5" data-settings-search>
-              <input
-                type="text"
-                placeholder="Search modules..."
-                [ngModel]="searchQuery()"
+        <div class="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 p-4 sm:p-5 lg:p-6">
+            <div class="relative" data-settings-search>
+              <input 
+                type="text" 
+                [ngModel]="searchQuery()" 
                 (ngModelChange)="onSearchChange($event)"
-                class="w-full rounded-lg border-2 border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white"
-              />
-              <div class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </div>
-
+                (focus)="isSearchOpen.set(true)"
+                placeholder="Search for locations, shifts, rules..."
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 outline-none transition-all focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+              >
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              
               @if (isSearchOpen() && searchResults().length > 0) {
-                <div class="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
+                <div class="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-2xl">
                   @for (result of searchResults(); track result.route) {
-                    <a [routerLink]="result.route" class="group flex items-center justify-between gap-3 rounded-md px-3 py-2.5 transition hover:bg-indigo-50">
-                      <div class="flex items-center gap-3">
-                        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500 transition group-hover:bg-indigo-100 group-hover:text-indigo-600">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                        </div>
-                        <div>
-                          <p class="truncate text-sm font-bold text-slate-900 group-hover:text-indigo-700">{{ result.label }}</p>
-                          <p class="text-[11px] font-medium tracking-[0.05em] text-slate-500">{{ result.category }}</p>
-                        </div>
+                    <a [routerLink]="result.route" class="group flex items-center justify-between rounded-lg px-4 py-3 hover:bg-slate-50">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-bold text-slate-900">{{ formatLabel(result.label) }}</p>
+                        <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ result.category }}</p>
+                      </div>
+                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm transition group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                       </div>
                     </a>
                   }
                 </div>
               }
-              @if (isSearchOpen() && searchResults().length === 0) {
+              @if (isSearchOpen() && searchResults().length === 0 && searchQuery().trim()) {
                 <div class="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg border border-slate-200 bg-white px-4 py-6 text-center text-sm font-medium text-slate-500 shadow-xl">
-                  No matches found. Try another term.
+                  No matches found for "{{ searchQuery() }}". Try another term.
                 </div>
               }
             </div>
 
             <div class="mt-4 flex flex-wrap gap-2">
               @for (term of quickSearchTerms(); track term) {
-                <button type="button" (click)="applyQuickSearch(term)" class="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.05em] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50">
+                <button type="button" (click)="applyQuickSearch(term)" class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.05em] text-slate-600 transition hover:border-slate-300 hover:bg-slate-50">
                   {{ term }}
                 </button>
               }
             </div>
           </div>
 
-          <div class="flex-1 bg-slate-50/50 p-5 sm:p-6 rounded-b-xl">
+          <div class="flex-1 rounded-b-2xl bg-slate-50/50 p-4 sm:p-5 lg:p-6">
             <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Pinned Modules</p>
             <div class="mt-4 grid gap-2">
               @for (route of featuredSettings(); track route.route) {
-                <a [routerLink]="route.route" class="group flex items-center justify-between rounded-lg border border-transparent bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                <a [routerLink]="route.route" class="group flex items-center justify-between rounded-xl border border-transparent bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div class="min-w-0">
                     <p class="truncate text-sm font-bold text-slate-900 group-hover:text-indigo-600">{{ formatLabel(route.label) }}</p>
                     <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ route.category }}</p>
@@ -160,7 +141,7 @@ import { LeaveService } from '../../core/services/leave.service';
         </div>
       </section>
 
-      <div class="flex-1 mt-2">
+      <div class="mt-2 flex-1">
         <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Module Library</p>
@@ -169,7 +150,7 @@ import { LeaveService } from '../../core/services/leave.service';
           <p class="max-w-xl text-sm font-medium leading-6 text-slate-500">Every visible card below is access-aware and routes only to modules available for your specific permission level.</p>
         </div>
         
-        <div class="grid gap-6 md:grid-cols-2 2xl:grid-cols-3">
+        <div class="grid gap-4 sm:gap-5 md:grid-cols-2 2xl:grid-cols-3 lg:gap-6">
           @for (category of objectKeys(structuredSettings()); track category) {
             @if (structuredSettings()[category].per && structuredSettings()[category].routes.length > 0) {
               <section class="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg">
@@ -213,37 +194,34 @@ import { LeaveService } from '../../core/services/leave.service';
         </div>
       </div>
 
-      <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500">Quick Actions</p>
-            <h2 class="mt-2 text-2xl font-black text-slate-900">Shortcuts for admin work</h2>
+      @if (adminShortcuts().length > 0) {
+        <section class="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+          <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-500">Quick Actions</p>
+              <h2 class="mt-2 text-2xl font-black text-slate-900">Shortcuts for admin work</h2>
+            </div>
+            <p class="text-sm font-medium text-slate-500">Fast access for day-to-day configuration tasks.</p>
           </div>
-          <p class="text-sm font-medium text-slate-500">Fast access for day-to-day configuration tasks.</p>
-        </div>
-        
-        <div class="grid gap-5 md:grid-cols-2">
-          <a routerLink="approval-flow" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-5 transition-all hover:-translate-y-1 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-md">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm transition group-hover:bg-emerald-500 group-hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-            </div>
-            <div class="min-w-0 pt-1">
-              <p class="text-lg font-black text-slate-900">Approval Flow Center</p>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">Review rules and setup nested approval chains across your entire organization.</p>
-            </div>
-          </a>
-
-          <a routerLink="import-wizard" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-5 transition-all hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50 hover:shadow-md">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-500 shadow-sm transition group-hover:bg-indigo-500 group-hover:text-white">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-            </div>
-            <div class="min-w-0 pt-1">
-              <p class="text-lg font-black text-slate-900">Import Master Wizard</p>
-              <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">Bring external policy references and core framework data directly into the system.</p>
-            </div>
-          </a>
-        </div>
-      </section>
+          
+          <div class="grid gap-4 md:grid-cols-2 lg:gap-5">
+            @for (shortcut of adminShortcuts(); track shortcut.route) {
+              <a [routerLink]="shortcut.route" class="group flex items-start gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 transition-all hover:-translate-y-1 hover:shadow-md sm:p-5"
+                 [ngClass]="shortcut.route === '/settings/approval-flow' ? 'hover:border-emerald-200 hover:bg-emerald-50' : 'hover:border-indigo-200 hover:bg-indigo-50'">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm transition"
+                     [ngClass]="shortcut.route === '/settings/approval-flow' ? 'text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white' : 'text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white'">
+                  <svg *ngIf="shortcut.route === '/settings/approval-flow'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                  <svg *ngIf="shortcut.route !== '/settings/approval-flow'" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                </div>
+                <div class="min-w-0 pt-1">
+                  <p class="text-lg font-black text-slate-900">{{ shortcut.label }}</p>
+                  <p class="mt-2 text-sm font-medium leading-relaxed text-slate-500">{{ shortcut.category }}</p>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
     </div>
   `
 })
@@ -385,6 +363,25 @@ export class AllSettingsComponent implements OnInit, OnDestroy {
     return this.quickTerms;
   }
 
+  adminShortcuts(): Array<{ route: string; label: string; category: string }> {
+    const shortcuts = [
+      {
+        route: '/settings/approval-flow',
+        label: 'Approval Flow Center',
+        category: 'Review rules and setup nested approval chains across your entire organization.',
+      },
+      {
+        route: '/settings/import-wizard',
+        label: 'Import Master Wizard',
+        category: 'Bring external policy references and core framework data directly into the system.',
+      },
+    ];
+
+    return shortcuts.filter((shortcut) =>
+      this.allFlatRoutes.some((route) => route.route === shortcut.route),
+    );
+  }
+
   applyQuickSearch(term: string): void {
     this.searchQuery.set(term);
     this.onSearchChange(term);
@@ -463,4 +460,3 @@ export class AllSettingsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/dashboard']);
   }
 }
-

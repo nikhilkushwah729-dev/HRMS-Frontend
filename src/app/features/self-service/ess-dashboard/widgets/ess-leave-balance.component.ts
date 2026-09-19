@@ -6,28 +6,31 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="app-glass-card h-full flex flex-col ring-1 ring-slate-100 hover:ring-indigo-100 transition-all shadow-sm hover:shadow-2xl overflow-hidden rounded-[32px]">
-      <div class="p-6 border-b border-slate-100 bg-slate-50/30">
-        <h2 class="text-xl font-black text-slate-900 tracking-tight">Leave Balance</h2>
-        <p class="text-xs font-medium text-slate-500 mt-1">Available time-off buckets for your role.</p>
+    <div class="flex h-full flex-col overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-200">
+      <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div>
+          <h2 class="text-lg font-black tracking-tight text-slate-900">Leave Balance</h2>
+          <p class="mt-1 text-xs font-semibold text-slate-500 sm:text-sm">Available time-off buckets.</p>
+        </div>
       </div>
-      <div class="flex-1 p-6 flex flex-col gap-6 overflow-hidden">
-        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+
+      <div class="flex flex-1 flex-col gap-4 overflow-hidden p-4 sm:p-5">
+        <div class="flex-1 space-y-3 overflow-y-auto">
           @for (balance of balances(); track balance.id) {
-            <div class="group flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-5 transition-all hover:border-indigo-200 hover:shadow-lg ring-1 ring-slate-100">
+            <div class="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
               <div class="flex items-center gap-4">
-                <div class="h-3 w-3 rounded-full shadow-sm" [style.backgroundColor]="balance.color"></div>
-                <span class="text-sm font-black text-slate-700 group-hover:text-indigo-600 transition-colors">{{ balance.typeName }}</span>
+                <div class="h-3.5 w-3.5 rounded-full shadow-sm" [style.backgroundColor]="balance.color"></div>
+                <span class="text-sm font-black text-slate-700">{{ balance.typeName }}</span>
               </div>
-              <div class="flex items-baseline gap-1.5">
-                <span class="text-xl font-black text-slate-900 tracking-tight">{{ balance.remaining }}</span>
-                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Available</span>
+              <div class="flex items-baseline gap-2">
+                <span class="text-xl font-black tracking-tight text-slate-900">{{ balance.remaining }}</span>
+                <span class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Available</span>
               </div>
             </div>
           }
         </div>
         
-        <button (click)="requestLeave.emit()" class="shrink-0 w-full py-4 rounded-2xl border-2 border-dashed border-slate-200 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all shadow-sm ring-1 ring-indigo-50/10">
+        <button (click)="requestLeave.emit()" class="h-11 shrink-0 w-full rounded-md border border-slate-200 bg-slate-900 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white transition hover:bg-emerald-600">
           Request New Leave
         </button>
       </div>

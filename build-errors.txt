@@ -1,0 +1,26 @@
+﻿[33m>[39m Building...
+[32mΓêÜ[39m Building...
+Application bundle generation failed. [11.249 seconds]
+
+node.exe : [1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe expression evaluated to a falsy value:
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Nikhil\AppData\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([1m[31m[31mX... a falsy value::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+  (compilation)
+[0m [1m[35m[plugin angular-compiler][0m
+
+  This error came from the "onStart" callback registered here:
+
+    node_modules/@angular/build/src/tools/esbuild/angular/compiler-plugin.js:109:18:
+[37m      109 Γöé             build.[32monStart[37m(async () => {
+          Γò╡                   [32m~~~~~~~[0m
+
+    at setup (D:\HRMS_FRONTEND\node_modules\@angular\build\src\tools\esbuild\angular\compiler-plugin.js:109:19)
+    at async handlePlugins (D:\HRMS_FRONTEND\node_modules\esbuild\lib\main.js:1194:20)
+
+[39m[22m
+Watch mode enabled. Watching for file changes...

@@ -5,13 +5,15 @@ import { RouterLink, Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { environment } from '../../../../environments/environment';
 import { COUNTRIES as countryCodes, type CountryCodeData } from '../../../core/constants/countries';
+import { LanguageService } from '../../../core/services/language.service';
 
 import { UiPhoneInputComponent } from '../../../core/components/ui';
+import { AuthLanguageSwitcherComponent } from '../auth-language-switcher.component';
 
 @Component({
   selector: 'app-signup',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent],
+  imports: [CommonModule, FormsModule, RouterLink, UiPhoneInputComponent, AuthLanguageSwitcherComponent],
   templateUrl: './signup.component.html',
   styleUrl: './signup.component.css'
 })
@@ -20,10 +22,12 @@ export class SignupComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private el = inject(ElementRef);
+  private languageService = inject(LanguageService);
 
   loading = signal(false);
   error = signal('');
   success = signal('');
+  oauthProvider = signal<'google' | 'microsoft' | null>(null);
   showPassword = signal(false);
   showConfirmPassword = false;
   termsAccepted = false;
@@ -55,6 +59,17 @@ export class SignupComponent implements OnInit {
     this.route.queryParamMap.subscribe(params => {
       const identifier = (params.get('identifier') || '').trim();
       const type = params.get('type');
+      const oauthProvider = params.get('provider');
+
+      // New Google/Microsoft users are redirected here by the backend after
+      // the provider has verified their identity. Keep the organization form
+      // intact, while removing the need to type their provider profile again.
+      if (oauthProvider === 'google' || oauthProvider === 'microsoft') {
+        this.oauthProvider.set(oauthProvider);
+        this.form.email = (params.get('email') || '').trim().toLowerCase();
+        this.form.adminFirstName = (params.get('firstName') || '').trim();
+        this.form.adminLastName = (params.get('lastName') || '').trim();
+      }
 
       if (!identifier) return;
 
@@ -84,37 +99,105 @@ export class SignupComponent implements OnInit {
     this.selectedCountry = country;
   }
 
-  onSubmit() {
-    this.loading.set(true);
-    this.error.set('');
+  private extractErrorMessage(err: any): string {
+    const backendError = err?.error;
 
-    if (this.selectedCountry && this.form.phone) {
-      if (this.form.phone.length !== this.selectedCountry.phoneNumberLength) {
-        this.error.set(`Phone number for ${this.selectedCountry.name} must be exactly ${this.selectedCountry.phoneNumberLength} digits.`);
-        this.loading.set(false);
+    if (Array.isArray(backendError?.errors) && backendError.errors.length > 0) {
+      return backendError.errors[0]?.message || this.t('auth.signup.failed');
+    }
+
+    return backendError?.message || this.t('auth.signup.failed');
+  }
+
+  onSubmit() {
+    this.error.set('');
+    this.success.set('');
+
+    const companyName = this.form.companyName.trim();
+    const adminFirstName = this.form.adminFirstName.trim();
+    const adminLastName = this.form.adminLastName.trim();
+    const email = this.form.email.trim().toLowerCase();
+    const provider = this.oauthProvider();
+    const adminPassword = this.form.adminPassword;
+    const phone = this.form.phone.replace(/\D/g, '');
+
+    if (!companyName || !adminFirstName || !email || !adminPassword) {
+      this.error.set(this.t('auth.signup.failed'));
+      return;
+    }
+
+    if (adminPassword.length < 8) {
+      this.error.set(this.t('auth.signup.passwordMin'));
+      return;
+    }
+
+    if (adminPassword !== this.confirmPassword) {
+      this.error.set(this.t('auth.signup.passwordsNoMatch'));
+      return;
+    }
+
+    if (!this.termsAccepted) {
+      this.error.set(this.t('auth.signup.agreePrefix'));
+      return;
+    }
+
+    if (this.selectedCountry && phone) {
+      if (phone.length !== this.selectedCountry.phoneNumberLength) {
+        this.error.set(this.t('auth.signup.phoneDigits', {
+          country: this.selectedCountry.name,
+          digits: this.selectedCountry.phoneNumberLength,
+        }));
         return;
       }
     }
 
-    const fullPhone = this.form.phone;
+    this.loading.set(true);
 
-    const payload = {
-      ...this.form,
-      countryCode: this.selectedCountry?.flag || null,
-      countryName: this.selectedCountry?.name || null,
-      dialCode: this.selectedCountry?.code || null,
-      country: this.selectedCountry?.name || null,
+    const payload: Record<string, unknown> = {
+      companyName,
+      adminFirstName,
+      email,
+      adminPassword,
+      roleId: 2,
+      roleSlug: 'organization_admin',
+      requestedRole: 'Organization Admin',
+      accessScope: 'organization',
     };
+
+    if (adminLastName) {
+      payload['adminLastName'] = adminLastName;
+    }
+
+    if (phone) {
+      payload['phone'] = phone;
+    }
+
+    if (this.selectedCountry) {
+      payload['countryCode'] = this.selectedCountry.flag;
+      payload['countryName'] = this.selectedCountry.name;
+      payload['dialCode'] = this.selectedCountry.code;
+      payload['country'] = this.selectedCountry.name;
+    }
 
     this.authService.register(payload).subscribe({
       next: (res) => {
         this.loading.set(false);
-        this.success.set('Account created successfully. Please check your email for verification.');
+        if (provider) {
+          // The organization now exists. Restarting the OAuth redirect links
+          // the provider identity to it and finishes at the dashboard.
+          this.signInWithOAuth(provider);
+          return;
+        }
+        this.success.set(this.t('auth.signup.successMessage'));
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err.error?.message || 'Registration failed. Please try again.');
+        this.error.set(this.extractErrorMessage(err));
       }
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 }

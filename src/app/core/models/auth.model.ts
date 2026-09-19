@@ -3,6 +3,26 @@
 export interface Role {
     id: number;
     name: string;
+    slug?: string;
+    scope?: 'global' | 'organization' | 'team' | 'self';
+}
+
+export type AccessScope = 'global' | 'organization' | 'team' | 'self' | 'finance' | 'all';
+export type RbacRoleName = 'Super Admin' | 'Organization Admin' | 'Admin' | 'Manager' | 'Employee';
+
+export interface AttendanceAreaAssignment {
+  id?: number;
+  name?: string;
+  lat: number | string;
+  long: number | string;
+  radius: number | string;
+}
+
+export interface AttendancePolygonPoint {
+  Id?: number;
+  geo_masterId?: number;
+  lat: number | string;
+  long: number | string;
 }
 
 export interface User {
@@ -17,14 +37,25 @@ export interface User {
   phone?: string;
   role?: Role | string;
   roleId?: number;
+  roleSlug?: string;
+  roleScope?: AccessScope;
   avatar?: string | null;
   organizationId?: number;
   orgId?: number;
+  employeeId?: number;
   employeeCode?: string;
   status?: string;
   designationId?: number;
   departmentId?: number;
+  geofenceId?: number;
+  geofenceRequired?: boolean;
+  geofenceZoneName?: string;
+  areaIds?: AttendanceAreaAssignment[];
+  polyField?: AttendancePolygonPoint[] | AttendancePolygonPoint[][];
   managerId?: number;
+  reportingManagerId?: number;
+  subordinateIds?: number[];
+  hierarchyPath?: number[];
   countryCode?: string;
   countryName?: string;
   joinDate?: string;
@@ -38,6 +69,7 @@ export interface User {
   bankName?: string;
   ifscCode?: string;
   panNumber?: string;
+  createdAt?: string;
   loginType?: string;
   phoneAuthEnabled?: boolean;
   phoneVerified?: boolean;
@@ -46,10 +78,21 @@ export interface User {
   paySlip?: number;
   salarySlip?: number;
   shiftChangePerm?: number;
+  profileType?: number;
+  hrSts?: number;
+  setupConfig?: number;
+  esslSetupConfig?: number;
+  biometricMachinePermission?: number;
+  addonDeviceVerification?: number;
+  modeOfAttendance?: number | null;
+  attSelfie?: number | null;
+  attImage?: number | null;
+  visitorManagementAddOn?: number;
+  settingPerm?: number;
   department?: { id: number; name: string };
   designation?: { id: number; name: string };
   permissions?: string[];
-  accessScope?: 'all' | 'team' | 'self' | 'finance';
+  accessScope?: AccessScope;
 }
 
 export interface AuthResponse {

@@ -1,6 +1,7 @@
 import { Component, input, output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { LanguageService } from '../../../../core/services/language.service';
 
 export interface QuickAction {
   title: string;
@@ -15,34 +16,41 @@ export interface QuickAction {
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col gap-6 h-full">
-      <div class="flex items-center justify-between px-2">
-        <div>
-          <h2 class="text-xl font-black text-slate-900 tracking-tight">Quick Actions</h2>
-          <p class="text-xs font-medium text-slate-500 mt-1">Commonly used tools and essential shift controls.</p>
+    <div class="flex h-full flex-col overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-2xl hover:shadow-slate-200/40">
+      <div class="flex flex-col shrink-0 gap-4 p-8 border-b border-slate-50 bg-slate-50/20 sm:flex-row sm:items-center justify-between">
+        <div class="flex items-center gap-4">
+           <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white text-emerald-600 shadow-sm">
+             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/><path d="M18 10l2 2 4-4"/></svg>
+           </div>
+           <div>
+             <h2 class="text-2xl font-black text-slate-900 tracking-tight">{{ t('selfService.quickActions.title') }}</h2>
+             <p class="text-sm font-bold text-slate-500 mt-1">{{ t('selfService.quickActions.subtitle') }}</p>
+           </div>
         </div>
       </div>
-      
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 flex-1">
+
+      <div class="p-8">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @for (action of actions(); track action.title) {
-          <button (click)="navigate.emit(action.route)" class="app-glass-card group flex flex-col items-center justify-center p-8 transition-all hover:-translate-y-2 hover:shadow-2xl ring-1 ring-slate-200/50 hover:ring-indigo-300 h-full rounded-[40px] bg-white/40 shadow-sm relative overflow-hidden backdrop-blur-md">
-            <!-- Decorative Gradient Pulse -->
-            <div class="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-slate-100/30 blur-2xl group-hover:bg-indigo-100/50 transition-colors"></div>
-            
-            <div class="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-md text-indigo-600 group-hover:scale-110 transition-transform duration-500 ring-4 ring-slate-50/50 text-3xl">
-              <span [innerHTML]="getIcon(action.icon)"></span>
+          <button (click)="navigate.emit(action.route)" class="group relative flex flex-col items-start rounded-md bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/40 ring-1 ring-transparent hover:ring-slate-100">
+            <div class="flex h-12 w-12 items-center justify-center rounded-md bg-white shadow-sm text-emerald-600 transition-transform group-hover:scale-110">
+               <span [innerHTML]="getIcon(action.icon)"></span>
             </div>
             
-            <div class="flex flex-col items-center flex-1">
-              <h3 class="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors text-center tracking-tight">{{ action.title }}</h3>
-              <p class="mt-2 text-xs font-medium text-slate-500 group-hover:text-slate-600 transition-colors text-center leading-relaxed line-clamp-2 max-w-[140px]">{{ action.description }}</p>
+            <div class="mt-6">
+              <h3 class="text-base font-black text-slate-900 tracking-tight group-hover:text-emerald-600 transition-colors">{{ action.title }}</h3>
+              <p class="mt-2 text-xs font-bold text-slate-500 line-clamp-2 leading-relaxed">{{ action.description }}</p>
             </div>
-            
-            <div class="mt-6 flex h-8 w-8 items-center justify-center rounded-full bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+
+            <div class="mt-6 flex w-full items-center justify-between border-t border-slate-200/50 pt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">Launch Module</span>
+               <div class="h-8 w-8 flex items-center justify-center rounded-md bg-slate-900 text-white">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+               </div>
             </div>
           </button>
         }
+        </div>
       </div>
     </div>
   `,
@@ -52,8 +60,11 @@ export interface QuickAction {
 })
 export class EssQuickActionsComponent {
   private sanitizer = inject(DomSanitizer);
+  private languageService = inject(LanguageService);
   actions = input<QuickAction[]>([]);
   navigate = output<string>();
+  readonly t = (key: string, params?: Record<string, string | number | null | undefined>) =>
+    this.languageService.t(key, params);
 
   getIcon(iconKey: string): SafeHtml {
     const icons: Record<string, string> = {

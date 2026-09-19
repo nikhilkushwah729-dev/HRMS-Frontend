@@ -1,5 +1,7 @@
-import { Component, HostListener, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { CommonModule, Location } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '@ngrx/store';
 import { NavigationEnd, Router } from '@angular/router';
 import { selectUser } from '../../core/state/auth/auth.selectors';
@@ -10,6 +12,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { EmployeeService } from '../../core/services/employee.service';
 import { Project, ProjectService } from '../../core/services/project.service';
 import { OrganizationService, Designation } from '../../core/services/organization.service';
+import { AppLanguage, LanguageService } from '../../core/services/language.service';
 import { User } from '../../core/models/auth.model';
 import { catchError, forkJoin, of } from 'rxjs';
 import { PermissionService } from '../../core/services/permission.service';
@@ -58,221 +61,251 @@ type GuidePreview = {
   steps: string[];
 };
 
+type TopNavItem = {
+  label: string;
+  route: string;
+  icon: string;
+  isLocked: boolean;
+  lockReason?: string | null;
+};
+
 @Component({
   selector: 'app-topbar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
-    <header class="app-topbar-surface sticky top-0 z-50 w-full border-b border-white/40 px-2 sm:px-3 lg:px-4">
-      <div class="flex min-h-[58px] items-center justify-between gap-3 py-2 md:min-h-[66px]">
-      <div class="flex min-w-0 flex-1 flex-col gap-1">
-        <div class="flex min-w-0 items-center gap-2 sm:gap-2.5 lg:gap-3">
-        <button (click)="layoutService.toggleSidebar()" class="lg:hidden p-1.5 text-slate-600 hover:bg-white/80 rounded-md transition-colors border border-stone-200/70 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
-        </button>
+    <header class="app-topbar-surface sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/90 px-2 sm:px-3 lg:px-4 backdrop-blur-xl">
+      @if (showSearchPanel()) {
+      <div class="flex min-h-[58px] items-center py-2 md:min-h-[66px]">
+        <div class="relative flex w-full items-center gap-2">
+          <div class="search-expanded-bar">
+            <button type="button" (click)="closeAll()" class="search-expanded-close" aria-label="Back">
+              <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
+            </button>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input
+              type="text"
+              [value]="searchQuery()"
+              (input)="onSearchInput(($any($event.target).value || '').toString())"
+              placeholder="Search anything..."
+              class="w-full bg-transparent text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:outline-none"
+              autofocus
+            >
+            <span class="search-launcher-key hidden lg:inline-flex">Ctrl K</span>
+          </div>
 
-        <div class="min-w-0 flex-1 lg:hidden">
-          <p class="truncate text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ headerKicker() }}</p>
-          <h1 class="truncate text-sm font-black tracking-tight text-slate-900">{{ headerTitle() }}</h1>
-        </div>
-
-        <div class="hidden lg:flex min-w-0 flex-col flex-1">
-          <span class="app-page-kicker">{{ headerKicker() }}</span>
-          <h1 class="app-page-title truncate max-w-[12rem] xl:max-w-[16rem]">{{ headerTitle() }}</h1>
-          <p class="app-page-subtitle truncate hidden xl:block">{{ headerSubtitle() }}</p>
-        </div>
-
-        <div class="relative hidden md:block">
-          <button
-            type="button"
-            (click)="openSearch()"
-            class="search-launcher"
-            aria-label="Open search"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <span class="hidden lg:inline text-[10px] font-black tracking-[0.16em]">Search</span>
-            <span class="search-launcher-key">Ctrl K</span>
-          </button>
-
-          @if (showSearchPanel()) {
-            <div class="absolute left-0 right-0 mt-3 bg-white rounded-md shadow-2xl border border-stone-100 overflow-hidden z-[70] w-[min(28rem,calc(100vw-2rem))]">
-              <div class="px-4 py-3 border-b border-stone-100 bg-gradient-to-r from-amber-50/80 via-white to-teal-50/70 flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <input
-                  type="text"
-                  [value]="searchQuery()"
-                  (input)="onSearchInput(($any($event.target).value || '').toString())"
-                  placeholder="Search anything..."
-                  class="w-full bg-transparent text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                  autofocus
-                >
-                <span class="search-launcher-key">Ctrl K</span>
-              </div>
-              <div class="max-h-[min(55vh,22rem)] overflow-y-auto">
-                @if (searchResults().length === 0) {
-                  <div class="px-4 py-8 text-center">
-                    <p class="text-sm font-semibold text-slate-400">No matching results</p>
-                    <p class="text-xs text-slate-400 mt-1">Try employee name, project, or module name</p>
-                  </div>
-                } @else {
-                  @for (result of searchResults(); track result.route + result.title) {
-                    <button
-                      (click)="goToSearchResult(result.route)"
-                      class="w-full text-left px-4 py-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors"
-                    >
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0">
-                          <p class="text-sm font-bold text-slate-900 truncate">{{ result.title }}</p>
-                          <p class="text-xs text-slate-500 truncate">{{ result.subtitle }}</p>
-                        </div>
-                        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md"
-                              [ngClass]="result.tone">
-                          {{ result.category }}
-                        </span>
+          <div class="search-expanded-results">
+            <div class="max-h-[min(55vh,22rem)] overflow-y-auto">
+              @if (searchResults().length === 0) {
+                <div class="px-4 py-8 text-center">
+                  <p class="text-sm font-semibold text-slate-400">No matching results</p>
+                  <p class="text-xs text-slate-400 mt-1">Try employee name, project, or module name</p>
+                </div>
+              } @else {
+                @for (result of searchResults(); track result.route + result.title) {
+                  <button
+                    (click)="goToSearchResult(result.route)"
+                    class="w-full text-left px-4 py-3 border-b border-slate-50 last:border-b-0 hover:bg-slate-50 transition-colors"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-900 truncate">{{ result.title }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ result.subtitle }}</p>
                       </div>
-                    </button>
-                  }
+                      <span class="shrink-0 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-md"
+                            [ngClass]="result.tone">
+                        {{ result.category }}
+                      </span>
+                    </div>
+                  </button>
                 }
-              </div>
+              }
             </div>
-          }
-        </div>
-
-        </div>
-
-        <div class="hidden lg:flex items-center relative">
-          <button type="button" (click)="toggleModuleSwitcher()" class="module-switcher-btn" [class.module-switcher-btn-active]="showModuleSwitcher()">
-            <span class="module-switcher-dot" [ngClass]="activeModuleAccent()"></span>
-            <span class="hidden xl:inline">{{ activeWorkspaceLabel() }}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="opacity-70"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-
-          @if (showModuleSwitcher()) {
-            <div class="absolute left-0 top-full mt-3 w-[min(32rem,calc(100vw-4rem))] rounded-2xl border border-slate-100 bg-white shadow-2xl z-[70] overflow-hidden">
-              <div class="grid gap-0 md:grid-cols-2">
-                <div class="p-3 border-b md:border-b-0 md:border-r border-slate-100 bg-slate-50/60">
-                  <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Self Service</p>
-                  <div class="space-y-1">
-                    @for (module of selfServiceTabs(); track module.route) {
-                      <button
-                        type="button"
-                        (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
-                        class="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
-                        [ngClass]="module.isLocked ? 'cursor-not-allowed bg-rose-50 text-rose-700' : (isActiveRoute(module.route) ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-white hover:text-slate-900')"
-                      >
-                        <span class="h-2.5 w-2.5 rounded-full" [ngClass]="module.accent"></span>
-                        <span class="truncate min-w-0 flex-1">{{ module.label }}</span>
-                        @if (module.isLocked) {
-                          <span class="ml-auto rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                            Lock
-                          </span>
-                        }
-                      </button>
-                    }
-                  </div>
-                </div>
-                <div class="p-3 bg-white">
-                  <p class="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Admin & HR</p>
-                  <div class="space-y-1">
-                    @for (module of adminTabs(); track module.route) {
-                      <button
-                        type="button"
-                        (click)="module.isLocked ? openLockedModule(module) : goToSearchResult(module.route)"
-                        class="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors"
-                        [ngClass]="module.isLocked ? 'cursor-not-allowed bg-rose-50 text-rose-700' : (isActiveRoute(module.route) ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900')"
-                      >
-                        <span class="h-2.5 w-2.5 rounded-full" [ngClass]="module.accent"></span>
-                        <span class="truncate min-w-0 flex-1">{{ module.label }}</span>
-                        @if (module.isLocked) {
-                          <span class="ml-auto rounded-full border border-rose-200 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                            Lock
-                          </span>
-                        }
-                      </button>
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-          }
+          </div>
         </div>
       </div>
-
-      <div class="flex shrink-0 items-center gap-1.5 sm:gap-3 md:gap-4">
-        <div class="relative hidden lg:block">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-            (click)="goToSearchResult('/add-ons')"
-          >
-            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700">+</span>
-            <span>Add-ons</span>
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] text-slate-600">{{ addonLauncherItems().length }}</span>
+      } @else {
+      <div class="flex h-[62px] items-center justify-between gap-3 px-3 md:h-[68px] md:px-4">
+        <!-- Left Section: Menu & Title -->
+        <div class="flex min-w-0 items-center gap-3">
+          <button (click)="handleSidebarToggle()" class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-900 hover:text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
           </button>
 
+          @if (showBackButton()) {
+            <button type="button" (click)="goBack()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/><path d="M21 12H9"/></svg>
+            </button>
+          }
+
+          <div class="min-w-0 flex-1 lg:max-w-[18rem] xl:max-w-[20rem]">
+            <p class="truncate text-[9px] font-black uppercase tracking-[0.22em] text-slate-400 leading-none">{{ headerKicker() }}</p>
+            <h1 class="mt-1 truncate text-sm font-black tracking-tight text-slate-900 md:text-base" style="font-family: 'Sora', sans-serif;">{{ headerTitle() }}</h1>
+          </div>
+        </div>
+
+        <!-- Center Section: Navigation (Hidden on smaller screens) -->
+        <div class="hidden min-w-0 flex-1 justify-center 2xl:flex">
+          <div class="relative flex max-w-[min(48rem,calc(100vw-40rem))] min-w-0 items-center px-2">
+            
+            <!-- Left Edge Fade & Arrow -->
+            <div 
+              class="absolute left-0 z-20 flex h-full items-center bg-gradient-to-r from-slate-50 via-slate-50/80 to-transparent pr-8 transition-opacity duration-300 pointer-events-none"
+              [class.opacity-0]="!canScrollLeft()"
+              [class.opacity-100]="canScrollLeft()"
+            >
+              <button 
+                (click)="scrollNav(-240)"
+                class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-lg shadow-slate-200/50 backdrop-blur-md transition hover:bg-slate-900 hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Scroll left"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+            </div>
+
+            <div 
+              #navScrollContainer
+              (scroll)="updateScrollVisibility()"
+              class="flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-xl border border-slate-200/60 bg-white/40 p-1.5 backdrop-blur-md hidescrollbar scroll-smooth"
+            >
+              @for (item of topNavigationTabs(); track item.route) {
+                <button
+                  type="button"
+                  (click)="item.isLocked ? openLockedTopNav(item) : goToSearchResult(item.route)"
+                  class="group relative inline-flex shrink-0 items-center gap-2.5 rounded-lg px-4 py-2 text-sm font-bold transition-all duration-300"
+                  [ngClass]="item.isLocked ? 'text-rose-600 hover:bg-rose-50' : (isActiveRoute(item.route) ? 'bg-slate-900 text-white shadow-[0_8px_20px_rgba(15,23,42,0.15)]' : 'text-slate-500 hover:bg-white hover:text-slate-900 hover:shadow-sm')"
+                >
+                  <span class="top-nav-icon transition-transform group-hover:scale-110" [innerHTML]="topNavIcon(item.icon)"></span>
+                  <span class="truncate">{{ item.label }}</span>
+                  @if (isActiveRoute(item.route)) {
+                    <span class="absolute -bottom-1 left-1/2 h-1 w-4 -translate-x-1/2 rounded-full bg-slate-900/20 lg:hidden"></span>
+                  }
+                </button>
+              }
+            </div>
+
+            <!-- Right Edge Fade & Arrow -->
+            <div 
+              class="absolute right-0 z-20 flex h-full items-center bg-gradient-to-l from-slate-50 via-slate-50/80 to-transparent pl-8 transition-opacity duration-300 pointer-events-none"
+              [class.opacity-0]="!canScrollRight()"
+              [class.opacity-100]="canScrollRight()"
+            >
+              <button 
+                (click)="scrollNav(240)"
+                class="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-lg shadow-slate-200/50 backdrop-blur-md transition hover:bg-slate-900 hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Scroll right"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Section: Actions -->
+        <div class="flex shrink-0 items-center gap-2 md:gap-2.5">
+          <!-- Dynamic Primary Action -->
+          @if (layoutService.primaryAction(); as action) {
+            @if (action.isVisible) {
+              <button
+                (click)="action.onClick()"
+                class="hidden md:inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                @if (action.icon) { <span [innerHTML]="action.icon" class="flex h-4 w-4"></span> }
+                {{ action.label }}
+              </button>
+            }
+          }
+
+          <div class="relative flex items-center">
+            <button
+              type="button"
+              (click)="openSearch($event)"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
+              aria-label="Open search"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            </button>
+          </div>
+
+          <div class="relative hidden xl:block">
+            <button
+              type="button" 
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-900 hover:bg-slate-50"
+              [class.bg-slate-900]="showAddonsPanel()"
+              [class.text-white]="showAddonsPanel()"
+              (click)="toggleAddonsPanel()"
+              aria-label="Open add-ons"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            </button>
+
           @if (showAddonsPanel()) {
-            <div class="absolute right-0 top-full mt-3 w-[min(62rem,calc(100vw-4rem))] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl z-[70]">
-              <div class="grid lg:grid-cols-[1.2fr_0.8fr]">
-                <div class="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 lg:border-b-0 lg:border-r">
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="max-w-xl">
-                      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Module Launcher</p>
-                      <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Open add-ons, see suggestions, and learn before buying</h3>
+            <div class="fixed left-1/2 top-3 z-[70] max-h-[calc(100vh-1.5rem)] w-[calc(100vw-1rem)] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:top-[5.25rem] sm:max-h-[calc(100vh-6.5rem)] sm:w-[min(62rem,calc(100vw-1.5rem))] sm:rounded-2xl">
+              <div class="max-h-[calc(100vh-1.5rem)] overflow-y-auto overscroll-contain sm:max-h-[calc(100vh-6.5rem)]">
+                <div class="grid lg:grid-cols-[1.2fr_0.8fr]">
+                  <div class="border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] p-5 lg:border-b-0 lg:border-r">
+                    <div class="sticky top-0 z-10 -mx-5 -mt-5 border-b border-slate-100 bg-[linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 pt-5 pb-4">
+                      <div class="flex items-start justify-between gap-4">
+                      <div class="max-w-xl">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Module Launcher</p>
+                        <h3 class="mt-2 text-2xl font-black tracking-tight text-slate-900">Open add-ons, see suggestions, and learn before buying</h3>
                       <p class="mt-2 text-sm leading-6 text-slate-500">
                         This launcher keeps active modules, premium suggestions, and guided walkthroughs together so users do not have to jump across many screens.
                       </p>
                     </div>
-                    <button type="button" (click)="closeAll()" class="rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50">Close</button>
-                  </div>
+                      <button type="button" (click)="closeAll()" class="rounded-full border border-slate-200 px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50">Close</button>
+                      </div>
 
-                  <div class="mt-5 grid gap-3 sm:grid-cols-3">
-                    <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active</p>
-                      <p class="mt-2 text-2xl font-black text-emerald-900">{{ activeAddonCount() }}</p>
-                    </div>
-                    <div class="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Suggested</p>
-                      <p class="mt-2 text-2xl font-black text-amber-900">{{ lockedAddonCount() }}</p>
-                    </div>
-                    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Guides</p>
-                      <p class="mt-2 text-2xl font-black text-slate-900">{{ moduleGuides().length }}</p>
-                    </div>
-                  </div>
+                      <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                        <div class="rounded-md border border-emerald-100 bg-emerald-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active</p>
+                          <p class="mt-2 text-2xl font-black text-emerald-900">{{ activeAddonCount() }}</p>
+                        </div>
+                        <div class="rounded-md border border-amber-100 bg-amber-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Suggested</p>
+                          <p class="mt-2 text-2xl font-black text-amber-900">{{ lockedAddonCount() }}</p>
+                        </div>
+                        <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Guides</p>
+                          <p class="mt-2 text-2xl font-black text-slate-900">{{ moduleGuides().length }}</p>
+                        </div>
+                      </div>
 
-                  <div class="mt-5 flex flex-wrap items-center gap-3">
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('all')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('active')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      Active
-                    </button>
-                    <button
-                      type="button"
-                      (click)="addonPanelMode.set('learn')"
-                      class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
-                      [ngClass]="addonPanelMode() === 'learn' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
-                    >
-                      Learn & Buy
-                    </button>
-                    <div class="flex flex-wrap gap-2 lg:ml-auto">
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">ESS</span>
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">HR Ops</span>
-                      <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Billing Ready</span>
+                      <div class="mt-5 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('all')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'all' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('active')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'active' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          Active
+                        </button>
+                        <button
+                          type="button"
+                          (click)="addonPanelMode.set('learn')"
+                          class="rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+                          [ngClass]="addonPanelMode() === 'learn' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'"
+                        >
+                          Learn & Buy
+                        </button>
+                        <div class="flex flex-wrap gap-2 lg:ml-auto">
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">ESS</span>
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">HR Ops</span>
+                          <span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Billing Ready</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-
-                  <div class="mt-6 space-y-4">
+  
+                    <div class="mt-6 space-y-4">
                     <div>
                       <div class="flex items-center justify-between gap-3">
                         <h4 class="text-sm font-black uppercase tracking-[0.18em] text-slate-500">
@@ -282,7 +315,7 @@ type GuidePreview = {
                       </div>
                       <div class="mt-3 grid gap-3 md:grid-cols-2">
                         @for (addon of featuredLauncherAddons(); track addon.id) {
-                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm">
+                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-md border border-slate-200 bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-sm">
                             <div class="flex items-center justify-between gap-3">
                               <span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em]" [ngClass]="addon.accent">{{ addon.isActive ? 'Live' : 'Premium' }}</span>
                               <span class="text-xs font-bold text-slate-400">{{ addon.route }}</span>
@@ -302,7 +335,7 @@ type GuidePreview = {
                       <h4 class="text-sm font-black uppercase tracking-[0.18em] text-slate-500">Suggested Upgrades</h4>
                       <div class="mt-3 grid gap-3 md:grid-cols-2">
                         @for (addon of lockedAddons(); track addon.id) {
-                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-2xl border border-amber-200 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm">
+                          <button type="button" (click)="openAddonLauncherItem(addon)" class="rounded-md border border-amber-200 bg-[linear-gradient(180deg,#fff7ed_0%,#ffffff_100%)] px-4 py-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm">
                             <div class="flex items-center justify-between gap-3">
                               <span class="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">Upgrade</span>
                               <span class="text-xs font-bold text-amber-600">Billing</span>
@@ -331,7 +364,7 @@ type GuidePreview = {
 
                   <div class="mt-5 space-y-3">
                     @for (guide of moduleGuides(); track guide.key) {
-                      <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <article class="rounded-md border border-slate-200 bg-white p-4 shadow-sm">
                         <div class="flex items-start justify-between gap-3">
                           <div>
                             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{{ guide.duration }} demo</p>
@@ -347,31 +380,28 @@ type GuidePreview = {
                               <span>{{ step }}</span>
                             </div>
                           }
-                        </div>
-                        <div class="mt-4 flex gap-2">
-                          <button type="button" (click)="watchGuideDemo(guide)" class="rounded-full bg-slate-900 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white transition hover:bg-slate-800">
-                            Watch Demo
-                          </button>
-                          <button type="button" (click)="openGuideBilling(guide)" class="rounded-full border border-slate-200 bg-white px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50">
-                            Buy Flow
-                          </button>
-                        </div>
+                                                </div>
                       </article>
                     }
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           }
         </div>
-
+        
         <button
           type="button"
-          class="hidden lg:inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition"
+          class="hidden xl:inline-flex items-center gap-2.5 rounded-md border px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.18em] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md shadow-slate-200"
           [ngClass]="billingChipTone()"
           (click)="goToSearchResult('/billing')"
+          style="font-family: 'Sora', sans-serif;"
         >
-          <span class="h-2 w-2 rounded-full" [ngClass]="billingDotTone()"></span>
+          <div class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" [ngClass]="billingDotTone()"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full" [ngClass]="billingDotTone()"></span>
+          </div>
           <span>{{ billingChipLabel() }}</span>
         </button>
 
@@ -382,7 +412,7 @@ type GuidePreview = {
         <!-- Notification Bell -->
         @if (canViewNotifications()) {
         <div class="relative">
-          <button (click)="toggleNotifications()" class="relative text-slate-500 p-2 rounded-full hover:bg-slate-100/80 hover:text-indigo-600 transition-colors border border-transparent hover:border-slate-200/50">
+          <button (click)="toggleNotifications()" class="relative flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100/80 hover:text-indigo-600">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
             @if (notifService.unreadCount() > 0) {
               <span class="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white shadow-sm">
@@ -429,7 +459,7 @@ type GuidePreview = {
         <!-- User Profile Dropdown -->
         <div class="relative">
           @if (currentUser(); as user) {
-            <div (click)="showDropdown = !showDropdown; showNotifications.set(false)" class="flex items-center gap-2 rounded-full cursor-pointer border border-slate-200/70 bg-slate-50/70 p-1 pr-2 hover:border-slate-300/80 hover:bg-white hover:shadow-sm transition-all group">
+            <div (click)="toggleProfileDropdown($event)" class="flex items-center gap-2 rounded-md cursor-pointer border border-slate-200 bg-slate-50/70 p-1 pr-2 hover:border-slate-300 hover:bg-white hover:shadow-sm transition-all group">
               <div class="w-8 h-8 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
                 @if (user.avatar) {
                   <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
@@ -446,8 +476,8 @@ type GuidePreview = {
 
           <!-- Profile Dropdown -->
           @if (showDropdown && currentUser(); as user) {
-            <div class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-xl shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
-              <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-lg">
+            <div (click)="$event.stopPropagation()" class="fixed left-2 right-2 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-3 w-auto sm:w-64 sm:max-w-64 bg-white rounded-md shadow-2xl border border-slate-100 p-2 z-[60] ring-1 ring-slate-900/5">
+              <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-md">
                 <div class="w-10 h-10 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ring-2 ring-white">
                   @if (user.avatar) {
                     <img [src]="user.avatar" class="h-full w-full object-cover">
@@ -458,27 +488,53 @@ type GuidePreview = {
                 <div class="min-w-0">
                   <p class="text-[13px] font-bold text-slate-900 truncate">{{ user.firstName }} {{ user.lastName }}</p>
                   <p class="text-[11px] font-medium text-slate-500 truncate mt-0.5">{{ user.email }}</p>
+                  <div class="mt-1.5 flex flex-wrap gap-1.5">
+                    <span class="topbar-meta-chip">{{ userRoleLabel() }}</span>
+                    @if (userOrganizationLabel()) {
+                      <span class="topbar-meta-chip topbar-meta-chip-muted">{{ userOrganizationLabel() }}</span>
+                    }
+                  </div>
                 </div>
               </div>
-              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
+              <button (click)="goToSearchResult('/profile')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-md transition-all group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>My Profile</span>
               </button>
-              @if (canAccess('/settings')) {
-                <button (click)="goToSearchResult('/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group mt-1">
+              @if (settingsEntry(); as settingsEntry) {
+                <button (click)="goToSearchResult(settingsEntry.route)" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-md transition-all group mt-1">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
-                  <span>Profile Settings</span>
-                </button>
-              }
-              @if (canAccess('/admin/settings')) {
-                <div class="my-1.5 border-t border-slate-100"></div>
-                <button (click)="goToSearchResult('/admin/settings')" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-lg transition-all group">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-400 group-hover:text-indigo-500 transition-colors"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                  <span>Admin Settings</span>
+                  <span>{{ settingsEntry.label }}</span>
                 </button>
               }
               <div class="my-1.5 border-t border-slate-100"></div>
-              <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-all group">
+              <div class="px-3 py-2.5">
+                <div class="mb-2.5 flex items-center justify-between gap-3">
+                  <span class="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">{{ languageLabel() }}</span>
+                  <span class="text-[11px] font-semibold text-slate-500">{{ currentLanguage().nativeLabel }}</span>
+                </div>
+                <div class="space-y-1">
+                  @for (language of languageOptions; track language.code) {
+                    <button
+                      type="button"
+                      (click)="switchLanguage(language)"
+                      class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors"
+                      [ngClass]="currentLanguage().code === language.code ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900'"
+                    >
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-[13px] font-semibold leading-5">{{ language.label }}</p>
+                        <p class="truncate text-[11px] leading-4" [ngClass]="currentLanguage().code === language.code ? 'text-indigo-500' : 'text-slate-400'">{{ language.nativeLabel }}</p>
+                      </div>
+                      @if (currentLanguage().code === language.code) {
+                        <span class="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-indigo-600 px-1 text-white">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 5 5L20 7"/></svg>
+                        </span>
+                      }
+                    </button>
+                  }
+                </div>
+              </div>
+              <div class="my-1.5 border-t border-slate-100"></div>
+              <button (click)="logout()" class="w-full flex items-center gap-3 px-3 py-2 text-[13px] font-bold text-rose-600 hover:bg-rose-50 rounded-md transition-all group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="group-hover:translate-x-0.5 transition-transform"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 <span>Sign Out</span>
               </button>
@@ -487,11 +543,12 @@ type GuidePreview = {
         </div>
       </div>
       </div>
+      }
     </header>
 
     <!-- Click outside overlay to close dropdowns -->
-    @if (showDropdown || showNotifications() || showSearchPanel() || showAddonsPanel()) {
-      <div (click)="closeAll()" class="fixed inset-0 z-30"></div>
+    @if (showDropdown || showNotifications() || showSearchPanel() || showAddonsPanel() || showModuleSwitcher()) {
+      <div (click)="closeAll()" class="fixed inset-x-0 bottom-0 top-[64px] md:top-[72px] z-30"></div>
     }
 
   `,
@@ -500,8 +557,9 @@ type GuidePreview = {
       .module-switcher-btn {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        padding: 7px 10px;
+        gap: 10px;
+        min-height: 40px;
+        padding: 6px 11px 6px 7px;
         border-radius: 9999px;
         border: 1px solid rgba(226, 232, 240, 0.95);
         background: rgba(255, 255, 255, 0.88);
@@ -526,6 +584,112 @@ type GuidePreview = {
 
       .module-switcher-btn svg {
         flex: 0 0 auto;
+      }
+
+      .module-switcher-icon-shell {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        flex: 0 0 auto;
+        border-radius: 9999px;
+        background: rgba(148, 163, 184, 0.12);
+      }
+
+      .module-switcher-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 3px;
+        width: 12px;
+        height: 12px;
+      }
+
+      .module-switcher-grid span {
+        width: 100%;
+        height: 100%;
+        border-radius: 9999px;
+        background: currentColor;
+        opacity: 0.82;
+      }
+
+      .module-switcher-label {
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+
+      .module-switcher-value {
+        max-width: 9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        color: inherit;
+      }
+
+      .module-switcher-chevron {
+        opacity: 0.68;
+      }
+
+      .module-switcher-btn-active .module-switcher-icon-shell {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .module-switcher-btn-active .module-switcher-label {
+        color: rgba(226, 232, 240, 0.72);
+      }
+
+      .module-switcher-panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 16px 18px 14px;
+        border-bottom: 1px solid rgba(241, 245, 249, 0.95);
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(255, 255, 255, 1) 100%);
+      }
+
+      .module-switcher-panel-copy {
+        min-width: 0;
+      }
+
+      .module-switcher-panel-kicker {
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+
+      .module-switcher-panel-title {
+        margin-top: 6px;
+        max-width: 24rem;
+        font-size: 15px;
+        line-height: 1.35;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #0f172a;
+      }
+
+      .module-switcher-panel-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 12px;
+        border-radius: 9999px;
+        background: rgba(15, 23, 42, 0.06);
+        color: #334155;
+        font-size: 10px;
+        font-weight: 900;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .module-switcher-dot {
@@ -569,12 +733,170 @@ type GuidePreview = {
         background: rgba(148, 163, 184, 0.12);
         color: #64748b;
       }
+
+      .search-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.9);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      }
+
+      .search-icon-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+      }
+
+      .topbar-icon-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.92);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .topbar-icon-action:hover,
+      .topbar-icon-action-active {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+        background: rgba(248, 250, 252, 0.98);
+        color: #0f172a;
+      }
+
+      .top-nav-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+      }
+
+      .top-nav-tab-active {
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        color: #0f172a;
+        box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
+      }
+
+      .top-nav-tab-active .top-nav-icon {
+        color: #4f46e5;
+      }
+
+      .topbar-back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.9);
+        color: #475569;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      }
+
+      .topbar-back-btn:hover {
+        transform: translateY(-1px);
+        border-color: rgba(148, 163, 184, 0.8);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.45);
+      }
+
+      .search-inline-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: min(22rem, 30vw);
+        min-height: 40px;
+        padding: 0 10px 0 12px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 16px 28px -24px rgba(15, 23, 42, 0.28);
+      }
+
+      .search-inline-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 9999px;
+        color: #64748b;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .search-inline-close:hover {
+        background: rgba(241, 245, 249, 0.9);
+        color: #0f172a;
+      }
+
+      .search-expanded-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 46px;
+        padding: 0 14px;
+        border-radius: 9999px;
+        border: 1px solid rgba(226, 232, 240, 0.95);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.28);
+      }
+
+      .search-expanded-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 9999px;
+        color: #64748b;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .search-expanded-close:hover {
+        background: rgba(241, 245, 249, 0.95);
+        color: #0f172a;
+      }
+
+      .search-expanded-results {
+        position: absolute;
+        top: calc(100% + 12px);
+        left: 0;
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(231, 235, 239, 1);
+        background: #ffffff;
+        box-shadow: 0 28px 48px -32px rgba(15, 23, 42, 0.32);
+        overflow: hidden;
+        z-index: 70;
+      }
+
+      .app-page-title {
+        white-space: nowrap;
+      }
+
     `,
   ]
 })
 export class TopbarComponent implements OnInit {
+  private sanitizer = inject(DomSanitizer);
   private store = inject(Store);
   private router = inject(Router);
+  private location = inject(Location);
   private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
   private projectService = inject(ProjectService);
@@ -582,6 +904,8 @@ export class TopbarComponent implements OnInit {
   private workspaceCatalog = inject(WorkspaceCatalogService);
   private organizationService = inject(OrganizationService);
   private subscriptionService = inject(SubscriptionService);
+  private languageService = inject(LanguageService);
+  private destroyRef = inject(DestroyRef);
   layoutService = inject(LayoutService);
   notifService = inject(NotificationService);
 
@@ -596,12 +920,22 @@ export class TopbarComponent implements OnInit {
   searchResults = signal<SearchResult[]>([]);
   loggingOut = signal(false);
   currentUser = signal<User | null>(null);
+  readonly currentLanguage = this.languageService.currentLanguage;
+  readonly languageOptions = this.languageService.languages;
   private currentPath = signal('/');
+  private readonly routeHistoryStorageKey = 'hrms_topbar_route_history';
+  private readonly previousRouteStorageKey = 'hrms_topbar_previous_route';
   private employeeCache = signal<User[]>([]);
   private projectCache = signal<Project[]>([]);
   private designations = signal<Designation[]>([]);
+  private searchDataLoaded = signal(false);
+  private addonLauncherLoaded = signal(false);
+  private notificationsLoaded = signal(false);
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   userDesignation = signal<string>('');
+  orgLogo = signal<string>('');
+  orgName = signal<string>('');
+  showUserDropdown = false;
   userRoleLabel = signal<string>('Employee');
   addonLauncherItems = signal<AddonLauncherItem[]>([]);
   moduleGuides = signal<GuidePreview[]>([
@@ -643,21 +977,7 @@ export class TopbarComponent implements OnInit {
     },
   ]);
   readonly selfServiceTabs = computed<ModuleTab[]>(() => {
-    return this.workspaceCatalog
-      .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), 'self-service', {
-        includeLocked: true,
-      })
-      .map((module) => ({
-        label: module.label,
-        route: module.route,
-        accent: module.accent ?? 'bg-slate-400',
-        isLocked: module.isLocked,
-        description: module.description,
-        lockReason: module.lockReason,
-      }));
-  });
-  readonly adminTabs = computed<ModuleTab[]>(() => {
-    return ['people', 'system'].flatMap((sectionId) =>
+    return ['dashboard', 'self-service', 'attendance', 'leave'].flatMap((sectionId) =>
       this.workspaceCatalog
         .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
           includeLocked: true,
@@ -672,6 +992,36 @@ export class TopbarComponent implements OnInit {
         })),
     );
   });
+  readonly adminTabs = computed<ModuleTab[]>(() => {
+    return ['employees', 'settings', 'addons', 'visitormanagement', 'organization', 'roles-permissions'].flatMap((sectionId) =>
+      this.workspaceCatalog
+        .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
+          includeLocked: true,
+        })
+        .map((module) => ({
+          label: module.label,
+          route: module.route,
+          accent: module.accent ?? 'bg-slate-400',
+          isLocked: module.isLocked,
+          description: module.description,
+          lockReason: module.lockReason,
+        })),
+    );
+  });
+  readonly topNavigationTabs = computed<TopNavItem[]>(() => {
+    const candidates = [
+      this.makeTopNavItem('Self Service', '/dashboard', 'dashboard'),
+      this.makeTopNavItem('Employees', '/employees', 'employees'),
+      this.makeTopNavItem('Attendance', this.attendanceTopNavRoute(), 'attendance'),
+      this.makeTopNavItem('Kiosk', '/admin/kiosks', 'kiosk'),
+      this.makeTopNavItem('Leave', this.resolveTopNavRoute(['/leaves?view=request', '/leaves', '/admin/approvals/leave']), 'leave'),
+      this.makeTopNavItem('Payroll', '/payroll', 'payroll'),
+      this.makeTopNavItem('Timesheet', '/timesheets', 'timesheets'),
+      this.makeTopNavItem('Reports', '/reports', 'reports'),
+    ];
+
+    return candidates.filter((item): item is TopNavItem => !!item);
+  });
   readonly activeAddons = computed(() => this.addonLauncherItems().filter((item) => item.isActive).slice(0, 4));
   readonly lockedAddons = computed(() => this.addonLauncherItems().filter((item) => !item.isActive).slice(0, 4));
   readonly featuredLauncherAddons = computed(() => {
@@ -685,62 +1035,63 @@ export class TopbarComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.currentPath.set(this.router.url || '/');
+    const initialRoute = this.router.url || '/';
+    this.currentPath.set(initialRoute);
+    this.seedRouteHistory(initialRoute);
     this.currentUser.set(this.authService.getStoredUser());
     this.permissionService.syncForUser(this.currentUser());
-    this.updateRoleLabel(this.currentUser()?.roleId);
+    this.updateRoleLabel(this.currentUser());
     
-    this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd)).subscribe((event) => {
-      this.currentPath.set(event.urlAfterRedirects || event.url || '/');
+    this.router.events.pipe(
+      takeUntilDestroyed(this.destroyRef),
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+    ).subscribe((event) => {
+      const nextRoute = event.urlAfterRedirects || event.url || '/';
+      const previousRoute = this.currentPath();
+      if (previousRoute && previousRoute !== nextRoute) {
+        this.writePreviousRoute(previousRoute);
+      }
+      this.currentPath.set(nextRoute);
+      this.pushRouteToHistory(nextRoute);
       this.closeAll();
     });
 
     // Subscribe to user$ observable to get the latest user data reactively from the store
-    this.user$.subscribe(user => {
+    this.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(user => {
       if (user) {
         this.currentUser.set(user);
         this.permissionService.syncForUser(user);
-        this.updateRoleLabel(user.roleId);
+        this.updateRoleLabel(user);
       }
     });
 
-    this.notifService.getNotifications().subscribe();
-    this.loadSearchData();
     this.searchResults.set(this.getVisibleQuickLinks().slice(0, 6));
     this.loadUserDesignation();
-    this.loadAddonLauncher();
-    this.subscriptionService.getStatus().subscribe({
+    this.subscriptionService.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
     });
+
+    this.organizationService.getOrganization().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((org) => {
+      if (org) {
+        this.orgLogo.set(org.logo || '');
+        this.orgName.set(org.name || '');
+      }
+    });
   }
 
-  private updateRoleLabel(roleId?: number) {
-    switch (roleId) {
-      case 1: 
-        this.userRoleLabel.set('Super Admin');
-        break;
-      case 2: 
-        this.userRoleLabel.set('Admin');
-        break;
-      case 3: 
-        this.userRoleLabel.set('HR Manager');
-        break;
-      case 4:
-        this.userRoleLabel.set('Manager');
-        break;
-      case 5:
-        this.userRoleLabel.set('Employee');
-        break;
-      default: 
-        this.userRoleLabel.set('Employee');
-    }
+  private resolveRoleLabel(user?: User | null): string {
+    return this.permissionService.getRoleDisplayName(user);
+  }
+
+  private updateRoleLabel(user?: User | null) {
+    this.userRoleLabel.set(this.resolveRoleLabel(user));
   }
 
   private loadUserDesignation() {
     const user = this.currentUser() ?? this.authService.getStoredUser();
     if (user?.designationId) {
-      this.organizationService.getDesignations().subscribe({
+      this.organizationService.getDesignations().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
         next: (designations) => {
           const designation = designations.find(d => d.id === user.designationId);
           if (designation) {
@@ -768,6 +1119,8 @@ export class TopbarComponent implements OnInit {
   }
 
   private loadSearchData() {
+    if (this.searchDataLoaded()) return;
+
     const canSearchEmployees = this.permissionService.hasPermission(this.currentUser(), 'search.employees');
     const canSearchProjects = this.permissionService.hasPermission(this.currentUser(), 'search.projects');
 
@@ -778,22 +1131,33 @@ export class TopbarComponent implements OnInit {
       projects: canSearchProjects
         ? this.projectService.getProjects().pipe(catchError(() => of([] as Project[])))
         : of([] as Project[])
-    }).subscribe(({ employees, projects }) => {
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(({ employees, projects }) => {
       this.employeeCache.set(employees);
       this.projectCache.set(projects);
+      this.searchDataLoaded.set(true);
     });
   }
 
-  openSearch() {
-    if (!this.canUseSearch()) return;
+  openSearch(event?: Event) {
+    event?.stopPropagation();
+    this.loadSearchData();
     this.showDropdown = false;
     this.showNotifications.set(false);
     this.showModuleSwitcher.set(false);
     this.showAddonsPanel.set(false);
     this.showSearchPanel.set(true);
     if (!this.searchQuery().trim()) {
-      this.searchResults.set(this.getVisibleQuickLinks().slice(0, 8));
+      this.searchResults.set(this.getInitialSearchResults());
     }
+  }
+
+  toggleProfileDropdown(event?: Event) {
+    event?.stopPropagation();
+    this.showNotifications.set(false);
+    this.showSearchPanel.set(false);
+    this.showModuleSwitcher.set(false);
+    this.showAddonsPanel.set(false);
+    this.showDropdown = !this.showDropdown;
   }
 
   onSearchInput(value: string) {
@@ -802,7 +1166,7 @@ export class TopbarComponent implements OnInit {
     const query = value.trim().toLowerCase();
     const visibleQuickLinks = this.getVisibleQuickLinks();
     if (!query) {
-      this.searchResults.set(visibleQuickLinks.slice(0, 8));
+      this.searchResults.set(this.getInitialSearchResults());
       return;
     }
 
@@ -841,7 +1205,48 @@ export class TopbarComponent implements OnInit {
 
   goToSearchResult(route: string) {
     this.closeAll();
+    if (!this.canAccess(route)) {
+      this.router.navigateByUrl('/dashboard');
+      return;
+    }
     this.router.navigateByUrl(route);
+  }
+
+  goBack() {
+    this.closeAll();
+    const currentRoute = this.currentPath();
+    const routeHistory = this.readRouteHistory();
+    const canUseBrowserBack = window.history.length > 1 || routeHistory.length > 1;
+
+    if (canUseBrowserBack) {
+      this.location.back();
+
+      setTimeout(() => {
+        if (this.currentPath() === currentRoute) {
+          const fallbackHistory = this.readRouteHistory();
+          if (fallbackHistory.length > 1) {
+            fallbackHistory.pop();
+            const previousRoute = fallbackHistory[fallbackHistory.length - 1];
+            this.writeRouteHistory(fallbackHistory);
+            if (previousRoute && previousRoute !== currentRoute) {
+              this.router.navigateByUrl(previousRoute);
+              return;
+            }
+          }
+
+          const fallbackRoute = this.getFallbackBackRoute();
+          if (fallbackRoute !== currentRoute) {
+            this.router.navigateByUrl(fallbackRoute);
+          }
+        }
+      }, 120);
+      return;
+    }
+
+    const fallbackRoute = this.getFallbackBackRoute();
+    if (fallbackRoute !== currentRoute) {
+      this.router.navigateByUrl(fallbackRoute);
+    }
   }
 
   openLockedModule(module: ModuleTab) {
@@ -849,7 +1254,15 @@ export class TopbarComponent implements OnInit {
     this.router.navigateByUrl('/billing');
   }
 
+  openLockedTopNav(item: TopNavItem) {
+    this.closeAll();
+    this.router.navigateByUrl('/billing');
+  }
+
   toggleAddonsPanel() {
+    if (!this.showAddonsPanel()) {
+      this.loadAddonLauncher();
+    }
     this.showSearchPanel.set(false);
     this.showDropdown = false;
     this.showNotifications.set(false);
@@ -868,6 +1281,12 @@ export class TopbarComponent implements OnInit {
 
   toggleNotifications() {
     if (!this.canViewNotifications()) return;
+    if (!this.showNotifications() && !this.notificationsLoaded()) {
+      this.notifService.getNotifications().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: () => this.notificationsLoaded.set(true),
+        error: () => this.notificationsLoaded.set(false),
+      });
+    }
     this.showSearchPanel.set(false);
     this.showDropdown = false;
     this.showModuleSwitcher.set(false);
@@ -876,11 +1295,11 @@ export class TopbarComponent implements OnInit {
   }
 
   markRead(id: number) {
-    this.notifService.markAsRead(id).subscribe();
+    this.notifService.markAsRead(id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   markAllRead() {
-    this.notifService.markAllAsRead().subscribe();
+    this.notifService.markAllAsRead().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
   }
 
   closeAll() {
@@ -942,7 +1361,22 @@ export class TopbarComponent implements OnInit {
 
   canAccess(route: string): boolean {
     const user = this.currentUser() ?? this.authService.getStoredUser();
-    return this.permissionService.canAccessRoute(user, route);
+    const targetRoute = this.normalizeRouteForAccess(route);
+    const menuAllowsRoute = this.workspaceCatalog
+      .getAllViews(user, { includeLocked: true })
+      .some((item) => {
+        const itemRoute = this.normalizeRouteForAccess(item.route);
+        const matches = targetRoute === itemRoute || targetRoute.startsWith(`${itemRoute}/`);
+        return matches && !item.isLocked && item.isAccessible;
+      });
+
+    return menuAllowsRoute || this.permissionService.canAccessRoute(user, route);
+  }
+
+  private normalizeRouteForAccess(route: string): string {
+    const cleanRoute = (route || '').split('?')[0].split('#')[0].trim();
+    if (!cleanRoute) return '';
+    return cleanRoute === '/' ? '/' : cleanRoute.replace(/\/+$/, '');
   }
 
   canViewNotifications(): boolean {
@@ -950,22 +1384,107 @@ export class TopbarComponent implements OnInit {
     return this.permissionService.hasPermission(user, 'notifications.view');
   }
 
+  languageLabel(): string {
+    return this.languageService.t('common.language');
+  }
+
+  switchLanguage(language: AppLanguage): void {
+    this.languageService.setLanguage(language.code);
+  }
+
+  settingsEntry(): { route: string; label: string } | null {
+    if (this.canAccess('/settings')) {
+      return { route: '/settings', label: this.languageService.t('common.settings') };
+    }
+
+    const currentUser = this.currentUser() ?? this.authService.getStoredUser();
+
+    if (this.permissionService.isAdminUser(currentUser)) {
+      if (this.canAccess('/admin/roles')) {
+        return { route: '/admin/roles', label: this.languageService.t('common.settings') };
+      }
+      if (this.canAccess('/admin/documents')) {
+        return { route: '/admin/documents', label: this.languageService.t('common.settings') };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: this.languageService.t('common.settings') };
+      }
+    }
+
+    if (this.permissionService.isHrManagerUser(currentUser)) {
+      if (this.canAccess('/admin/documents')) {
+        return { route: '/admin/documents', label: 'HR Controls' };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: 'HR Controls' };
+      }
+      if (this.canAccess('/admin/regularization')) {
+        return { route: '/admin/regularization', label: 'HR Controls' };
+      }
+    }
+
+    if (this.permissionService.isManagerialUser(currentUser) && !this.permissionService.isAdminUser(currentUser)) {
+      if (this.canAccess('/admin/team-attendance')) {
+        return { route: '/admin/team-attendance', label: this.languageService.t('common.teamControls') };
+      }
+      if (this.canAccess('/admin/regularization')) {
+        return { route: '/admin/regularization', label: this.languageService.t('common.teamControls') };
+      }
+      if (this.canAccess('/admin/announcements')) {
+        return { route: '/admin/announcements', label: this.languageService.t('common.teamControls') };
+      }
+    }
+
+    if (this.canAccess('/admin/settings')) {
+      return { route: '/admin/settings', label: this.languageService.t('common.settings') };
+    }
+
+    return null;
+  }
+
   canUseSearch(): boolean {
-    return this.getVisibleQuickLinks().length > 0;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return (
+      this.getVisibleQuickLinks().length > 0 ||
+      this.permissionService.hasPermission(user, 'search.employees') ||
+      this.permissionService.hasPermission(user, 'search.projects')
+    );
   }
 
   activeModuleAccent(): string {
-    const currentRoute = this.currentPath();
+    const currentRoute = this.currentPath().split('?')[0];
     const allTabs = [...this.selfServiceTabs(), ...this.adminTabs()];
-    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route))
+    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route.split('?')[0]))
       ?.accent ?? 'bg-slate-400';
   }
 
   activeWorkspaceLabel(): string {
-    const currentRoute = this.currentPath();
+    const currentRoute = this.currentPath().split('?')[0];
     const allTabs = [...this.selfServiceTabs(), ...this.adminTabs()];
-    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route))
+    return allTabs.find((module) => this.isActiveRoute(module.route) || currentRoute.startsWith(module.route.split('?')[0]))
       ?.label ?? 'Workspace';
+  }
+
+  quickActionsSummary(): string {
+    const path = this.currentPath();
+    if (path.startsWith('/employees') || path.startsWith('/admin')) return 'People & controls';
+    if (path.startsWith('/attendance') || path.startsWith('/leaves') || path.startsWith('/self-service')) return 'Shift & ESS tools';
+    if (path.startsWith('/reports') || path.startsWith('/projects') || path.startsWith('/expenses')) return 'Daily work tools';
+    return 'Tools & controls';
+  }
+
+  quickActionsBadge(): string {
+    const path = this.currentPath();
+    if (path.startsWith('/employees')) return 'People Ops';
+    if (path.startsWith('/attendance') || path.startsWith('/leaves') || path.startsWith('/self-service')) return 'ESS';
+    if (path.startsWith('/admin') || path.startsWith('/settings')) return 'Admin';
+    if (path.startsWith('/reports') || path.startsWith('/projects') || path.startsWith('/expenses')) return 'Workspace';
+    return 'Quick Access';
+  }
+
+  showBackButton(): boolean {
+    const path = this.currentPath();
+    return !(path === '/' || path === '/dashboard' || path === '/self-service');
   }
 
   currentDateLabel(): string {
@@ -976,34 +1495,34 @@ export class TopbarComponent implements OnInit {
     });
   }
 
+  private getFallbackBackRoute(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    if (this.permissionService.isAdminUser(user) || this.permissionService.isManagerialUser(user)) {
+      return '/dashboard';
+    }
+    return '/self-service';
+  }
+
   billingChipLabel(): string {
     const status = this.subscriptionStatus();
-    if (!status) return 'Billing';
-    if (status.organization.readOnlyMode) return 'Billing Locked';
-    if (status.organization.isTrialActive) {
-      const days = Math.max(0, status.trialDaysRemaining ?? 0);
-      return `${days}d Trial Left`;
-    }
-    return status.plan?.name ? `${status.plan.name} Active` : 'Billing Active';
+    if (status?.organization.readOnlyMode) return 'Overdue';
+    if (status?.organization.isTrialActive) return 'Trial';
+    return 'Pro';
   }
 
-  billingChipTone(): string {
+  billingChipTone = computed(() => {
     const status = this.subscriptionStatus();
-    if (status?.organization.readOnlyMode) {
-      return 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100';
-    }
-    if (status?.organization.isTrialActive) {
-      return 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100';
-    }
-    return 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100';
-  }
+    if (status?.organization.readOnlyMode) return 'border-rose-200 bg-rose-50 text-rose-700';
+    if (status?.organization.isTrialActive) return 'border-amber-200 bg-amber-50 text-amber-700';
+    return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  });
 
-  billingDotTone(): string {
+  billingDotTone = computed(() => {
     const status = this.subscriptionStatus();
     if (status?.organization.readOnlyMode) return 'bg-rose-500';
     if (status?.organization.isTrialActive) return 'bg-amber-500';
     return 'bg-emerald-500';
-  }
+  });
 
   userInitial(): string {
     const user = this.currentUser() ?? this.authService.getStoredUser();
@@ -1011,13 +1530,21 @@ export class TopbarComponent implements OnInit {
   }
 
   headerKicker(): string {
-    if (this.currentPath() === '/' || this.currentPath() === '/dashboard' || this.currentPath() === '/self-service') {
-      const roleId = this.getRoleId();
-      if (roleId === 1 || roleId === 2) return 'Operations Command Center';
-      if (roleId === 3 || roleId === 4) return 'Team Workspace';
-      return 'Self-Service Workspace';
+    const path = this.currentPath();
+    if (path === '/' || path === '/dashboard' || path === '/self-service') {
+      const user = this.currentUser() ?? this.authService.getStoredUser();
+      if (this.permissionService.isAdminUser(user)) return 'Operations Control';
+      if (this.permissionService.isHrManagerUser(user)) return 'HR Operations Hub';
+      if (this.permissionService.isManagerialUser(user)) return 'Team Workspace';
+      return 'Employee Workspace';
     }
-    return 'HR Workspace';
+    if (path.startsWith('/employees')) return 'Workforce Directory';
+    if (path.startsWith('/attendance')) return 'Time & Attendance';
+    if (path.startsWith('/leaves')) return 'Absence Management';
+    if (path.startsWith('/reports')) return 'Analytics & Insights';
+    if (path.startsWith('/payroll')) return 'Compensation';
+    if (path.startsWith('/settings') || path.startsWith('/admin')) return 'System Controls';
+    return 'Organization Workspace';
   }
 
   headerTitle(): string {
@@ -1034,17 +1561,20 @@ export class TopbarComponent implements OnInit {
     if (path.startsWith('/expenses')) return 'Expense Claims';
     if (path.startsWith('/timesheets')) return 'Timesheets';
     if (path.startsWith('/settings') || path.startsWith('/admin')) return 'Administration';
-    return 'HRMS Workspace';
+    return 'HRNexus Workspace';
   }
 
   headerSubtitle(): string {
     const path = this.currentPath();
     if (path === '/' || path === '/dashboard' || path === '/self-service') {
-      const roleId = this.getRoleId();
-      if (roleId === 1 || roleId === 2) {
+      const user = this.currentUser() ?? this.authService.getStoredUser();
+      if (this.permissionService.isAdminUser(user)) {
           return 'Monitor workforce operations, approvals, compliance, and system controls from one workspace.';
       }
-      if (roleId === 3 || roleId === 4) {
+      if (this.permissionService.isHrManagerUser(user)) {
+          return 'Handle employee operations, attendance issues, approvals, and daily HR workflows from one place.';
+      }
+      if (this.permissionService.isManagerialUser(user)) {
           return 'Track team attendance, review requests, and keep daily operations close at hand.';
       }
         return 'Access attendance, leave, profile, and daily self-service tools from one dashboard.';
@@ -1057,31 +1587,13 @@ export class TopbarComponent implements OnInit {
     return 'Everything important stays organized, fast, and easier to operate.';
   }
 
+  userOrganizationLabel(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return user?.organizationName || user?.companyName || '';
+  }
+
   roleLabel(): string {
-    // First try to get from observable, then fallback to stored user
-    let roleId: number | undefined;
-    
-    // Subscribe synchronously to get current value
-    this.user$.subscribe(user => {
-      if (user) {
-        roleId = user.roleId;
-      }
-    }).unsubscribe();
-    
-    // Fallback to stored user if not found in store
-    if (!roleId) {
-      const storedUser = this.authService.getStoredUser();
-      roleId = storedUser?.roleId;
-    }
-    
-    switch (roleId) {
-      case 1: return 'Super Admin';
-      case 2: return 'Admin';
-      case 3: return 'HR Manager';
-      case 4: return 'Manager';
-      case 5: return 'Employee';
-      default: return 'Employee';
-    }
+    return this.resolveRoleLabel(this.currentUser() ?? this.authService.getStoredUser());
   }
 
   private getRoleId(): number | undefined {
@@ -1089,14 +1601,18 @@ export class TopbarComponent implements OnInit {
   }
 
   isActiveRoute(route: string): boolean {
-    const currentPath = this.currentPath();
-    if (route === '/dashboard') {
-      return currentPath === '/' || currentPath === '/dashboard' || currentPath === '/self-service';
+    const currentPath = this.currentPath().split('?')[0].replace(/\/+$/, '');
+    const targetPath = route.split('?')[0].replace(/\/+$/, '');
+    
+    if (targetPath === '/dashboard' || targetPath === '/self-service' || targetPath === '') {
+      return currentPath === '' || currentPath === '/' || currentPath === '/dashboard' || currentPath === '/self-service';
     }
-    if (route === '/settings') {
+    
+    if (targetPath === '/settings' || targetPath === '/admin') {
       return currentPath.startsWith('/settings') || currentPath.startsWith('/admin');
     }
-    return currentPath === route || currentPath.startsWith(`${route}/`);
+    
+    return currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
   }
 
   private getVisibleQuickLinks(): SearchResult[] {
@@ -1111,9 +1627,157 @@ export class TopbarComponent implements OnInit {
       }));
   }
 
+  topNavIcon(icon: string): SafeHtml {
+    const icons: Record<string, string> = {
+      dashboard:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+      employees:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      attendance:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+      kiosk:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 6h6"/><path d="M8 11h8"/><path d="M8 15h5"/><circle cx="17" cy="15" r="1"/></svg>',
+      leave:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      payroll:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      timesheets:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      reports:
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>',
+    };
+
+    return this.sanitizer.bypassSecurityTrustHtml(
+      icons[icon] ?? icons['dashboard'],
+    );
+  }
+
+  private getInitialSearchResults(): SearchResult[] {
+    const quickLinks = this.getVisibleQuickLinks().slice(0, 8);
+
+    if (quickLinks.length > 0) {
+      return quickLinks;
+    }
+
+    const employeeHints = this.employeeCache()
+      .slice(0, 4)
+      .map((emp) => ({
+        title: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.email,
+        subtitle: emp.email,
+        route: '/employees',
+        category: 'Employee' as const,
+        tone: 'bg-blue-50 text-blue-700',
+      }));
+
+    const projectHints = this.projectCache()
+      .slice(0, 4)
+      .map((project) => ({
+        title: project.name,
+        subtitle: project.description || 'Project',
+        route: '/projects',
+        category: 'Project' as const,
+        tone: 'bg-purple-50 text-purple-700',
+      }));
+
+    return [...employeeHints, ...projectHints].slice(0, 8);
+  }
+
+  private makeTopNavItem(
+    label: string,
+    route: string | null,
+    icon: string,
+  ): TopNavItem | null {
+    if (!route || !this.canAccess(route)) {
+      return null;
+    }
+
+    return {
+      label,
+      route,
+      icon,
+      isLocked: false,
+      lockReason: null,
+    };
+  }
+
+  private resolveTopNavRoute(candidates: string[]): string | null {
+    return candidates.find((route) => this.canAccess(route)) ?? null;
+  }
+
+  private attendanceTopNavRoute(): string | null {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    const managerialCandidates = ['/admin/attendance/register', '/admin/attendance', '/attendance', '/self-service/attendance'];
+    const selfCandidates = ['/self-service/attendance', '/attendance', '/admin/attendance'];
+
+    return this.resolveTopNavRoute(
+      this.permissionService.isManagerialUser(user) ? managerialCandidates : selfCandidates,
+    );
+  }
+
+  private seedRouteHistory(initialRoute: string) {
+    const history = this.readRouteHistory();
+    if (history.length === 0) {
+      this.writeRouteHistory([initialRoute]);
+      return;
+    }
+
+    const lastRoute = history[history.length - 1];
+    if (lastRoute !== initialRoute) {
+      this.writeRouteHistory([...history, initialRoute].slice(-20));
+    }
+  }
+
+  private pushRouteToHistory(route: string) {
+    const history = this.readRouteHistory();
+    const lastRoute = history[history.length - 1];
+    if (lastRoute === route) return;
+    this.writeRouteHistory([...history, route].slice(-20));
+  }
+
+  private readRouteHistory(): string[] {
+    try {
+      const rawHistory = sessionStorage.getItem(this.routeHistoryStorageKey);
+      if (!rawHistory) return [];
+      const parsed = JSON.parse(rawHistory);
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string' && !!item) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeRouteHistory(history: string[]) {
+    try {
+      sessionStorage.setItem(this.routeHistoryStorageKey, JSON.stringify(history));
+    } catch {
+      // Ignore storage failures and fall back to router/browser behavior.
+    }
+  }
+
+  private readPreviousRoute(): string | null {
+    try {
+      return sessionStorage.getItem(this.previousRouteStorageKey);
+    } catch {
+      return null;
+    }
+  }
+
+  private writePreviousRoute(route: string) {
+    try {
+      sessionStorage.setItem(this.previousRouteStorageKey, route);
+    } catch {
+      // Ignore storage failures and fall back to other route resolution.
+    }
+  }
+
   private loadAddonLauncher() {
-    this.organizationService.getAddons().pipe(catchError(() => of([] as any[]))).subscribe((addons) => {
+    if (this.addonLauncherLoaded()) return;
+
+    this.organizationService.getAddons().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      catchError(() => of([] as any[])),
+    ).subscribe((addons) => {
       this.addonLauncherItems.set((addons || []).map((addon) => this.toAddonLauncherItem(addon)));
+      this.addonLauncherLoaded.set(true);
     });
   }
 
@@ -1141,11 +1805,22 @@ export class TopbarComponent implements OnInit {
       visitor_management: '/visit-management',
       visitormanagement: '/visit-management',
       attendance: '/attendance',
+      attendance_management: '/attendance',
+      attendancemanagement: '/attendance',
       leave: '/leaves',
       leaves: '/leaves',
+      leave_management: '/leaves',
+      leaves_management: '/leaves',
+      leavemanagement: '/leaves',
       projects: '/projects',
+      project_management: '/projects',
       expenses: '/expenses',
+      expense_management: '/expenses',
       timesheets: '/timesheets',
+      timesheet: '/timesheets',
+      timesheet_management: '/timesheets',
+      reports: '/reports',
+      reports_analytics: '/reports',
     };
 
     return routes[slug] ?? '/add-ons';
@@ -1163,9 +1838,51 @@ export class TopbarComponent implements OnInit {
     this.authService.clearAuthStorage();
     this.store.dispatch(AuthActions.logout());
     this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-    this.authService.logout(token).subscribe({
+    this.authService.logout(token).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => this.loggingOut.set(false),
       error: () => this.loggingOut.set(false)
     });
+  }
+
+  handleSidebarToggle(): void {
+    if (window.innerWidth >= 1024) {
+      this.layoutService.cycleDesktopSidebar();
+      return;
+    }
+
+    this.layoutService.toggleSidebar();
+  }
+
+  @ViewChild('navScrollContainer') navScrollContainer?: ElementRef<HTMLElement>;
+  canScrollLeft = signal<boolean>(false);
+  canScrollRight = signal<boolean>(false);
+
+  scrollNav(amount: number): void {
+    if (this.navScrollContainer) {
+      this.navScrollContainer.nativeElement.scrollBy({
+        left: amount,
+        behavior: 'smooth'
+      });
+      // Small timeout to allow the scroll to happen before updating visibility
+      setTimeout(() => this.updateScrollVisibility(), 300);
+    }
+  }
+
+  updateScrollVisibility(): void {
+    if (this.navScrollContainer) {
+      const el = this.navScrollContainer.nativeElement;
+      this.canScrollLeft.set(el.scrollLeft > 5);
+      this.canScrollRight.set(el.scrollLeft + el.offsetWidth < el.scrollWidth - 5);
+    }
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.updateScrollVisibility();
+  }
+
+  // Also call it in ngAfterViewInit or after tabs are loaded
+  ngAfterViewInit() {
+    setTimeout(() => this.updateScrollVisibility(), 500);
   }
 }

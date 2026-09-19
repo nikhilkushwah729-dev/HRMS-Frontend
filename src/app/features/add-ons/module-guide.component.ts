@@ -253,7 +253,7 @@ export class ModuleGuideComponent {
   addons = signal<any[]>([]);
 
   readonly guide = computed<GuideDefinition>(() => {
-    const slug = String(this.route.snapshot.paramMap.get('slug') || 'attendance').toLowerCase();
+    const slug = this.canonicalGuideSlug(String(this.route.snapshot.paramMap.get('slug') || 'attendance'));
     return this.guideMap[slug] || this.guideMap['attendance'];
   });
 
@@ -311,5 +311,20 @@ export class ModuleGuideComponent {
 
   private normalize(value: string): string {
     return (value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  }
+
+  private canonicalGuideSlug(value: string): string {
+    const normalized = this.normalize(value);
+    const aliases: Record<string, string> = {
+      attendancemanagement: 'attendance',
+      leavemanagement: 'leave',
+      leavesmanagement: 'leave',
+      leaves: 'leave',
+      visitormanagement: 'visit-management',
+      visitmanagement: 'visit-management',
+      payrollmanagement: 'payroll',
+      reportsanalytics: 'analytics',
+    };
+    return aliases[normalized] ?? value.toLowerCase();
   }
 }

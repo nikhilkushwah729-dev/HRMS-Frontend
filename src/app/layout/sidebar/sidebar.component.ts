@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, HostListener, inject, OnInit, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Router, RouterModule } from '@angular/router';
+import { NavigationEnd, Router, RouterModule } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { selectUser } from '../../core/state/auth/auth.selectors';
 import { LayoutService } from '../../core/services/layout.service';
@@ -19,541 +20,305 @@ import {
 import { User } from '../../core/models/auth.model';
 import { WorkspaceCatalogService } from '../../core/access/workspace-catalog.service';
 import { WorkspaceModuleView } from '../../core/access/access.models';
+import { LanguageService } from '../../core/services/language.service';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterModule],
   template: `
+    <!-- Mobile Backdrop -->
     <div
       *ngIf="layoutService.sidebarOpen()"
-      (click)="layoutService.toggleSidebar()"
-      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+      (click)="layoutService.closeSidebar()"
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-500"
     ></div>
 
     <aside
+      [ngClass]="desktopSidebarWidthClass()"
       [class.translate-x-0]="layoutService.sidebarOpen()"
       [class.-translate-x-full]="!layoutService.sidebarOpen()"
-      class="app-sidebar-surface fixed lg:static inset-y-0 left-0 w-[88vw] max-w-[280px] sm:w-[80vw] sm:max-w-[300px] h-screen flex flex-col overflow-hidden z-50 transition-transform duration-500 lg:translate-x-0 border-r border-white/[0.03] bg-[#0B1120] shadow-[10px_0_30px_-15px_rgba(0,0,0,0.5)]"
+      class="app-sidebar-surface fixed lg:static inset-y-0 left-0 w-[85vw] max-w-[276px] h-screen flex flex-col overflow-hidden z-50 transition-all duration-500 lg:translate-x-0 bg-white border-r border-slate-200/80 shadow-xl shadow-slate-200/40"
     >
-      <!-- Top Product Branding (HRNexus) -->
-      <div class="px-4 sm:px-6 pt-6 sm:pt-8 pb-4 sm:pb-6">
-        <div class="flex flex-col gap-4">
-          <div class="flex items-center gap-3 group cursor-pointer">
-            <div
-              class="relative rounded-xl overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.25)] transition-transform duration-500 group-hover:scale-105 border border-white/5"
-            >
-              <img
-                src="/hrnexus-logo.png"
-                alt="HRNexus"
-                class="h-10 w-auto object-contain"
-              />
-            </div>
-            <div class="flex flex-col">
-              <span
-                class="text-sm font-black text-white tracking-widest uppercase"
-                style="font-family: 'Sora', sans-serif;"
-                >HRNexus</span
-              >
-              <span
-                class="text-[8px] font-bold text-indigo-400 uppercase tracking-[0.3em]"
-                >Technology</span
-              >
+      <!-- Branding & Close (Mobile) -->
+      <div class="relative border-b border-slate-100 px-4 pt-4 pb-3">
+        <div class="flex items-center justify-between">
+          <div class="flex min-w-0 items-center gap-3 group cursor-pointer" routerLink="/dashboard">
+            <div class="flex shrink-0 overflow-hidden items-center justify-center transition-transform duration-500 group-hover:scale-[1.02]">
+               <img [src]="showExpandedSidebar() ? '/hrnexus-logo-dark.svg' : '/hrnexus-brand-mark.png'" alt="HRNexus" [class]="showExpandedSidebar() ? 'h-12 w-auto max-w-[210px] object-contain' : 'h-11 w-11 rounded-md p-1 shadow-md shadow-emerald-500/20 ring-1 ring-emerald-100 object-contain'" />
             </div>
           </div>
+
+          <button
+            (click)="layoutService.closeSidebar()"
+            class="flex lg:hidden h-10 w-10 items-center justify-center rounded-md bg-slate-50 text-slate-400 hover:bg-slate-100 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
       </div>
 
-      <!-- Client Organization Card -->
-      <div class="px-3 sm:px-4 mb-4 sm:mb-6">
-        <div
-          class="p-5 rounded-xl bg-white/[0.03] border border-white/[0.05] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md transform transition-all duration-300 hover:bg-white/[0.05] group"
-        >
-          <div class="flex items-center gap-4">
-            <div class="relative">
-              <div
-                class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"
-              ></div>
-              <div
-                class="relative w-14 h-14 rounded-lg overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center"
-              >
-                @if (hasOrgLogo()) {
-                  <img
-                    [src]="orgLogo()"
-                    [alt]="orgName() || 'Organization Logo'"
-                    class="w-full h-full object-cover"
-                    (error)="onOrgLogoError()"
-                  />
-                } @else {
-                  <span class="text-xl font-black text-emerald-200">{{
-                    orgInitial()
-                  }}</span>
-                }
+      <!-- User Profile Card -->
+      @if (showExpandedSidebar()) {
+        <div class="px-4 pt-3 pb-3">
+          <div class="group relative overflow-hidden rounded-md border border-slate-200 bg-slate-50/80 px-3.5 py-3 transition-all hover:border-emerald-100 hover:bg-white">
+            <div class="relative z-10 flex items-center gap-3.5">
+              <div class="relative">
+                <div class="h-11 w-11 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm transition-transform duration-500 group-hover:scale-105">
+                  @if (orgLogo()) {
+                    <img [src]="orgLogo()" [alt]="orgName()" class="h-full w-full object-contain p-1" (error)="onOrgLogoError()">
+                  } @else {
+                    <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-contain p-1">
+                  }
+                </div>
+                <div class="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></div>
+              </div>
+              <div class="flex min-w-0 flex-col">
+                <h3 class="truncate text-sm font-black text-slate-900 tracking-tight">{{ userName() }}</h3>
+                <p class="truncate text-[10px] font-bold text-slate-500 uppercase tracking-[0.16em] opacity-70">{{ userRole() }}</p>
               </div>
             </div>
-            <div class="flex flex-col min-w-0">
-              <p
-                class="text-[9px] font-extrabold text-emerald-500/80 uppercase tracking-[0.2em] mb-1"
-              >
-                Active Space
-              </p>
-              @if (isOrgLoading()) {
-                <div
-                  class="h-5 bg-white/5 rounded-full animate-pulse w-24"
-                ></div>
-              } @else {
-                <h2
-                  class="text-base font-black text-white truncate leading-tight tracking-tight"
-                  title="{{ orgName() || 'Enterprise' }}"
-                >
-                  {{ orgName() || 'Enterprise' }}
-                </h2>
-              }
-            </div>
-          </div>
-
-          <div
-            class="mt-4 pt-4 border-t border-white/[0.05] flex items-center justify-between"
-          >
-            <div class="min-w-0 flex items-center gap-2">
-              <span
-                class="w-1.5 h-1.5 rounded-full animate-pulse"
-                [ngClass]="subscriptionDotTone()"
-              ></span>
-              <span
-                class="truncate text-[10px] font-bold uppercase tracking-wider"
-                [ngClass]="subscriptionLabelTone()"
-                >{{ subscriptionBadgeLabel() }}</span
-              >
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-300 border border-emerald-500/20">
-                {{ activeModuleCount() }} active
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                class="text-slate-500"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </div>
-          </div>
-
-          <div class="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
-            <div class="min-w-0">
-              <p class="text-[9px] font-black uppercase tracking-[0.22em] text-slate-500">
-                Billing Pulse
-              </p>
-              <p class="mt-1 truncate text-[11px] font-semibold text-slate-200">
-                {{ subscriptionHelperText() }}
-              </p>
-            </div>
-            <a
-              routerLink="/billing"
-              (click)="closeOnMobile()"
-              class="shrink-0 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-cyan-200 transition hover:bg-cyan-500/20"
-            >
-              Billing
-            </a>
           </div>
         </div>
-      </div>
+      }
 
-
+      <!-- Nav Sections -->
       <nav
         role="navigation"
-        aria-label="Main navigation"
-        class="flex-1 px-2.5 sm:px-3 py-4 sm:py-5 space-y-3 sm:space-y-4 overflow-y-auto custom-scrollbar scroll-smooth"
+        class="flex-1 overflow-y-auto custom-scrollbar pb-8"
       >
-        <!-- Main Navigation -->
-        <div>
-          <button
-            type="button"
-            class="app-nav-section-trigger group"
-            (click)="toggleSection('main')"
-            [attr.aria-expanded]="isSectionExpanded('main') | json"
-            aria-label="Toggle Self Service section"
-          >
-            <div class="flex items-center gap-3">
-              <span class="app-nav-section-title">{{ mainSectionLabel() }}</span>
-              <span
-                class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-[8px] font-black text-indigo-400 border border-indigo-500/20 uppercase tracking-tighter"
-                >Portal</span
-              >
-            </div>
-            <div
-              class="app-nav-section-chevron transition-transform duration-300 opacity-30 group-hover:opacity-100"
-              [class.rotate-180]="isSectionExpanded('main')"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-          </button>
-          @if (isSectionExpanded('main')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of selfServiceLinks(); track link.route) {
-                @if (link.isLocked) {
-                  <button
-                    type="button"
-                    (click)="openLockedModule(link)"
-                    class="app-nav-link group justify-between w-full"
-                  >
-                    <span class="flex items-center gap-3 min-w-0">
-                      <div class="app-nav-icon">
-                        <span [innerHTML]="resolveIcon(link.icon)"></span>
-                      </div>
-                      <span class="truncate">{{ link.label }}</span>
-                    </span>
-                    <span
-                      class="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em] border-rose-200 bg-rose-50 text-rose-700"
-                    >
-                      Locked
-                    </span>
-                  </button>
-                } @else {
-                  <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
-                    class="app-nav-link group justify-between"
-                  >
-                    <span class="flex items-center gap-3 min-w-0">
-                      <div class="app-nav-icon">
-                        <span [innerHTML]="resolveIcon(link.icon)"></span>
-                      </div>
-                      <span class="truncate">{{ link.label }}</span>
-                    </span>
-                    <span
-                      class="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.2em]"
-                      [ngClass]="isModuleEnabled(link.moduleSlug) ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-slate-500/20 bg-white/5 text-slate-400'"
-                    >
-                      {{ moduleStateLabel(link.moduleSlug) }}
-                    </span>
-                  </a>
+        @if (showExpandedSidebar()) {
+          <div class="space-y-5 px-4 pt-3">
+          <!-- Self Service -->
+          @if (shouldShowSection('main')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('main')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('main') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ mainSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('main')" [class.text-emerald-600]="isSectionExpanded('main')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('main')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of selfServiceLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
+              </div>
               }
             </div>
           }
-        </div>
 
-        @if (hasPeopleSection()) {
-        <!-- People Management -->
-        <div>
-          <button
-            type="button"
-            class="app-nav-section-trigger group"
-            (click)="toggleSection('employees')"
-            [attr.aria-expanded]="isSectionExpanded('employees') | json"
-            aria-label="Toggle People section"
-          >
-            <div class="flex items-center gap-3">
-              <span class="app-nav-section-title">{{ peopleSectionLabel() }}</span>
-              <span
-                class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-sky-500/10 text-[8px] font-black text-sky-300 border border-sky-500/20 uppercase tracking-tighter"
-                >Directory</span
-              >
-            </div>
-            <div
-              class="app-nav-section-chevron transition-transform duration-300 opacity-30 group-hover:opacity-100"
-              [class.rotate-180]="isSectionExpanded('employees')"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-          </button>
-          @if (isSectionExpanded('employees')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of peopleLinks(); track link.route) {
-                @if (link.isLocked) {
-                  <button
-                    type="button"
-                    (click)="openLockedModule(link)"
-                    class="app-nav-link group w-full justify-between"
-                  >
-                    <span class="flex items-center gap-3">
-                      <div class="app-nav-icon">
-                        <span [innerHTML]="resolveIcon(link.icon)"></span>
-                      </div>
-                      <span>{{ link.label }}</span>
-                    </span>
-                    <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                      Lock
-                    </span>
-                  </button>
-                } @else {
-                  <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
-                    class="app-nav-link group min-w-0"
-                  >
-                    <div class="app-nav-icon">
-                      <span [innerHTML]="resolveIcon(link.icon)"></span>
-                    </div>
-                    <span class="truncate">{{ link.label }}</span>
-                  </a>
+          <!-- People -->
+          @if (shouldShowSection('employees')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('employees')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('employees') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ peopleSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('employees')" [class.text-emerald-600]="isSectionExpanded('employees')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('employees')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of peopleLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
+              </div>
               }
             </div>
           }
-        </div>
-        }
 
-        @if (hasSystemSection()) {
-        <!-- System & Config -->
-        <div>
-          <button
-            type="button"
-            class="app-nav-section-trigger group"
-            (click)="toggleSection('security')"
-            [attr.aria-expanded]="isSectionExpanded('security') | json"
-            aria-label="Toggle System section"
-          >
-            <div class="flex items-center gap-3">
-              <span class="app-nav-section-title">{{ systemSectionLabel() }}</span>
-              <span
-                class="hidden sm:inline-flex px-1.5 py-0.5 rounded-full bg-violet-500/10 text-[8px] font-black text-violet-300 border border-violet-500/20 uppercase tracking-tighter"
-                >Admin</span
-              >
-            </div>
-            <div
-              class="app-nav-section-chevron transition-transform duration-300 opacity-30 group-hover:opacity-100"
-              [class.rotate-180]="isSectionExpanded('security')"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path d="m6 9 6 6 6-6" />
-              </svg>
-            </div>
-          </button>
-          @if (isSectionExpanded('security')) {
-            <div class="app-nav-section-content mt-1.5 space-y-0.5" open>
-              @for (link of systemLinks(); track link.route) {
-                @if (link.isLocked) {
-                  <button
-                    type="button"
-                    (click)="openLockedModule(link)"
-                    class="app-nav-link group w-full justify-between"
-                  >
-                    <span class="flex items-center gap-3">
-                      <div class="app-nav-icon">
-                        <span [innerHTML]="resolveIcon(link.icon)"></span>
-                      </div>
-                      <span>{{ link.label }}</span>
-                    </span>
-                    <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-rose-700">
-                      Lock
-                    </span>
-                  </button>
-                } @else {
-                  <a
-                    [routerLink]="link.route"
-                    routerLinkActive="app-nav-link-active"
-                    (click)="closeOnMobile()"
-                    class="app-nav-link group min-w-0"
-                  >
-                    <div class="app-nav-icon">
-                      <span [innerHTML]="resolveIcon(link.icon)"></span>
-                    </div>
-                    <span class="truncate">{{ link.label }}</span>
-                  </a>
+          <!-- Attendance -->
+          @if (shouldShowSection('attendance')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('attendance')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('attendance') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ attendanceSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('attendance')" [class.text-emerald-600]="isSectionExpanded('attendance')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('attendance')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of attendanceLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
+              </div>
               }
             </div>
           }
-        </div>
+
+          <!-- Leave -->
+          @if (shouldShowSection('leave')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('leave')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('leave') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ leaveSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('leave')" [class.text-emerald-600]="isSectionExpanded('leave')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('leave')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of leaveLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
+                }
+              </div>
+              }
+            </div>
+          }
+
+          <!-- Payroll -->
+          @if (shouldShowSection('payroll')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('payroll')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('payroll') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ payrollSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('payroll')" [class.text-emerald-600]="isSectionExpanded('payroll')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('payroll')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of payrollLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
+                }
+              </div>
+              }
+            </div>
+          }
+
+          <!-- System -->
+          @if (shouldShowSection('security')) {
+            <div class="space-y-2">
+              <button type="button" (click)="toggleSection('security')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('security') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
+                <div class="flex min-w-0 items-center gap-3">
+                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ systemSectionLabel() }}</span>
+                  <div class="h-px w-10 bg-slate-100"></div>
+                </div>
+                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('security')" [class.text-emerald-600]="isSectionExpanded('security')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </button>
+              @if (isSectionExpanded('security')) {
+              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+                @for (link of systemLinks(); track link.id + link.route) {
+                  <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
+                }
+              </div>
+              }
+            </div>
+          }
+          </div>
+        } @else {
+          <!-- Compact Mode -->
+          <div class="flex flex-col items-center gap-3 px-3 pt-5">
+            @for (link of compactNavLinks(); track link.id + link.route) {
+              @if (link.isLocked) {
+                <button
+                  type="button"
+                  (click)="openLockedModule(link)"
+                  class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition hover:bg-slate-100"
+                  [attr.title]="link.label + ' (Locked)'"
+                >
+                  <span [innerHTML]="resolveIcon(link.icon)"></span>
+                </button>
+              } @else {
+                <a
+                  [routerLink]="routePath(link.route)"
+                  [queryParams]="routeQueryParams(link.route)"
+                  class="flex h-12 w-12 items-center justify-center rounded-md transition-all duration-300"
+                  [class.bg-emerald-600]="isRouteActive(link.route)"
+                  [class.text-white]="isRouteActive(link.route)"
+                  [class.shadow-lg]="isRouteActive(link.route)"
+                  [class.shadow-emerald-200]="isRouteActive(link.route)"
+                  [class.bg-slate-50]="!isRouteActive(link.route)"
+                  [class.text-slate-400]="!isRouteActive(link.route)"
+                  [class.hover:bg-slate-100]="!isRouteActive(link.route)"
+                  [attr.title]="link.label"
+                  (click)="closeOnMobile()"
+                >
+                  <span [innerHTML]="resolveIcon(link.icon)"></span>
+                </a>
+              }
+            }
+          </div>
         }
-        <!-- ← closes the System section wrapper <div> -->
       </nav>
 
-      <div class="p-4 md:p-6 border-t border-white/5 opacity-50">
-        <p
-          class="text-[8px] text-center text-slate-500 uppercase tracking-widest"
-        >
-          &copy; 2026 HRNexus Technology
-        </p>
+      <!-- Sidebar Footer -->
+      <div class="border-t border-slate-100 px-4 py-4">
+        @if (showExpandedSidebar()) {
+          <div class="flex flex-col gap-3">
+             <!-- Collapse Toggle -->
+             <button
+              (click)="layoutService.cycleDesktopSidebar()"
+              class="group flex items-center justify-center gap-3 w-full h-11 rounded-md bg-slate-900 text-white font-black text-[11px] uppercase tracking-[0.18em] shadow-lg shadow-slate-200 transition-all hover:bg-slate-800 hover:scale-[1.01] active:scale-[0.98]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="transition-transform group-hover:-translate-x-1"><path d="m15 18-6-6 6-6"/></svg>
+              <span>Minimize Menu</span>
+            </button>
+          </div>
+        } @else {
+          <button
+            (click)="layoutService.cycleDesktopSidebar()"
+            class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-900 text-white shadow-xl shadow-slate-200 transition-transform hover:scale-110 active:scale-95"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        }
       </div>
     </aside>
+
+    <!-- Nav Item Template -->
+    <ng-template #navItem let-link>
+      @if (link.isLocked) {
+        <button
+          (click)="openLockedModule(link)"
+          class="flex w-full items-center justify-between gap-3 px-4 py-3.5 rounded-md bg-transparent text-slate-400 grayscale opacity-60 cursor-not-allowed"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <span [innerHTML]="resolveIcon(link.icon)"></span>
+            <span class="truncate text-sm font-bold tracking-tight">{{ link.label }}</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </button>
+      } @else {
+        <a
+          [routerLink]="routePath(link.route)"
+          [queryParams]="routeQueryParams(link.route)"
+          (click)="onNavLinkClick(activeSectionKey())"
+          class="group relative flex items-center gap-2.5 rounded-md border px-3 py-2.5 transition-all duration-300"
+          [class.border-emerald-200]="isRouteActive(link.route)"
+          [class.bg-emerald-50]="isRouteActive(link.route)"
+          [class.text-white]="isRouteActive(link.route)"
+          [class.shadow-sm]="isRouteActive(link.route)"
+          [class.text-slate-600]="!isRouteActive(link.route)"
+          [class.font-bold]="!isRouteActive(link.route)"
+          [class.border-transparent]="!isRouteActive(link.route)"
+          [class.hover:border-slate-200]="!isRouteActive(link.route)"
+          [class.hover:bg-slate-50]="!isRouteActive(link.route)"
+          [class.hover:text-slate-900]="!isRouteActive(link.route)"
+        >
+          <span class="absolute left-[-0.85rem] top-1/2 hidden h-px w-3 -translate-y-1/2 bg-slate-200 lg:block"></span>
+          <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-105" [class.bg-emerald-600]="isRouteActive(link.route)" [class.text-white]="isRouteActive(link.route)" [class.bg-slate-100]="!isRouteActive(link.route)" [class.text-slate-500]="!isRouteActive(link.route)" [innerHTML]="resolveIcon(link.icon)"></span>
+          <span class="relative z-10 truncate text-[13px] font-bold tracking-tight" [class.text-slate-900]="!isRouteActive(link.route)" [class.text-emerald-900]="isRouteActive(link.route)">{{ link.label }}</span>
+          
+          @if (isRouteActive(link.route)) {
+            <div class="absolute inset-y-2 left-0 w-1 rounded-r-md bg-emerald-500"></div>
+            <div class="absolute right-3 h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-sm"></div>
+          }
+        </a>
+      }
+    </ng-template>
   `,
-  styles: [
-    `
-      .app-sidebar-surface {
-        background: linear-gradient(180deg, #0f172a 0%, #0b1120 100%);
-        box-shadow: 1px 0 0 0 rgba(255, 255, 255, 0.05);
-      }
-
-      .app-nav-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 7px 10px;
-        border-radius: 8px;
-        color: #94a3b8;
-        font-size: 12px;
-        font-weight: 500;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        margin-bottom: 2px;
-        min-width: 0;
-      }
-
-      .app-nav-link {
-        position: relative;
-        overflow: hidden;
-      }
-
-      .app-nav-link::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.1),
-          transparent
-        );
-        transition: left 0.6s;
-      }
-
-      .app-nav-link:hover::before {
-        left: 100%;
-      }
-
-      .app-nav-link:hover {
-        background: rgba(255, 255, 255, 0.03);
-        color: #f8fafc;
-        transform: translateX(1px);
-      }
-
-      .app-nav-link-active {
-        background: linear-gradient(
-          90deg,
-          rgba(45, 212, 191, 0.16) 0%,
-          rgba(45, 212, 191, 0.02) 100%
-        );
-        color: #f8fafc !important;
-        font-weight: 700;
-        box-shadow:
-          inset 2px 0 0 #2dd4bf,
-          inset 0 1px 0 rgba(255, 255, 255, 0.03);
-      }
-
-      .app-nav-icon {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 18px;
-        opacity: 0.7;
-        transition: opacity 0.2s ease;
-        flex: 0 0 auto;
-      }
-
-      .app-nav-link:hover .app-nav-icon,
-      .app-nav-link-active .app-nav-icon {
-        opacity: 1;
-        color: #2dd4bf;
-      }
-
-      .app-nav-section-trigger {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        padding: 6px 10px;
-        cursor: pointer;
-        border-radius: 6px;
-        transition: background 0.2s ease;
-      }
-
-      .app-nav-section-trigger {
-        overflow: hidden;
-      }
-
-      @media (min-width: 640px) {
-        .app-nav-link {
-          padding: 8px 11px;
-        }
-      }
-
-      .app-nav-section-trigger:hover {
-        background: rgba(255, 255, 255, 0.02);
-      }
-
-      .app-nav-section-content {
-        overflow: hidden;
-        transition:
-          max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-          opacity 0.2s ease;
-        max-height: 0;
-        opacity: 0;
-      }
-
-      .app-nav-section-content[open] {
-        max-height: 640px;
-        opacity: 1;
-      }
-
-      .app-nav-section-title {
-        font-size: 8px;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        color: #64748b;
-      }
-
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 9999px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(71, 85, 105, 0.9);
-        border-radius: 9999px;
-        border: 1px solid rgba(11, 17, 32, 0.75);
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(100, 116, 139, 1);
-      }
-    `,
-  ],
+  styles: [`
+    :host { display: block; }
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #f1f5f9; border-radius: 10px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #e2e8f0; }
+  `]
 })
 export class SidebarComponent implements OnInit {
   private readonly sanitizer = inject(DomSanitizer);
@@ -565,211 +330,177 @@ export class SidebarComponent implements OnInit {
   private router = inject(Router);
   private toastService = inject(ToastService);
   private subscriptionService = inject(SubscriptionService);
+  private languageService = inject(LanguageService);
+  private destroyRef = inject(DestroyRef);
   currentUser = signal<User | null>(null);
   orgName = signal<string>('');
   orgLogo = signal<string>('');
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   hasOrgLogo = computed(() => Boolean(this.orgLogo().trim()));
-  private expandedSections = signal<Record<string, boolean>>({
-    main: true,
-    employees: false,
-    attendance: true,
-    payroll: false,
-    productivity: false,
-    security: false,
-  });
+  private expandedSection = signal<string>('main');
+  private isDesktopViewport = signal(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   public isUserLoading = signal(true);
   public isOrgLoading = signal(true);
   private store = inject(Store);
   private user$ = this.store.select(selectUser);
+  readonly selfServiceLinks = computed(() =>
+    ['dashboard', 'self-service'].flatMap((id) =>
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
+    ),
+  );
+  readonly peopleLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: true }),
+  );
+  readonly attendanceLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: true }),
+  );
+  readonly leaveLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: true }),
+  );
+  readonly payrollLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: true }),
+  );
+  readonly systemLinks = computed(() =>
+    ['settings', 'addons', 'visitormanagement', 'organization', 'kiosk-management', 'roles-permissions'].flatMap((id) =>
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
+    ),
+  );
+  readonly compactNavLinks = computed(() =>
+    this.mergeUniqueLinks(
+      this.selfServiceLinks(),
+      this.peopleLinks(),
+      this.attendanceLinks(),
+      this.leaveLinks(),
+      this.payrollLinks(),
+      this.systemLinks(),
+    ),
+  );
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser());
     this.permissionService.syncForUser(this.currentUser());
     this.isUserLoading.set(false);
 
-    this.user$.subscribe((user) => {
+    this.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
       if (user) {
         this.currentUser.set(user);
         this.permissionService.syncForUser(user);
       }
     });
 
-    this.orgService.getOrganization().subscribe((org) => {
+    this.orgService.getOrganization().pipe(takeUntilDestroyed(this.destroyRef)).subscribe((org) => {
       this.setOrganizationBranding(org);
       this.isOrgLoading.set(false);
     });
-    this.orgService.getAddons().subscribe();
-    this.subscriptionService.getStatus().subscribe({
+    this.subscriptionService.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
+    });
+
+    this.syncExpandedSectionWithRoute();
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.syncExpandedSectionWithRoute();
+      }
+    });
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.isDesktopViewport.set(window.innerWidth >= 1024);
+  }
+
+  desktopSidebarWidthClass(): string {
+    if (!this.isDesktopViewport()) return '';
+    if (this.layoutService.showSideBar()) return 'lg:w-64 xl:w-[280px]';
+    return this.layoutService.showSidebarMenu() ? 'lg:w-[90px]' : 'lg:w-[40px]';
+  }
+
+  showExpandedSidebar(): boolean {
+    return !this.isDesktopViewport() || this.layoutService.showSideBar();
+  }
+
+  showCompactSidebar(): boolean {
+    return this.isDesktopViewport() && !this.layoutService.showSideBar() && this.layoutService.showSidebarMenu();
+  }
+
+  sectionTabs(): Array<{ key: string; label: string }> {
+    return [
+      { key: 'main', label: 'Portal' },
+      { key: 'employees', label: 'People' },
+      { key: 'attendance', label: 'Attendance' },
+      { key: 'leave', label: 'Leave' },
+      { key: 'security', label: 'System' },
+    ];
+  }
+
+  activeSectionKey(): string {
+    return this.sectionForCurrentRoute();
+  }
+
+  shouldShowSection(section: string): boolean {
+    return this.showExpandedSidebar() || this.activeSectionKey() === section;
+  }
+
+  private mergeUniqueLinks(...groups: WorkspaceModuleView[][]): WorkspaceModuleView[] {
+    const seen = new Set<string>();
+    return groups.flat().filter((link) => {
+      const key = `${link.id}:${link.route}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
     });
   }
 
   private setOrganizationBranding(org: Organization | null | undefined) {
     const storedUser = this.currentUser() ?? this.authService.getStoredUser();
-    const resolvedName = (
-      org?.name ||
-      storedUser?.organizationName ||
-      storedUser?.companyName ||
-      this.orgName() ||
-      ''
-    ).trim();
-    const resolvedLogo = (
-      org?.logo ||
-      storedUser?.organizationLogo ||
-      storedUser?.companyLogo ||
-      this.orgLogo() ||
-      ''
-    ).trim();
+    this.orgName.set((org?.name || storedUser?.organizationName || storedUser?.companyName || '').trim());
+    this.orgLogo.set((org?.logo || storedUser?.organizationLogo || storedUser?.companyLogo || '').trim());
+  }
 
-    this.orgName.set(resolvedName);
-    this.orgLogo.set(resolvedLogo);
+  private expandOnly(section: string) {
+    this.expandedSection.set(section);
+  }
+
+  private syncExpandedSectionWithRoute() {
+    this.expandOnly(this.sectionForCurrentRoute());
+  }
+
+  private sectionForCurrentRoute(): string {
+    const path = this.routePath(this.router.url || '/dashboard');
+    if (path.startsWith('/self-service/requests') || path.startsWith('/admin/approvals')) return 'main';
+    if (path.startsWith('/self-service/leave') || path.startsWith('/leave') || path.startsWith('/leaves')) return 'leave';
+    if (path.startsWith('/self-service/payroll') || path.startsWith('/self-service/payslip') || path.startsWith('/payroll')) return 'payroll';
+    if (path.startsWith('/employees')) return 'employees';
+    if (path.startsWith('/attendance') || path.startsWith('/face-registration') || path.startsWith('/admin/attendance') || path.startsWith('/hr/attendance')) return 'attendance';
+    if (path.startsWith('/settings') || path.startsWith('/admin') || path.startsWith('/add-ons') || path.startsWith('/visit-management') || path.startsWith('/reports')) return 'security';
+    return 'main';
   }
 
   toggleSection(section: string) {
-    this.expandedSections.update((state) => ({
-      ...state,
-      [section]: !state[section],
-    }));
+    this.expandOnly(section);
   }
 
   isSectionExpanded(section: string): boolean {
-    return this.expandedSections()[section] ?? false;
-  }
-
-  isModuleActive(slug: string): boolean {
-    return this.orgService.activeModules().includes(slug);
-  }
-
-  isModuleEnabled(slug?: string): boolean {
-    if (!slug) return true;
-    return this.orgService.isModuleEnabled(slug);
+    return this.expandedSection() === section;
   }
 
   moduleStateLabel(slug?: string): string {
-    if (!slug) return 'Core';
-    return this.isModuleEnabled(slug) ? 'On' : 'Locked';
-  }
-
-  activeModuleCount(): number {
-    return this.orgService.activeModules().length;
-  }
-
-  subscriptionBadgeLabel(): string {
-    const status = this.subscriptionStatus();
-    if (!status) return 'Subscription';
-    if (status.organization.readOnlyMode) return 'Read Only';
-    if (status.organization.isTrialActive) {
-      const days = Math.max(0, status.trialDaysRemaining ?? 0);
-      return `Trial ${days} Day${days === 1 ? '' : 's'}`;
-    }
-    return status.plan?.name || 'Premium Plan';
-  }
-
-  subscriptionHelperText(): string {
-    const status = this.subscriptionStatus();
-    if (!status) return 'Subscription status will appear here.';
-    if (status.organization.readOnlyMode) {
-      return 'Upgrade to unlock write access for premium modules.';
-    }
-    if (status.organization.isTrialActive) {
-      const days = Math.max(0, status.trialDaysRemaining ?? 0);
-      return `${days} day${days === 1 ? '' : 's'} left before billing action is required.`;
-    }
-    if (status.plan?.isTrialPlan || status.plan?.name?.toLowerCase().includes('trial')) {
-      return 'Currently evaluating the workspace on a free trial plan.';
-    }
-    return 'Workspace billing is active and premium access is available.';
-  }
-
-  subscriptionDotTone(): string {
-    const status = this.subscriptionStatus();
-    if (status?.organization.readOnlyMode) return 'bg-rose-400';
-    if (status?.organization.isTrialActive || status?.plan?.isTrialPlan || status?.plan?.name?.toLowerCase().includes('trial')) return 'bg-amber-400';
-    return 'bg-emerald-500';
-  }
-
-  subscriptionLabelTone(): string {
-    const status = this.subscriptionStatus();
-    if (status?.organization.readOnlyMode) return 'text-rose-300';
-    if (status?.organization.isTrialActive || status?.plan?.isTrialPlan || status?.plan?.name?.toLowerCase().includes('trial')) return 'text-amber-300';
-    return 'text-slate-400';
-  }
-
-  canAccess(route: string): boolean {
-    const user = this.currentUser() ?? this.authService.getStoredUser();
-    return this.permissionService.canAccessRoute(user, route);
-  }
-
-  private roleId(): number | undefined {
-    const user = this.currentUser() ?? this.authService.getStoredUser();
-    return user?.roleId;
-  }
-
-  private isEmployeeRole(): boolean {
-    return this.roleId() === 5;
-  }
-
-  private isManagerRole(): boolean {
-    const roleId = this.roleId();
-    return roleId === 3 || roleId === 4;
-  }
-
-  private isAdminRole(): boolean {
-    const roleId = this.roleId();
-    return roleId === 1 || roleId === 2;
-  }
-
-  hasPeopleSection(): boolean {
-    return this.peopleLinks().length > 0;
-  }
-
-  hasSystemSection(): boolean {
-    return this.systemLinks().length > 0;
-  }
-
-  mainSectionLabel(): string {
-    return 'Self Service';
-  }
-
-  peopleSectionLabel(): string {
-    if (this.isAdminRole()) return 'Organization';
-    if (this.isManagerRole()) return 'Team';
-    return 'People';
-  }
-
-  systemSectionLabel(): string {
-    return 'Configuration';
+    if (!slug) return this.t('common.core');
+    return this.orgService.isModuleEnabled(slug) ? this.t('common.on') : this.t('common.locked');
   }
 
   userName(): string {
     const user = this.currentUser() ?? this.authService.getStoredUser();
     if (!user) return 'Workspace User';
-    return (
-      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
-      user.email ||
-      'Workspace User'
-    );
+    return `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'User';
   }
 
   userRole(): string {
-    const roleId = (this.currentUser() ?? this.authService.getStoredUser())
-      ?.roleId;
-    switch (roleId) {
-      case 1:
-        return 'Super Admin';
-      case 2:
-        return 'Admin';
-      case 3:
-        return 'HR Manager';
-      case 4:
-        return 'Manager';
-      case 5:
-        return 'Employee';
-      default:
-        return 'Employee';
-    }
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return this.permissionService.getRoleDisplayName(user) || 'Employee';
   }
 
   userInitials(): string {
@@ -780,106 +511,154 @@ export class SidebarComponent implements OnInit {
   }
 
   orgInitial(): string {
-    const source = this.orgName().trim();
-    return (source.charAt(0) || 'E').toUpperCase();
+    return (this.orgName().charAt(0) || 'E').toUpperCase();
   }
 
   onOrgLogoError() {
     this.orgLogo.set('');
-    const storedUser = this.currentUser() ?? this.authService.getStoredUser();
-    if (!this.orgName().trim()) {
-      this.orgName.set(
-        (
-          storedUser?.organizationName ||
-          storedUser?.companyName ||
-          'Enterprise'
-        ).trim(),
-      );
-    }
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    return this.languageService.t(key, params);
   }
 
   closeOnMobile() {
-    if (window.innerWidth < 1024) {
-      this.layoutService.closeSidebar();
+    if (window.innerWidth < 1024) this.layoutService.closeSidebar();
+  }
+
+  onNavLinkClick(section: string) {
+    this.expandOnly(section);
+    this.closeOnMobile();
+  }
+
+  routePath(route: string): string {
+    return route.split('?')[0] || route;
+  }
+
+  routeQueryParams(route: string): Record<string, string> | null {
+    const query = route.split('?')[1];
+    if (!query) return null;
+    const params: Record<string, string> = {};
+    new URLSearchParams(query).forEach((value, key) => params[key] = value);
+    return params;
+  }
+
+  isRouteActive(route: string): boolean {
+    return this.activeRouteSignature() === this.routeSignature(route);
+  }
+
+  private activeRouteSignature(): string {
+    const links = this.mergeUniqueLinks(
+      this.selfServiceLinks(),
+      this.peopleLinks(),
+      this.attendanceLinks(),
+      this.leaveLinks(),
+      this.payrollLinks(),
+      this.systemLinks(),
+    );
+
+    const ranked = links
+      .map((link) => ({ route: link.route, score: this.routeMatchScore(link.route) }))
+      .filter((item) => item.score >= 0)
+      .sort((a, b) => b.score - a.score);
+
+    return ranked[0]?.route ? this.routeSignature(ranked[0].route) : '';
+  }
+
+  private routeSignature(route: string): string {
+    const path = this.normalizeRoutePath(this.routePath(route));
+    const query = this.routeQueryParams(route) ?? {};
+    const sortedQuery = Object.keys(query)
+      .sort((left, right) => left.localeCompare(right))
+      .map((key) => `${key}=${query[key] ?? ''}`)
+      .join('&');
+    return sortedQuery ? `${path}?${sortedQuery}` : path;
+  }
+
+  private routeMatchScore(route: string): number {
+    const currentPath = this.normalizeRoutePath(this.routePath(this.router.url || '/'));
+    const currentQuery = this.routeQueryParams(this.router.url || '/') ?? {};
+    const targetPath = this.normalizeRoutePath(this.routePath(route));
+    const targetQuery = this.routeQueryParams(route) ?? {};
+
+    let pathMatched = false;
+
+    if (targetPath === '/dashboard' || targetPath === '/self-service' || targetPath === '') {
+      pathMatched =
+        currentPath === '' ||
+        currentPath === '/' ||
+        currentPath === '/dashboard' ||
+        currentPath === '/self-service';
+    } else if (targetPath === '/settings' || targetPath === '/admin') {
+      pathMatched =
+        currentPath === targetPath ||
+        currentPath.startsWith(`${targetPath}/`);
+    } else {
+      pathMatched =
+        currentPath === targetPath ||
+        currentPath.startsWith(`${targetPath}/`);
     }
+
+    if (!pathMatched) {
+      return -1;
+    }
+
+    const targetQueryKeys = Object.keys(targetQuery);
+    const queryMatched = targetQueryKeys.every(
+      (key) => currentQuery[key] === targetQuery[key],
+    );
+
+    if (!queryMatched) {
+      return -1;
+    }
+
+    return targetPath.length * 10 + targetQueryKeys.length;
+  }
+
+  private normalizeRoutePath(path: string): string {
+    if (!path) return '';
+    const normalized = path.replace(/\/+$/, '');
+    return normalized || '/';
   }
 
   resolveIcon(icon?: string): SafeHtml {
     const icons: Record<string, string> = {
-      dashboard:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>',
-      profile:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4" /><path d="M4 20a8 8 0 0 1 16 0" /></svg>',
-      attendance:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>',
-      leave:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>',
-      payroll:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M7 9h10" /><path d="M7 13h6" /></svg>',
-      timesheets:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>',
-      expenses:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 3h10l4 4v14H3V3z" /><path d="M7 8h10" /><path d="M7 12h10" /></svg>',
-      projects:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><path d="M3 11h18" /></svg>',
-      reports:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18" /><path d="M7 14l3-3 3 2 5-6" /></svg>',
-      employees:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>',
-      invitations:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" x2="19" y1="8" y2="14" /><line x1="22" x2="16" y1="11" y2="11" /></svg>',
-      visitors:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16h16V8l-6-6z" /><path d="M14 2v6h6" /><path d="M16 13H8" /><path d="M16 17H8" /><path d="M10 9H8" /></svg>',
-      'team-attendance':
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><path d="M20 8v6" /><path d="M23 11h-6" /></svg>',
-      regularization:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 3-6.7" /><path d="M3 3v5h5" /><path d="M12 7v5l3 2" /></svg>',
-      documents:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><path d="M9 13h6" /><path d="M9 17h6" /></svg>',
-      roles:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 12a4 4 0 1 0-4-4" /><path d="M12 12a4 4 0 1 1 4-4" /><path d="M6 22v-2a6 6 0 0 1 12 0v2" /></svg>',
-      announcements:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 11 18-5v12L3 14v-3z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" /></svg>',
-      settings:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>',
-      addons:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>',
-      audit:
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" /></svg>',
+      dashboard: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="7" height="9" x="3" y="3" rx="2"/><rect width="7" height="5" x="14" y="3" rx="2"/><rect width="7" height="9" x="14" y="12" rx="2"/><rect width="7" height="5" x="3" y="16" rx="2"/></svg>',
+      profile: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      attendance: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+      leave: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      payroll: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" x2="12" y1="1" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      timesheets: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+      expenses: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+      projects: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>',
+      reports: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>',
+      employees: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      invitations: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>',
+      visitors: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+      'team-attendance': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>',
+      regularization: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>',
+      geofence: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 21s7-4.4 7-11a7 7 0 1 0-14 0c0 6.6 7 11 7 11z"/><circle cx="12" cy="10" r="3"/></svg>',
+      'shift-planner': '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>',
+      documents: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      roles: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+      announcements: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>',
+      settings: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+      addons: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+      audit: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
     };
-
-    return this.sanitizer.bypassSecurityTrustHtml(
-      icons[icon || ''] ?? icons['dashboard'],
-    );
+    return this.sanitizer.bypassSecurityTrustHtml(icons[icon || ''] ?? icons['dashboard']);
   }
 
   openLockedModule(link: WorkspaceModuleView): void {
     this.closeOnMobile();
-    this.toastService.info(link.lockReason ?? `${link.label} is locked for this organization.`);
+    this.toastService.info(link.lockReason ?? `${link.label} is locked.`);
     this.router.navigateByUrl('/billing');
   }
 
-  selfServiceLinks(): WorkspaceModuleView[] {
-    return this.workspaceCatalog.getSectionViews(
-      this.currentUser() ?? this.authService.getStoredUser(),
-      'self-service',
-      { includeLocked: true },
-    );
-  }
-
-  peopleLinks(): WorkspaceModuleView[] {
-    return this.workspaceCatalog.getSectionViews(
-      this.currentUser() ?? this.authService.getStoredUser(),
-      'people',
-      { includeLocked: true },
-    );
-  }
-
-  systemLinks(): WorkspaceModuleView[] {
-    return this.workspaceCatalog.getSectionViews(
-      this.currentUser() ?? this.authService.getStoredUser(),
-      'system',
-      { includeLocked: true },
-    );
-  }
+  mainSectionLabel(): string { return 'Portal'; }
+  peopleSectionLabel(): string { return 'Workforce'; }
+  attendanceSectionLabel(): string { return 'Time & Presence'; }
+  leaveSectionLabel(): string { return 'Absence'; }
+  payrollSectionLabel(): string { return 'Compensation'; }
+  systemSectionLabel(): string { return 'Operations'; }
 }

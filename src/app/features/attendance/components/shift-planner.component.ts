@@ -40,6 +40,14 @@ interface ShiftAssignment {
     <div
       class="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500"
     >
+      <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p class="font-semibold">Shift Planner backend pending</p>
+        <p class="mt-1">
+          Shift roster assignment endpoints are not available in the current backend yet.
+          This screen stays visible for planning context, but save, delete, search, and import actions are disabled for launch safety.
+        </p>
+      </div>
+
       <!-- Tabs for Planner Modes -->
       <div
         class="flex items-center gap-4 bg-white p-1 rounded-md border border-slate-200 w-fit"
@@ -74,6 +82,7 @@ interface ShiftAssignment {
                 type="text"
                 placeholder="Search employee..."
                 (input)="onSearch($event)"
+                [disabled]="!plannerApiAvailable()"
                 class="px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
               />
             </div>
@@ -136,6 +145,7 @@ interface ShiftAssignment {
                     <td class="px-6 py-4 text-right">
                       <button
                         (click)="deleteAssignment(item.id)"
+                        [disabled]="!plannerApiAvailable()"
                         class="text-rose-500 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 transition-colors"
                       >
                         <svg
@@ -254,7 +264,9 @@ interface ShiftAssignment {
                 Upload an Excel/CSV file to assign multiple shifts at once.
               </p>
               <label
-                class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-white/20 rounded-md hover:border-white/40 cursor-pointer transition-all"
+                class="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-white/20 rounded-md transition-all"
+                [class.cursor-not-allowed]="!plannerApiAvailable()"
+                [class.opacity-60]="!plannerApiAvailable()"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -273,6 +285,7 @@ interface ShiftAssignment {
                 <input
                   type="file"
                   class="hidden"
+                  [disabled]="!plannerApiAvailable()"
                   (change)="onFileImport($event)"
                 />
               </label>
@@ -416,6 +429,7 @@ interface ShiftAssignment {
                   <button
                     type="submit"
                     [disabled]="
+                      !plannerApiAvailable() ||
                       rosterForm.invalid ||
                       selectedEmployeeIds().size === 0 ||
                       processing()
@@ -448,6 +462,7 @@ export class ShiftPlannerComponent implements OnInit {
   private employeeService = inject(EmployeeService);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
+  readonly plannerApiAvailable = signal(false);
 
   plannerMode = signal<'history' | 'manager'>('history');
   history = signal<ShiftAssignment[]>([]);
@@ -485,37 +500,7 @@ export class ShiftPlannerComponent implements OnInit {
   }
 
   loadHistory() {
-    this.attendanceService.getShiftPlannerHistory({}).subscribe({
-      next: (res) => {
-        // Mock data if backend returns empty for now, to show the UI
-        if (!res || res.length === 0) {
-          this.history.set([
-            {
-              id: 1,
-              employeeCode: 'EMP001',
-              empName: 'John Doe',
-              defaultShift: 'General Shift',
-              newShift: 'Night Shift',
-              date: '2026-03-21',
-              timeIn: '22:00',
-              timeOut: '06:00',
-            },
-            {
-              id: 2,
-              employeeCode: 'EMP005',
-              empName: 'Sarah Smith',
-              defaultShift: 'General Shift',
-              newShift: 'Evening Shift',
-              date: '2026-03-21',
-              timeIn: '14:00',
-              timeOut: '22:00',
-            },
-          ]);
-        } else {
-          this.history.set(res.data || res);
-        }
-      },
-    });
+    this.history.set([]);
   }
 
   loadEmployees() {
@@ -564,6 +549,10 @@ export class ShiftPlannerComponent implements OnInit {
   }
 
   submitRoster() {
+    if (!this.plannerApiAvailable()) {
+      this.toastService.info('Shift planner assignment API is not available yet in the backend.');
+      return;
+    }
     if (this.rosterForm.valid && this.selectedEmployeeIds().size > 0) {
       this.processing.set(true);
       const data = {
@@ -592,6 +581,10 @@ export class ShiftPlannerComponent implements OnInit {
   }
 
   deleteAssignment(id: number) {
+    if (!this.plannerApiAvailable()) {
+      this.toastService.info('Shift planner assignment API is not available yet in the backend.');
+      return;
+    }
     if (confirm('Are you sure you want to delete this shift assignment?')) {
       this.attendanceService.deleteShiftAssignment(id).subscribe({
         next: () => {
@@ -612,6 +605,9 @@ export class ShiftPlannerComponent implements OnInit {
   }
 
   onSearch(event: any) {
+    if (!this.plannerApiAvailable()) {
+      return;
+    }
     const query = event.target.value;
     this.attendanceService.getShiftPlannerHistory({ search: query }).subscribe({
       next: (res) => this.history.set(res.data || res),
@@ -619,6 +615,10 @@ export class ShiftPlannerComponent implements OnInit {
   }
 
   onFileImport(event: any) {
+    if (!this.plannerApiAvailable()) {
+      this.toastService.info('Shift planner import API is not available yet in the backend.');
+      return;
+    }
     const file = event.target.files[0];
     if (file) {
       this.attendanceService.importShiftPlanner(file).subscribe({

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError } from 'rxjs';
 import { User } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
@@ -16,6 +16,20 @@ export interface EmployeeInvitation {
     invitedAt: string;
     expiresAt: string;
     acceptedAt?: string;
+}
+
+export interface MyTeamResponse {
+    currentUser?: User;
+    manager?: User | null;
+    peers: User[];
+    reportees: User[];
+    members: User[];
+}
+
+export interface KioskPinResponse {
+    id: number;
+    employeeCode: string;
+    kioskPinConfigured: boolean;
 }
 
 @Injectable({
@@ -43,26 +57,50 @@ export class EmployeeService {
         return `${this.assetBaseUrl}/${value}`;
     }
 
+    private normalizeEmployeeStatus(value: any): 'active' | 'inactive' | 'on_leave' | 'terminated' {
+        const normalized = String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/[\s-]+/g, '_');
+
+        if (!normalized) return 'active';
+        if (['active', 'accepted', 'approved', 'enabled', 'working', 'on_job', 'onboarded'].includes(normalized)) return 'active';
+        if (['inactive', 'disabled', 'paused', 'pending', 'invited', 'expired'].includes(normalized)) return 'inactive';
+        if (['on_leave', 'leave', 'onleave', 'leave_pending'].includes(normalized)) return 'on_leave';
+        if (['terminated', 'offboarded', 'resigned', 'ex_employee', 'exit'].includes(normalized)) return 'terminated';
+        return 'active';
+    }
+
     private normalizeEmployee(raw: any): User {
         const role = raw?.role;
         const department = raw?.department;
         const designation = raw?.designation;
+        const displayName = raw?.name ?? raw?.fullName ?? raw?.full_name ?? raw?.employeeName ?? raw?.employee_name ?? '';
+        const [fallbackFirstName = '', ...fallbackLastNameParts] = String(displayName).trim().split(/\s+/).filter(Boolean);
+
+        const primaryId = Number(raw?.id ?? raw?.employeeId ?? raw?.employee_id ?? raw?.userId ?? raw?.user_id ?? 0) || undefined;
 
         return {
-            id: Number(raw?.id ?? 0) || undefined,
-            email: raw?.email ?? '',
-            firstName: raw?.firstName ?? raw?.first_name ?? '',
-            lastName: raw?.lastName ?? raw?.last_name ?? '',
-            phone: raw?.phone ?? '',
-            role: typeof role === 'string' ? role : role?.name ?? raw?.roleName ?? raw?.role_name,
+            id: primaryId,
+            employeeId: Number(raw?.employeeId ?? raw?.employee_id ?? primaryId ?? 0) || undefined,
+            email: raw?.email ?? raw?.workEmail ?? raw?.work_email ?? raw?.personalEmail ?? raw?.personal_email ?? '',
+            firstName: raw?.firstName ?? raw?.first_name ?? raw?.firstname ?? raw?.first ?? fallbackFirstName,
+            lastName: raw?.lastName ?? raw?.last_name ?? raw?.lastname ?? raw?.last ?? fallbackLastNameParts.join(' '),
+            phone: raw?.phone ?? raw?.mobile ?? raw?.mobileNo ?? raw?.mobile_no ?? raw?.contactNo ?? raw?.contact_no ?? '',
+            role: typeof role === 'string' ? role : role?.roleName ?? role?.name ?? raw?.roleName ?? raw?.role_name,
             roleId: Number(raw?.roleId ?? raw?.role_id ?? role?.id ?? 0) || undefined,
             avatar: this.resolveAssetUrl(raw?.avatar ?? raw?.profileImage ?? raw?.profile_image),
             organizationId: Number(raw?.organizationId ?? raw?.organization_id ?? 0) || undefined,
             orgId: Number(raw?.orgId ?? raw?.org_id ?? raw?.organizationId ?? raw?.organization_id ?? 0) || undefined,
-            employeeCode: raw?.employeeCode ?? raw?.employee_code ?? '',
-            status: raw?.status ?? 'active',
+            employeeCode: raw?.employeeCode ?? raw?.employee_code ?? raw?.empCode ?? raw?.emp_code ?? raw?.code ?? '',
+            status: this.normalizeEmployeeStatus(raw?.status),
             designationId: Number(raw?.designationId ?? raw?.designation_id ?? designation?.id ?? 0) || undefined,
             departmentId: Number(raw?.departmentId ?? raw?.department_id ?? department?.id ?? 0) || undefined,
+            geofenceId: Number(raw?.geofenceId ?? raw?.geofence_id ?? raw?.geofenceZoneId ?? raw?.geofence_zone_id ?? 0) || undefined,
+            geofenceRequired: Boolean(raw?.requiresGeofence ?? raw?.requires_geofence ?? false),
+            geofenceZoneName: raw?.geofenceZoneName ?? raw?.geofence_zone_name ?? raw?.geofence?.name ?? raw?.zone?.name,
+            areaIds: Array.isArray(raw?.areaIds ?? raw?.area_ids) ? (raw?.areaIds ?? raw?.area_ids) : undefined,
+            polyField: Array.isArray(raw?.polyField ?? raw?.poly_field) ? (raw?.polyField ?? raw?.poly_field) : undefined,
             managerId: Number(raw?.managerId ?? raw?.manager_id ?? raw?.manager?.id ?? 0) || undefined,
             countryCode: raw?.countryCode ?? raw?.country_code,
             countryName: raw?.countryName ?? raw?.country_name,
@@ -82,12 +120,16 @@ export class EmployeeService {
             phoneVerified: Boolean(raw?.phoneVerified ?? raw?.phone_verified ?? false),
             emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
             isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
+            modeOfAttendance: Number(raw?.modeOfAttendance ?? raw?.mode_of_attendance ?? raw?.attendanceMode ?? raw?.attendance_mode ?? 0) || null,
+            attSelfie: Number(raw?.attSelfie ?? raw?.att_selfie ?? 0) || null,
+            attImage: Number(raw?.attImage ?? raw?.att_image ?? 0) || null,
             department: department ? { id: Number(department.id), name: department.name } : undefined,
             designation: designation ? { id: Number(designation.id), name: designation.name } : undefined,
             organizationName: raw?.organizationName || raw?.organization_name || raw?.companyName || raw?.company_name || raw?.organization?.name || '',
             organizationLogo: this.resolveAssetUrl(raw?.organizationLogo || raw?.organization_logo || raw?.companyLogo || raw?.company_logo || raw?.logo || raw?.organization?.logo) || '',
             companyName: raw?.companyName || raw?.company_name || raw?.organizationName || raw?.organization_name || raw?.organization?.name || '',
-            companyLogo: this.resolveAssetUrl(raw?.companyLogo || raw?.company_logo || raw?.organizationLogo || raw?.organization_logo || raw?.logo || raw?.organization?.logo) || ''
+            companyLogo: this.resolveAssetUrl(raw?.companyLogo || raw?.company_logo || raw?.organizationLogo || raw?.organization_logo || raw?.logo || raw?.organization?.logo) || '',
+            createdAt: raw?.createdAt ?? raw?.created_at ?? raw?.joinDate ?? raw?.join_date
         };
     }
 
@@ -95,16 +137,54 @@ export class EmployeeService {
         return this.normalizeEmployee(res?.data ?? res?.employee ?? res?.user ?? res);
     }
 
-    private mapEmployeeListResponse(res: any): User[] {
-        const records = Array.isArray(res?.data)
-            ? res.data
-            : Array.isArray(res?.employees)
-                ? res.employees
-                : Array.isArray(res)
-                    ? res
-                    : [];
+    private extractEmployeeRecords(res: any): any[] {
+        const candidates = [
+            res,
+            res?.data,
+            res?.employees,
+            res?.data?.data,
+            res?.data?.employees,
+            res?.data?.employees?.data,
+            res?.result,
+            res?.result?.data,
+            res?.result?.employees,
+            res?.result?.employees?.data,
+            res?.payload,
+            res?.payload?.data,
+            res?.payload?.employees,
+            res?.payload?.employees?.data,
+            res?.items,
+            res?.records,
+            res?.rows,
+            res?.data?.rows,
+        ];
 
-        return records.map((item: any) => this.normalizeEmployee(item));
+        const records = candidates.find((candidate) => Array.isArray(candidate));
+        return records ?? [];
+    }
+
+    private mapEmployeeListResponse(res: any): User[] {
+        return this.extractEmployeeRecords(res).map((item: any) => this.normalizeEmployee(item));
+    }
+
+    private mapMyTeamResponse(res: any): MyTeamResponse {
+        const payload = res?.data ?? res ?? {};
+        const normalizeList = (value: any) =>
+            Array.isArray(value) ? value.map((item: any) => this.normalizeEmployee(item)) : [];
+
+        const currentUser = payload?.currentUser ? this.normalizeEmployee(payload.currentUser) : undefined;
+        const manager = payload?.manager ? this.normalizeEmployee(payload.manager) : null;
+        const peers = normalizeList(payload?.peers);
+        const reportees = normalizeList(payload?.reportees);
+        const members = normalizeList(payload?.members);
+
+        return {
+            currentUser,
+            manager,
+            peers,
+            reportees,
+            members: members.length ? members : [currentUser, manager, ...peers, ...reportees].filter(Boolean) as User[],
+        };
     }
 
     private buildEmployeePayload(employee: Partial<User>): Record<string, any> {
@@ -161,13 +241,91 @@ export class EmployeeService {
         return records.map((item: any) => this.normalizeInvitation(item));
     }
 
+    private isValidEmployeeId(id: unknown): id is number {
+        return Number.isInteger(id) && Number(id) > 0;
+    }
+
     getEmployees(): Observable<User[]> {
         return this.http.get<any>(`${this.apiUrl}/employees`).pipe(
             map(res => this.mapEmployeeListResponse(res))
         );
     }
 
+    setKioskPin(employeeId: number, pin: string): Observable<KioskPinResponse> {
+        return this.http.post<any>(`${this.apiUrl}/employees/${employeeId}/kiosk-pin`, { pin }).pipe(
+            map((res) => res?.data ?? res),
+            tap(() => {
+                this.auditLogService.logAction(
+                    AuditAction.UPDATE,
+                    AuditModule.EMPLOYEES,
+                    {
+                        entityName: 'Kiosk PIN',
+                        entityId: String(employeeId),
+                        newValues: { kioskPinConfigured: true },
+                    }
+                ).subscribe();
+            })
+        );
+    }
+
+    resetKioskPin(employeeId: number): Observable<KioskPinResponse> {
+        return this.http.delete<any>(`${this.apiUrl}/employees/${employeeId}/kiosk-pin`).pipe(
+            map((res) => res?.data ?? res),
+            tap(() => {
+                this.auditLogService.logAction(
+                    AuditAction.UPDATE,
+                    AuditModule.EMPLOYEES,
+                    {
+                        entityName: 'Kiosk PIN',
+                        entityId: String(employeeId),
+                        newValues: { kioskPinConfigured: false },
+                    }
+                ).subscribe();
+            })
+        );
+    }
+
+    getMyTeam(): Observable<MyTeamResponse> {
+        return this.http.get<any>(`${this.apiUrl}/employees/my-team`).pipe(
+            map(res => this.mapMyTeamResponse(res)),
+            catchError(() =>
+                this.getEmployees().pipe(
+                    map((employees) => {
+                        let storedUser: any = null;
+                        try {
+                            storedUser = JSON.parse(localStorage.getItem('hrms_user_data') || 'null');
+                        } catch {
+                            storedUser = null;
+                        }
+                        const currentUserId = Number(storedUser?.id ?? storedUser?.employeeId ?? 0);
+                        const currentUser = employees.find((employee) => employee.id === currentUserId);
+                        const manager = currentUser?.managerId
+                            ? employees.find((employee) => employee.id === currentUser.managerId) ?? null
+                            : null;
+                        const peers = currentUser?.managerId
+                            ? employees.filter((employee) => employee.id !== currentUser.id && employee.managerId === currentUser.managerId)
+                            : [];
+                        const reportees = currentUser?.id
+                            ? employees.filter((employee) => employee.managerId === currentUser.id)
+                            : [];
+                        return {
+                            currentUser,
+                            manager,
+                            peers,
+                            reportees,
+                            members: [currentUser, manager, ...peers, ...reportees].filter(Boolean) as User[],
+                        };
+                    })
+                )
+            )
+        );
+    }
+
     getEmployeeById(id: number): Observable<User> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         return this.http.get<any>(`${this.apiUrl}/employees/${id}`).pipe(
             map(res => this.mapEmployeeResponse(res))
         );
@@ -197,6 +355,10 @@ export class EmployeeService {
     }
 
     updateEmployee(id: number, employee: Partial<User>): Observable<User> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         const payload = this.buildEmployeePayload(employee);
         return this.http.put<any>(`${this.apiUrl}/employees/${id}`, payload).pipe(
             map(res => this.mapEmployeeResponse(res)),
@@ -218,6 +380,10 @@ export class EmployeeService {
     }
 
     deleteEmployee(id: number): Observable<void> {
+        if (!this.isValidEmployeeId(id)) {
+            return throwError(() => new Error('Invalid employee id.'));
+        }
+
         return this.http.delete<any>(`${this.apiUrl}/employees/${id}`).pipe(
             tap(() => {
                 this.auditLogService.logAction(

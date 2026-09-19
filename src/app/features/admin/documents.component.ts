@@ -74,7 +74,7 @@ import {
             >
             <app-ui-select-advanced
               [(ngModel)]="filters.category"
-              (ngModelChange)="loadDocuments()"
+              (ngModelChange)="scheduleLoadDocuments()"
               [options]="categoryFilterOptions"
               placeholder="All Categories"
               size="sm"
@@ -89,7 +89,7 @@ import {
             <input
               type="text"
               [(ngModel)]="filters.search"
-              (input)="loadDocuments()"
+              (input)="scheduleLoadDocuments()"
               placeholder="Search documents..."
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
@@ -388,6 +388,7 @@ import {
 export class DocumentsComponent implements OnInit {
   private documentService = inject(DocumentService);
   private toastService = inject(ToastService);
+  private loadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   documents: Document[] = [];
   loading = false;
@@ -429,6 +430,13 @@ export class DocumentsComponent implements OnInit {
 
   ngOnInit() {
     this.loadDocuments();
+  }
+
+  scheduleLoadDocuments() {
+    if (this.loadDebounceTimer) {
+      clearTimeout(this.loadDebounceTimer);
+    }
+    this.loadDebounceTimer = setTimeout(() => this.loadDocuments(), 250);
   }
 
   loadDocuments() {

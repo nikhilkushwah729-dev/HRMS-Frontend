@@ -11,6 +11,8 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import type { User } from '../../core/models/auth.model';
 import { EmployeeService } from '../../core/services/employee.service';
+import { LanguageService } from '../../core/services/language.service';
+import { PermissionService } from '../../core/services/permission.service';
 import {
   AttendanceService,
   TodayAttendance,
@@ -19,6 +21,9 @@ import {
   AnnouncementService,
   type Announcement,
 } from '../../core/services/announcement.service';
+import { TrialBannerComponent } from './trial-banner/trial-banner.component';
+import { SubscriptionService } from '../../core/services/subscription.service';
+import { ToastService } from '../../core/services/toast.service';
 
 interface UpcomingHoliday {
   date: string;
@@ -54,9 +59,10 @@ interface ModuleCard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, TrialBannerComponent],
   template: `
     <div class="dashboard-page">
+      <app-trial-banner></app-trial-banner>
       <section class="hero">
         <div class="hero-copy">
           <p class="hero-eyebrow">{{ greeting() }}</p>
@@ -68,13 +74,13 @@ interface ModuleCard {
 
           <div class="hero-actions">
             <a routerLink="/attendance" class="hero-btn hero-btn-primary"
-              >Open Attendance</a
+              >{{ t('dashboard.openAttendance') }}</a
             >
             <a routerLink="/leaves" class="hero-btn hero-btn-secondary"
-              >Manage Leaves</a
+              >{{ t('dashboard.manageLeaves') }}</a
             >
             <a routerLink="/profile" class="hero-btn hero-btn-ghost"
-              >View Profile</a
+              >{{ t('dashboard.viewProfile') }}</a
             >
           </div>
         </div>
@@ -87,8 +93,8 @@ interface ModuleCard {
             ></span>
             <span>{{
               todayAttendance()?.is_clocked_in
-                ? 'Workday live'
-                : 'Waiting for check-in'
+                ? t('dashboard.workdayLive')
+                : t('dashboard.waitingForCheckIn')
             }}</span>
           </div>
 
@@ -101,23 +107,23 @@ interface ModuleCard {
 
           <div class="hero-meta-grid">
             <div class="hero-meta-card">
-              <span>Current time</span>
+              <span>{{ t('dashboard.currentTime') }}</span>
               <strong>{{ currentTime() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Today</span>
+              <span>{{ t('dashboard.today') }}</span>
               <strong>{{ currentDay() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Hours</span>
+              <span>{{ t('dashboard.hours') }}</span>
               <strong>{{ totalHours() }}</strong>
             </div>
             <div class="hero-meta-card">
-              <span>Shift</span>
+              <span>{{ t('dashboard.shift') }}</span>
               <strong>{{ shiftName() }}</strong>
             </div>
             <div class="hero-meta-card" style="grid-column: 1 / -1;">
-              <span>Hierarchy</span>
+              <span>{{ t('dashboard.hierarchy') }}</span>
               <strong>{{ hierarchyRoleLabel() }}</strong>
             </div>
           </div>
@@ -128,15 +134,16 @@ interface ModuleCard {
               type="button"
               disabled
             >
-              Attendance already recorded
+              {{ t('dashboard.attendanceAlreadyRecorded') }}
             </button>
           } @else {
             <button
               class="hero-wide-action"
               type="button"
               (click)="markAttendance()"
+              [disabled]="isMarkingAttendance()"
             >
-              Mark attendance now
+              {{ isMarkingAttendance() ? 'Marking attendance...' : t('dashboard.markAttendanceNow') }}
             </button>
           }
         </aside>
@@ -144,8 +151,8 @@ interface ModuleCard {
 
       <section class="announcement-section">
         <div class="announcement-section-head">
-          <p class="panel-eyebrow" style="color: #7c3aed;">Announcements</p>
-          <h3>Organization updates</h3>
+          <p class="panel-eyebrow" style="color: #7c3aed;">{{ t('dashboard.announcements') }}</p>
+          <h3>{{ t('dashboard.organizationUpdates') }}</h3>
         </div>
 
         @if (hasAnnouncements()) {
@@ -585,29 +592,33 @@ interface ModuleCard {
         gap: 1.5rem;
         color: #0f172a;
         min-width: 0;
+        width: 100%;
       }
 
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
-        padding: 1.5rem;
-        border-radius: 32px;
+        padding: 1.25rem;
+        border-radius: 18px;
         border: 1px solid rgba(148, 163, 184, 0.18);
-        background: linear-gradient(135deg, #fff8ed 0%, #f8fafc 52%, #ecfeff 100%);
-        box-shadow: 0 28px 60px -40px rgba(15, 23, 42, 0.34);
+        background: #ffffff;
+        box-shadow: 0 18px 42px -28px rgba(15, 23, 42, 0.18);
         align-items: stretch;
+        overflow: hidden;
       }
 
       .hero-copy,
       .hero-panel,
       .panel,
       .stat-card {
-        border-radius: 28px;
+        border-radius: 12px;
         min-width: 0;
       }
 
       .hero-copy {
+        display: flex;
+        flex-direction: column;
         padding: 0.25rem;
       }
 
@@ -619,7 +630,7 @@ interface ModuleCard {
         font-weight: 800;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #b45309;
+        color: #2563eb;
       }
 
       .panel-eyebrow-dark {
@@ -654,7 +665,8 @@ interface ModuleCard {
         display: flex;
         gap: 0.8rem;
         flex-wrap: wrap;
-        margin-top: 1.5rem;
+        margin-top: auto;
+        padding-top: 1.5rem;
       }
 
       .hero-btn,
@@ -664,24 +676,16 @@ interface ModuleCard {
         justify-content: center;
         min-height: 3rem;
         padding: 0.9rem 1.15rem;
-        border-radius: 18px;
+        border-radius: 10px;
         font-weight: 700;
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease;
-      }
-
-      .hero-btn:hover,
-      .hero-wide-action:hover,
-      .quick-link:hover {
-        transform: translateY(-1px);
+        transition: box-shadow 0.2s ease, background-color 0.2s ease;
       }
 
       .hero-btn-primary,
       .hero-wide-action {
-        background: linear-gradient(135deg, #0f766e, #115e59);
+        background: #0f172a;
         color: #fff;
-        box-shadow: 0 18px 34px -24px rgba(15, 118, 110, 0.55);
+        box-shadow: 0 8px 18px -14px rgba(15, 23, 42, 0.35);
       }
 
       .hero-btn-secondary {
@@ -702,10 +706,15 @@ interface ModuleCard {
       .stat-card {
         padding: 1.35rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
-        background: rgba(255, 255, 255, 0.86);
-        box-shadow: 0 22px 46px -34px rgba(15, 23, 42, 0.28);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: #ffffff;
+        box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.14);
+      }
+
+      .hero-panel,
+      .stat-card,
+      .module-card {
+        display: flex;
+        flex-direction: column;
       }
 
       .hero-panel-top {
@@ -756,12 +765,8 @@ interface ModuleCard {
 
       .hero-meta-card {
         padding: 0.9rem;
-        border-radius: 20px;
-        background: linear-gradient(
-          180deg,
-          rgba(248, 250, 252, 0.96),
-          rgba(241, 245, 249, 0.96)
-        );
+        border-radius: 10px;
+        background: #f8fafc;
         border: 1px solid rgba(148, 163, 184, 0.14);
       }
 
@@ -784,7 +789,8 @@ interface ModuleCard {
 
       .hero-wide-action {
         width: 100%;
-        margin-top: 1.15rem;
+        margin-top: auto;
+        padding-top: 0.9rem;
         border: 0;
       }
 
@@ -804,19 +810,19 @@ interface ModuleCard {
 
       .org-node {
         padding: 1rem 1.05rem;
-        border-radius: 22px;
+        border-radius: 12px;
         border: 1px solid rgba(148, 163, 184, 0.16);
-        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(255, 255, 255, 0.92));
+        background: #ffffff;
       }
 
       .org-node-top {
         border-color: rgba(245, 158, 11, 0.2);
-        background: linear-gradient(180deg, rgba(255, 251, 235, 0.96), rgba(255, 247, 237, 0.94));
+        background: #fffbeb;
       }
 
       .org-node-center {
         border-color: rgba(20, 184, 166, 0.2);
-        background: linear-gradient(180deg, rgba(236, 253, 245, 0.96), rgba(240, 253, 250, 0.94));
+        background: #ecfdf5;
       }
 
       .org-node strong {
@@ -857,7 +863,7 @@ interface ModuleCard {
 
       .org-chip {
         padding: 0.65rem 0.75rem;
-        border-radius: 16px;
+        border-radius: 10px;
         background: rgba(255, 255, 255, 0.72);
         border: 1px solid rgba(148, 163, 184, 0.14);
       }
@@ -1052,7 +1058,8 @@ interface ModuleCard {
 
       .stat-card span {
         display: block;
-        margin-top: 0.7rem;
+        margin-top: auto;
+        padding-top: 0.7rem;
         color: #475569;
         line-height: 1.55;
       }
@@ -1069,6 +1076,7 @@ interface ModuleCard {
 
       .content-grid {
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        align-items: stretch;
       }
 
       .panel-dark {
@@ -1099,7 +1107,9 @@ interface ModuleCard {
       }
 
       .quick-link {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        min-height: 7.25rem;
         padding: 1rem;
         border-radius: 22px;
         border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1113,6 +1123,11 @@ interface ModuleCard {
       .empty-state strong {
         display: block;
         color: #0f172a;
+      }
+
+      .quick-link span {
+        margin-top: auto;
+        padding-top: 0.45rem;
       }
 
       .tone-teal {
@@ -1188,6 +1203,15 @@ interface ModuleCard {
       .empty-state {
         border: 1px solid rgba(148, 163, 184, 0.12);
         background: rgba(248, 250, 252, 0.78);
+      }
+
+      .list-row > div {
+        min-width: 0;
+      }
+
+      .list-row strong,
+      .list-row span {
+        overflow-wrap: anywhere;
       }
 
       .badge {
@@ -1413,7 +1437,7 @@ interface ModuleCard {
         }
       }
 
-      @media (max-width: 1279px) {
+      @media (max-width: 1180px) {
         .hero,
         .content-grid {
           grid-template-columns: 1fr;
@@ -1421,10 +1445,6 @@ interface ModuleCard {
       }
 
       @media (max-width: 1023px) {
-        .hero {
-          grid-template-columns: 1fr;
-        }
-
         .hero-panel {
           order: -1;
         }
@@ -1448,6 +1468,10 @@ interface ModuleCard {
         .hero {
           padding: 1rem;
           border-radius: 24px;
+        }
+
+        .hero-copy {
+          padding: 0;
         }
 
         .hero-panel,
@@ -1501,10 +1525,14 @@ interface ModuleCard {
   ],
 })
 export class DashboardComponent implements OnInit, OnDestroy {
+  private readonly permissionService = inject(PermissionService);
   private authService = inject(AuthService);
   private employeeService = inject(EmployeeService);
   private attendanceService = inject(AttendanceService);
   private announcementService = inject(AnnouncementService);
+  private languageService = inject(LanguageService);
+  private readonly subscriptionService = inject(SubscriptionService);
+  private readonly toastService = inject(ToastService);
 
   currentUser = signal<User | null>(null);
   employees = signal<User[]>([]);
@@ -1514,14 +1542,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentAnnouncementIndex = signal(0);
   pendingRequests = signal(3);
   upcomingHolidays = signal<UpcomingHoliday[]>([]);
-  birthdays = signal<Birthday[]>([
-    { name: 'Aarav Mehta', date: 'Today', department: 'Engineering' },
-  ]);
-  workAnniversaries = signal<WorkAnniversary[]>([
-    { name: 'Neha Sharma', years: 5 },
-  ]);
+  birthdays = signal<Birthday[]>([]);
+  workAnniversaries = signal<WorkAnniversary[]>([]);
   currentTime = signal('');
   currentDay = signal('');
+  isMarkingAttendance = signal(false);
+  private employeesLoaded = signal(false);
 
   activeAnnouncements = computed(() => {
     const dismissed = this.dismissedAnnouncementIds();
@@ -1566,7 +1592,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         title: 'My Documents',
         description:
           'Access pay slips, offer letters, and important documents.',
-        route: '/documents',
+        route: '/admin/documents',
         tone: 'tone-slate',
       },
       {
@@ -1673,9 +1699,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private clockInterval: ReturnType<typeof setInterval> | null = null;
 
   ngOnInit(): void {
+    this.subscriptionService.getStatus().subscribe();
     this.currentUser.set(this.authService.getStoredUser());
     this.loadDashboardData();
-    this.loadEmployees();
+    if (this.shouldLoadEmployees()) {
+      this.loadEmployees();
+    }
     this.loadAnnouncements();
     this.seedCalendarData();
     this.startClock();
@@ -1695,10 +1724,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadEmployees(): void {
+    if (this.employeesLoaded()) return;
+
     this.employeeService.getEmployees().subscribe({
-      next: (data) => this.employees.set(data ?? []),
+      next: (data) => {
+        this.employees.set(data ?? []);
+        this.employeesLoaded.set(true);
+      },
       error: () => this.employees.set([]),
     });
+  }
+
+  private shouldLoadEmployees(): boolean {
+    const user = this.currentUser();
+    return Boolean(user?.managerId || this.isManager());
   }
 
   private loadAnnouncements(): void {
@@ -1779,15 +1818,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   dashboardSummary(): string {
-    if (this.isManager()) return 'Team operations at a glance';
-    return 'Your self-service workspace';
+    if (this.isManager()) return this.t('dashboard.teamOperationsAtGlance');
+    return this.t('dashboard.selfServiceWorkspace');
   }
 
   dashboardDescription(): string {
     if (this.isManager()) {
-      return 'Track attendance, approvals, and team activity from one focused workspace.';
+      return this.t('dashboard.managerDescription');
     }
-    return 'Manage attendance, leaves, documents, expenses, and personal work from one clean view.';
+    return this.t('dashboard.employeeDescription');
   }
 
   reportsToName(): string {
@@ -1867,24 +1906,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   teammatesPreview(): string {
     const people = this.teammates().slice(0, 3);
-    if (!people.length) return 'No peers assigned yet';
+    if (!people.length) return this.t('dashboard.noPeersAssignedYet');
     return people.map((person) => `${person.firstName} ${person.lastName}`).join(', ');
   }
 
   reporteesPreview(): string {
     const people = this.reportees().slice(0, 3);
     if (!people.length) {
-      return this.isManager() ? 'No direct reportees yet' : 'No direct reportees';
+      return this.t('dashboard.noDirectReporteesYet');
     }
     return people.map((person) => `${person.firstName} ${person.lastName}`).join(', ');
   }
 
   hierarchyRoleLabel(): string {
     const user = this.currentUser();
-    if (!user) return 'Employee';
-    if (this.reportees().length > 0) return 'Lead';
-    if (user.managerId) return 'Individual contributor';
-    return this.isManager() ? 'Top level' : 'Self service';
+    if (!user) return this.t('dashboard.employee');
+    if (this.reportees().length > 0) return this.t('dashboard.lead');
+    if (user.managerId) return this.t('dashboard.individualContributor');
+    return this.isManager() ? this.t('dashboard.topLevel') : this.t('dashboard.selfServiceWorkspace');
   }
 
   hierarchySubtitle(): string {
@@ -1902,25 +1941,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   attendanceHeadline(): string {
-    if (!this.todayAttendance()) return 'Syncing your workday';
+    if (!this.todayAttendance()) return this.t('dashboard.syncingWorkday');
     return this.todayAttendance()?.is_clocked_in
-      ? 'You are checked in'
-      : 'Ready for check-in';
+      ? this.t('dashboard.checkedIn')
+      : this.t('dashboard.readyForCheckIn');
   }
 
   attendanceSubline(): string {
     const status = this.todayAttendance();
-    if (!status) return 'We are loading your attendance details for today.';
+    if (!status) return this.t('dashboard.loadingAttendanceToday');
     if (status.is_clocked_in && status.check_in) {
       return `Checked in at ${this.attendanceTime(status.check_in)} with ${this.totalHours()} logged so far.`;
     }
-    return 'Start your day from here and your live attendance data will appear instantly.';
+    return this.t('dashboard.startYourDay');
   }
 
-  attendanceTime(value?: string | null): string {
-    if (!value) return '--';
-    return new Date(value).toLocaleTimeString('en-US', {
-      hour: 'numeric',
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
+  }
+
+  attendanceTime(date: any): string {
+    if (!date) return '--:--';
+    return new Date(date).toLocaleTimeString([], {
+      hour: '2-digit',
       minute: '2-digit',
       hour12: true,
     });
@@ -1958,14 +2002,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   isManager(): boolean {
-    const roleId = this.currentUser()?.roleId;
-    return roleId === 1 || roleId === 2 || roleId === 3 || roleId === 4;
+    return this.permissionService.isManagerialUser(this.currentUser());
   }
 
   markAttendance(): void {
+    if (this.isMarkingAttendance()) {
+      return;
+    }
+
+    this.isMarkingAttendance.set(true);
     this.attendanceService.checkIn({ source: 'dashboard' }).subscribe({
-      next: (response) => this.todayAttendance.set(response),
-      error: () => this.todayAttendance.set(this.todayAttendance()),
+      next: (response) => {
+        this.todayAttendance.set(response);
+        this.toastService.success('Attendance marked successfully.');
+        this.isMarkingAttendance.set(false);
+      },
+      error: () => {
+        this.todayAttendance.set(this.todayAttendance());
+        this.toastService.error(
+          'Unable to mark attendance right now. Please try again in a moment.',
+        );
+        this.isMarkingAttendance.set(false);
+      },
     });
   }
 }

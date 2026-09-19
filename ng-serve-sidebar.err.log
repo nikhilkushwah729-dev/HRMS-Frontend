@@ -1,0 +1,183 @@
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'trackEmployee' does not exist on type 'EmployeeListComponent'. Did you mean 'rawEmployees'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:313:87:
+[37m      313 │ ...ilteredEmployees(); let rowIndex = index; trackBy: [32mtrackEmployee[37m"
+          ╵                                                       [32m~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeInitials' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:320:23:
+[37m      320 │                     {{ [32memployeeInitials[37m(emp) }}
+          ╵                        [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeName' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:324:25:
+[37m      324 │                       {{ [32memployeeName[37m(emp) }}
+          ╵                          [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'trackEmployee' does not exist on type 'EmployeeListComponent'. Did you mean 'rawEmployees'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:487:91:
+[37m      487 │ ...ilteredEmployees(); let rowIndex = index; trackBy: [32mtrackEmployee[37m"
+          ╵                                                       [32m~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeInitials' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:495:29:
+[37m      495 │                           {{ [32memployeeInitials[37m(emp) }}
+          ╵                              [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeName' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:499:32:
+[37m      499 │                             >{{ [32memployeeName[37m(emp) }}</span
+          ╵                                 [32m~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'statusBadgeClass' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:313:27:
+[37m      313 │                 [ngClass]="[32mstatusBadgeClass[37m(emp.status)"
+          ╵                            [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'normalizeStatus' is private and only accessible within class 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:315:28:
+[37m      315 │                 {{ tabLabel([32mnormalizeStatus[37m(emp.status)) }}
+          ╵                             [32m~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'statusBadgeClass' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:377:117:
+[37m      377 │ ...lize whitespace-nowrap" [ngClass]="[32mstatusBadgeClass[37m(emp.status)">
+          ╵                                       [32m~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'normalizeStatus' is private and only accessible within class 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:378:32:
+[37m      378 │                     {{ tabLabel([32mnormalizeStatus[37m(emp.status)) }}
+          ╵                                 [32m~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'normalizeStatus' is private and only accessible within class 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:315:28:
+[37m      315 │                 {{ tabLabel([32mnormalizeStatus[37m(emp.status)) }}
+          ╵                             [32m~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'normalizeStatus' is private and only accessible within class 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:378:32:
+[37m      378 │                     {{ tabLabel([32mnormalizeStatus[37m(emp.status)) }}
+          ╵                                 [32m~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'employeeStatusLabel' does not exist on type 'EmployeeListComponent'. Did you mean 'employeeStats'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:315:19:
+[37m      315 │                 {{ [32memployeeStatusLabel[37m(emp.status) }}
+          ╵                    [32m~~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'employeeStatusLabel' does not exist on type 'EmployeeListComponent'. Did you mean 'employeeStats'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:378:23:
+[37m      378 │                     {{ [32memployeeStatusLabel[37m(emp.status) }}
+          ╵                        [32m~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mTS7053: Element implicitly has an 'any' type because expression of type '"active" | "inactive" | "on_leave" | "terminated" | "all"' can't be used to index type '{ active: number; inactive: number; on_leave: number; terminated: number; }'.
+  Property 'all' does not exist on type '{ active: number; inactive: number; on_leave: number; terminated: number; }'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:809:39:
+[37m      809 │ ...Tab() === 'all' || [32mcounts[this.currentTab()][37m > 0 || employees....
+          ╵                       [32m~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'tableEmployees' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:277:41:
+[37m      277 │ ...f="!isTableLoading() && [32mtableEmployees[37m().length === 0" class="...
+          ╵                            [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'tableEmployees' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:344:41:
+[37m      344 │ ...f="!isTableLoading() && [32mtableEmployees[37m().length > 0" class="ov...
+          ╵                            [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'tableEmployees' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:358:35:
+[37m      358 │ ...     *ngFor="let emp of [32mtableEmployees[37m(); let rowIndex = index...
+          ╵                            [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'tableEmployees' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:741:53:
+[37m      741 │ ...ingOfEntries', { shown: [32mtableEmployees[37m().length, total: rawEmp...
+          ╵                            [32m~~~~~~~~~~~~~~[0m
+
+[39m[22m
+[1m[31m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeEmail' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:322:87:
+[37m      322 │ ...t-slate-500 font-medium truncate">{{ [32memployeeEmail[37m(emp) }}</span>
+          ╵                                         [32m~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeCode' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:327:99:
+[37m      327 │ ...-2 py-1 rounded text-xs font-bold">{{ [32memployeeCode[37m(emp) }}</span>
+          ╵                                          [32m~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeRoleLabel' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:329:76:
+[37m      329 │ ...-slate-600 font-medium text-sm">{{ [32memployeeRoleLabel[37m(emp) }}</td>
+          ╵                                       [32m~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'employeeStatus' does not exist on type 'EmployeeListComponent'. Did you mean 'employeeStats'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:331:134:
+[37m      331 │ ...espace-nowrap" [ngClass]="statusBadgeClass([32memployeeStatus[37m(emp))">
+          ╵                                               [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG1: Property 'employeeStatus' does not exist on type 'EmployeeListComponent'. Did you mean 'employeeStats'?[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:332:43:
+[37m      332 │                     {{ employeeStatusLabel([32memployeeStatus[37m(emp)) }}
+          ╵                                            [32m~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeJoinedDate' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:335:71:
+[37m      335 │ ...text-slate-500 text-sm italic">{{ [32memployeeJoinedDate[37m(emp) }}</td>
+          ╵                                      [32m~~~~~~~~~~~~~~~~~~[0m
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mNG9: Property 'employeeNumericId' does not exist on type 'EmployeeListComponent'.[0m [1m[35m[plugin angular-compiler][0m
+
+    src/app/features/employees/employee-list.component.ts:344:81:
+[37m      344 │ ...click)="deleteEmployee([32memployeeNumericId[37m(emp))" class="inline-...
+          ╵                           [32m~~~~~~~~~~~~~~~~~[0m
+
+[39m[22m

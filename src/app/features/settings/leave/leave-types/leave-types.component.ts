@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { LeaveService, LeaveTypeBalance } from '../../../../core/services/leave.service';
 import { ToastService } from '../../../../core/services/toast.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 @Component({
   selector: 'app-leave-types-settings',
@@ -86,7 +87,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                 {{ saving() ? 'Saving...' : editingId() ? 'Update Leave Type' : 'Save Leave Type' }}
               </button>
               <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
-                Reset
+                {{ t('common.reset') }}
               </button>
             </div>
           </form>
@@ -119,10 +120,10 @@ import { ToastService } from '../../../../core/services/toast.service';
                 </div>
                 <div class="flex gap-3">
                   <button type="button" (click)="editLeaveType(leaveType)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button type="button" (click)="removeLeaveType(leaveType.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                 </div>
               </article>
@@ -134,7 +135,7 @@ import { ToastService } from '../../../../core/services/toast.service';
                     <path d="M12 5v14" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No leave types found</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">
                   Create the first leave bucket to make policy options available
                   for employees and approval flows.
@@ -151,6 +152,7 @@ export class LeaveTypesComponent implements OnInit {
   private readonly leaveService = inject(LeaveService);
   private readonly toastService = inject(ToastService);
   private readonly fb = inject(FormBuilder);
+  private readonly languageService = inject(LanguageService);
 
   leaveTypes = signal<LeaveTypeBalance[]>([]);
   searchQuery = signal('');
@@ -254,5 +256,10 @@ export class LeaveTypesComponent implements OnInit {
       },
       error: () => this.toastService.error('Failed to delete leave type.'),
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

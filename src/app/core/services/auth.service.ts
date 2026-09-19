@@ -112,9 +112,52 @@ export class AuthService {
             ...raw?.organization,
             ...raw?.company,
             ...candidate,
+            allUserPermissions: raw?.allUserPermissions ?? candidate?.allUserPermissions,
+            userPermissions: raw?.userPermissions ?? candidate?.userPermissions,
+            tabsPermission: raw?.tabsPermission ?? candidate?.tabsPermission,
+            anonymousPermission: raw?.anonymousPermission ?? candidate?.anonymousPermission,
             organization: raw?.organization ?? candidate?.organization,
             company: raw?.company ?? candidate?.company
         });
+    }
+
+    private normalizePermissions(raw: any): string[] {
+        const source = raw?.permissions ?? raw?.permission ?? raw?.allUserPermissions?.permission;
+        const nestedSources = [
+            raw?.allUserPermissions?.permission,
+            raw?.userPermissions?.permission,
+            raw?.tabsPermission?.permission,
+            raw?.anonymousPermission?.permission,
+        ];
+
+        const fromObject = (value: any): string[] => {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+            return Object.entries(value)
+                .filter(([, allowed]) => allowed === true || allowed === 1 || allowed === '1' || allowed === 'true')
+                .map(([key]) => key);
+        };
+
+        if (Array.isArray(source)) {
+            return [
+                ...source.map((item: any) => String(item)),
+                ...nestedSources.flatMap(fromObject),
+            ];
+        }
+
+        if (source && typeof source === 'object') {
+            return [...fromObject(source), ...nestedSources.flatMap(fromObject)];
+        }
+
+        return nestedSources.flatMap(fromObject);
+    }
+
+    private normalizeNumberFlag(value: any): number | undefined {
+        if (value === undefined || value === null || value === '') return undefined;
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) return parsed;
+        if (value === true || value === 'true') return 1;
+        if (value === false || value === 'false') return 0;
+        return undefined;
     }
 
     private normalizeUser(raw: any): User {
@@ -137,6 +180,11 @@ export class AuthService {
             status: raw?.status ?? 'active',
             designationId: Number(raw?.designationId ?? raw?.designation_id ?? raw?.designation?.id ?? 0) || undefined,
             departmentId: Number(raw?.departmentId ?? raw?.department_id ?? raw?.department?.id ?? 0) || undefined,
+            geofenceId: Number(raw?.geofenceId ?? raw?.geofence_id ?? raw?.geofenceZoneId ?? raw?.geofence_zone_id ?? 0) || undefined,
+            geofenceRequired: Boolean(raw?.requiresGeofence ?? raw?.requires_geofence ?? false),
+            geofenceZoneName: raw?.geofenceZoneName ?? raw?.geofence_zone_name ?? raw?.geofence?.name ?? raw?.zone?.name,
+            areaIds: Array.isArray(raw?.areaIds ?? raw?.area_ids) ? (raw?.areaIds ?? raw?.area_ids) : undefined,
+            polyField: Array.isArray(raw?.polyField ?? raw?.poly_field) ? (raw?.polyField ?? raw?.poly_field) : undefined,
             managerId: Number(raw?.managerId ?? raw?.manager_id ?? raw?.manager?.id ?? 0) || undefined,
             countryCode: raw?.countryCode ?? raw?.country_code,
             countryName: raw?.countryName ?? raw?.country_name,
@@ -156,9 +204,26 @@ export class AuthService {
             phoneVerified: Boolean(raw?.phoneVerified ?? raw?.phone_verified ?? false),
             emailVerified: Boolean(raw?.emailVerified ?? raw?.email_verified ?? false),
             isLocked: Boolean(raw?.isLocked ?? raw?.is_locked ?? false),
+            employeeId: Number(raw?.employeeId ?? raw?.employee_id ?? raw?.empId ?? raw?.emp_id ?? raw?.id ?? 0) || undefined,
+            reportingManagerId: Number(raw?.reportingManagerId ?? raw?.reporting_manager_id ?? raw?.managerId ?? raw?.manager_id ?? 0) || undefined,
+            paySlip: this.normalizeNumberFlag(raw?.paySlip ?? raw?.pay_slip),
+            salarySlip: this.normalizeNumberFlag(raw?.salarySlip ?? raw?.salary_slip),
+            shiftChangePerm: this.normalizeNumberFlag(raw?.shiftChangePerm ?? raw?.shift_change_perm),
+            profileType: this.normalizeNumberFlag(raw?.profileType ?? raw?.profile_type),
+            hrSts: this.normalizeNumberFlag(raw?.hrSts ?? raw?.hr_sts),
+            setupConfig: this.normalizeNumberFlag(raw?.setupConfig ?? raw?.setup_config),
+            esslSetupConfig: this.normalizeNumberFlag(raw?.esslSetupConfig ?? raw?.essl_setup_config),
+            biometricMachinePermission: this.normalizeNumberFlag(raw?.biometricMachinePermission ?? raw?.biometric_machine_permission),
+            addonDeviceVerification: this.normalizeNumberFlag(raw?.addonDeviceVerification ?? raw?.addon_device_verification),
+            visitorManagementAddOn: this.normalizeNumberFlag(
+                raw?.visitorManagementAddOn ??
+                raw?.visitor_management_add_on ??
+                raw?.anonymousPermission?.permission?.visitorManagementAddOn
+            ),
+            settingPerm: this.normalizeNumberFlag(raw?.settingPerm ?? raw?.setting_perm ?? raw?.anonymousPermission?.permission?.settingPerm),
             department: raw?.department ? { id: Number(raw.department.id), name: raw.department.name } : undefined,
             designation: raw?.designation ? { id: Number(raw.designation.id), name: raw.designation.name } : undefined,
-            permissions: Array.isArray(raw?.permissions) ? raw.permissions.map((item: any) => String(item)) : [],
+            permissions: this.normalizePermissions(raw),
             accessScope: raw?.accessScope ?? raw?.access_scope
         };
     }
@@ -175,15 +240,54 @@ export class AuthService {
             employee: data?.employee ?? root?.employee,
             account: data?.account ?? root?.account
         }) ?? this.extractUser(root) ?? this.extractUser(data);
+        const normalizeBoolean = (value: any): boolean | undefined => {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'number') return value !== 0;
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (['true', '1', 'yes', 'sent', 'delivered'].includes(normalized)) return true;
+                if (['false', '0', 'no', 'failed', 'not_sent', 'undelivered'].includes(normalized)) return false;
+            }
+            return undefined;
+        };
+        const otpReference =
+            root?.otpReference ??
+            data?.otpReference ??
+            root?.otp_reference ??
+            data?.otp_reference ??
+            root?.reference ??
+            data?.reference ??
+            root?.otpId ??
+            data?.otpId;
+        const emailDelivered = normalizeBoolean(
+            root?.emailDelivered ??
+            data?.emailDelivered ??
+            root?.email_delivered ??
+            data?.email_delivered ??
+            root?.delivered ??
+            data?.delivered
+        );
+        const requiresOtp = normalizeBoolean(
+            root?.requiresOtp ??
+            data?.requiresOtp ??
+            root?.requires_otp ??
+            data?.requires_otp
+        );
+        const requires2fa = normalizeBoolean(
+            root?.requires2fa ??
+            data?.requires2fa ??
+            root?.requires_2fa ??
+            data?.requires_2fa
+        );
 
         return {
             ...root,
             token,
             user,
-            requiresOtp: Boolean(root?.requiresOtp ?? data?.requiresOtp),
-            requires2fa: Boolean(root?.requires2fa ?? data?.requires2fa),
-            otpReference: root?.otpReference ?? data?.otpReference,
-            emailDelivered: root?.emailDelivered ?? data?.emailDelivered,
+            requiresOtp: requiresOtp ?? false,
+            requires2fa: requires2fa ?? false,
+            otpReference,
+            emailDelivered,
             message: root?.message ?? data?.message
         };
     }
@@ -404,6 +508,7 @@ export class AuthService {
      */
     requestEmailOtp(email: string): Observable<{ otpReference: string; message: string }> {
         return this.http.post<any>(`${this.apiUrl}/auth/request-email-otp`, { email }).pipe(
+            map(res => this.normalizeAuthResponse(res) as any),
             tap(() => {
                 this.auditLogService.logAction(
                     AuditAction.OTP_REQUESTED,
@@ -422,6 +527,7 @@ export class AuthService {
      */
     requestEmailVerificationOtp(email: string): Observable<{ otpReference: number; emailDelivered: boolean; message: string }> {
         return this.http.post<any>(`${this.apiUrl}/auth/request-email-otp`, { email }).pipe(
+            map(res => this.normalizeAuthResponse(res) as any),
             tap(() => {
                 this.auditLogService.logAction(
                     AuditAction.OTP_REQUESTED,
@@ -570,8 +676,13 @@ export class AuthService {
         );
     }
 
-    getMe(): Observable<User> {
-        return this.http.get<any>(`${this.apiUrl}/auth/me`).pipe(
+    getMe(options?: { skipLoading?: boolean }): Observable<User> {
+        let headers = undefined;
+        if (options?.skipLoading) {
+            headers = { 'X-Skip-Loading': 'true' };
+        }
+
+        return this.http.get<any>(`${this.apiUrl}/auth/me`, { headers }).pipe(
             map((res) => this.normalizeUser({
                 ...(res?.data ?? res?.user ?? res),
                 organization: res?.data?.organization ?? res?.organization,

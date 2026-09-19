@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   ReactiveFormsModule,
   FormBuilder,
@@ -10,11 +11,16 @@ import { ExpenseService } from '../../core/services/expense.service';
 import { ToastService } from '../../core/services/toast.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { LanguageService } from '../../core/services/language.service';
 import { User } from '../../core/models/auth.model';
 import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../core/components/ui/ui-select-advanced.component';
+import {
+  AiEmployeeAssistantService,
+  AiExpenseAuditResponse,
+} from '../../core/services/ai-employee-assistant.service';
 
 @Component({
   selector: 'app-expenses',
@@ -34,9 +40,9 @@ import {
               class="p-4 sm:p-6 border-b border-slate-100 flex justify-between items-center gap-3"
             >
               <div>
-                <h2 class="text-xl font-bold text-slate-900">Add Expense</h2>
+                <h2 class="text-xl font-bold text-slate-900">{{ t('expense.addExpense') }}</h2>
                 <p class="text-slate-400 text-sm mt-0.5">
-                  Submit a new expense for approval.
+                  {{ t('expense.submitExpenseHelp') }}
                 </p>
               </div>
               <button
@@ -65,7 +71,7 @@ import {
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                  >Title / Description</label
+                  >{{ t('expense.titleDescription') }}</label
                 >
                 <input
                   type="text"
@@ -92,7 +98,7 @@ import {
                 <div class="flex flex-col gap-1.5">
                   <label
                     class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                    >Date</label
+                    >{{ t('common.date') }}</label
                   >
                   <input
                     type="date"
@@ -112,7 +118,12 @@ import {
               <div class="flex flex-col gap-1.5">
                 <label
                   class="text-xs font-bold text-slate-400 uppercase tracking-widest"
-                  >Additional Notes</label
+                  >{{ t('expense.additionalNotes') }}</label
+                >
+                <textarea
+                  formControlName="description"
+                  rows="2"
+                  class="app-field resize-none"
                 >
                 <textarea
                   formControlName="description"
@@ -129,17 +140,102 @@ import {
                   (click)="toggleForm()"
                   class="px-5 py-2 rounded-lg font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  {{ t('common.cancel') }}
                 </button>
                 <button
                   type="submit"
                   [disabled]="expenseForm.invalid || processing()"
                   class="btn-primary min-w-[130px]"
                 >
-                  {{ processing() ? 'Submitting...' : 'Submit Expense' }}
+                  {{ processing() ? t('expense.submitting') : t('expense.submitExpense') }}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      }
+
+      <!-- AI Expense Claim Audit Modal -->
+      @if (aiAuditModalOpen()) {
+        <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-100 overflow-hidden">
+            <header class="p-5 border-b border-slate-100 bg-slate-900 text-white flex justify-between items-center">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-primary-500/20 border border-primary-400/30 flex items-center justify-center text-primary-400 font-bold">
+                  ✨
+                </div>
+                <div>
+                  <h3 class="font-bold text-base text-white">AI Expense Audit</h3>
+                  <p class="text-xs text-slate-400">Smart Compliance & Fraud Risk Assessment</p>
+                </div>
+              </div>
+              <button (click)="closeAiAuditModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                ✕
+              </button>
+            </header>
+
+            <div class="p-6 space-y-5">
+              @if (aiAuditLoading()) {
+                <div class="py-12 flex flex-col items-center justify-center gap-3 text-slate-500">
+                  <div class="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent"></div>
+                  <p class="text-sm font-medium animate-pulse">Auditing claim details & policy compliance...</p>
+                </div>
+              } @else {
+                @if (aiAuditResult(); as audit) {
+                  <div class="grid grid-cols-2 gap-3">
+                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col justify-between">
+                      <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Risk Rating</span>
+                      <div class="mt-2 inline-flex items-center gap-1.5 font-bold text-sm">
+                        @if (audit.riskLevel === 'low') {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">🟢 LOW RISK</span>
+                        } @else if (audit.riskLevel === 'medium') {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">🟡 MEDIUM RISK</span>
+                        } @else {
+                          <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">🔴 HIGH RISK</span>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-100 bg-slate-50 flex flex-col justify-between">
+                      <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Claim Amount</span>
+                      <div class="mt-2 font-black text-lg text-slate-800">
+                        {{ selectedExpenseForAudit()?.amount | currency: 'INR' : 'symbol' : '1.0-0' }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Audit Findings</span>
+                    <div class="space-y-2">
+                      @for (flag of audit.flags; track flag) {
+                        <div class="p-3 rounded-xl border border-slate-100 bg-white text-xs text-slate-700 flex items-start gap-2 shadow-sm">
+                          <span class="text-primary-500 text-sm">🔍</span>
+                          <span class="leading-relaxed">{{ flag }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="p-4 rounded-xl border border-primary-100 bg-primary-50/50 space-y-1">
+                    <span class="text-xs font-bold text-primary-700 uppercase tracking-wider">AI Recommendation</span>
+                    <p class="text-xs text-primary-900 font-medium leading-relaxed">
+                      {{ audit.recommendation }}
+                    </p>
+                  </div>
+
+                  <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                    <button (click)="closeAiAuditModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">
+                      Dismiss
+                    </button>
+                    @if (isApprover() && selectedExpenseForAudit()?.status === 'pending') {
+                      <button (click)="updateExpenseStatus(selectedExpenseForAudit().id, 'approved'); closeAiAuditModal()" class="px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-sm">
+                        Approve Expense
+                      </button>
+                    }
+                  </div>
+                }
+              }
+            </div>
           </div>
         </div>
       }
@@ -148,23 +244,22 @@ import {
         class="app-module-hero flex flex-col xl:flex-row justify-between xl:items-end gap-5"
       >
         <div class="max-w-2xl">
-          <p class="app-module-kicker">Expense Workspace</p>
+          <p class="app-module-kicker">{{ t('expense.workspace') }}</p>
           <h1 class="app-module-title mt-3">
-            Claims, approvals, and reimbursement flow
+            {{ t('expense.title') }}
           </h1>
           <p class="app-module-text mt-3">
-            Track submitted expenses, pending approvals, and your reimbursable
-            spend through a clearer finance-facing workflow.
+            {{ t('expense.subtitle') }}
           </p>
         </div>
         <div class="flex flex-col gap-3 xl:items-end">
           <div class="app-module-highlight min-w-[240px]">
-            <span class="app-module-highlight-label">Pending total</span>
+            <span class="app-module-highlight-label">{{ t('expense.pendingTotal') }}</span>
             <div class="app-module-highlight-value mt-3">
               {{ myPendingTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
             </div>
             <p class="mt-2 text-sm text-white/80">
-              Live pending expense value still waiting in the approval chain.
+              {{ t('expense.pendingTotalHelp') }}
             </p>
           </div>
           <button
@@ -183,7 +278,7 @@ import {
               <path d="M5 12h14" />
               <path d="M12 5v14" />
             </svg>
-            Add Expense
+            {{ t('expense.addExpense') }}
           </button>
         </div>
       </header>
@@ -213,7 +308,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Pending
+              {{ t('common.pending') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myPendingTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -242,7 +337,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Approved
+              {{ t('common.approve') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myApprovedTotal() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -272,7 +367,7 @@ import {
             <p
               class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
             >
-              Total Claimed
+              {{ t('expense.totalClaimed') }}
             </p>
             <p class="text-2xl font-bold text-slate-900">
               {{ myTotalClaimed() | currency: 'INR' : 'symbol' : '1.0-0' }}
@@ -290,7 +385,7 @@ import {
         >
           <h3 class="font-bold text-slate-900">
             {{
-              activeModule() === 'approval' ? 'Pending Approval' : 'My Expenses'
+              activeModule() === 'approval' ? t('expense.pendingApproval') : t('expense.myExpenses')
             }}
           </h3>
           <div class="flex items-center gap-3">
@@ -312,7 +407,7 @@ import {
                       : 'text-slate-500'
                   "
                 >
-                  Approval ({{ pendingApprovalCount() }})
+                  {{ t('expense.approval') }} ({{ pendingApprovalCount() }})
                 </button>
                 <button
                   (click)="activeModule.set('mine')"
@@ -323,7 +418,7 @@ import {
                       : 'text-slate-500'
                   "
                 >
-                  My Expenses ({{ myExpenses().length }})
+                  {{ t('expense.myExpenses') }} ({{ myExpenses().length }})
                 </button>
               </div>
             }
@@ -337,46 +432,44 @@ import {
                   <th
                     class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                   >
-                    Requested By
+                    {{ t('expense.requestedBy') }}
                   </th>
                 }
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Title
+                  {{ t('expense.titleDescription') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Amount
+                  {{ t('expense.amount') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Category
+                  {{ t('common.type') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Date
+                  {{ t('common.date') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Pending With
+                  {{ t('expense.pendingWith') }}
                 </th>
                 <th
                   class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest"
                 >
-                  Status
+                  {{ t('common.status') }}
                 </th>
-                @if (isApprover() && activeModule() === 'approval') {
-                  <th
-                    class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
-                  >
-                    Action
-                  </th>
-                }
+                <th
+                  class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right"
+                >
+                  {{ t('expense.action') }}
+                </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-50">
@@ -388,7 +481,7 @@ import {
                         {{
                           expense.employee?.fullName ||
                             expense.employee?.firstName ||
-                            'Employee'
+                            t('sidebar.employee')
                         }}
                       </span>
                     </td>
@@ -406,7 +499,7 @@ import {
                   <td class="px-6 py-4">
                     <span
                       class="text-xs font-bold text-slate-400 uppercase tracking-tight"
-                      >{{ expense.category || 'General' }}</span
+                      >{{ expense.category || t('expense.general') }}</span
                     >
                   </td>
                   <td class="px-6 py-4">
@@ -442,9 +535,16 @@ import {
                       {{ expense.status }}
                     </span>
                   </td>
-                  @if (isApprover() && activeModule() === 'approval') {
-                    <td class="px-6 py-4 text-right">
-                      <div class="flex justify-end gap-1">
+                  <td class="px-6 py-4 text-right">
+                    <div class="flex justify-end items-center gap-1.5">
+                      <button
+                        (click)="openAiAudit(expense)"
+                        class="px-2.5 py-1 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-md transition-colors inline-flex items-center gap-1 shadow-sm"
+                        title="AI Expense Audit"
+                      >
+                        <span>✨ Audit</span>
+                      </button>
+                      @if (isApprover() && activeModule() === 'approval') {
                         @if (expense.status === 'pending') {
                           <button
                             (click)="
@@ -489,19 +589,19 @@ import {
                           </button>
                         } @else {
                           <span
-                            class="text-[11px] font-bold text-slate-300 px-2 italic"
+                            class="text-[11px] font-bold text-slate-300 px-1 italic"
                             >Processed</span
                           >
                         }
-                      </div>
-                    </td>
-                  }
+                      }
+                    </div>
+                  </td>
                 </tr>
               } @empty {
                 <tr>
                   <td
                     [attr.colspan]="
-                      isApprover() && activeModule() === 'approval' ? 8 : 6
+                      isApprover() && activeModule() === 'approval' ? 8 : 7
                     "
                     class="px-6 py-16 text-center"
                   >
@@ -564,6 +664,10 @@ export class ExpensesComponent implements OnInit {
   private authService = inject(AuthService);
   private permissionService = inject(PermissionService);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private aiAssistant = inject(AiEmployeeAssistantService);
 
   currentUser = signal<User | null>(null);
   expenses = signal<any[]>([]);
@@ -572,6 +676,17 @@ export class ExpensesComponent implements OnInit {
   processing = signal(false);
   statusUpdatingId = signal<number | null>(null);
   activeModule = signal<'approval' | 'mine'>('mine');
+
+  // AI Audit Modal Signals
+  aiAuditModalOpen = signal(false);
+  aiAuditLoading = signal(false);
+  selectedExpenseForAudit = signal<any>(null);
+  aiAuditResult = signal<AiExpenseAuditResponse['data'] | null>(null);
+
+  // Summary signals
+  myPendingTotal = signal(0);
+  myApprovedTotal = signal(0);
+  myTotalClaimed = signal(0);
 
   categoryOptions: SelectOption[] = [
     { label: 'Travel', value: 'travel' },
@@ -584,10 +699,35 @@ export class ExpensesComponent implements OnInit {
     { label: 'Other', value: 'other' },
   ];
 
-  // My expense summary signals
-  myPendingTotal = signal(0);
-  myApprovedTotal = signal(0);
-  myTotalClaimed = signal(0);
+  openAiAudit(expense: any) {
+    this.selectedExpenseForAudit.set(expense);
+    this.aiAuditModalOpen.set(true);
+    this.aiAuditLoading.set(true);
+    this.aiAuditResult.set(null);
+
+    this.aiAssistant
+      .auditExpenseClaim({
+        title: expense.title || expense.description,
+        amount: expense.amount,
+        category: expense.category,
+        receiptUrl: expense.receiptUrl || expense.receipt_url,
+      })
+      .subscribe({
+        next: (res) => {
+          this.aiAuditResult.set(res.data);
+          this.aiAuditLoading.set(false);
+        },
+        error: () => {
+          this.aiAuditLoading.set(false);
+        },
+      });
+  }
+
+  closeAiAuditModal() {
+    this.aiAuditModalOpen.set(false);
+    this.selectedExpenseForAudit.set(null);
+    this.aiAuditResult.set(null);
+  }
 
   expenseForm: FormGroup = this.fb.group({
     title: ['', [Validators.required]],
@@ -602,9 +742,34 @@ export class ExpensesComponent implements OnInit {
 
   ngOnInit() {
     this.currentUser.set(this.authService.getStoredUser());
-    if (this.isApprover()) {
-      this.activeModule.set('approval');
-    }
+    this.route.queryParamMap.subscribe((params) => {
+      const mode = params.get('mode');
+      const currentUrl = this.router.url || '';
+
+      if (mode === 'mine') {
+        this.activeModule.set('mine');
+        return;
+      }
+
+      if (mode === 'approval' && this.isApprover()) {
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (currentUrl.includes('/admin/approvals/expense') && this.isApprover()) {
+        this.activeModule.set('approval');
+        return;
+      }
+
+      if (currentUrl.includes('/self-service/requests/expense')) {
+        this.activeModule.set('mine');
+        return;
+      }
+
+      if (this.isApprover()) {
+        this.activeModule.set('approval');
+      }
+    });
     this.loadExpenses();
   }
 
@@ -753,13 +918,13 @@ export class ExpensesComponent implements OnInit {
     this.processing.set(true);
     this.expenseService.createExpense(this.expenseForm.value).subscribe({
       next: () => {
-        this.toastService.success('Expense submitted for approval!');
+        this.toastService.success(this.t('expense.expenseSubmitted'));
         this.loadExpenses();
         this.toggleForm();
         this.processing.set(false);
       },
       error: (err) => {
-        this.toastService.error('Failed to submit expense.');
+        this.toastService.error(this.t('expense.expenseSubmitFailed'));
         this.processing.set(false);
         console.error(err);
       },
@@ -780,7 +945,7 @@ export class ExpensesComponent implements OnInit {
       this.expenseService.updateExpenseStatus(id, status, reason).subscribe({
         next: () => {
           this.loadExpenses();
-          this.toastService.success(`Expense ${status} successfully.`);
+          this.toastService.success(this.t('expense.expenseStatusSuccess', { status }));
         },
         error: (err) => {
           const msg = err.error?.message || `Failed to ${status} expense.`;
@@ -802,5 +967,10 @@ export class ExpensesComponent implements OnInit {
       default:
         return 'bg-slate-50 text-slate-600';
     }
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

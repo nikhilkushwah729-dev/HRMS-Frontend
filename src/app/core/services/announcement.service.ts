@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { Observable, map, shareReplay, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface Announcement {
@@ -23,11 +23,30 @@ export interface Announcement {
 export class AnnouncementService {
   private http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+  private readonly cacheTtlMs = 2 * 60 * 1000;
+  private announcementsCache$?: Observable<Announcement[]>;
+  private announcementsCacheAt = 0;
 
-  getAnnouncements(): Observable<Announcement[]> {
-    return this.http
+  private clearAnnouncementsCache(): void {
+    this.announcementsCache$ = undefined;
+    this.announcementsCacheAt = 0;
+  }
+
+  getAnnouncements(forceRefresh = false): Observable<Announcement[]> {
+    if (
+      !forceRefresh &&
+      this.announcementsCache$ &&
+      this.announcementsCacheAt > 0 &&
+      Date.now() - this.announcementsCacheAt < this.cacheTtlMs
+    ) {
+      return this.announcementsCache$;
+    }
+
+    this.announcementsCacheAt = Date.now();
+    this.announcementsCache$ = this.http
       .get<any>(`${this.apiUrl}/announcements`)
-      .pipe(map((res) => res.data));
+      .pipe(map((res) => res.data), shareReplay(1));
+    return this.announcementsCache$;
   }
 
   getAnnouncement(id: number): Observable<Announcement> {
@@ -41,7 +60,7 @@ export class AnnouncementService {
   ): Observable<Announcement> {
     return this.http
       .post<any>(`${this.apiUrl}/announcements`, announcement)
-      .pipe(map((res) => res.data));
+      .pipe(tap(() => this.clearAnnouncementsCache()), map((res) => res.data));
   }
 
   updateAnnouncement(
@@ -50,7 +69,7 @@ export class AnnouncementService {
   ): Observable<Announcement> {
     return this.http
       .put<any>(`${this.apiUrl}/announcements/${id}`, announcement)
-      .pipe(map((res) => res.data));
+      .pipe(tap(() => this.clearAnnouncementsCache()), map((res) => res.data));
   }
 
   deleteAnnouncement(id: number): Observable<Announcement> {
@@ -58,6 +77,6 @@ export class AnnouncementService {
       .put<any>(`${this.apiUrl}/announcements/${id}`, {
         deleted_at: new Date().toISOString(),
       })
-      .pipe(map((res) => res.data));
+      .pipe(tap(() => this.clearAnnouncementsCache()), map((res) => res.data));
   }
 }

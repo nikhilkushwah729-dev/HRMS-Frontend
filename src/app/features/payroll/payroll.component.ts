@@ -1,21 +1,24 @@
 import { Component, OnInit, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { PayrollService, Payslip } from '../../core/services/payroll.service';
+import { PermissionService } from '../../core/services/permission.service';
+import { AuthService } from '../../core/services/auth.service';
+import { User } from '../../core/models/auth.model';
 
 @Component({
   selector: 'app-payroll',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col gap-8">
-      <header class="app-module-hero flex flex-col xl:flex-row justify-between xl:items-end gap-5">
+    <div class="flex flex-col gap-6 pb-8 sm:gap-7 lg:gap-8 lg:pb-10">
+      <header class="app-module-hero flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
         <div class="max-w-2xl">
           <p class="app-module-kicker">Payroll Workspace</p>
           <h1 class="app-module-title mt-3">Salary visibility and payslip history</h1>
           <p class="app-module-text mt-3">Review salary structure, allowances, deductions, and published payslips from a cleaner payroll center.</p>
         </div>
         @if (latestPayslip()) {
-          <div class="app-module-highlight flex flex-col items-end min-w-[220px]">
+          <div class="app-module-highlight flex min-w-[220px] flex-col xl:items-end">
             <span class="app-module-highlight-label">
               Net Salary {{ latestPayslip()!.month }} {{ latestPayslip()!.year }}
             </span>
@@ -25,7 +28,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
             <span class="mt-2 text-sm text-white/80">Latest published payroll statement ready for review.</span>
           </div>
         } @else if (!loading()) {
-          <div class="app-stat-card flex flex-col items-end min-w-[220px]">
+          <div class="app-stat-card flex min-w-[220px] flex-col xl:items-end">
             <span class="app-stat-label">Net Salary</span>
             <span class="mt-3 text-2xl font-extrabold text-slate-300 leading-none">No Data</span>
           </div>
@@ -33,7 +36,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
       </header>
 
       <!-- Summary Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
         <div class="app-stat-card">
           <p class="app-stat-label mb-2">Latest Basic Salary</p>
           <p class="app-stat-value">{{ (latestPayslip()?.basic_salary || 0) | currency:'INR':'symbol':'1.0-0' }}</p>
@@ -49,13 +52,13 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
       </div>
 
       <div class="card overflow-hidden">
-        <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-white/50">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-50 bg-white/50 p-4 sm:p-6">
           <h3 class="font-bold text-slate-900">Payslip History</h3>
-          <div class="flex gap-2">
+          <div class="flex shrink-0 gap-2">
             @if (loading()) {
               <div class="animate-spin rounded-full h-5 w-5 border-2 border-primary-500 border-t-transparent"></div>
             } @else {
-              <button class="bg-slate-50 hover:bg-slate-100 p-2 rounded-md text-slate-500 transition-colors" title="Download All">
+              <button *ngIf="canDownloadPayroll()" class="bg-slate-50 hover:bg-slate-100 p-2 rounded-md text-slate-500 transition-colors" title="Download All">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
               </button>
             }
@@ -105,7 +108,7 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
                     </span>
                   </td>
                   <td class="px-6 py-4 text-right">
-                    <button class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Download Payslip">
+                    <button *ngIf="canDownloadPayroll()" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="Download Payslip">
                       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                     </button>
                   </td>
@@ -116,29 +119,29 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
         </div>
       </div>
 
-      <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-5 sm:gap-6">
         <h3 class="text-xl font-bold text-slate-900 tracking-tight">Tax & Compliance Documents</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div class="card p-6 flex items-center gap-6">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6">
+           <div class="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
               <div class="w-14 h-14 bg-slate-50 text-slate-400 rounded-md flex items-center justify-center border border-slate-100">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div class="flex-1 flex flex-col py-1">
+              <div class="flex-1 flex flex-col py-1 min-w-0">
                  <span class="font-bold text-slate-900 tracking-tight leading-snug">Form 16 (2024-25)</span>
                  <span class="text-[10px] font-bold text-green-500 uppercase tracking-widest mt-1">Ready for Download</span>
               </div>
-              <button class="bg-primary-600 text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:bg-primary-700 transition-colors">Download</button>
+              <button *ngIf="canDownloadPayroll()" class="rounded-lg bg-primary-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-700 sm:self-auto">Download</button>
            </div>
            
-           <div class="card p-6 flex items-center gap-6">
+           <div class="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-6 sm:p-6">
               <div class="w-14 h-14 bg-slate-50 text-slate-400 rounded-md flex items-center justify-center border border-slate-100">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
-              <div class="flex-1 flex flex-col py-1">
+              <div class="flex-1 flex flex-col py-1 min-w-0">
                  <span class="font-bold text-slate-900 tracking-tight leading-snug">Investment Proofs</span>
                  <span class="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1">Deadline: 31st March 2025</span>
               </div>
-              <button class="bg-white border border-slate-200 px-5 py-2.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors">Submit Docs</button>
+              <button *ngIf="canManagePayrollDocs()" class="rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 sm:self-auto">Submit Docs</button>
            </div>
         </div>
       </div>
@@ -148,44 +151,44 @@ import { PayrollService, Payslip } from '../../core/services/payroll.service';
 })
 export class PayrollComponent implements OnInit {
   private payrollService = inject(PayrollService);
+  private permissionService = inject(PermissionService);
+  private authService = inject(AuthService);
   payslips = signal<Payslip[]>([]);
   loading = signal(true);
+  currentUser = signal<User | null>(null);
 
   latestPayslip = computed(() => this.payslips().length > 0 ? this.payslips()[0] : null);
 
   ngOnInit() {
+    this.currentUser.set(this.authService.getStoredUser());
     this.payrollService.getPayslips().subscribe({
       next: (data) => {
         this.payslips.set(data);
         this.loading.set(false);
       },
       error: () => {
-        // MOCK DATA for perfect UI
-        const mockPayslips: any[] = [
-          {
-            id: 1,
-            month: 'February',
-            year: 2026,
-            basic_salary: 85000,
-            allowances: 15000,
-            deductions: 5000,
-            net_salary: 95000,
-            status: 'published'
-          },
-          {
-            id: 2,
-            month: 'January',
-            year: 2026,
-            basic_salary: 85000,
-            allowances: 15000,
-            deductions: 5000,
-            net_salary: 95000,
-            status: 'published'
-          }
-        ];
-        this.payslips.set(mockPayslips);
+        this.payslips.set([]);
         this.loading.set(false);
       }
     });
+  }
+
+  canDownloadPayroll(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.hasPermission(user, 'payroll.view') ||
+      this.permissionService.hasPermission(user, 'payroll.read')
+    );
+  }
+
+  canManagePayrollDocs(): boolean {
+    const user = this.currentUser();
+    return (
+      this.permissionService.isAdminUser(user) ||
+      this.permissionService.isHrManagerUser(user) ||
+      this.permissionService.hasPermission(user, 'payroll.create') ||
+      this.permissionService.hasPermission(user, 'payroll.update') ||
+      this.permissionService.hasPermission(user, 'payroll.approve')
+    );
   }
 }

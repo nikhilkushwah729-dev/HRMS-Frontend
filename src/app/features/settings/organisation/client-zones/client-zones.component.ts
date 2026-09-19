@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ToastService } from '../../../../core/services/toast.service';
 import { SettingsWorkspaceService } from '../../shared/settings-workspace.service';
+import { LanguageService } from '../../../../core/services/language.service';
 
 interface ClientZone {
   id: string;
@@ -54,7 +55,7 @@ interface ClientZone {
               <button type="submit" [disabled]="clientZoneForm.invalid" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
                 {{ editingId() ? 'Update Client Zone' : 'Save Client Zone' }}
               </button>
-              <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">Reset</button>
+              <button type="button" (click)="resetForm()" class="rounded-md border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">{{ t('common.reset') }}</button>
             </div>
           </form>
         </section>
@@ -79,12 +80,12 @@ interface ClientZone {
                 </div>
                 <div class="flex items-center gap-3">
                   <span class="rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-semibold text-fuchsia-700">{{ zone.noOfEmployees }} deployed</span>
-                  <button (click)="editZone(zone)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Edit</button>
-                  <button (click)="deleteZone(zone.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">Delete</button>
+                  <button (click)="editZone(zone)" class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.edit') }}</button>
+                  <button (click)="deleteZone(zone.id)" class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">{{ t('common.delete') }}</button>
                 </div>
               </div>
             } @empty {
-              <div class="px-6 py-14 text-center text-slate-500">No client zones found.</div>
+              <div class="px-6 py-14 text-center text-slate-500">{{ t('common.noResults') }}</div>
             }
           </div>
         </section>
@@ -97,6 +98,7 @@ export class ClientZonesComponent implements OnInit {
   private fb = new FormBuilder();
   private toastService = inject(ToastService);
   private workspace = inject(SettingsWorkspaceService);
+  private languageService = inject(LanguageService);
 
   zones = signal<ClientZone[]>([]);
   searchQuery = signal('');
@@ -178,5 +180,10 @@ export class ClientZonesComponent implements OnInit {
   resetForm() {
     this.editingId.set(null);
     this.clientZoneForm.reset({ name: '', clientName: '', noOfEmployees: 0 });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

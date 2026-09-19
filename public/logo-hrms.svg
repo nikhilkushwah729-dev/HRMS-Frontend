@@ -1,0 +1,27 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" role="img" aria-labelledby="title desc">
+  <title id="title">HRNexus</title>
+  <desc id="desc">HRNexus company logo</desc>
+  <defs>
+    <linearGradient id="hrnexus-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6d365" />
+      <stop offset="100%" stop-color="#f2b84b" />
+    </linearGradient>
+    <linearGradient id="hrnexus-emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+  </defs>
+  <rect width="520" height="120" rx="24" fill="none" />
+  <g transform="translate(12 12)">
+    <rect x="0" y="0" width="96" height="96" rx="24" fill="#0f172a" />
+    <rect x="12" y="12" width="72" height="72" rx="18" fill="#111827" stroke="#1f2937" />
+    <path d="M48 18 76 34v28c0 18-12.6 31.8-28 36C32.6 93.8 20 80 20 62V34l28-16Z" fill="url(#hrnexus-gold)" opacity="0.18" />
+    <path d="M48 24 70 36.5v23.8c0 14.1-9.2 25-22 29.7-12.8-4.7-22-15.6-22-29.7V36.5L48 24Z" fill="url(#hrnexus-gold)" />
+    <path d="M39 42h6v8h6v-8h6v24h-6V56h-6v10h-6V42Z" fill="#0f172a" />
+    <circle cx="48" cy="76" r="4" fill="url(#hrnexus-emerald)" />
+  </g>
+  <g transform="translate(128 0)">
+    <text x="0" y="63" fill="#0f172a" font-size="46" font-weight="800" font-family="Segoe UI, Arial, sans-serif" letter-spacing="-1.4">HRNexus</text>
+    <text x="2" y="88" fill="#64748b" font-size="16" font-weight="700" font-family="Segoe UI, Arial, sans-serif" letter-spacing="4">SMART HR FOR SMART COMPANIES</text>
+  </g>
+</svg>

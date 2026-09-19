@@ -1,6 +1,14 @@
-import { User } from '../models/auth.model';
+import { AccessScope, User } from '../models/auth.model';
 
-export type RoleName = 'admin' | 'employee' | 'manager' | 'hr' | string;
+export type RoleName =
+  | 'super_admin'
+  | 'organization_admin'
+  | 'hr_manager'
+  | 'admin'
+  | 'manager'
+  | 'employee'
+  | 'hr'
+  | string;
 
 export interface Permission {
   key: string;
@@ -37,18 +45,32 @@ export interface UserInfoAccess {
   paySlip?: number | string | null;
   salarySlip?: number | string | null;
   shiftChangePerm?: number | boolean | null;
+  profileType?: number | string | null;
+  hrSts?: number | string | null;
+  setupConfig?: number | string | null;
+  esslSetupConfig?: number | string | null;
+  biometricMachinePermission?: number | string | null;
+  addonDeviceVerification?: number | string | null;
+  visitorManagementAddOn?: number | string | null;
+  settingPerm?: number | string | null;
   [key: string]: unknown;
 }
 
 export interface AccessUser extends Omit<Partial<User>, 'permissions'> {
   role: RoleName;
+  roleScope?: AccessScope;
   permissions: string[] | PermissionItem[] | Record<string, boolean | 0 | 1 | '0' | '1'>;
   addons: Addons;
   tabs: TabsAccess;
   userInfo: UserInfoAccess;
+  employeeId?: number;
+  organizationId?: number;
+  reportingManagerId?: number;
+  subordinateIds?: number[];
 }
 
 export interface AccessCondition {
+  roles?: RoleName | RoleName[];
   permission?: string | string[];
   addon?: string | string[];
   tab?: string | string[];
@@ -63,6 +85,7 @@ export interface MenuItemConfig {
   id: string;
   label: string;
   route: string;
+  roles?: RoleName | RoleName[];
   icon?: string;
   moduleSlug?: string;
   description?: string;
@@ -84,10 +107,11 @@ export interface MenuSectionConfig {
   label: string;
   description?: string;
   route?: string;
+  badge?: string;
   items: MenuItemConfig[];
 }
 
-export type AccessBlockReason = 'permission' | 'addon' | 'tab' | 'userInfo';
+export type AccessBlockReason = 'role' | 'permission' | 'addon' | 'tab' | 'userInfo';
 
 export interface AccessEvaluation {
   allowed: boolean;

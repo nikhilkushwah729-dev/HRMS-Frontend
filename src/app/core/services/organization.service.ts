@@ -1,13 +1,14 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { Observable, map, catchError, of, tap } from 'rxjs';
+import { Observable, map, catchError, of, tap, shareReplay } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export interface Organization {
     id: number;
     name: string;
     logo?: string;
+    employeeCodePrefix?: string;
     email: string;
     phone?: string;
     address?: string;
@@ -74,6 +75,19 @@ export class OrganizationService {
     private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly orgDraftKey = 'hrms_org_profile_draft';
     private readonly locationsKey = 'locations';
+    private readonly employeeCodePrefixKey = 'employee-code-prefix';
+    private readonly sharedCacheTtlMs = 5 * 60 * 1000;
+
+    private organizationCache$?: Observable<Organization>;
+    private organizationCacheAt = 0;
+    private departmentsCache$?: Observable<Department[]>;
+    private departmentsCacheAt = 0;
+    private designationsCache$?: Observable<Designation[]>;
+    private designationsCacheAt = 0;
+    private holidaysCache$?: Observable<OrganizationHoliday[]>;
+    private holidaysCacheAt = 0;
+    private addonsCache$?: Observable<any[]>;
+    private addonsCacheAt = 0;
 
     private _activeModules = signal<string[]>([]);
     /**
@@ -85,18 +99,58 @@ export class OrganizationService {
      * Check if a module is active (Helper)
      */
     isModuleEnabled(slug: string): boolean {
-        const normalized = (slug || '').trim().toLowerCase();
-        const aliases: Record<string, string[]> = {
-            leave: ['leave', 'leaves'],
-            leaves: ['leave', 'leaves'],
-            visitormanagement: ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            'visitor-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            'visit-management': ['visitormanagement', 'visitor_management', 'visitor-management', 'visit-management'],
-            face_recognition: ['face_recognition', 'face-recognition'],
-            'face-recognition': ['face_recognition', 'face-recognition']
+        const normalized = this.normalizeModuleSlug(slug);
+        if (!normalized) return true;
+        return this._activeModules().some((item) => item === normalized);
+    }
+
+    private normalizeModuleSlug(value: unknown): string {
+        const normalized = String(value ?? '')
+            .trim()
+            .toLowerCase()
+            .replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        const aliases: Record<string, string> = {
+            attendance: 'attendance',
+            attendance_management: 'attendance',
+            attendance_module: 'attendance',
+            leave: 'leave',
+            leaves: 'leave',
+            leave_management: 'leave',
+            leaves_management: 'leave',
+            payroll: 'payroll',
+            payroll_management: 'payroll',
+            visitormanagement: 'visitorManagement',
+            visitor_management: 'visitorManagement',
+            visit_management: 'visitorManagement',
+            projects: 'projects',
+            project: 'projects',
+            project_management: 'projects',
+            expenses: 'expenses',
+            expense: 'expenses',
+            expense_management: 'expenses',
+            timesheets: 'timesheets',
+            timesheet: 'timesheets',
+            reports: 'reports',
+            report: 'reports',
+            reports_analytics: 'reports',
+            analytics: 'reports',
+            settings: 'settings',
+            geofence: 'geofence',
+            geo_fence: 'geofence',
+            regularization: 'regularization',
+            documents: 'documents',
+            document: 'documents',
+            roles: 'roles',
+            role: 'roles',
+            audit: 'audit',
+            audit_logs: 'audit',
+            face_recognition: 'face-recognition',
         };
-        const accepted = aliases[normalized] ?? [normalized];
-        return this._activeModules().some((item) => accepted.includes(item));
+
+        return aliases[normalized] ?? normalized;
     }
 
     private resolveAssetUrl(value: any): string | null | undefined {
@@ -140,6 +194,7 @@ export class OrganizationService {
             id: Number(item?.id ?? 1),
             name: item?.name ?? item?.organizationName ?? item?.organization_name ?? item?.companyName ?? item?.company_name ?? '',
             logo: this.resolveAssetUrl(item?.logo ?? item?.logoUrl ?? item?.logo_url ?? item?.organizationLogo ?? item?.organization_logo ?? item?.companyLogo ?? item?.company_logo ?? '') ?? '',
+            employeeCodePrefix: item?.employeeCodePrefix ?? item?.employee_code_prefix ?? '',
             email: item?.email ?? '',
             phone: item?.phone ?? item?.orgContactNumber ?? item?.org_contact_number ?? '',
             address: item?.address ?? item?.orgStreet1 ?? '',
@@ -244,14 +299,50 @@ export class OrganizationService {
         } catch {}
     }
 
-    getOrganization(): Observable<Organization> {
+    private isCacheFresh(timestamp: number): boolean {
+        return timestamp > 0 && Date.now() - timestamp < this.sharedCacheTtlMs;
+    }
+
+    private clearOrganizationCache(): void {
+        this.organizationCache$ = undefined;
+        this.organizationCacheAt = 0;
+    }
+
+    private clearDepartmentsCache(): void {
+        this.departmentsCache$ = undefined;
+        this.departmentsCacheAt = 0;
+    }
+
+    private clearDesignationsCache(): void {
+        this.designationsCache$ = undefined;
+        this.designationsCacheAt = 0;
+    }
+
+    private clearHolidaysCache(): void {
+        this.holidaysCache$ = undefined;
+        this.holidaysCacheAt = 0;
+    }
+
+    private clearAddonsCache(): void {
+        this.addonsCache$ = undefined;
+        this.addonsCacheAt = 0;
+    }
+
+    getOrganization(forceRefresh = false): Observable<Organization> {
+        if (!forceRefresh && this.organizationCache$ && this.isCacheFresh(this.organizationCacheAt)) {
+            return this.organizationCache$;
+        }
+
         const userOrg = this.getOrganizationFromUser();
-        return this.http.get<any>(this.apiUrl).pipe(
+        this.organizationCacheAt = Date.now();
+        this.organizationCache$ = this.http.get<any>(this.apiUrl).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
             map((org) => this.mergeDefinedOrganization(userOrg, org)),
             map((org) => this.mergeDefinedOrganization(org, this.readLocalDraft())),
-            catchError(() => of(this.mergeDefinedOrganization(userOrg, this.readLocalDraft())))
+            catchError(() => of(this.mergeDefinedOrganization(userOrg, this.readLocalDraft()))),
+            shareReplay(1)
         );
+        return this.organizationCache$;
     }
 
     updateOrganization(data: Partial<Organization>): Observable<Organization> {
@@ -286,7 +377,11 @@ export class OrganizationService {
 
         return this.http.put<any>(this.apiUrl, payload).pipe(
             map(res => this.normalizeOrganization(res?.data ?? res)),
-            tap((org) => this.saveLocalDraft(org)),
+            tap((org) => {
+                this.saveLocalDraft(org);
+                this.organizationCacheAt = Date.now();
+                this.organizationCache$ = of(org).pipe(shareReplay(1));
+            }),
             catchError(() => {
                 const merged = this.normalizeOrganization({ ...this.readLocalDraft(), ...payload });
                 this.saveLocalDraft(merged);
@@ -295,10 +390,17 @@ export class OrganizationService {
         );
     }
 
-    getDepartments(): Observable<Department[]> {
-        return this.http.get<any>(`${this.apiUrl}/departments`).pipe(
-            map(res => (res?.data ?? []).map((d: any) => this.normalizeDepartment(d)))
+    getDepartments(forceRefresh = false): Observable<Department[]> {
+        if (!forceRefresh && this.departmentsCache$ && this.isCacheFresh(this.departmentsCacheAt)) {
+            return this.departmentsCache$;
+        }
+
+        this.departmentsCacheAt = Date.now();
+        this.departmentsCache$ = this.http.get<any>(`${this.apiUrl}/departments`).pipe(
+            map(res => (res?.data ?? []).map((d: any) => this.normalizeDepartment(d))),
+            shareReplay(1)
         );
+        return this.departmentsCache$;
     }
 
     createDepartment(payload: { name: string; parentId?: number | null; description?: string | null; isActive?: boolean }): Observable<Department> {
@@ -314,59 +416,58 @@ export class OrganizationService {
             is_active: payload.isActive ?? true
         };
         return this.http.post<any>(`${this.apiUrl}/departments`, body).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(res => this.normalizeDepartment(res?.data ?? res))
         );
     }
 
     updateDepartment(departmentId: number, payload: { name: string; parentId?: number | null; description?: string | null; isActive?: boolean }): Observable<Department> {
         return this.http.put<any>(`${this.apiUrl}/departments/${departmentId}`, payload).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(res => this.normalizeDepartment(res?.data ?? res))
         );
     }
 
     deleteDepartment(departmentId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/departments/${departmentId}`).pipe(
+            tap(() => this.clearDepartmentsCache()),
             map(() => true),
             catchError(() => of(false))
         );
     }
 
-    getDesignations(): Observable<Designation[]> {
-        return this.http.get<any>(`${this.apiUrl}/designations`).pipe(
+    getDesignations(forceRefresh = false): Observable<Designation[]> {
+        if (!forceRefresh && this.designationsCache$ && this.isCacheFresh(this.designationsCacheAt)) {
+            return this.designationsCache$;
+        }
+
+        this.designationsCacheAt = Date.now();
+        this.designationsCache$ = this.http.get<any>(`${this.apiUrl}/designations`).pipe(
             map(res => (res?.data ?? []).map((d: any) => this.normalizeDesignation(d))),
-            catchError(() =>
-                this.http.get<any>(`${environment.apiUrl}/designations`).pipe(
-                    map(res => (res?.data ?? []).map((d: any) => this.normalizeDesignation(d)))
-                )
-            )
+            catchError(() => of([]))
         );
+        this.designationsCache$ = this.designationsCache$.pipe(shareReplay(1));
+        return this.designationsCache$;
     }
 
     createDesignation(payload: { name: string; departmentId?: number | null }): Observable<Designation> {
         const body = { name: payload.name, departmentId: payload.departmentId ?? null };
         return this.http.post<any>(`${this.apiUrl}/designations`, body).pipe(
-            map(res => this.normalizeDesignation(res?.data ?? res)),
-            catchError(() =>
-                this.http.post<any>(`${environment.apiUrl}/designations`, body).pipe(
-                    map(res => this.normalizeDesignation(res?.data ?? res))
-                )
-            )
+            tap(() => this.clearDesignationsCache()),
+            map(res => this.normalizeDesignation(res?.data ?? res))
         );
     }
 
     updateDesignation(designationId: number, payload: { name: string; departmentId?: number | null }): Observable<Designation> {
         return this.http.put<any>(`${this.apiUrl}/designations/${designationId}`, payload).pipe(
-            map(res => this.normalizeDesignation(res?.data ?? res)),
-            catchError(() =>
-                this.http.put<any>(`${environment.apiUrl}/designations/${designationId}`, payload).pipe(
-                    map(res => this.normalizeDesignation(res?.data ?? res))
-                )
-            )
+            tap(() => this.clearDesignationsCache()),
+            map(res => this.normalizeDesignation(res?.data ?? res))
         );
     }
 
     deleteDesignation(designationId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/designations/${designationId}`).pipe(
+            tap(() => this.clearDesignationsCache()),
             map(() => true),
             catchError(() => of(false))
         );
@@ -391,6 +492,32 @@ export class OrganizationService {
             map((items) => items.map((item: any) => this.normalizeLocation(item))),
             tap((locations) => this.saveLocalLocations(locations)),
             catchError(() => of(this.readLocalLocations()))
+        );
+    }
+
+    getEmployeeCodePrefix(): Observable<string> {
+        return this.getSettingsCollection<any>(this.employeeCodePrefixKey, []).pipe(
+            map((items) => {
+                const rawValue = Array.isArray(items) ? items[0]?.value ?? items[0]?.prefix ?? items[0] : '';
+                const prefix = String(rawValue ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                return prefix.length === 3 ? prefix : '';
+            }),
+            catchError(() => of(''))
+        );
+    }
+
+    saveEmployeeCodePrefix(prefix: string): Observable<string> {
+        const normalizedPrefix = String(prefix ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+        const payload = normalizedPrefix ? [{ value: normalizedPrefix }] : [];
+
+        return this.saveSettingsCollection(this.employeeCodePrefixKey, payload).pipe(
+            map((items) => {
+                const firstItem: any = Array.isArray(items) ? items[0] : null;
+                const rawValue = firstItem?.value ?? firstItem?.prefix ?? firstItem ?? normalizedPrefix;
+                const value = String(rawValue ?? normalizedPrefix).trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                return value.length === 3 ? value : '';
+            }),
+            catchError(() => of(normalizedPrefix))
         );
     }
 
@@ -442,55 +569,70 @@ export class OrganizationService {
         );
     }
 
-    getHolidays(): Observable<OrganizationHoliday[]> {
-        return this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
+    getHolidays(forceRefresh = false): Observable<OrganizationHoliday[]> {
+        if (!forceRefresh && this.holidaysCache$ && this.isCacheFresh(this.holidaysCacheAt)) {
+            return this.holidaysCache$;
+        }
+
+        this.holidaysCacheAt = Date.now();
+        this.holidaysCache$ = this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
             map((res) => {
                 const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 return records.map((item: any) => this.normalizeHoliday(item));
             }),
-            catchError(() => of([]))
+            catchError(() => of([])),
+            shareReplay(1)
         );
+        return this.holidaysCache$;
     }
 
     createHoliday(payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
         return this.http.post<any>(`${this.apiUrl}/holidays`, payload).pipe(
+            tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     updateHoliday(holidayId: number, payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
         return this.http.put<any>(`${this.apiUrl}/holidays/${holidayId}`, payload).pipe(
+            tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     deleteHoliday(holidayId: number): Observable<boolean> {
         return this.http.delete<any>(`${this.apiUrl}/holidays/${holidayId}`).pipe(
+            tap(() => this.clearHolidaysCache()),
             map(() => true),
             catchError(() => of(false))
         );
     }
 
-    getAddons(): Observable<any[]> {
-        return this.http.get<any>(`${this.apiUrl}/addons`).pipe(
+    getAddons(forceRefresh = false): Observable<any[]> {
+        if (!forceRefresh && this.addonsCache$ && this.isCacheFresh(this.addonsCacheAt)) {
+            return this.addonsCache$;
+        }
+
+        this.addonsCacheAt = Date.now();
+        this.addonsCache$ = this.http.get<any>(`${this.apiUrl}/addons`).pipe(
             map(res => {
-                const addons = res.data;
+                const addons = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
                 const activeSlugs = addons
                     .filter((a: any) => a.isActive)
-                    .map((a: any) => String(a.slug ?? '').trim().toLowerCase());
+                    .map((a: any) => this.normalizeModuleSlug(a.slug ?? a.name))
+                    .filter(Boolean);
                 this._activeModules.set(activeSlugs);
                 return addons;
-            })
+            }),
+            shareReplay(1)
         );
+        return this.addonsCache$;
     }
 
     toggleAddon(addonId: number, isActive: boolean): Observable<any> {
         return this.http.post<any>(`${this.apiUrl}/addons/toggle`, { addonId, isActive }).pipe(
-            map(res => {
-                // Refresh local signal
-                this.getAddons().subscribe();
-                return res;
-            })
+            tap(() => this.clearAddonsCache()),
+            map(res => res)
         );
     }
 }

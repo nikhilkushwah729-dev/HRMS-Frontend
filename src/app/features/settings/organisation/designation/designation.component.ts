@@ -11,6 +11,7 @@ import {
   UiSelectAdvancedComponent,
   SelectOption,
 } from '../../../../core/components/ui/ui-select-advanced.component';
+import { LanguageService } from '../../../../core/services/language.service';
 
 @Component({
   selector: 'app-designation',
@@ -172,14 +173,14 @@ import {
                     (click)="editDesignation(designation)"
                     class="rounded-md border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                   >
-                    Edit
+                    {{ t('common.edit') }}
                   </button>
                   <button
                     type="button"
                     (click)="removeDesignation(designation.id)"
                     class="rounded-md border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                   >
-                    Delete
+                    {{ t('common.delete') }}
                   </button>
                   <span
                     class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
@@ -197,7 +198,7 @@ import {
                     <path d="M8 17h8" />
                   </svg>
                 </div>
-                <p class="mt-4 text-base font-semibold text-slate-900">No designations found</p>
+                <p class="mt-4 text-base font-semibold text-slate-900">{{ t('common.noResults') }}</p>
                 <p class="mt-2 text-sm text-slate-500">Create job titles here so employee masters and approvals stay structured.</p>
               </div>
             }
@@ -211,6 +212,7 @@ export class DesignationComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
   private fb = inject(FormBuilder);
+  private languageService = inject(LanguageService);
 
   designations = signal<Designation[]>([]);
   departments = signal<Department[]>([]);
@@ -328,5 +330,10 @@ export class DesignationComponent implements OnInit {
       this.departments().find((dept) => dept.id === departmentId)?.name ||
       'Unknown Department'
     );
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }

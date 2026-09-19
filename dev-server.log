@@ -1,0 +1,59 @@
+
+> hrms-frontend@0.0.0 start
+> ng serve --host 0.0.0.0 --port 4300
+
+[1m[33m
+Warning: This is a simple server for use in testing or debugging Angular applications
+locally. It hasn't been reviewed for security issues.
+
+Binding this server to an open connection can result in compromising your application or
+computer. Using a different host than the one passed to the "--host" flag might result in
+websocket connection issues. You might need to use "--disable-host-check" if that's the
+case.
+    [39m[22m
+[33m>[39m Building...
+
+<--- Last few GCs --->
+
+[16556:0000020DB89B9000]    23951 ms: Scavenge 478.0 (543.5) -> 434.1 (557.0) MB, pooled: 0 MB, 35.96 / 0.00 ms  (average mu = 0.995, current mu = 0.996) allocation failure; 
+[16556:0000020DB89B9000]    24426 ms: Scavenge 492.3 (557.7) -> 446.0 (558.2) MB, pooled: 0 MB, 16.87 / 0.00 ms  (average mu = 0.995, current mu = 0.996) allocation failure; 
+
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+
+
+<--- Last few GCs --->
+
+[16556:0000020DB89B9000]    23951 ms: Scavenge 478.0 (543.5) -> 434.1 (557.0) MB, pooled: 0 MB, 35.96 / 0.00 ms  (average mu = 0.995, current mu = 0.996) allocation failure; 
+[16556:0000020DB89B9000]    24426 ms: Scavenge 492.3 (557.7) -> 446.0 (558.2) MB, pooled: 0 MB, 16.87 / 0.00 ms  (average mu = 0.995, current mu = 0.996) allocation failure; 
+
+FATAL ERROR: Zone Allocation failed - process out of memory
+----- Native stack trace -----
+
+ 1: 00007FF7A3EBC36F 
+ 2: 00007FF7A4B04D77 
+ 3: 00007FF7A447FBD6 
+ 4: 00007FF7A4040E13 
+ 5: 00007FF7A54D69D0 
+ 6: 00007FF7A54B18DC 
+ 7: 00007FF7A59B051B 
+ 8: 00007FF7A59A45BC 
+ 9: 00007FF7A59A43D6 
+10: 00007FF7A59B6EAD 
+11: 00007FF7A5B8C4AD 
+12: 00007FF7A5A7CCBE 
+13: 00007FF7A5A7D3B0 
+14: 00007FF7A55E7F39 
+15: 00007FF7A552064D 
+16: 00007FF7A54FA4C0 
+17: 00007FF7A54F75C2 
+18: 00007FF7A54F71DE 
+19: 00007FF7A4A789AF 
+20: 00007FF7A4A3DA3D 
+21: 00007FF7A4A3D735 
+22: 00007FF7A52E570F 
+23: 00007FF7A3E0CD8E 
+24: 00007FF7A4B5A096 
+25: 00007FF7A5DB92B3 
+26: 00007FFFCC11259D 
+27: 00007FFFCDB2AF78 

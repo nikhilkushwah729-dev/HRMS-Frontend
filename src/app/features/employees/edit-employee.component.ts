@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -23,6 +23,8 @@ import {
   UiSelectAdvancedComponent,
 } from '../../core/components/ui';
 import { SelectOption } from '../../core/components/ui/ui-select-advanced.component';
+import { LanguageService } from '../../core/services/language.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-edit-employee',
@@ -34,14 +36,14 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
     UiSelectAdvancedComponent,
   ],
   template: `
-    <div class="mx-auto max-w-6xl space-y-6 px-1 py-2">
+    <div class="mx-auto max-w-6xl space-y-5 px-1 py-2 sm:space-y-6">
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eef6ff_100%)] shadow-sm"
       >
         <div
           class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8"
         >
-          <div class="space-y-5">
+          <div class="min-w-0 space-y-5">
             <div
               class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
             >
@@ -85,7 +87,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
         (ngSubmit)="onSubmit()"
         class="space-y-6"
       >
-        <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
           <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
               <p
@@ -195,7 +197,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             </div>
           </section>
 
-          <section class="space-y-6">
+          <section class="space-y-5 sm:space-y-6">
             <div class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
                 <p
@@ -232,6 +234,7 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
             </div>
 
             <div class="app-surface-card p-5 sm:p-6">
+              <div id="employee-geofence-settings" class="-mt-20 pt-20"></div>
               <div class="mb-6 flex items-center justify-between gap-4">
                 <div>
                   <p
@@ -265,6 +268,33 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
               </div>
 
               <div class="space-y-5">
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      Rule Status
+                    </p>
+                    <p class="mt-2 text-sm font-black" [ngClass]="employeeGeofence().requires_geofence ? 'text-emerald-700' : 'text-slate-700'">
+                      {{ employeeGeofence().requires_geofence ? 'Mandatory' : 'Optional' }}
+                    </p>
+                  </div>
+                  <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      Assigned Zone
+                    </p>
+                    <p class="mt-2 text-sm font-black text-slate-900">
+                      {{ selectedGeofenceZone()?.name || 'Organization Default' }}
+                    </p>
+                  </div>
+                  <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                      Radius
+                    </p>
+                    <p class="mt-2 text-sm font-black text-slate-900">
+                      {{ selectedGeofenceZone() ? selectedGeofenceZone()!.radius_meters + ' meters' : 'Inherited' }}
+                    </p>
+                  </div>
+                </div>
+
                 <div class="flex flex-col gap-2">
                   <label
                     class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
@@ -281,6 +311,32 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                   <p class="text-xs text-slate-500">
                     Leave empty to use organization-level attendance settings.
                   </p>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    (click)="saveGeofenceSettings()"
+                    [disabled]="geofenceSaving() || !geofenceDirty()"
+                    class="rounded-md bg-slate-900 px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {{ geofenceSaving() ? 'Saving Geofence...' : 'Save Geofence Rule' }}
+                  </button>
+                  <button
+                    type="button"
+                    (click)="resetGeofenceSelection()"
+                    [disabled]="geofenceSaving()"
+                    class="rounded-md border border-slate-300 px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Reset Selection
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openGeofenceWorkspace()"
+                    class="rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-black uppercase tracking-[0.18em] text-blue-700 transition hover:border-blue-500 hover:bg-blue-100"
+                  >
+                    Open Geofence Control
+                  </button>
                 </div>
 
                 <div
@@ -319,6 +375,24 @@ import { SelectOption } from '../../core/components/ui/ui-select-advanced.compon
                         : 'This employee can use broader organization settings for attendance capture.'
                     }}
                   </p>
+                </div>
+
+                <div *ngIf="selectedGeofenceZone()" class="rounded-md border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p class="text-sm font-black text-blue-900">Assigned geofence preview</p>
+                  <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                    <div>
+                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Zone</p>
+                      <p class="mt-1 text-sm font-semibold text-blue-900">{{ selectedGeofenceZone()!.name }}</p>
+                    </div>
+                    <div>
+                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Center</p>
+                      <p class="mt-1 text-sm font-semibold text-blue-900">{{ selectedGeofenceZone()!.center_lat }}, {{ selectedGeofenceZone()!.center_lng }}</p>
+                    </div>
+                    <div>
+                      <p class="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Radius</p>
+                      <p class="mt-1 text-sm font-semibold text-blue-900">{{ selectedGeofenceZone()!.radius_meters }} meters</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -392,9 +466,13 @@ export class EditEmployeeComponent implements OnInit {
   private toastService = inject(ToastService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private languageService = inject(LanguageService);
+  private destroyRef = inject(DestroyRef);
 
   loading = false;
   employeeId = 0;
+  geofenceSaving = signal(false);
+  geofenceDirty = signal(false);
   departments = signal<Department[]>([]);
   designations = signal<Designation[]>([]);
   geofenceZones = signal<GeoFenceZone[]>([]);
@@ -411,11 +489,15 @@ export class EditEmployeeComponent implements OnInit {
       value: z.id,
     })),
   );
+  selectedGeofenceZone = computed<GeoFenceZone | null>(() => {
+    const zoneId = this.geofenceZoneControl.value;
+    return this.geofenceZones().find((zone) => zone.id === zoneId) ?? null;
+  });
   roleOptions: SelectOption[] = [
     { label: 'Employee', value: 5 },
     { label: 'Manager', value: 4 },
     { label: 'HR Manager', value: 3 },
-    { label: 'Administrator', value: 2 },
+    { label: 'Organization Admin', value: 2 },
   ];
   statusOptions: SelectOption[] = [
     { label: 'Active', value: 'active' },
@@ -451,12 +533,27 @@ export class EditEmployeeComponent implements OnInit {
   ngOnInit() {
     this.employeeId = Number(this.route.snapshot.paramMap.get('id'));
     if (!this.employeeId) {
-      this.toastService.error('Invalid employee ID');
+      this.toastService.error(this.t('employee.invalidEmployeeId'));
       this.router.navigate(['/employees']);
       return;
     }
 
     this.loadData();
+    this.geofenceZoneControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.geofenceDirty.set(true));
+
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => {
+        if (params.get('focus') === 'geofence') {
+          setTimeout(() => {
+            document
+              .getElementById('employee-geofence-settings')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 250);
+        }
+      });
   }
 
   loadData() {
@@ -496,7 +593,7 @@ export class EditEmployeeComponent implements OnInit {
       },
       error: (err) => {
         this.toastService.error(
-          err?.error?.message || 'Failed to load employee',
+          err?.error?.message || this.t('employee.failedToLoad'),
         );
         this.router.navigate(['/employees']);
       },
@@ -506,12 +603,14 @@ export class EditEmployeeComponent implements OnInit {
       next: (data) => {
         this.employeeGeofence.set(data);
         this.geofenceZoneControl.setValue(data.geofence_zone_id);
+        this.geofenceDirty.set(false);
       },
       error: () => {
         this.employeeGeofence.set({
           geofence_zone_id: null,
           requires_geofence: false,
         });
+        this.geofenceDirty.set(false);
       },
     });
   }
@@ -531,21 +630,55 @@ export class EditEmployeeComponent implements OnInit {
             ...this.employeeGeofence(),
             requires_geofence: newValue,
           });
+          this.geofenceDirty.set(false);
           this.toastService.success(
             newValue
-              ? 'Geofence requirement enabled'
-              : 'Geofence requirement disabled',
+              ? this.t('employee.geofenceEnabled')
+              : this.t('employee.geofenceDisabled'),
           );
         },
         error: () => {
-          this.toastService.error('Failed to update geofence settings');
+          this.toastService.error(this.t('employee.geofenceUpdateFailed'));
         },
       });
   }
 
+  saveGeofenceSettings() {
+    this.geofenceSaving.set(true);
+    this.attendanceService
+      .setEmployeeGeofence(this.employeeId, {
+        geofence_zone_id: this.geofenceZoneControl.value,
+        requires_geofence: this.employeeGeofence().requires_geofence,
+      })
+      .subscribe({
+        next: () => {
+          this.employeeGeofence.set({
+            ...this.employeeGeofence(),
+            geofence_zone_id: this.geofenceZoneControl.value,
+          });
+          this.geofenceDirty.set(false);
+          this.geofenceSaving.set(false);
+          this.toastService.success('Employee geofence assignment updated.');
+        },
+        error: () => {
+          this.geofenceSaving.set(false);
+          this.toastService.error(this.t('employee.geofenceUpdateFailed'));
+        },
+      });
+  }
+
+  resetGeofenceSelection() {
+    this.geofenceZoneControl.setValue(this.employeeGeofence().geofence_zone_id);
+    this.geofenceDirty.set(false);
+  }
+
+  openGeofenceWorkspace() {
+    this.router.navigate(['/admin/attendance/geofence']);
+  }
+
   onSubmit() {
     if (this.employeeForm.invalid) {
-      this.toastService.error('Please fill all required fields correctly.');
+      this.toastService.error(this.t('employee.validationError'));
       return;
     }
 
@@ -586,6 +719,11 @@ export class EditEmployeeComponent implements OnInit {
         this.toastService.error(msg);
       },
     });
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 
   goBack() {

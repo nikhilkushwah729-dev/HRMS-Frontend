@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, effect, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
@@ -7,6 +7,7 @@ import { UiPhoneInputComponent } from '../../../../core/components/ui/ui-phone-i
 import { OrganizationService } from '../../../../core/services/organization.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { LanguageService } from '../../../../core/services/language.service';
 import * as AuthActions from '../../../../core/state/auth/auth.actions';
 import { User } from '../../../../core/models/auth.model';
 import { compressImageDataUrl } from '../../../../core/utils/image-compression.util';
@@ -25,22 +26,22 @@ interface Step {
     <div class="mx-auto max-w-7xl space-y-6">
       <section class="app-module-hero gap-6">
         <div class="min-w-0">
-          <p class="app-module-kicker">Organisation Settings</p>
-          <h1 class="app-module-title">Organisation profile</h1>
-          <p class="app-module-text max-w-2xl">Manage company identity, operational address, billing details, and timezone preferences from one aligned admin workspace.</p>
+          <p class="app-module-kicker">{{ t('org.titleKicker') }}</p>
+          <h1 class="app-module-title">{{ t('org.title') }}</h1>
+          <p class="app-module-text max-w-2xl">{{ t('org.subtitle') }}</p>
         </div>
         <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           @if (loading()) {
-            <span class="inline-flex items-center justify-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Loading profile</span>
+            <span class="inline-flex items-center justify-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-amber-700">{{ t('org.loadingProfile') }}</span>
           } @else if (loadError()) {
-            <span class="inline-flex items-center justify-center rounded-full bg-rose-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-rose-700">Sync needed</span>
+            <span class="inline-flex items-center justify-center rounded-full bg-rose-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-rose-700">{{ t('org.syncNeeded') }}</span>
           } @else {
-            <span class="inline-flex items-center justify-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Connected</span>
+            <span class="inline-flex items-center justify-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">{{ t('common.connected') }}</span>
           }
-          <button type="button" (click)="reloadProfile()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60" [disabled]="loading()">Refresh</button>
-          <button type="button" (click)="resetForm()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">Discard Changes</button>
+          <button type="button" (click)="reloadProfile()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60" [disabled]="loading()">{{ t('common.refresh') }}</button>
+          <button type="button" (click)="resetForm()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">{{ t('common.discardChanges') }}</button>
           <button type="button" (click)="saveProfile()" [disabled]="loading() || saving() || !isFormValid()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50">
-            {{ saving() ? 'Saving...' : 'Save Profile' }}
+            {{ saving() ? t('common.saving') : t('common.saveProfile') }}
           </button>
         </div>
       </section>
@@ -53,7 +54,7 @@ interface Step {
               <p class="mt-1 text-xs text-rose-600">{{ loadError() }}</p>
             </div>
             <button type="button" (click)="reloadProfile(true)" class="rounded-md bg-rose-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-700">
-              Retry Sync
+              {{ t('common.retrySync') }}
             </button>
           </div>
         </div>
@@ -63,7 +64,7 @@ interface Step {
         <aside class="space-y-4 xl:sticky xl:top-8 xl:self-start">
           <div class="app-surface-card overflow-hidden p-0">
             <div class="bg-slate-900 px-5 py-5 text-white">
-              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Profile Snapshot</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">{{ t('org.profileSnapshot') }}</p>
               <div class="mt-4 flex items-center gap-4">
                 <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/15 bg-white/10">
                   @if (logoPreview()) {
@@ -81,7 +82,7 @@ interface Step {
             <div class="space-y-4 px-5 py-5">
               <div>
                 <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  <span>Progress</span>
+                  <span>{{ t('common.progress') }}</span>
                   <span>{{ currentStep() + 1 }}/{{ steps.length }}</span>
                 </div>
                 <div class="h-2 rounded-full bg-slate-100">
@@ -90,7 +91,7 @@ interface Step {
               </div>
 
               <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3">
-                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Current Section</p>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ t('common.currentSection') }}</p>
                 <p class="mt-2 text-sm font-bold text-slate-900">{{ steps[currentStep()].title }}</p>
                 <p class="mt-1 text-xs text-slate-600">{{ steps[currentStep()].description }}</p>
               </div>
@@ -121,12 +122,12 @@ interface Step {
               <div class="space-y-6 px-6 py-6 md:px-8 md:py-8">
                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Identity</p>
-                    <h2 class="mt-2 text-2xl font-black text-slate-900">Organization details</h2>
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ t('common.identity') }}</p>
+                    <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('org.organizationDetails') }}</h2>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Keep your company branding, primary email, and business identity updated so the same details appear correctly across sidebar, profile, and admin views.</p>
                   </div>
                   <div class="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                    <p class="font-bold text-slate-900">Branding status</p>
+                    <p class="font-bold text-slate-900">{{ t('org.brandingStatus') }}</p>
                     <p class="mt-1">{{ logoPreview() ? 'Logo uploaded and ready to use.' : 'No logo yet, initial fallback will be used.' }}</p>
                   </div>
                 </div>
@@ -142,15 +143,15 @@ interface Step {
                     </div>
                     <div class="flex-1 space-y-4">
                       <div>
-                        <p class="text-sm font-bold text-slate-900">Organization logo</p>
+                        <p class="text-sm font-bold text-slate-900">{{ t('org.organizationLogo') }}</p>
                         <p class="mt-1 text-sm leading-6 text-slate-500">Upload PNG, JPG, WEBP, or SVG. Square logos work best for the sidebar card and compact profile surfaces.</p>
                       </div>
                       <div class="flex flex-wrap gap-3">
                         <label class="inline-flex cursor-pointer items-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800">
-                          Upload Logo
+                          {{ t('org.uploadLogo') }}
                           <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="hidden" (change)="onLogoSelected($event)">
                         </label>
-                        <button type="button" (click)="removeLogo()" class="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100" [disabled]="!logoPreview()">Remove</button>
+                        <button type="button" (click)="removeLogo()" class="rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100" [disabled]="!logoPreview()">{{ t('org.removeLogo') }}</button>
                       </div>
                       @if (logoError()) {
                         <p class="text-xs font-semibold text-rose-600">{{ logoError() }}</p>
@@ -164,6 +165,7 @@ interface Step {
                     <app-ui-input class="block min-w-0" formControlName="organizationName" label="Organization Name" placeholder="Enter legal entity name" [required]="true"></app-ui-input>
                     <app-ui-input class="block min-w-0" formControlName="industry" label="Industry" placeholder="Information Technology"></app-ui-input>
                     <app-ui-input class="block min-w-0 md:col-span-2" formControlName="email" label="Official Email Address" type="email" placeholder="contact@company.com" [required]="true"></app-ui-input>
+                    <app-ui-input class="block min-w-0 md:col-span-2" formControlName="employeeCodePrefix" [label]="t('common.employeeCodePrefix')" placeholder="UBI" hint="Use exactly 3 letters or numbers, for example UBI or HRM"></app-ui-input>
                   </div>
                 </div>
               </div>
@@ -172,8 +174,8 @@ interface Step {
             @if (currentStep() === 1) {
               <div class="space-y-6 px-6 py-6 md:px-8 md:py-8">
                 <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Operations</p>
-                  <h2 class="mt-2 text-2xl font-black text-slate-900">Operational address</h2>
+                  <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ t('common.operations') }}</p>
+                  <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('org.operationalAddress') }}</h2>
                   <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">This address becomes the primary operational location used for company records and general communication details.</p>
                 </div>
 
@@ -195,12 +197,12 @@ interface Step {
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Billing</p>
-                    <h2 class="mt-2 text-2xl font-black text-slate-900">Billing address</h2>
+                    <h2 class="mt-2 text-2xl font-black text-slate-900">{{ t('org.billingAddress') }}</h2>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">Use a separate billing address only when invoices should go to a different location than your operational office.</p>
                   </div>
                   <label class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                     <input type="checkbox" [checked]="sameAddressChecked()" (change)="toggleSameAddress($event)" class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900">
-                    Same as operational address
+                    {{ t('org.sameAsOperational') }}
                   </label>
                 </div>
 
@@ -217,9 +219,9 @@ interface Step {
             }
 
             <div class="flex flex-col gap-3 border-t border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between md:px-8">
-              <button type="button" (click)="previousStep()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" [class.invisible]="currentStep() === 0">Previous Step</button>
+              <button type="button" (click)="previousStep()" class="rounded-md border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" [class.invisible]="currentStep() === 0">{{ t('common.previousStep') }}</button>
               <div class="flex flex-col gap-3 sm:flex-row">
-                <button type="button" (click)="nextStep()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" [class.invisible]="currentStep() === steps.length - 1">Next Step</button>
+                <button type="button" (click)="nextStep()" class="rounded-md bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800" [class.invisible]="currentStep() === steps.length - 1">{{ t('common.nextStep') }}</button>
               </div>
             </div>
           </form>
@@ -233,7 +235,9 @@ export class OrganisationProfileComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
+  private languageService = inject(LanguageService);
   private store = inject(Store);
+  private cdr = inject(ChangeDetectorRef);
 
   currentStep = signal(0);
   sameAddressChecked = signal(false);
@@ -243,6 +247,14 @@ export class OrganisationProfileComponent implements OnInit {
   logoPreview = signal('');
   logoError = signal('');
   private initialData: any = null;
+
+  constructor() {
+    effect(() => {
+      this.languageService.currentLanguage();
+      this.updateStepLocales();
+      this.cdr.markForCheck();
+    });
+  }
 
   steps: Step[] = [
     { id: 1, title: 'Organization Details', description: 'Basic company info' },
@@ -255,6 +267,7 @@ export class OrganisationProfileComponent implements OnInit {
     logo: [''],
     industry: [''],
     email: ['', [Validators.required, Validators.email]],
+    employeeCodePrefix: ['', [Validators.maxLength(3)]],
     orgStreet1: ['', Validators.required],
     orgStreet2: [''],
     orgCity: ['', Validators.required],
@@ -269,6 +282,19 @@ export class OrganisationProfileComponent implements OnInit {
   });
 
   ngOnInit() {
+    this.updateStepLocales();
+
+    this.profileForm.get('employeeCodePrefix')?.valueChanges.subscribe((value) => {
+      const normalized = String(value ?? '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '')
+        .slice(0, 3);
+
+      if (value !== normalized) {
+        this.profileForm.get('employeeCodePrefix')?.setValue(normalized, { emitEvent: false });
+      }
+    });
+
     this.loadOrganizationProfile();
   }
 
@@ -303,33 +329,63 @@ export class OrganisationProfileComponent implements OnInit {
           return;
         }
 
-        this.initialData = {
-          organizationName: organization.name || '',
-          logo: organization.logo || '',
-          industry: organization.industry || '',
-          email: organization.email || '',
-          orgStreet1: organization.orgStreet1 || organization.address || '',
-          orgStreet2: organization.orgStreet2 || '',
-          orgCity: organization.orgCity || organization.city || '',
-          orgPinCode: organization.orgPinCode || organization.postalCode || '',
-          orgContactNumber: organization.orgContactNumber || organization.phone || '',
-          timeZone: organization.timeZone || '',
-          billStreet1: organization.billStreet1 || organization.orgStreet1 || organization.address || '',
-          billStreet2: organization.billStreet2 || '',
-          billCity: organization.billCity || organization.orgCity || organization.city || '',
-          billPinCode: organization.billPinCode || organization.orgPinCode || organization.postalCode || '',
-          billContactNumber: organization.billContactNumber || organization.orgContactNumber || organization.phone || ''
-        };
-        this.profileForm.patchValue(this.initialData);
-        this.logoPreview.set(this.initialData.logo || '');
-        this.sameAddressChecked.set(this.isBillingSameAsOperational(this.initialData));
-        this.loading.set(false);
-        this.loadError.set(hasRealData ? '' : 'Saved session se minimal organization data mila, lekin organization API complete details nahi de rahi thi.');
+        this.orgService.getEmployeeCodePrefix().subscribe({
+          next: (employeeCodePrefix) => {
+            this.initialData = {
+              organizationName: organization.name || '',
+              logo: organization.logo || '',
+              industry: organization.industry || '',
+              email: organization.email || '',
+              employeeCodePrefix: employeeCodePrefix || '',
+              orgStreet1: organization.orgStreet1 || organization.address || '',
+              orgStreet2: organization.orgStreet2 || '',
+              orgCity: organization.orgCity || organization.city || '',
+              orgPinCode: organization.orgPinCode || organization.postalCode || '',
+              orgContactNumber: organization.orgContactNumber || organization.phone || '',
+              timeZone: organization.timeZone || '',
+              billStreet1: organization.billStreet1 || organization.orgStreet1 || organization.address || '',
+              billStreet2: organization.billStreet2 || '',
+              billCity: organization.billCity || organization.orgCity || organization.city || '',
+              billPinCode: organization.billPinCode || organization.orgPinCode || organization.postalCode || '',
+              billContactNumber: organization.billContactNumber || organization.orgContactNumber || organization.phone || ''
+            };
+            this.profileForm.patchValue(this.initialData);
+            this.logoPreview.set(this.initialData.logo || '');
+            this.sameAddressChecked.set(this.isBillingSameAsOperational(this.initialData));
+            this.loading.set(false);
+            this.loadError.set(hasRealData ? '' : 'Saved session se minimal organization data mila, lekin organization API complete details nahi de rahi thi.');
+          },
+          error: () => {
+            this.initialData = {
+              organizationName: organization.name || '',
+              logo: organization.logo || '',
+              industry: organization.industry || '',
+              email: organization.email || '',
+              employeeCodePrefix: '',
+              orgStreet1: organization.orgStreet1 || organization.address || '',
+              orgStreet2: organization.orgStreet2 || '',
+              orgCity: organization.orgCity || organization.city || '',
+              orgPinCode: organization.orgPinCode || organization.postalCode || '',
+              orgContactNumber: organization.orgContactNumber || organization.phone || '',
+              timeZone: organization.timeZone || '',
+              billStreet1: organization.billStreet1 || organization.orgStreet1 || organization.address || '',
+              billStreet2: organization.billStreet2 || '',
+              billCity: organization.billCity || organization.orgCity || organization.city || '',
+              billPinCode: organization.billPinCode || organization.orgPinCode || organization.postalCode || '',
+              billContactNumber: organization.billContactNumber || organization.orgContactNumber || organization.phone || ''
+            };
+            this.profileForm.patchValue(this.initialData);
+            this.logoPreview.set(this.initialData.logo || '');
+            this.sameAddressChecked.set(this.isBillingSameAsOperational(this.initialData));
+            this.loading.set(false);
+            this.loadError.set(hasRealData ? '' : 'Saved session se minimal organization data mila, lekin organization API complete details nahi de rahi thi.');
+          }
+        });
       },
       error: () => {
         this.loading.set(false);
         this.loadError.set('Organization endpoint response nahi de raha tha. Fallback mode active hai.');
-        this.toastService.error('Failed to load organisation profile');
+        this.toastService.error(this.t('org.failedToLoad'));
       }
     });
   }
@@ -360,6 +416,19 @@ export class OrganisationProfileComponent implements OnInit {
 
   stepProgress(): number {
     return ((this.currentStep() + 1) / this.steps.length) * 100;
+  }
+
+  updateStepLocales() {
+    this.steps = [
+      { id: 1, title: this.t('org.organizationDetails'), description: 'Basic company info' },
+      { id: 2, title: this.t('org.operationalAddress'), description: 'Main headquarters' },
+      { id: 3, title: this.t('org.billingAddress'), description: 'Invoicing details' }
+    ];
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage(); 
+    return this.languageService.t(key, params);
   }
 
   async onLogoSelected(event: Event) {
@@ -482,19 +551,31 @@ export class OrganisationProfileComponent implements OnInit {
       if (this.sameAddressChecked()) {
         ['billStreet1', 'billStreet2', 'billCity', 'billPinCode', 'billContactNumber'].forEach((key) => this.profileForm.get(key)?.disable());
       }
-      this.toastService.success('Form reset to saved values');
+      this.toastService.success(this.t('org.formReset'));
     }
   }
 
   saveProfile() {
     if (!this.isFormValid()) {
       this.profileForm.markAllAsTouched();
-      this.toastService.error('Please complete all required organisation fields');
+      this.toastService.error(this.t('org.requiredFields'));
       return;
     }
 
     this.saving.set(true);
     const payload = this.profileForm.getRawValue();
+    const normalizedPrefix = String(payload.employeeCodePrefix || '')
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 3);
+
+    if (normalizedPrefix && normalizedPrefix.length < 3) {
+      this.saving.set(false);
+      this.toastService.error(this.t('org.prefixInvalid'));
+      return;
+    }
+
     this.orgService.updateOrganization({
       name: payload.organizationName,
       logo: payload.logo,
@@ -517,49 +598,64 @@ export class OrganisationProfileComponent implements OnInit {
       billContactNumber: payload.billContactNumber
     }).subscribe({
       next: (savedOrganization) => {
-        const savedLogo = savedOrganization?.logo || payload.logo || '';
-        this.initialData = {
-          ...payload,
-          logo: savedLogo
-        };
-        this.profileForm.patchValue({ logo: savedLogo });
-        this.logoPreview.set(savedLogo);
-
-        const storedUser = this.authService.getStoredUser();
-        if (storedUser) {
-          const updatedUser: User = {
-            ...storedUser,
-            organizationLogo: savedLogo,
-            companyLogo: savedLogo,
-            organizationName: savedOrganization?.name || storedUser.organizationName,
-            companyName: savedOrganization?.name || storedUser.companyName
-          };
-          this.authService.setStoredUser(updatedUser);
-
-          const token = this.authService.getStoredToken();
-          if (token) {
-            this.store.dispatch(AuthActions.restoreUser({ user: updatedUser, token }));
-          }
-        }
-
-        this.toastService.success('Organisation profile saved successfully');
-        // Refresh global session to sync branding across all components
-        this.authService.getMe().subscribe((meUser) => {
-          const existingUser = this.authService.getStoredUser();
-          if (existingUser) {
-            this.authService.setStoredUser({
-              ...existingUser,
-              ...meUser,
-              organizationLogo: existingUser.organizationLogo || existingUser.companyLogo || meUser.organizationLogo || meUser.companyLogo,
-              companyLogo: existingUser.companyLogo || existingUser.organizationLogo || meUser.companyLogo || meUser.organizationLogo
+        this.orgService.saveEmployeeCodePrefix(normalizedPrefix).subscribe({
+          next: (savedPrefix) => {
+            const savedLogo = savedOrganization?.logo || payload.logo || '';
+            this.initialData = {
+              ...payload,
+              logo: savedLogo,
+              employeeCodePrefix: savedPrefix || ''
+            };
+            this.profileForm.patchValue({
+              logo: savedLogo,
+              employeeCodePrefix: savedPrefix || ''
             });
-          } else {
-            this.authService.setStoredUser(meUser);
-          }
+            this.logoPreview.set(savedLogo);
+
+            const storedUser = this.authService.getStoredUser();
+            if (storedUser) {
+              const updatedUser: User = {
+                ...storedUser,
+                organizationLogo: savedLogo,
+                companyLogo: savedLogo,
+                organizationName: savedOrganization?.name || storedUser.organizationName,
+                companyName: savedOrganization?.name || storedUser.companyName
+              };
+              this.authService.setStoredUser(updatedUser);
+
+              const token = this.authService.getStoredToken();
+              if (token) {
+                this.store.dispatch(AuthActions.restoreUser({ user: updatedUser, token }));
+              }
+            }
+
+            this.toastService.success(this.t('org.profileSaved'));
+            this.authService.getMe().subscribe((meUser) => {
+              const existingUser = this.authService.getStoredUser();
+              if (existingUser) {
+                this.authService.setStoredUser({
+                  ...existingUser,
+                  ...meUser,
+                  organizationLogo: existingUser.organizationLogo || existingUser.companyLogo || meUser.organizationLogo || meUser.companyLogo,
+                  companyLogo: existingUser.companyLogo || existingUser.organizationLogo || meUser.companyLogo || meUser.organizationLogo
+                });
+              } else {
+                this.authService.setStoredUser(meUser);
+              }
+            });
+          },
+          error: () => {
+            this.toastService.error(this.t('org.prefixSaveFailed'));
+          },
+          complete: () => this.saving.set(false)
         });
       },
-      error: () => this.toastService.error('Failed to save organisation profile'),
-      complete: () => this.saving.set(false)
+      error: () => this.toastService.error(this.t('org.saveFailed')),
+      complete: () => {
+        if (this.saving()) {
+          this.saving.set(false);
+        }
+      }
     });
   }
 }

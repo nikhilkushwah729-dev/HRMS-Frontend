@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal, computed } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet, Router, NavigationStart, NavigationEnd, NavigationCancel, NavigationError } from '@angular/router';
 import { Store } from '@ngrx/store';
 import * as AuthActions from './core/state/auth/auth.actions';
@@ -8,10 +9,10 @@ import { ConfirmModalComponent } from './core/components/modal/confirm-modal.com
 import { TopLoaderComponent } from './core/components/top-loader/top-loader.component';
 import { TopLoaderService } from './core/services/top-loader.service';
 import { UserLimitService } from './core/services/user-limit.service';
-import { SubscriptionService } from './core/services/subscription.service';
+import { SubscriptionService, SubscriptionStatusPayload } from './core/services/subscription.service';
+import { LanguageService } from './core/services/language.service';
 import { filter } from 'rxjs/operators';
-import { toObservable } from '@angular/core/rxjs-interop';
-import { CommonModule, AsyncPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { MainLoaderComponent } from './core/components/main-loader/main-loader.component';
 import { CustomModalComponent } from './core/components/modal/custom-modal.component';
 import { CustomButtonComponent } from './core/components/button/custom-button.component';
@@ -19,10 +20,10 @@ import { CustomButtonComponent } from './core/components/button/custom-button.co
 @Component({
   selector: 'app-root',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     RouterOutlet,
-    AsyncPipe,
     ToastComponent,
     ConfirmModalComponent,
     TopLoaderComponent,
@@ -37,44 +38,64 @@ export class AppComponent implements OnInit {
   public topLoaderService = inject(TopLoaderService);
   public userLimitService = inject(UserLimitService);
   public subscriptionService = inject(SubscriptionService);
+  public languageService = inject(LanguageService);
   private authService = inject(AuthService);
   private store = inject(Store);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
   
   title = 'HRNexus';
   showRefreshStrip = signal(false);
-  trialBannerMessage = signal('');
-  loading$ = toObservable(this.topLoaderService.loadingSignal);
+  currentUrl = signal(this.router.url || '/');
+  routeLoading = signal(false);
+  subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
+  isAuthRoute = computed(() => this.currentUrl().startsWith('/auth'));
+  trialBannerMessage = computed(() => {
+    this.languageService.currentLanguage();
+    const status = this.subscriptionStatus();
+    if (!status) return '';
+    if (status.organization.isTrialActive) {
+      const days = Math.max(0, status.trialDaysRemaining ?? 0);
+      return this.languageService.t('app.freeTrialActive', {
+        days,
+        suffix: days === 1 ? '' : 's',
+      });
+    }
+    if (status.organization.readOnlyMode) {
+      return this.languageService.t('app.subscriptionExpired');
+    }
+    return '';
+  });
   
   isOnline = true;
+
+  private refreshSubscriptionStatus() {
+    this.subscriptionService.getStatus()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (status) => this.subscriptionStatus.set(status),
+        error: () => this.subscriptionStatus.set(null),
+      });
+  }
 
   ngOnInit() {
     const token = this.authService.getStoredToken();
     const user = this.authService.getStoredUser();
+    const initialUrl = this.router.url || '/';
+    const isInitialAuthRoute = initialUrl.startsWith('/auth');
     
     // Immediate hydration from storage for instant UI
     if (token && user) {
       this.store.dispatch(AuthActions.restoreUser({ user, token }));
     }
 
-    // Always fetch fresh truth from API if we have a session to ensure persistence
-    if (token) {
-      this.authService.getMe().subscribe({
+    // Keep auth pages lightweight; refresh session only on non-auth routes.
+    if (token && !isInitialAuthRoute) {
+      this.refreshSubscriptionStatus();
+      this.authService.getMe({ skipLoading: true }).subscribe({
         next: (freshUser) => {
           this.authService.setStoredUser(freshUser);
           this.store.dispatch(AuthActions.restoreUser({ user: freshUser, token }));
-          this.subscriptionService.getStatus().subscribe({
-            next: (status) => {
-              if (status.organization.isTrialActive) {
-                this.trialBannerMessage.set(`Free trial active. ${status.trialDaysRemaining ?? 0} day(s) remaining.`);
-              } else if (status.organization.readOnlyMode) {
-                this.trialBannerMessage.set('Subscription expired. Workspace is currently in read-only mode until you upgrade.');
-              } else {
-                this.trialBannerMessage.set('');
-              }
-            },
-            error: () => this.trialBannerMessage.set(''),
-          });
         },
         error: (err) => {
           if (err?.status === 401 || err?.status === 404) {
@@ -87,6 +108,7 @@ export class AppComponent implements OnInit {
 
     // Handle routing loader
     this.router.events.pipe(
+      takeUntilDestroyed(this.destroyRef),
       filter(event => 
         event instanceof NavigationStart || 
         event instanceof NavigationEnd || 
@@ -95,8 +117,15 @@ export class AppComponent implements OnInit {
       )
     ).subscribe(event => {
       if (event instanceof NavigationStart) {
+        this.currentUrl.set(event.url);
+        this.routeLoading.set(true);
         this.topLoaderService.show();
+      } else if (event instanceof NavigationEnd) {
+        this.currentUrl.set(event.urlAfterRedirects);
+        this.routeLoading.set(false);
+        this.topLoaderService.hide();
       } else {
+        this.routeLoading.set(false);
         this.topLoaderService.hide();
       }
     });
@@ -104,12 +133,23 @@ export class AppComponent implements OnInit {
     // Online/Offline detection
     if (typeof window !== 'undefined') {
       this.isOnline = navigator.onLine;
-      window.addEventListener('online', () => {
-        this.isOnline = true;
-      });
-      window.addEventListener('offline', () => {
-        this.isOnline = false;
-      });
+      window.addEventListener('online', this.handleOnline);
+      window.addEventListener('offline', this.handleOffline);
+    }
+  }
+
+  private readonly handleOnline = () => {
+    this.isOnline = true;
+  };
+
+  private readonly handleOffline = () => {
+    this.isOnline = false;
+  };
+
+  ngOnDestroy() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('online', this.handleOnline);
+      window.removeEventListener('offline', this.handleOffline);
     }
   }
 
@@ -119,5 +159,10 @@ export class AppComponent implements OnInit {
 
   upgrade() {
     this.router.navigateByUrl('/billing');
+  }
+
+  t(key: string, params?: Record<string, string | number | null | undefined>): string {
+    this.languageService.currentLanguage();
+    return this.languageService.t(key, params);
   }
 }
