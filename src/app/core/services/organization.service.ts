@@ -575,8 +575,7 @@ export class OrganizationService {
         }
 
         this.holidaysCacheAt = Date.now();
-        this.holidaysCache$ = this.http.get<any>(`${this.apiUrl}/organization/holidays`).pipe(
-            catchError(() => this.http.get<any>(`${this.apiUrl}/holidays`)),
+        this.holidaysCache$ = this.http.get<any>(`${this.apiUrl}/holidays`).pipe(
             map((res) => {
                 if (res && (res.message === 'Row not found' || res.error === 'Row not found')) return [];
                 const records = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
@@ -589,21 +588,21 @@ export class OrganizationService {
     }
 
     createHoliday(payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
-        return this.http.post<any>(`${this.apiUrl}/organization/holidays`, payload).pipe(
+        return this.http.post<any>(`${this.apiUrl}/holidays`, payload).pipe(
             tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     updateHoliday(holidayId: number, payload: { name: string; holidayDate: string; type: OrganizationHoliday['type'] }): Observable<OrganizationHoliday> {
-        return this.http.put<any>(`${this.apiUrl}/organization/holidays/${holidayId}`, payload).pipe(
+        return this.http.put<any>(`${this.apiUrl}/holidays/${holidayId}`, payload).pipe(
             tap(() => this.clearHolidaysCache()),
             map((res) => this.normalizeHoliday(res?.data ?? res))
         );
     }
 
     deleteHoliday(holidayId: number): Observable<boolean> {
-        return this.http.delete<any>(`${this.apiUrl}/organization/holidays/${holidayId}`).pipe(
+        return this.http.delete<any>(`${this.apiUrl}/holidays/${holidayId}`).pipe(
             tap(() => this.clearHolidaysCache()),
             map(() => true),
             catchError(() => of(false))
@@ -625,8 +624,7 @@ export class OrganizationService {
         }
 
         this.addonsCacheAt = Date.now();
-        this.addonsCache$ = this.http.get<any>(`${this.apiUrl}/organization/addons`).pipe(
-            catchError(() => this.http.get<any>(`${this.apiUrl}/addons`)),
+        this.addonsCache$ = this.http.get<any>(`${this.apiUrl}/addons`).pipe(
             map(res => {
                 if (res && (res.message === 'Row not found' || res.error === 'Row not found')) {
                     return this.getAvailableAddons();
@@ -649,8 +647,7 @@ export class OrganizationService {
     }
 
     toggleAddon(addonId: number, isActive: boolean): Observable<any> {
-        return this.http.post<any>(`${this.apiUrl}/organization/addons/toggle`, { addonId, isActive }).pipe(
-            catchError(() => this.http.post<any>(`${this.apiUrl}/addons/toggle`, { addonId, isActive })),
+        return this.http.post<any>(`${this.apiUrl}/addons/toggle`, { addonId, isActive }).pipe(
             tap(() => this.clearAddonsCache()),
             map(res => res)
         );
