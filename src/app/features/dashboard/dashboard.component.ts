@@ -66,7 +66,7 @@ interface ModuleCard {
       <section class="hero">
         <div class="hero-copy">
           <p class="hero-eyebrow">{{ greeting() }}</p>
-          <h1>{{ getFullName() }}</h1>
+          <h1>Welcome back, {{ getFullName() }}!</h1>
           <p class="hero-role">{{ dashboardSummary() }}</p>
           <p class="hero-description">
             {{ dashboardDescription() }}
@@ -626,9 +626,9 @@ interface ModuleCard {
       .hero-eyebrow,
       .panel-eyebrow {
         margin: 0;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
         color: #2563eb;
       }
@@ -638,12 +638,20 @@ interface ModuleCard {
       }
 
       .hero h1 {
-        margin: 0.75rem 0 0;
+        margin: 0.4rem 0 0;
         font-family: 'Sora', 'Inter', sans-serif;
-        font-size: clamp(1.75rem, 3.5vw, 2.75rem);
-        line-height: 1.15;
-        letter-spacing: -0.03em;
-        font-weight: 800;
+        font-size: clamp(1.25rem, 2vw, 1.65rem);
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+        font-weight: 700;
+        color: #0f172a;
+      }
+
+      .hero-role {
+        margin: 0.25rem 0 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #2563eb;
       }
 
       .hero-description,
@@ -652,21 +660,21 @@ interface ModuleCard {
       .list-row span,
       .empty-state span {
         color: #475569;
-        line-height: 1.6;
+        line-height: 1.5;
       }
 
       .hero-description {
-        margin: 0.75rem 0 0;
-        max-width: 42rem;
-        font-size: 0.95rem;
+        margin: 0.45rem 0 0;
+        max-width: 40rem;
+        font-size: 0.85rem;
       }
 
       .hero-actions {
         display: flex;
-        gap: 0.8rem;
+        gap: 0.65rem;
         flex-wrap: wrap;
         margin-top: auto;
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
       }
 
       .hero-btn,
@@ -674,11 +682,11 @@ interface ModuleCard {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.85rem;
-        padding: 0.75rem 1.15rem;
-        border-radius: 10px;
-        font-size: 0.9rem;
-        font-weight: 700;
+        min-height: 2.35rem;
+        padding: 0.55rem 0.95rem;
+        border-radius: 8px;
+        font-size: 0.825rem;
+        font-weight: 600;
         transition: box-shadow 0.2s ease, background-color 0.2s ease;
       }
 
@@ -686,7 +694,7 @@ interface ModuleCard {
       .hero-wide-action {
         background: #0f172a;
         color: #fff;
-        box-shadow: 0 8px 18px -14px rgba(15, 23, 42, 0.35);
+        box-shadow: 0 6px 14px -10px rgba(15, 23, 42, 0.35);
       }
 
       .hero-btn-secondary {
@@ -705,7 +713,7 @@ interface ModuleCard {
       .hero-panel,
       .panel,
       .stat-card {
-        padding: 1.35rem;
+        padding: 1.15rem;
         border: 1px solid rgba(148, 163, 184, 0.16);
         background: #ffffff;
         box-shadow: 0 10px 24px -18px rgba(15, 23, 42, 0.14);
@@ -722,32 +730,32 @@ interface ModuleCard {
         display: flex;
         align-items: center;
         gap: 0.65rem;
-        font-size: 0.84rem;
-        font-weight: 700;
+        font-size: 0.8rem;
+        font-weight: 600;
         color: #475569;
       }
 
 
       .live-dot {
-        width: 0.7rem;
-        height: 0.7rem;
+        width: 0.65rem;
+        height: 0.65rem;
         border-radius: 999px;
         background: #94a3b8;
-        box-shadow: 0 0 0 6px rgba(148, 163, 184, 0.16);
+        box-shadow: 0 0 0 5px rgba(148, 163, 184, 0.16);
       }
 
       .live-dot-on {
         background: #14b8a6;
-        box-shadow: 0 0 0 6px rgba(20, 184, 166, 0.18);
+        box-shadow: 0 0 0 5px rgba(20, 184, 166, 0.18);
       }
 
       .hero-panel-value {
-        margin-top: 0.85rem;
+        margin-top: 0.75rem;
         font-family: 'Sora', 'Inter', sans-serif;
-        font-size: clamp(1.35rem, 2.2vw, 2.1rem);
-        line-height: 1.2;
-        letter-spacing: -0.03em;
-        font-weight: 800;
+        font-size: clamp(1.15rem, 1.6vw, 1.45rem);
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+        font-weight: 700;
       }
 
       .hero-meta-grid,
@@ -988,17 +996,18 @@ interface ModuleCard {
       .module-card strong {
         display: block;
         font-family: 'Sora', 'Inter', sans-serif;
-        font-size: 1.1rem;
-        line-height: 1.25;
-        letter-spacing: -0.02em;
+        font-size: 0.95rem;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
         color: #0f172a;
+        font-weight: 700;
       }
 
       .module-card p {
         margin: 0;
-        color: #475569;
-        font-size: 0.875rem;
-        line-height: 1.55;
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.45;
       }
 
       .module-card-amber {
@@ -1050,12 +1059,12 @@ interface ModuleCard {
       }
 
       .stat-card h2 {
-        margin: 0.75rem 0 0;
+        margin: 0.5rem 0 0;
         font-family: 'Sora', 'Inter', sans-serif;
-        font-size: clamp(1.5rem, 2.2vw, 2rem);
-        line-height: 1.15;
-        letter-spacing: -0.03em;
-        font-weight: 800;
+        font-size: clamp(1.25rem, 1.8vw, 1.55rem);
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        font-weight: 700;
       }
 
       .stat-card span {
@@ -1094,12 +1103,12 @@ interface ModuleCard {
       }
 
       .panel-head h3 {
-        margin: 0.35rem 0 0;
+        margin: 0.25rem 0 0;
         font-family: 'Sora', 'Inter', sans-serif;
-        font-size: clamp(1.15rem, 1.8vw, 1.4rem);
-        line-height: 1.2;
-        letter-spacing: -0.03em;
-        font-weight: 800;
+        font-size: clamp(1rem, 1.4vw, 1.25rem);
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+        font-weight: 700;
         color: inherit;
       }
 
