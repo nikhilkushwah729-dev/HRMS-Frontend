@@ -584,28 +584,28 @@ interface ModuleCard {
     `
       :host {
         display: block;
-        background: transparent;
-        margin: -1rem;
       }
 
       .dashboard-page {
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 1.25rem;
         color: #0f172a;
         min-width: 0;
         width: 100%;
-        padding: 1rem;
+        max-width: 100%;
+        padding-bottom: 2rem;
       }
 
       .hero {
         display: grid;
         grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
-        padding: 1.25rem;
+        padding: 1.25rem 1.5rem;
         border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
-        background: #ffffff;
-        box-shadow: 0 14px 36px -24px rgba(15, 23, 42, 0.14);
+        background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.05), transparent 24rem), linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 12px 32px -20px rgba(15, 23, 42, 0.12);
         align-items: stretch;
         overflow: hidden;
       }
