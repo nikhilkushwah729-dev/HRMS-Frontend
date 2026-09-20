@@ -154,6 +154,31 @@ import { FormsModule } from '@angular/forms';
               </h2>
             </div>
 
+            <!-- Photo Upload Dropzone -->
+            <div class="mb-5 rounded-md border border-dashed border-slate-300 p-4 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
+              <div class="flex flex-col items-center justify-center gap-3">
+                @if (avatarPreview()) {
+                  <div class="relative">
+                    <img [src]="avatarPreview()" alt="Avatar Preview" class="h-20 w-20 rounded-full object-cover border-2 border-emerald-500 shadow-md">
+                    <button type="button" (click)="removePhoto()" class="absolute -top-1 -right-1 rounded-full bg-rose-500 text-white p-1 shadow-sm hover:bg-rose-600 transition">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                    </button>
+                  </div>
+                } @else {
+                  <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                }
+                <div>
+                  <label class="cursor-pointer text-xs font-bold text-emerald-600 hover:text-emerald-700">
+                    <span>{{ avatarPreview() ? 'Change Photo' : 'Upload Profile Photo' }}</span>
+                    <input type="file" accept="image/*" (change)="onPhotoSelected($event)" class="hidden">
+                  </label>
+                  <p class="text-[11px] text-slate-400 mt-0.5">PNG, JPG up to 5MB</p>
+                </div>
+              </div>
+            </div>
+
             <div class="grid gap-5 md:grid-cols-2">
               <div class="flex flex-col gap-2">
                 <label
@@ -290,6 +315,14 @@ import { FormsModule } from '@angular/forms';
                   [label]="t('employee.role')"
                   [placeholder]="t('employee.selectRole')"
                   [options]="roleOptions"
+                ></app-ui-select-advanced>
+              </div>
+              <div class="flex flex-col gap-2">
+                <app-ui-select-advanced
+                  formControlName="shiftId"
+                  label="Work Shift Timing"
+                  placeholder="Select shift timing"
+                  [options]="shiftOptions"
                 ></app-ui-select-advanced>
               </div>
               <div class="flex flex-col gap-2">
@@ -445,6 +478,15 @@ export class AddEmployeeComponent implements OnInit {
     { label: 'Terminated', value: 'terminated' },
   ];
 
+  avatarPreview = signal<string | null>(null);
+
+  shiftOptions: SelectOption[] = [
+    { label: 'General Shift (09:00 AM - 05:00 PM)', value: 1 },
+    { label: 'Evening Shift (02:00 PM - 10:00 PM)', value: 2 },
+    { label: 'Night Shift (10:00 PM - 06:00 AM)', value: 3 },
+    { label: 'Flexible Shift', value: 4 },
+  ];
+
   employeeForm: FormGroup = this.fb.group({
     firstName: ['', [Validators.required]],
     lastName: ['', [Validators.required]],
@@ -456,10 +498,30 @@ export class AddEmployeeComponent implements OnInit {
     designationId: [''],
     roleId: [5, [Validators.required]],
     status: ['active', [Validators.required]],
+    shiftId: [1],
+    avatar: [''],
     joinDate: [''],
     emergencyContact: [''],
     emergencyPhone: [''],
   });
+
+  onPhotoSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        this.avatarPreview.set(result);
+        this.employeeForm.patchValue({ avatar: result });
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  removePhoto() {
+    this.avatarPreview.set(null);
+    this.employeeForm.patchValue({ avatar: '' });
+  }
 
   ngOnInit() {
     this.orgService.getDepartments().subscribe({

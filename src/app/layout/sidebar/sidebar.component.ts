@@ -32,8 +32,13 @@ import { LanguageService } from '../../core/services/language.service';
     <div
       *ngIf="layoutService.sidebarOpen()"
       (click)="layoutService.closeSidebar()"
-      class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-500"
-    ></div>
+      class="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-40 lg:hidden transition-all duration-500 flex items-center justify-end pr-6"
+    >
+      <div class="inline-flex items-center gap-2 rounded-full bg-slate-900/80 px-4 py-2 text-xs font-bold text-slate-200 border border-slate-700/50 shadow-xl pointer-events-none animate-pulse">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <span>Tap anywhere to close menu</span>
+      </div>
+    </div>
 
     <aside
       [ngClass]="desktopSidebarWidthClass()"

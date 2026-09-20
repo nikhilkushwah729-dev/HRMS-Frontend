@@ -242,6 +242,40 @@ type CatalogItem = {
                         </div>
                       }
 
+                      <!-- Visual Analytics Distribution Section -->
+                      <div class="rounded-xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white shadow-xl">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-white/10 pb-4">
+                          <div>
+                            <span class="text-[10px] font-black uppercase tracking-[0.22em] text-emerald-400">Visual Analytics</span>
+                            <h4 class="mt-1 text-xl font-black tracking-tight text-white" style="font-family: 'Sora', sans-serif;">Attendance Ratio & Distribution Breakdown</h4>
+                          </div>
+                          <div class="flex items-center gap-3">
+                            <span class="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
+                              <span class="h-2 w-2 rounded-full bg-emerald-400"></span> Present
+                            </span>
+                            <span class="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                              <span class="h-2 w-2 rounded-full bg-amber-400"></span> Late
+                            </span>
+                            <span class="flex items-center gap-1.5 text-xs font-bold text-rose-300">
+                              <span class="h-2 w-2 rounded-full bg-rose-400"></span> Absent
+                            </span>
+                          </div>
+                        </div>
+
+                        <!-- Progress Bar Visual Distribution -->
+                        <div class="mt-5 space-y-2">
+                          <div class="flex items-center justify-between text-xs font-bold">
+                            <span class="text-slate-300">Overall Workforce Presence Rate</span>
+                            <span class="text-emerald-400">92.4% Optimal</span>
+                          </div>
+                          <div class="flex h-3 w-full overflow-hidden rounded-full bg-slate-700/60 p-0.5 backdrop-blur">
+                            <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" style="width: 78%"></div>
+                            <div class="h-full rounded-full bg-amber-400 transition-all duration-500" style="width: 14%"></div>
+                            <div class="h-full rounded-full bg-rose-500 transition-all duration-500" style="width: 8%"></div>
+                          </div>
+                        </div>
+                      </div>
+
                       <!-- Main Table -->
                       <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm ring-1 ring-slate-200">
                         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/30 px-6 py-4">
