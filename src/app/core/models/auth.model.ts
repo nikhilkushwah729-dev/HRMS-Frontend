@@ -89,6 +89,9 @@ export interface User {
   attImage?: number | null;
   visitorManagementAddOn?: number;
   settingPerm?: number;
+  shiftId?: number;
+  shiftName?: string;
+  shiftTiming?: string;
   department?: { id: number; name: string };
   designation?: { id: number; name: string };
   permissions?: string[];

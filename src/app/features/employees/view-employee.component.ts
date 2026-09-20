@@ -66,6 +66,10 @@ import { AttendanceService, GeoFenceZone } from '../../core/services/attendance.
                   <span class="text-sm text-slate-500">{{ t('common.designation') }}</span>
                   <span class="text-sm font-semibold text-slate-900">{{ employee()!.designation?.name || t('common.notAssigned') }}</span>
                 </div>
+                <div class="flex flex-col gap-1 rounded-md bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between border-l-2 border-emerald-500">
+                  <span class="text-sm text-slate-500">Shift Timing</span>
+                  <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded">{{ employee()!.shiftName || 'General Shift' }} ({{ employee()!.shiftTiming || '09:00 AM - 05:00 PM' }})</span>
+                </div>
               </div>
             </section>
 
