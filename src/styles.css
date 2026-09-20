@@ -121,7 +121,7 @@
     }
 
     .app-page-inner {
-        @apply mx-auto w-full max-w-[1680px] px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 xl:px-10;
+        @apply w-full max-w-full min-w-0 p-3 sm:p-4 lg:p-5;
     }
 
     .app-topbar-surface {

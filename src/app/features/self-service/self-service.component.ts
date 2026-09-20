@@ -108,7 +108,7 @@ interface HolidayCalendarItem {
   ],
   template: `
     <div class="ess-clean-panel min-h-full bg-[#f8fafc]">
-      <div class="mx-auto w-full max-w-[1440px] space-y-5 p-4 sm:p-5 lg:p-6">
+      <div class="w-full max-w-full space-y-5 p-3 sm:p-4 lg:p-5">
         <app-ess-announcements [announcements]="announcements()" [announcement]="announcements()[0]"></app-ess-announcements>
 
         <app-ess-greeting
