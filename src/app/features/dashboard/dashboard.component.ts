@@ -584,15 +584,17 @@ interface ModuleCard {
     `
       :host {
         display: block;
-        background: #f8fafc;
+        background: transparent;
+        margin: -1rem;
       }
 
       .dashboard-page {
         display: grid;
-        gap: 1.5rem;
+        gap: 1.25rem;
         color: #0f172a;
         min-width: 0;
         width: 100%;
+        padding: 1rem;
       }
 
       .hero {
@@ -600,10 +602,10 @@ interface ModuleCard {
         grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
         gap: 1.25rem;
         padding: 1.25rem;
-        border-radius: 18px;
+        border-radius: 16px;
         border: 1px solid rgba(148, 163, 184, 0.18);
         background: #ffffff;
-        box-shadow: 0 18px 42px -28px rgba(15, 23, 42, 0.18);
+        box-shadow: 0 14px 36px -24px rgba(15, 23, 42, 0.14);
         align-items: stretch;
         overflow: hidden;
       }
