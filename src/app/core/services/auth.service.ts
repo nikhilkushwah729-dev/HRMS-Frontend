@@ -2,6 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
+import { Store } from '@ngrx/store';
+import { logout as logoutAction } from '../state/auth/auth.actions';
 import { User, AuthResponse } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
@@ -14,10 +16,22 @@ export type LoginType = 'email' | 'google' | 'microsoft' | 'phone';
 export class AuthService {
     private http = inject(HttpClient);
     private auditLogService = inject(AuditLogService);
+    private store = inject(Store);
     private readonly apiUrl = environment.apiUrl;
     private readonly assetBaseUrl = environment.apiUrl.replace(/\/api$/, '');
     private readonly AUTH_KEY = 'hrms_auth_token';
     private readonly USER_KEY = 'hrms_user_data';
+
+    constructor() {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('storage', (event) => {
+                if (event.key === this.AUTH_KEY && !event.newValue) {
+                    this.clearAuthStorage();
+                    window.location.href = '/login';
+                }
+            });
+        }
+    }
 
     private resolveAssetUrl(value: any): string | null | undefined {
         if (!value || typeof value !== 'string') {
@@ -626,8 +640,11 @@ export class AuthService {
     }
 
     clearAuthStorage() {
-        localStorage.removeItem(this.AUTH_KEY);
-        localStorage.removeItem(this.USER_KEY);
+        this.store.dispatch(logoutAction());
+        if (typeof window !== 'undefined') {
+            localStorage.clear();
+            sessionStorage.clear();
+        }
     }
 
     setStoredUser(user: User) {

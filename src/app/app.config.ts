@@ -7,6 +7,7 @@ import { provideStoreDevtools } from '@ngrx/store-devtools';
 
 import { routes } from './app.routes';
 import { reducers } from './core/state/app.state';
+import { clearStateMetaReducer } from './core/state/meta-reducers/clear-state.meta-reducer';
 import { AuthEffects } from './core/state/auth/auth.effects';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { auditInterceptor } from './core/interceptors/audit.interceptor';
@@ -21,7 +22,7 @@ export const appConfig: ApplicationConfig = {
     ),
     provideHttpClient(withInterceptors([authInterceptor, auditInterceptor])),
     { provide: HTTP_INTERCEPTORS, useClass: LoadingInterceptor, multi: true },
-    provideStore(reducers),
+    provideStore(reducers, { metaReducers: [clearStateMetaReducer] }),
     provideEffects([AuthEffects]),
     ...(isDevMode() ? [provideStoreDevtools({ maxAge: 25, logOnly: false })] : [])
   ]

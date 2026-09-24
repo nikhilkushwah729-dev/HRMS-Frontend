@@ -444,7 +444,22 @@ export class SidebarComponent implements OnInit {
   }
 
   shouldShowSection(section: string): boolean {
-    return this.showExpandedSidebar() || this.activeSectionKey() === section;
+    switch (section) {
+      case 'main':
+        return this.selfServiceLinks().length > 0;
+      case 'employees':
+        return this.peopleLinks().length > 0;
+      case 'attendance':
+        return this.attendanceLinks().length > 0;
+      case 'leave':
+        return this.leaveLinks().length > 0;
+      case 'payroll':
+        return this.payrollLinks().length > 0;
+      case 'security':
+        return this.systemLinks().length > 0;
+      default:
+        return true;
+    }
   }
 
   private mergeUniqueLinks(...groups: WorkspaceModuleView[][]): WorkspaceModuleView[] {
