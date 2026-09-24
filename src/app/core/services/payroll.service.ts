@@ -249,6 +249,7 @@ export class PayrollService {
   }
 
   getPayslips(): Observable<Payslip[]> {
+    // Matched route: GET /api/payroll -> PayrollsController.index
     return this.http.get<any>(`${this.apiUrl}/payroll`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []).map((item: any) => this.normalizePayslip(item))),
       catchError(() => of([])),
@@ -304,6 +305,7 @@ export class PayrollService {
     );
   }
 
+  /** [NO BACKEND ROUTE] GET /api/payroll/:id/pdf is not defined in routes.ts */
   downloadPayslipPdf(payslip: Payslip): Observable<string | null> {
     if (payslip.pdf_url) return of(payslip.pdf_url);
     return this.http.get<any>(`${this.apiUrl}/payroll/${payslip.id}/pdf`).pipe(
@@ -312,6 +314,7 @@ export class PayrollService {
     );
   }
 
+  /** [NO BACKEND ROUTE] GET /api/payroll/structures is not defined in routes.ts */
   getSalaryStructures(): Observable<SalaryStructure[]> {
     return this.http.get<any>(`${this.apiUrl}/payroll/structures`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : []).map((item: any) => this.normalizeStructure(item))),
@@ -319,12 +322,14 @@ export class PayrollService {
     );
   }
 
+  /** [NO BACKEND ROUTE] POST /api/payroll/structures is not defined in routes.ts */
   saveSalaryStructure(payload: SalaryStructure): Observable<SalaryStructure> {
     return this.http.post<any>(`${this.apiUrl}/payroll/structures`, payload).pipe(
       map((res) => this.normalizeStructure(res?.data ?? res)),
     );
   }
 
+  /** [NO BACKEND ROUTE] GET /api/payroll/runs is not defined in routes.ts */
   getPayrollRuns(): Observable<PayrollRun[]> {
     return this.http.get<any>(`${this.apiUrl}/payroll/runs`).pipe(
       map((res) => (Array.isArray(res?.data) ? res.data : []).map((item: any) => this.normalizeRun(item))),
@@ -332,24 +337,28 @@ export class PayrollService {
     );
   }
 
+  /** Matched route: POST /api/payroll/process -> PayrollsController.process */
   processPayroll(payload: PayrollProcessPayload): Observable<PayrollRun> {
     return this.http.post<any>(`${this.apiUrl}/payroll/process`, payload).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
     );
   }
 
+  /** [NO BACKEND ROUTE] POST /api/payroll/runs/:id/lock is not defined in routes.ts */
   lockPayroll(runId: number): Observable<PayrollRun | null> {
     return this.http.post<any>(`${this.apiUrl}/payroll/runs/${runId}/lock`, {}).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
     );
   }
 
+  /** [NO BACKEND ROUTE] POST /api/payroll/runs/:id/rerun is not defined in routes.ts */
   rerunPayroll(runId: number): Observable<PayrollRun | null> {
     return this.http.post<any>(`${this.apiUrl}/payroll/runs/${runId}/rerun`, {}).pipe(
       map((res) => this.normalizeRun(res?.data ?? res)),
     );
   }
 
+  /** [NO BACKEND ROUTE] GET /api/payroll/export is not defined in routes.ts */
   exportPayrollReport(filters: {
     month?: string;
     year?: number;
