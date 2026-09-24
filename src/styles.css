@@ -788,3 +788,110 @@
 .hidescrollbar::-webkit-scrollbar {
     display: none; /* Safari and Chrome */
 }
+
+/* ==========================================================================
+   KEKA / ZOHO PEOPLE / GREYTHR ENTERPRISE DESIGN SYSTEM EXTENSIONS
+   ========================================================================== */
+
+.hrms-keka-card {
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.04), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+    border-radius: 12px;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hrms-keka-card:hover {
+    box-shadow: 0 20px 30px -10px rgba(15, 23, 42, 0.08), 0 10px 15px -5px rgba(15, 23, 42, 0.04);
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+.hrms-stat-widget {
+    @apply flex items-center justify-between p-4 rounded-xl hrms-keka-card relative overflow-hidden;
+}
+
+.hrms-stat-icon {
+    @apply h-11 w-11 rounded-xl flex items-center justify-center text-white shadow-md transition-transform duration-300;
+}
+
+.hrms-stat-widget:hover .hrms-stat-icon {
+    transform: scale(1.08) rotate(3deg);
+}
+
+/* Enterprise Status Badges (Keka & Zoho People Style) */
+.hrms-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border transition-colors duration-150;
+}
+
+.hrms-badge-present,
+.hrms-badge-active,
+.hrms-badge-approved {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.hrms-badge-late,
+.hrms-badge-pending,
+.hrms-badge-warning {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+.hrms-badge-leave,
+.hrms-badge-absent,
+.hrms-badge-rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+.hrms-badge-info,
+.hrms-badge-draft {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+/* High-Finish Enterprise Action Buttons */
+.hrms-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm text-white shadow-md shadow-emerald-500/20 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.hrms-btn-primary:hover {
+    background: linear-gradient(135deg, #047857 0%, #059669 100%);
+    box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.35);
+}
+
+.hrms-btn-indigo {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm text-white shadow-md shadow-indigo-500/20 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+}
+
+.hrms-btn-indigo:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.35);
+}
+
+.hrms-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-semibold text-sm text-slate-700 bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 active:scale-95;
+}
+
+/* High-Density Enterprise Data Tables (greytHR Style) */
+.hrms-table {
+    @apply w-full border-collapse text-left text-sm text-slate-600;
+}
+
+.hrms-table thead th {
+    @apply bg-slate-50/80 px-4 py-3 font-bold text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200/80 sticky top-0 backdrop-blur-sm z-10;
+}
+
+.hrms-table tbody tr {
+    @apply border-b border-slate-100 transition-colors duration-150 hover:bg-slate-50/60;
+}
+
+.hrms-table tbody td {
+    @apply px-4 py-3.5 align-middle;
+}
