@@ -8,6 +8,7 @@ import {
   LeaveTypeBalance,
 } from '../../core/services/leave.service';
 import { ToastService } from '../../core/services/toast.service';
+import { formatLocalIsoDate, buildLocalIsoDate } from '../../core/utils/date-utils';
 
 type CalendarCell = {
   day: number | null;
@@ -299,7 +300,7 @@ export class SelfServiceLeaveComponent {
   readonly pendingCount = computed(() => this.requests().filter((item) => item.status === 'pending').length);
   readonly approvedCount = computed(() => this.requests().filter((item) => item.status === 'approved').length);
   readonly upcomingApproved = computed(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = formatLocalIsoDate(new Date());
     return this.requests()
       .filter((item) => item.status === 'approved' && item.endDate >= today)
       .sort((a, b) => a.startDate.localeCompare(b.startDate))
@@ -339,7 +340,7 @@ export class SelfServiceLeaveComponent {
       cells.push({ day: null, iso: null, requests: [] });
     }
     for (let day = 1; day <= total; day += 1) {
-      const iso = new Date(year, month, day).toISOString().slice(0, 10);
+      const iso = buildLocalIsoDate(year, month, day);
       const requests = this.requests().filter((item) => item.startDate <= iso && item.endDate >= iso);
       cells.push({ day, iso, requests });
     }

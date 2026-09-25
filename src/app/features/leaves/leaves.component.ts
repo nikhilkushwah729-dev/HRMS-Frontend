@@ -23,6 +23,7 @@ import {
   UpcomingHoliday,
 } from '../../core/services/leave.service';
 import { AuthService } from '../../core/services/auth.service';
+import { formatLocalIsoDate } from '../../core/utils/date-utils';
 import { User } from '../../core/models/auth.model';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -1167,7 +1168,7 @@ export class LeavesComponent implements OnInit, OnDestroy {
   }
 
   private toDateInputValue(date: Date): string {
-    return date.toISOString().slice(0, 10);
+    return formatLocalIsoDate(date);
   }
 
   toggleForm() {
