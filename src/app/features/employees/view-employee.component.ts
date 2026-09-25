@@ -175,6 +175,19 @@ import { AttendanceService, GeoFenceZone } from '../../core/services/attendance.
 
             <section class="app-surface-card p-5 sm:p-6">
               <div class="mb-6">
+                <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Financial & PII</p>
+                <h3 class="mt-2 text-2xl font-black text-slate-900">Banking & Sensitive Details</h3>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-md bg-slate-50 p-5" *ngFor="let item of financialInfo()">
+                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{{ item.label }}</p>
+                  <p class="mt-3 text-base font-semibold text-slate-900">{{ item.value }}</p>
+                </div>
+              </div>
+            </section>
+
+            <section class="app-surface-card p-5 sm:p-6">
+              <div class="mb-6">
                 <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.emergencyContact') }}</p>
                 <h3 class="mt-2 text-2xl font-black text-slate-900">{{ t('employee.supportDetails') }}</h3>
               </div>
@@ -246,13 +259,30 @@ export class ViewEmployeeComponent implements OnInit {
     if (!employee) return [];
     return [
       { label: this.t('employee.joinDate'), value: employee.joinDate ? new Date(employee.joinDate).toLocaleDateString('en-IN') : this.t('common.notSet') },
-      { label: this.t('employee.salary'), value: employee.salary ? `Rs ${Number(employee.salary).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : this.t('common.notProvided') },
-      { label: this.t('employee.bankAccount'), value: employee.bankAccount || this.t('common.notProvided') },
-      { label: this.t('employee.bankName'), value: employee.bankName || this.t('common.notProvided') },
-      { label: this.t('employee.ifscCode'), value: employee.ifscCode || this.t('common.notProvided') },
-      { label: this.t('employee.panNumber'), value: employee.panNumber || this.t('common.notProvided') },
       { label: this.t('employee.loginMethod'), value: employee.loginType || 'email' },
-      { label: this.t('employee.country'), value: employee.countryName || employee.countryCode || this.t('common.notSet') }
+      { label: this.t('employee.country'), value: employee.countryName || employee.countryCode || this.t('common.notSet') },
+      { label: 'Role / Designation', value: `${employee.designation?.name || 'Staff'} (${this.getRoleLabel(employee.roleId)})` }
+    ];
+  });
+
+  financialInfo = computed(() => {
+    const employee = this.employee();
+    if (!employee) return [];
+
+    let formattedSalary = this.t('common.notProvided');
+    if (typeof employee.salary === 'string' && employee.salary.includes('•')) {
+      formattedSalary = employee.salary;
+    } else if (employee.salary != null && !isNaN(Number(employee.salary)) && Number(employee.salary) > 0) {
+      formattedSalary = `₹${Number(employee.salary).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+
+    return [
+      { label: 'Salary', value: formattedSalary },
+      { label: 'PAN Number', value: employee.panNumber || this.t('common.notProvided') },
+      { label: 'Bank Account', value: employee.bankAccount || this.t('common.notProvided') },
+      { label: 'Bank Name', value: employee.bankName || this.t('common.notProvided') },
+      { label: 'IFSC Code', value: employee.ifscCode || this.t('common.notProvided') },
+      { label: 'Aadhaar (Last 4)', value: employee.aadhaarNumber || (employee.aadharLast4 ? `•••• •••• ${employee.aadharLast4}` : this.t('common.notProvided')) }
     ];
   });
 

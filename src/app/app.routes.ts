@@ -287,6 +287,13 @@ export const routes: Routes = [
               ),
           },
           {
+            path: ':id',
+            loadComponent: () =>
+              import('@features/employees/view-employee.component').then(
+                (m) => m.ViewEmployeeComponent,
+              ),
+          },
+          {
             path: 'invitations',
             loadComponent: () =>
               import('@features/employees/invitations.component').then(
