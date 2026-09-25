@@ -5,12 +5,12 @@ describe('PayrollMapper (DECIMAL Parsing & Contract Validation)', () => {
   it('should safely parse MySQL string DECIMAL outputs into numeric domain properties', () => {
     const backendDto = {
       id: 501,
-      employee_id: 10,
+      employeeId: 10,
       month: '09',
       year: 2026,
-      basic_salary: '45000.50',
-      gross_salary: '62000.00',
-      net_salary: '54000.25',
+      basicSalary: '45000.50',
+      grossSalary: '62000.00',
+      netSalary: '54000.25',
       deductions: '8000.00',
       status: 'published',
     };
@@ -32,7 +32,7 @@ describe('PayrollMapper (DECIMAL Parsing & Contract Validation)', () => {
 
     const invalidDto = {
       month: '09',
-      basic_salary: '1000',
+      basicSalary: '1000',
     };
 
     const model = mapPayslipDtoToModel(invalidDto);
@@ -45,9 +45,9 @@ describe('PayrollMapper (DECIMAL Parsing & Contract Validation)', () => {
 
   it('should safely filter invalid items in mapPayslipList', () => {
     const rawList = [
-      { id: 1, basic_salary: '100' },
+      { id: 1, basicSalary: '100' },
       { brokenItem: true },
-      { id: 2, basic_salary: '200' },
+      { id: 2, basicSalary: '200' },
     ];
 
     const result = mapPayslipList(rawList);

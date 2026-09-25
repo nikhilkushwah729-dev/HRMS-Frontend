@@ -5,14 +5,14 @@ describe('AttendanceMapper (Contract Validation & DTO Mapping)', () => {
   it('should map backend AttendanceDTO to domain AttendanceRecord', () => {
     const backendDto = {
       id: 301,
-      employee_id: 12,
+      employeeId: 12,
       date: '2026-09-25',
-      check_in: '09:00:00',
-      check_out: '17:30:00',
-      work_hours: '8.5',
-      net_work_hours: '8.0',
+      checkIn: '09:00:00',
+      checkOut: '17:30:00',
+      workHours: '8.5',
+      netWorkHours: '8.0',
       status: 'present',
-      is_late: false,
+      isLate: false,
     };
 
     const model = mapAttendanceDtoToModel(backendDto);
@@ -33,7 +33,7 @@ describe('AttendanceMapper (Contract Validation & DTO Mapping)', () => {
 
     const brokenDto = {
       id: 302,
-      check_in: '09:00:00',
+      checkIn: '09:00:00',
     };
 
     const model = mapAttendanceDtoToModel(brokenDto);

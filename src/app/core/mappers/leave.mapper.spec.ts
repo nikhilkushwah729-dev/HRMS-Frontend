@@ -6,19 +6,19 @@ import {
 import { registerMonitoringHook, ContractErrorDetails } from '../utils/contract-reporter';
 
 describe('LeaveMapper (Contract Error Handling & DTO Transformation)', () => {
-  it('should map backend snake_case LeaveRequestDTO to camelCase domain model', () => {
+  it('should map backend camelCase LeaveRequestDTO to domain model', () => {
     const backendDto = {
       id: 101,
-      employee_id: 5,
-      org_id: 1,
-      leave_type_id: 2,
-      start_date: '2026-10-01',
-      end_date: '2026-10-03',
-      total_days: '3.0',
+      employeeId: 5,
+      orgId: 1,
+      leaveTypeId: 2,
+      startDate: '2026-10-01',
+      endDate: '2026-10-03',
+      totalDays: '3.0',
       reason: 'Vacation',
       status: 'approved',
-      rejection_note: null,
-      created_at: '2026-09-25T10:00:00Z',
+      rejectionNote: null,
+      createdAt: '2026-09-25T10:00:00Z',
     };
 
     const model = mapLeaveRequestDtoToModel(backendDto);
@@ -38,8 +38,8 @@ describe('LeaveMapper (Contract Error Handling & DTO Transformation)', () => {
     });
 
     const brokenDto = {
-      employee_id: 5,
-      reason: 'No ID or start_date',
+      employeeId: 5,
+      reason: 'No ID or startDate',
     };
 
     const model = mapLeaveRequestDtoToModel(brokenDto);
@@ -53,9 +53,9 @@ describe('LeaveMapper (Contract Error Handling & DTO Transformation)', () => {
 
   it('should process a list with mapLeaveRequestList and return warning state on invalid items', () => {
     const rawList = [
-      { id: 1, start_date: '2026-10-01', end_date: '2026-10-02' },
+      { id: 1, startDate: '2026-10-01', endDate: '2026-10-02' },
       { brokenItem: true },
-      { id: 2, start_date: '2026-10-05', end_date: '2026-10-06' },
+      { id: 2, startDate: '2026-10-05', endDate: '2026-10-06' },
     ];
 
     const result = mapLeaveRequestList(rawList);

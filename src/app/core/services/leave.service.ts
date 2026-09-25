@@ -21,6 +21,8 @@ export interface LeaveRequest {
     cancelledBy: number | null;
     cancelledAt: string | null;
     createdAt: string;
+    durationType?: 'full_day' | 'half_day';
+    halfDaySession?: 'first_half' | 'second_half' | null;
     leaveType?: LeaveTypeBalance;
     employee?: {
         id: number;
