@@ -2,8 +2,8 @@ import { reportContractError, registerMonitoringHook, mapListWithWarnings, Contr
 
 describe('ContractReporter Utility', () => {
   it('should log contract error without throwing and invoke monitoring hook without logging values', () => {
-    let capturedError: ContractErrorDetails | null = null;
-    registerMonitoringHook((details) => {
+    let capturedError: any = null;
+    registerMonitoringHook((details: ContractErrorDetails) => {
       capturedError = details;
     });
 

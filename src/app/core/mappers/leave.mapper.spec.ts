@@ -32,8 +32,8 @@ describe('LeaveMapper (Contract Error Handling & DTO Transformation)', () => {
   });
 
   it('should report contract error when required fields are missing', () => {
-    let capturedError: ContractErrorDetails | null = null;
-    registerMonitoringHook((details) => {
+    let capturedError: any = null;
+    registerMonitoringHook((details: ContractErrorDetails) => {
       capturedError = details;
     });
 

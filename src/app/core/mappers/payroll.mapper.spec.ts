@@ -25,8 +25,8 @@ describe('PayrollMapper (DECIMAL Parsing & Contract Validation)', () => {
   });
 
   it('should report contract error when required payslip ID is missing', () => {
-    let capturedError: ContractErrorDetails | null = null;
-    registerMonitoringHook((details) => {
+    let capturedError: any = null;
+    registerMonitoringHook((details: ContractErrorDetails) => {
       capturedError = details;
     });
 
