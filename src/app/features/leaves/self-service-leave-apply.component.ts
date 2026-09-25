@@ -85,7 +85,7 @@ import { ToastService } from '../../core/services/toast.service';
               }
             </div>
 
-            @if (form.value.durationType === 'half_day') {
+            @if (form.get('durationType')?.value === 'half_day') {
               <div class="md:col-span-2">
                 <label class="mb-1.5 block text-xs font-bold text-slate-700">Half Day Session</label>
                 <div class="grid gap-3 sm:grid-cols-2">
