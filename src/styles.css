@@ -57,51 +57,7 @@
 
 }
 
-@layer utilities {
-    .rounded-lg,
-    .rounded-xl,
-    .rounded-2xl,
-    .rounded-3xl,
-    .rounded-4xl {
-        border-radius: var(--app-radius-md) !important;
-    }
 
-    .rounded-t-lg,
-    .rounded-t-xl,
-    .rounded-t-2xl,
-    .rounded-t-3xl,
-    .rounded-t-4xl {
-        border-top-left-radius: var(--app-radius-md) !important;
-        border-top-right-radius: var(--app-radius-md) !important;
-    }
-
-    .rounded-b-lg,
-    .rounded-b-xl,
-    .rounded-b-2xl,
-    .rounded-b-3xl,
-    .rounded-b-4xl {
-        border-bottom-left-radius: var(--app-radius-md) !important;
-        border-bottom-right-radius: var(--app-radius-md) !important;
-    }
-
-    .rounded-l-lg,
-    .rounded-l-xl,
-    .rounded-l-2xl,
-    .rounded-l-3xl,
-    .rounded-l-4xl {
-        border-top-left-radius: var(--app-radius-md) !important;
-        border-bottom-left-radius: var(--app-radius-md) !important;
-    }
-
-    .rounded-r-lg,
-    .rounded-r-xl,
-    .rounded-r-2xl,
-    .rounded-r-3xl,
-    .rounded-r-4xl {
-        border-top-right-radius: var(--app-radius-md) !important;
-        border-bottom-right-radius: var(--app-radius-md) !important;
-    }
-}
 
 @layer components {
     .app-shell {
