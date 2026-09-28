@@ -303,14 +303,6 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'attendance/integrations',
-        loadComponent: () =>
-          import('@features/attendance/attendance-route-redirect.component').then(
-            (m) => m.AttendanceRouteRedirectComponent,
-          ),
-        data: { redirectKind: 'integrations' },
-      },
-      {
         path: 'attendance',
         loadComponent: () =>
           import('./features/admin/admin-attendance-management.component').then(
