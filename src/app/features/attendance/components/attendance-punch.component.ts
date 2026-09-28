@@ -52,6 +52,7 @@ import { Router } from '@angular/router';
             #videoElement
             autoplay
             playsinline
+            webkit-playsinline
             muted
             class="absolute inset-0 w-full h-full object-cover -scale-x-100"
             [class.opacity-0]="!isCameraReady()"

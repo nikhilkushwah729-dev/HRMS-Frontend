@@ -857,9 +857,19 @@ export class FaceRecognitionService {
         },
         {
           video: {
+            facingMode: facingMode,
+          },
+          audio: false,
+        },
+        {
+          video: {
             width: { ideal: 640 },
             height: { ideal: 480 },
           },
+          audio: false,
+        },
+        {
+          video: true,
           audio: false,
         },
       ];
@@ -884,6 +894,7 @@ export class FaceRecognitionService {
 
       this.videoElement = videoElement;
       videoElement.setAttribute('playsinline', 'true');
+      videoElement.setAttribute('webkit-playsinline', 'true');
       videoElement.muted = true;
       videoElement.srcObject = this.mediaStream;
 

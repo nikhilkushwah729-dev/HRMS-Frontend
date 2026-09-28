@@ -67,7 +67,7 @@ import { LanguageService } from '../../core/services/language.service';
       <!-- User Profile Card -->
       @if (showExpandedSidebar()) {
         <div class="px-4 pt-3 pb-3">
-          <div class="group relative overflow-hidden rounded-md border border-slate-200 bg-slate-50/80 px-3.5 py-3 transition-all hover:border-emerald-100 hover:bg-white">
+          <div class="group relative overflow-hidden rounded-md border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 transition-all hover:border-emerald-200 hover:bg-white hover:shadow-sm">
             <div class="relative z-10 flex items-center gap-3.5">
               <div class="relative">
                 <div class="h-11 w-11 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm transition-transform duration-500 group-hover:scale-105">
@@ -77,11 +77,11 @@ import { LanguageService } from '../../core/services/language.service';
                     <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-contain p-1">
                   }
                 </div>
-                <div class="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm"></div>
+                <div class="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-xs"></div>
               </div>
               <div class="flex min-w-0 flex-col">
                 <h3 class="truncate text-sm font-black text-slate-900 tracking-tight">{{ userName() }}</h3>
-                <p class="truncate text-[10px] font-bold text-slate-500 uppercase tracking-[0.16em] opacity-70">{{ userRole() }}</p>
+                <p class="truncate text-[10px] font-extrabold text-slate-500 uppercase tracking-[0.18em] opacity-80">{{ userRole() }}</p>
               </div>
             </div>
           </div>
@@ -94,19 +94,18 @@ import { LanguageService } from '../../core/services/language.service';
         class="flex-1 overflow-y-auto custom-scrollbar pb-8"
       >
         @if (showExpandedSidebar()) {
-          <div class="space-y-5 px-4 pt-3">
+          <div class="space-y-4 px-4 pt-2">
           <!-- Self Service -->
           @if (shouldShowSection('main')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('main')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('main') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ mainSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('main')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('main') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ mainSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('main')" [class.text-emerald-600]="isSectionExpanded('main')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('main')" [class.text-emerald-600]="isSectionExpanded('main')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('main')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of selfServiceLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -117,16 +116,15 @@ import { LanguageService } from '../../core/services/language.service';
 
           <!-- People -->
           @if (shouldShowSection('employees')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('employees')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('employees') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ peopleSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('employees')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('employees') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ peopleSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('employees')" [class.text-emerald-600]="isSectionExpanded('employees')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('employees')" [class.text-emerald-600]="isSectionExpanded('employees')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('employees')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of peopleLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -137,16 +135,15 @@ import { LanguageService } from '../../core/services/language.service';
 
           <!-- Attendance -->
           @if (shouldShowSection('attendance')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('attendance')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('attendance') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ attendanceSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('attendance')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('attendance') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ attendanceSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('attendance')" [class.text-emerald-600]="isSectionExpanded('attendance')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('attendance')" [class.text-emerald-600]="isSectionExpanded('attendance')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('attendance')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of attendanceLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -157,16 +154,15 @@ import { LanguageService } from '../../core/services/language.service';
 
           <!-- Leave -->
           @if (shouldShowSection('leave')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('leave')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('leave') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ leaveSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('leave')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('leave') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ leaveSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('leave')" [class.text-emerald-600]="isSectionExpanded('leave')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('leave')" [class.text-emerald-600]="isSectionExpanded('leave')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('leave')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of leaveLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -177,16 +173,15 @@ import { LanguageService } from '../../core/services/language.service';
 
           <!-- Payroll -->
           @if (shouldShowSection('payroll')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('payroll')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('payroll') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ payrollSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('payroll')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('payroll') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ payrollSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('payroll')" [class.text-emerald-600]="isSectionExpanded('payroll')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('payroll')" [class.text-emerald-600]="isSectionExpanded('payroll')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('payroll')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of payrollLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -197,16 +192,15 @@ import { LanguageService } from '../../core/services/language.service';
 
           <!-- System -->
           @if (shouldShowSection('security')) {
-            <div class="space-y-2">
-              <button type="button" (click)="toggleSection('security')" class="flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition" [ngClass]="isSectionExpanded('security') ? 'border-emerald-100 bg-emerald-50/70 text-emerald-900' : 'border-transparent hover:border-slate-200 hover:bg-slate-50'">
-                <div class="flex min-w-0 items-center gap-3">
-                  <span class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{{ systemSectionLabel() }}</span>
-                  <div class="h-px w-10 bg-slate-100"></div>
+            <div class="space-y-1.5">
+              <button type="button" (click)="toggleSection('security')" class="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left transition" [ngClass]="isSectionExpanded('security') ? 'bg-slate-100/70 text-slate-900' : 'hover:bg-slate-50 text-slate-500'">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">{{ systemSectionLabel() }}</span>
                 </div>
-                <svg class="h-4 w-4 text-slate-400 transition-transform" [class.rotate-180]="isSectionExpanded('security')" [class.text-emerald-600]="isSectionExpanded('security')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                <svg class="h-3.5 w-3.5 text-slate-400 transition-transform duration-300" [class.rotate-180]="isSectionExpanded('security')" [class.text-emerald-600]="isSectionExpanded('security')" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
               </button>
               @if (isSectionExpanded('security')) {
-              <div class="ml-4 space-y-1 border-l border-dashed border-slate-200 pl-3">
+              <div class="ml-3 space-y-1 border-l-2 border-slate-100 pl-3">
                 @for (link of systemLinks(); track link.id + link.route) {
                   <ng-container *ngTemplateOutlet="navItem; context: { $implicit: link }"></ng-container>
                 }
@@ -223,7 +217,7 @@ import { LanguageService } from '../../core/services/language.service';
                 <button
                   type="button"
                   (click)="openLockedModule(link)"
-                  class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition hover:bg-slate-100"
+                  class="flex h-11 w-11 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition hover:bg-slate-100"
                   [attr.title]="link.label + ' (Locked)'"
                 >
                   <span [innerHTML]="resolveIcon(link.icon)"></span>
@@ -232,14 +226,12 @@ import { LanguageService } from '../../core/services/language.service';
                 <a
                   [routerLink]="routePath(link.route)"
                   [queryParams]="routeQueryParams(link.route)"
-                  class="flex h-12 w-12 items-center justify-center rounded-md transition-all duration-300"
+                  class="flex h-11 w-11 items-center justify-center rounded-md transition-all duration-300"
                   [class.bg-emerald-600]="isRouteActive(link.route)"
                   [class.text-white]="isRouteActive(link.route)"
-                  [class.shadow-lg]="isRouteActive(link.route)"
-                  [class.shadow-emerald-200]="isRouteActive(link.route)"
+                  [class.shadow-md]="isRouteActive(link.route)"
                   [class.bg-slate-50]="!isRouteActive(link.route)"
-                  [class.text-slate-400]="!isRouteActive(link.route)"
-                  [class.hover:bg-slate-100]="!isRouteActive(link.route)"
+                  [class.text-slate-500]="!isRouteActive(link.route)"
                   [attr.title]="link.label"
                   (click)="closeOnMobile()"
                 >
@@ -252,24 +244,24 @@ import { LanguageService } from '../../core/services/language.service';
       </nav>
 
       <!-- Sidebar Footer -->
-      <div class="border-t border-slate-100 px-4 py-4">
+      <div class="border-t border-slate-100 px-4 py-3.5 bg-slate-50/50">
         @if (showExpandedSidebar()) {
           <div class="flex flex-col gap-3">
              <!-- Collapse Toggle -->
              <button
               (click)="layoutService.cycleDesktopSidebar()"
-              class="group flex items-center justify-center gap-3 w-full h-11 rounded-md bg-slate-900 text-white font-black text-[11px] uppercase tracking-[0.18em] shadow-lg shadow-slate-200 transition-all hover:bg-slate-800 hover:scale-[1.01] active:scale-[0.98]"
+              class="group flex items-center justify-center gap-2.5 w-full h-10 rounded-md bg-slate-900 text-white font-black text-[11px] uppercase tracking-[0.18em] shadow-md shadow-slate-200 transition-all hover:bg-slate-800 hover:scale-[1.01] active:scale-[0.98]"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="transition-transform group-hover:-translate-x-1"><path d="m15 18-6-6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="transition-transform group-hover:-translate-x-1"><path d="m15 18-6-6 6-6"/></svg>
               <span>Minimize Menu</span>
             </button>
           </div>
         } @else {
           <button
             (click)="layoutService.cycleDesktopSidebar()"
-            class="flex h-12 w-12 items-center justify-center rounded-md bg-slate-900 text-white shadow-xl shadow-slate-200 transition-transform hover:scale-110 active:scale-95"
+            class="flex h-10 w-10 items-center justify-center rounded-md bg-slate-900 text-white shadow-md shadow-slate-200 transition-transform hover:scale-105 active:scale-95 mx-auto"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg>
           </button>
         }
       </div>
@@ -280,38 +272,44 @@ import { LanguageService } from '../../core/services/language.service';
       @if (link.isLocked) {
         <button
           (click)="openLockedModule(link)"
-          class="flex w-full items-center justify-between gap-3 px-4 py-3.5 rounded-md bg-transparent text-slate-400 grayscale opacity-60 cursor-not-allowed"
+          class="flex w-full items-center justify-between gap-3 px-3 py-2 rounded-md bg-transparent text-slate-400 grayscale opacity-60 cursor-not-allowed"
         >
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-2.5 min-w-0">
             <span [innerHTML]="resolveIcon(link.icon)"></span>
-            <span class="truncate text-sm font-bold tracking-tight">{{ link.label }}</span>
+            <span class="truncate text-xs font-bold tracking-tight">{{ link.label }}</span>
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </button>
       } @else {
         <a
           [routerLink]="routePath(link.route)"
           [queryParams]="routeQueryParams(link.route)"
           (click)="onNavLinkClick(activeSectionKey())"
-          class="group relative flex items-center gap-2.5 rounded-md border px-3 py-2.5 transition-all duration-300"
-          [class.border-emerald-200]="isRouteActive(link.route)"
+          class="group relative flex items-center gap-2.5 rounded-md px-3 py-2 transition-all duration-200 hover:bg-slate-100/70"
           [class.bg-emerald-50]="isRouteActive(link.route)"
-          [class.text-white]="isRouteActive(link.route)"
-          [class.shadow-sm]="isRouteActive(link.route)"
+          [class.text-emerald-950]="isRouteActive(link.route)"
+          [class.font-black]="isRouteActive(link.route)"
           [class.text-slate-600]="!isRouteActive(link.route)"
           [class.font-bold]="!isRouteActive(link.route)"
-          [class.border-transparent]="!isRouteActive(link.route)"
-          [class.hover:border-slate-200]="!isRouteActive(link.route)"
-          [class.hover:bg-slate-50]="!isRouteActive(link.route)"
-          [class.hover:text-slate-900]="!isRouteActive(link.route)"
         >
-          <span class="absolute left-[-0.85rem] top-1/2 hidden h-px w-3 -translate-y-1/2 bg-slate-200 lg:block"></span>
-          <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-md transition-transform duration-300 group-hover:scale-105" [class.bg-emerald-600]="isRouteActive(link.route)" [class.text-white]="isRouteActive(link.route)" [class.bg-slate-100]="!isRouteActive(link.route)" [class.text-slate-500]="!isRouteActive(link.route)" [innerHTML]="resolveIcon(link.icon)"></span>
-          <span class="relative z-10 truncate text-[13px] font-bold tracking-tight" [class.text-slate-900]="!isRouteActive(link.route)" [class.text-emerald-900]="isRouteActive(link.route)">{{ link.label }}</span>
+          <span
+            class="relative z-10 flex h-7 w-7 items-center justify-center rounded-md transition-all duration-200 group-hover:scale-105"
+            [class.bg-emerald-600]="isRouteActive(link.route)"
+            [class.text-white]="isRouteActive(link.route)"
+            [class.shadow-xs]="isRouteActive(link.route)"
+            [class.bg-slate-100]="!isRouteActive(link.route)"
+            [class.text-slate-500]="!isRouteActive(link.route)"
+            [innerHTML]="resolveIcon(link.icon)"
+          ></span>
+          <span
+            class="relative z-10 truncate text-[13px] tracking-tight"
+            [class.text-slate-900]="!isRouteActive(link.route)"
+            [class.text-emerald-950]="isRouteActive(link.route)"
+            [class.font-extrabold]="isRouteActive(link.route)"
+          >{{ link.label }}</span>
           
           @if (isRouteActive(link.route)) {
-            <div class="absolute inset-y-2 left-0 w-1 rounded-r-md bg-emerald-500"></div>
-            <div class="absolute right-3 h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-sm"></div>
+            <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-emerald-600"></div>
           }
         </a>
       }
