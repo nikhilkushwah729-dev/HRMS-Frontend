@@ -30,6 +30,14 @@ export interface PlatformSubscriptionSummary {
   currency: string;
 }
 
+export interface PlatformAddon {
+  id: number;
+  name: string;
+  slug: string;
+  price: number;
+  enabled: boolean;
+}
+
 export interface PlatformOverview {
   scope: 'platform' | 'organization';
   totals: {
@@ -41,6 +49,18 @@ export interface PlatformOverview {
   organizations: PlatformOrganizationSummary[];
   modules: PlatformModuleSummary[];
   subscription: PlatformSubscriptionSummary;
+}
+
+export interface PlatformUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  employeeCode: string;
+  roleName: string;
+  status: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -71,5 +91,43 @@ export class PlatformService {
       map((res) => (res?.data ?? res) as PlatformOverview),
       catchError(() => of(this.fallbackOverview)),
     );
+  }
+
+  createOrganization(payload: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/organizations`, payload).pipe(
+      map(res => res?.data ?? res)
+    );
+  }
+
+  updateOrganization(id: number, payload: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/organizations/${id}`, payload).pipe(
+      map(res => res?.data ?? res)
+    );
+  }
+
+  deleteOrganization(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/organizations/${id}`);
+  }
+
+  getOrganizationAddons(id: number): Observable<PlatformAddon[]> {
+    return this.http.get<any>(`${this.apiUrl}/organizations/${id}/addons`).pipe(
+      map(res => (res?.data ?? res) as PlatformAddon[]),
+      catchError(() => of([]))
+    );
+  }
+
+  updateOrganizationAddons(id: number, addons: Array<{ id: number; enabled: boolean }>): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/organizations/${id}/addons`, { addons });
+  }
+
+  getOrganizationUsers(id: number): Observable<PlatformUser[]> {
+    return this.http.get<any>(`${this.apiUrl}/organizations/${id}/users`).pipe(
+      map(res => (res?.data ?? res) as PlatformUser[]),
+      catchError(() => of([]))
+    );
+  }
+
+  resetUserPassword(userId: number, password: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/users/${userId}/reset-password`, { password });
   }
 }

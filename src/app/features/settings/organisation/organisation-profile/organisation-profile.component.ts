@@ -106,9 +106,22 @@ interface Step {
                 class="mb-2 flex w-full items-center gap-3 rounded-md border px-4 py-3 text-left transition"
                 [ngClass]="currentStep() === idx ? 'border-slate-900 bg-slate-900 text-white shadow-sm' : 'border-transparent bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50'"
               >
-                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md font-bold" [ngClass]="currentStep() === idx ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700'">{{ step.id }}</span>
-                <span class="min-w-0">
-                  <span class="block text-sm font-bold">{{ step.title }}</span>
+                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md font-bold" [ngClass]="currentStep() === idx ? 'bg-white/15 text-white' : (isStepValid(idx) ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700')">
+                  @if (isStepValid(idx)) {
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                  } @else {
+                    {{ step.id }}
+                  }
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center justify-between gap-1 text-sm font-bold">
+                    <span class="truncate">{{ step.title }}</span>
+                    @if (!isStepValid(idx)) {
+                      <span class="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700" [ngClass]="currentStep() === idx ? 'bg-amber-400/20 text-amber-200' : ''">Required</span>
+                    }
+                  </span>
                   <span class="mt-0.5 block text-xs leading-5" [ngClass]="currentStep() === idx ? 'text-slate-200' : 'text-slate-500'">{{ step.description }}</span>
                 </span>
               </button>
@@ -483,6 +496,21 @@ export class OrganisationProfileComponent implements OnInit {
     this.logoPreview.set('');
   }
 
+  markStepControlsAsTouched(stepIndex: number) {
+    const groupMap = [
+      ['organizationName', 'email'],
+      ['orgStreet1', 'orgCity', 'orgPinCode', 'orgContactNumber', 'timeZone'],
+      this.sameAddressChecked() ? [] : ['billStreet1', 'billCity', 'billPinCode', 'billContactNumber']
+    ];
+    (groupMap[stepIndex] || []).forEach(name => {
+      const ctrl = this.profileForm.get(name);
+      if (ctrl) {
+        ctrl.markAsTouched();
+        ctrl.updateValueAndValidity();
+      }
+    });
+  }
+
   isStepValid(stepIndex: number): boolean {
     const groupMap = [
       ['organizationName', 'email'],
@@ -496,15 +524,35 @@ export class OrganisationProfileComponent implements OnInit {
     return this.isStepValid(0) && this.isStepValid(1) && this.isStepValid(2);
   }
 
-  goToStep(index: number) {
-    this.currentStep.set(index);
+  goToStep(targetIndex: number) {
+    if (targetIndex === this.currentStep()) return;
+
+    if (targetIndex < this.currentStep()) {
+      this.currentStep.set(targetIndex);
+      return;
+    }
+
+    for (let i = 0; i < targetIndex; i++) {
+      if (!this.isStepValid(i)) {
+        this.currentStep.set(i);
+        this.markStepControlsAsTouched(i);
+        this.toastService.error(`Please complete all mandatory fields in "${this.steps[i].title}" before proceeding.`);
+        return;
+      }
+    }
+
+    this.currentStep.set(targetIndex);
   }
 
   nextStep() {
-    if (this.currentStep() < this.steps.length - 1 && this.isStepValid(this.currentStep())) {
-      this.currentStep.update((value) => value + 1);
-    } else {
-      this.profileForm.markAllAsTouched();
+    const current = this.currentStep();
+    if (current < this.steps.length - 1) {
+      if (this.isStepValid(current)) {
+        this.currentStep.update((value) => value + 1);
+      } else {
+        this.markStepControlsAsTouched(current);
+        this.toastService.error(`Please complete all mandatory fields in "${this.steps[current].title}" before moving to the next step.`);
+      }
     }
   }
 
@@ -557,6 +605,13 @@ export class OrganisationProfileComponent implements OnInit {
 
   saveProfile() {
     if (!this.isFormValid()) {
+      for (let i = 0; i < this.steps.length; i++) {
+        if (!this.isStepValid(i)) {
+          this.currentStep.set(i);
+          this.markStepControlsAsTouched(i);
+          break;
+        }
+      }
       this.profileForm.markAllAsTouched();
       this.toastService.error(this.t('org.requiredFields'));
       return;

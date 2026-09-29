@@ -1027,11 +1027,11 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
           this.retakeImage();
         }, 1400);
 
-        if (this.returnUrl()) {
-          setTimeout(() => {
-            void this.router.navigateByUrl(this.returnUrl()!);
-          }, 1600);
-        }
+        const redirectTarget = this.returnUrl() || '/self-service/attendance';
+        setTimeout(() => {
+          this.toastService.info('Redirecting to Attendance Punch...');
+          void this.router.navigateByUrl(redirectTarget);
+        }, 1600);
         return;
       }
 

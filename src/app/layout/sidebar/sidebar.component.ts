@@ -64,24 +64,24 @@ import { LanguageService } from '../../core/services/language.service';
         </div>
       </div>
 
-      <!-- User Profile Card -->
+      <!-- Organization Profile Card -->
       @if (showExpandedSidebar()) {
         <div class="px-4 pt-3 pb-3">
           <div class="group relative overflow-hidden rounded-md border border-slate-200/90 bg-slate-50/90 px-3.5 py-3 transition-all hover:border-emerald-200 hover:bg-white hover:shadow-sm">
             <div class="relative z-10 flex items-center gap-3.5">
               <div class="relative">
-                <div class="h-11 w-11 overflow-hidden rounded-full border-2 border-white bg-white shadow-sm transition-transform duration-500 group-hover:scale-105">
+                <div class="h-11 w-11 overflow-hidden rounded-md border border-slate-200 bg-white p-1 shadow-sm transition-transform duration-500 group-hover:scale-105">
                   @if (orgLogo()) {
-                    <img [src]="orgLogo()" [alt]="orgName()" class="h-full w-full object-contain p-1" (error)="onOrgLogoError()">
+                    <img [src]="orgLogo()" [alt]="displayOrgName()" class="h-full w-full object-contain" (error)="onOrgLogoError()">
                   } @else {
-                    <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-contain p-1">
+                    <img src="/hrnexus-brand-mark.png" alt="HRNexus" class="h-full w-full object-contain">
                   }
                 </div>
                 <div class="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-xs"></div>
               </div>
               <div class="flex min-w-0 flex-col">
-                <h3 class="truncate text-sm font-black text-slate-900 tracking-tight">{{ userName() }}</h3>
-                <p class="truncate text-[10px] font-extrabold text-slate-500 uppercase tracking-[0.18em] opacity-80">{{ userRole() }}</p>
+                <h3 class="truncate text-sm font-black text-slate-900 tracking-tight" [title]="displayOrgName()">{{ displayOrgName() }}</h3>
+                <p class="truncate text-[10px] font-extrabold text-emerald-600 uppercase tracking-[0.18em] opacity-90">{{ displayOrgSubtitle() }}</p>
               </div>
             </div>
           </div>
@@ -510,6 +510,19 @@ export class SidebarComponent implements OnInit {
     return this.orgService.isModuleEnabled(slug) ? this.t('common.on') : this.t('common.locked');
   }
 
+  displayOrgName(): string {
+    const name = (this.orgName() || '').trim();
+    if (name) return name;
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    return (user?.organizationName || user?.companyName || 'Acme Global HRMS').trim();
+  }
+
+  displayOrgSubtitle(): string {
+    const user = this.currentUser() ?? this.authService.getStoredUser();
+    const role = this.permissionService.getRoleDisplayName(user) || 'Organization';
+    return `${role} Workspace`;
+  }
+
   userName(): string {
     const user = this.currentUser() ?? this.authService.getStoredUser();
     if (!user) return 'Workspace User';
@@ -594,33 +607,12 @@ export class SidebarComponent implements OnInit {
   }
 
   private routeMatchScore(route: string): number {
-    const currentPath = this.normalizeRoutePath(this.routePath(this.router.url || '/'));
+    const currentUrl = this.normalizeRoutePath(this.router.url || '/');
+    const targetUrl = this.normalizeRoutePath(this.routePath(route));
     const currentQuery = this.routeQueryParams(this.router.url || '/') ?? {};
-    const targetPath = this.normalizeRoutePath(this.routePath(route));
     const targetQuery = this.routeQueryParams(route) ?? {};
 
-    let pathMatched = false;
-
-    if (targetPath === '/dashboard' || targetPath === '/self-service' || targetPath === '') {
-      pathMatched =
-        currentPath === '' ||
-        currentPath === '/' ||
-        currentPath === '/dashboard' ||
-        currentPath === '/self-service';
-    } else if (targetPath === '/settings' || targetPath === '/admin') {
-      pathMatched =
-        currentPath === targetPath ||
-        currentPath.startsWith(`${targetPath}/`);
-    } else {
-      pathMatched =
-        currentPath === targetPath ||
-        currentPath.startsWith(`${targetPath}/`);
-    }
-
-    if (!pathMatched) {
-      return -1;
-    }
-
+    // 1. Check query parameters match if specified
     const targetQueryKeys = Object.keys(targetQuery);
     const queryMatched = targetQueryKeys.every(
       (key) => currentQuery[key] === targetQuery[key],
@@ -630,7 +622,25 @@ export class SidebarComponent implements OnInit {
       return -1;
     }
 
-    return targetPath.length * 10 + targetQueryKeys.length;
+    // 2. Exact URL match (Highest Priority)
+    if (currentUrl === targetUrl) {
+      return 10000 + targetUrl.length * 10 + targetQueryKeys.length * 5;
+    }
+
+    // 3. Root dashboard aliases
+    if (targetUrl === '/dashboard' || targetUrl === '/self-service' || targetUrl === '') {
+      if (currentUrl === '' || currentUrl === '/' || currentUrl === '/dashboard' || currentUrl === '/self-service') {
+        return 500;
+      }
+      return -1;
+    }
+
+    // 4. Sub-route prefix match
+    if (targetUrl !== '/' && currentUrl.startsWith(`${targetUrl}/`)) {
+      return targetUrl.length * 10 + targetQueryKeys.length;
+    }
+
+    return -1;
   }
 
   private normalizeRoutePath(path: string): string {

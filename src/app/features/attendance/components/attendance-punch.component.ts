@@ -119,6 +119,27 @@ import { Router } from '@angular/router';
             </div>
           </div>
 
+          <!-- Face Not Registered Alert Overlay -->
+          <div *ngIf="isCameraReady() && !faceRegistered() && !cameraFallbackMode()" class="absolute inset-0 z-20 bg-slate-950/88 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white">
+            <div class="h-16 w-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-3 text-amber-400 animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
+            <h3 class="text-xl font-black tracking-tight text-white mb-2">Face Registration Required</h3>
+            <p class="text-xs text-slate-300 max-w-sm mb-5 leading-relaxed">
+              Your face profile is not registered yet. Please register your face once so the system can recognize you and mark your check-in automatically.
+            </p>
+            <button
+              type="button"
+              (click)="openFaceRegistration()"
+              class="px-6 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black text-sm rounded-md shadow-xl shadow-teal-500/25 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <span>REGISTER YOUR FACE NOW</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+
           <!-- Processing Overlay -->
           <div *ngIf="isProcessing()" class="absolute inset-0 bg-teal-900/40 backdrop-blur-sm flex flex-col items-center justify-center gap-4 z-20">
              <div class="h-16 w-16 rounded-full border-4 border-white/20 border-t-white animate-spin"></div>

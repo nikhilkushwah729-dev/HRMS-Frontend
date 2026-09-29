@@ -1343,25 +1343,36 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   saveAndGenerateInvoice() {
-    if (!this.billingDetails.companyName || !this.billingDetails.email) {
-      this.toastService.error('Please fill in required fields');
+    if (!this.billingDetails.companyName || !this.billingDetails.address || !this.billingDetails.city || !this.billingDetails.zipCode) {
+      this.toastService.error('Please fill in all mandatory billing fields (Company Name, Address, City, ZIP Code).');
       return;
     }
     
+    if (this.billingDetails.hasGst) {
+      if (!this.billingDetails.gstNumber || !this.billingDetails.gstNumber.trim()) {
+        this.toastService.error('Please enter your GST number or uncheck GST invoice option.');
+        return;
+      }
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstRegex.test(this.billingDetails.gstNumber.trim().toUpperCase())) {
+        this.toastService.error('Invalid GST number format (e.g. 23AAAAA0000A1Z5).');
+        return;
+      }
+    }
+
     this.isSubmitting = true;
-    // Simulate API call for invoice generation
     setTimeout(() => {
       this.currentStep = 'INVOICE_VIEW';
       this.isSubmitting = false;
-      this.toastService.success('Invoice generated and sent to your email.');
-    }, 2000);
+      this.toastService.success('Invoice generated successfully.');
+    }, 1200);
   }
 
   validateGST(gst: string) {
-    if (!gst) return;
+    if (!gst || !gst.trim()) return;
     const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    if (!gstRegex.test(gst)) {
-      this.toastService.warning('Invalid GST format');
+    if (!gstRegex.test(gst.trim().toUpperCase())) {
+      this.toastService.warning('Invalid GST format (e.g. 23AAAAA0000A1Z5)');
     }
   }
 
