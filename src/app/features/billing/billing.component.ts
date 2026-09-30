@@ -7,13 +7,12 @@ import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
-  BillingPlan,
   SubscriptionStatusPayload,
-  LegacyBillingContext,
   SubscriptionService,
 } from '../../core/services/subscription.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize, take, timeout } from 'rxjs/operators';
+
 
 type CheckoutStep =
   | 'PLAN_SELECTION'
@@ -376,7 +375,7 @@ type CheckoutStep =
                     </div>
                     <div class="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-right">
                       <p class="text-[10px] uppercase tracking-[0.18em] text-slate-400">Status</p>
-                      <p class="text-sm font-bold text-emerald-300">{{ legacyBillingConfigured ? 'Ready' : 'Setup Needed' }}</p>
+                      <p class="text-sm font-bold text-emerald-300">Ready</p>
                     </div>
                   </div>
                   <div class="mt-4 space-y-4">
@@ -414,13 +413,10 @@ type CheckoutStep =
                       </div>
                     </div>
                   </div>
-                  <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || !legacyBillingConfigured || isSubmitting"
+                  <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || isSubmitting"
                     class="mt-6 w-full rounded-[24px] bg-white py-4 text-lg font-bold text-slate-950 transition-all hover:bg-slate-100 hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
                     {{ getPlanActionButtonText() }}
                   </button>
-                  <p *ngIf="!legacyBillingConfigured" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800">
-                    Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway before starting a purchase.
-                  </p>
                   <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                     Secure End-to-End Payment
@@ -833,7 +829,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   loadInitialData() {
     this.isAuthenticating = true;
     this.bootstrapUserContext();
-    
+
     // Safety timeout: If data doesn't load within 15 seconds, stop the spinner
     const safetyTimeout = setTimeout(() => {
       if (this.isAuthenticating) {
@@ -851,12 +847,12 @@ export class BillingComponent implements OnInit, OnDestroy {
           return of({ data: null as SubscriptionStatusPayload | null, error: err });
         })
       ),
-      context: this.subscriptionService.getLegacyContext().pipe(
+      plans: this.subscriptionService.getPlans().pipe(
         take(1),
         timeout(8000),
         catchError(err => {
-          console.error('Context fetch failed', err);
-          return of({ data: null as LegacyBillingContext | null, error: err });
+          console.error('Plans fetch failed', err);
+          return of([] as any[]);
         })
       )
     }).pipe(
@@ -865,11 +861,9 @@ export class BillingComponent implements OnInit, OnDestroy {
         clearTimeout(safetyTimeout);
       })
     ).subscribe({
-      next: ({ status, context }) => {
+      next: ({ status, plans }) => {
         const statusPayload = (status as any)?.data === undefined ? status as SubscriptionStatusPayload | null : (status as any).data as SubscriptionStatusPayload | null;
         const statusError = (status as any)?.error;
-        const contextPayload = (context as any)?.data === undefined ? context as LegacyBillingContext | null : (context as any).data as LegacyBillingContext | null;
-        const contextError = (context as any)?.error;
 
         if (!statusPayload && statusError?.status === 401) {
           this.isSessionExpired = true;
@@ -878,10 +872,6 @@ export class BillingComponent implements OnInit, OnDestroy {
 
         if (!statusPayload && statusError) {
           this.toastService.warning('Billing status could not be loaded right now. Showing available billing details.');
-        }
-
-        if (contextError && contextError?.status !== 401) {
-          this.toastService.warning('Some billing details are temporarily unavailable.');
         }
 
         // Populate User Info from Status
@@ -893,7 +883,7 @@ export class BillingComponent implements OnInit, OnDestroy {
         // Handle Subscription Dates
         const endDate = statusPayload?.currentSubscription?.endDate ? new Date(statusPayload.currentSubscription.endDate) : null;
         this.planContext.expiryDate = endDate;
-        
+
         if (endDate && !isNaN(endDate.getTime())) {
           const now = new Date();
           const diff = endDate.getTime() - now.getTime();
@@ -908,27 +898,30 @@ export class BillingComponent implements OnInit, OnDestroy {
           }
         }
 
-        // Handle Context
-        if (contextPayload) {
-          this.legacyBillingConfigured = contextPayload.configured !== false;
-          this.appName = contextPayload.appName || '';
-          this.userInfo.email = contextPayload.existingPlan?.email || this.userInfo.email;
-          this.userInfo.contact = contextPayload.existingPlan?.phoneNumber || this.userInfo.contact;
-          this.planContext.existingUsers = contextPayload.existingPlan?.userlimit || 0;
-          this.planContext.mode = contextPayload.suggestedAction === 'Upgrade' ? 'Upgrade' : 'Buy';
-          this.targetUsers = Math.max(this.targetUsers, contextPayload.existingPlan?.userlimit || 10);
-          
-          this.billingDetails.companyName = contextPayload.existingPlan?.orgName || statusPayload?.organization?.companyName || this.billingDetails.companyName;
-          this.billingDetails.email = contextPayload.existingPlan?.email || this.billingDetails.email;
-          this.billingDetails.phone = contextPayload.existingPlan?.phoneNumber || this.billingDetails.phone;
-          
-          const city = contextPayload.existingPlan?.cityName || '';
-          const state = contextPayload.existingPlan?.stateName || '';
-          this.billingDetails.address = city + (state ? ', ' + state : '');
-          this.isINR = contextPayload.existingPlan?.countryname === 'India';
-
-          this.addOns = this.normalizeAddonCatalog(contextPayload.addonCatalog || []);
+        // Populate billing contact from status organization
+        if (statusPayload?.organization) {
+          this.billingDetails.companyName = statusPayload.organization.companyName || this.billingDetails.companyName;
         }
+
+        // Build add-on catalog from plans (non-trial plans only)
+        const paidPlans: any[] = Array.isArray(plans) ? plans.filter((p: any) => !p.isTrialPlan) : [];
+        if (paidPlans.length > 0) {
+          // Use the most feature-rich plan to derive available addons
+          const topPlan = paidPlans[paidPlans.length - 1];
+          this.addOns = this.normalizeAddonCatalog(
+            (topPlan.limits || [])
+              .filter((l: any) => l.key?.startsWith('module.') && l.key !== 'module.ESS')
+              .map((l: any) => ({
+                name: l.label || l.key.replace('module.', ''),
+                price: '0',   // backend plans don't carry per-addon prices; pricing is plan-based
+                status: l.enabled ? 'Active' : 'Inactive',
+              }))
+          );
+        }
+
+        // Detect INR from status (org country not in status payload; default to INR for India-first app)
+        this.isINR = true;
+        this.planContext.mode = statusPayload?.currentSubscription ? 'Upgrade' : 'Buy';
 
         this.calculatePricing();
       },
@@ -938,6 +931,7 @@ export class BillingComponent implements OnInit, OnDestroy {
       }
     });
   }
+
 
   calculatePricing() {
     const basePricePerUserPerMonth = this.isINR ? 50 : 2; 
@@ -1166,7 +1160,6 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   getPlanActionButtonText() {
-    if (!this.legacyBillingConfigured) return 'Billing Setup Required';
     return this.planContext.mode === 'Buy' ? 'Purchase Plan' : 'Confirm Upgrade';
   }
 
@@ -1206,41 +1199,32 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   reviewPay() {
     if (this.isSubmitting) return;
-    if (!this.legacyBillingConfigured) {
-      this.toastService.error('Payment gateway is not configured on the backend. Please configure Razorpay or the legacy billing gateway.');
-      return;
-    }
     this.showPaymentLoader(8);
-    
-    const payload = {
-      nouser: this.targetUsers,
-      selectedAddons: this.addOns.filter(a => a.selected).map(a => ({ name: a.label, status: true })),
-      paymentMethod: 'razorpay',
-      state: this.billingDetails.state || 'Delhi',
-      country: this.isINR ? 'India' : 'International',
-      name: this.userInfo.name,
-      duration: this.durationInputValue,
-      durationType: 'Months',
-      subtotal: this.subTotal,
-      tax: this.tax,
-      paymentAmount: this.grandTotal,
-      action: this.planContext.mode,
-      email: this.billingDetails.email || this.userInfo.email,
-      phone: this.billingDetails.phone || this.userInfo.contact
+
+    // Determine billing cycle from user-selected duration
+    const billingCycle: 'monthly' | 'yearly' = this.durationInputValue >= 12 ? 'yearly' : 'monthly';
+
+    // planId 2 = Basic, 3 = Pro, 4 = Enterprise (from backend DEFAULT_PLANS)
+    // For now default to Basic (id=2); expose plan picker when multi-plan UI is added
+    const upgradePayload = {
+      planId: 2,
+      billingCycle,
+      gateway: 'razorpay' as const,
     };
 
-    this.subscriptionService.legacyPurchase(payload).subscribe({
-      next: (res) => {
-        this.preOrderData = res;
+    this.subscriptionService.createUpgradeIntent(upgradePayload).subscribe({
+      next: (intent) => {
+        this.preOrderData = intent;
         this.setPaymentLoaderProgress(55);
-        setTimeout(() => void this.openRazorpay(res), 250);
+        setTimeout(() => void this.openRazorpay(intent), 250);
       },
       error: (err) => {
         this.hidePaymentLoader();
-        this.toastService.error(this.getApiErrorMessage(err, 'Failed to initiate purchase'));
+        this.toastService.error(this.getApiErrorMessage(err, 'Failed to initiate payment. Please try again.'));
       }
     });
   }
+
 
   private loadRazorpayScript(): Promise<boolean> {
     return new Promise((resolve) => {
@@ -1267,14 +1251,17 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   async openRazorpay(orderData: any) {
-    const amount = Number(orderData.amount ?? orderData.paymentAmount ?? 0);
-    const key = String(orderData.razorpayKey || orderData.publishableKey || '').trim();
+    // New backend response shape (createUpgradeIntent):
+    // { paymentId, orderId: "order_XXXXXXXXXX", amount (INR), amountInPaise, publishableKey, currency, plan }
+    // Legacy shape had: { status: true, razorpayKey, Rzr_orderId, paymentAmount }
+    const amountInPaise = Number(orderData.amountInPaise ?? (orderData.amount > 10000 ? orderData.amount : Math.round((orderData.amount ?? orderData.paymentAmount ?? 0) * 100)));
+    const key = String(orderData.publishableKey || orderData.razorpayKey || '').trim();
     const orderId = String(orderData.orderId || orderData.Rzr_orderId || '').trim();
-    const status = orderData.status === true || orderData.status === 'true' || orderData.status === 1 || orderData.status === '1';
 
-    if (!status || !orderId) {
+    // New flow: orderId present + key present = ready. No status boolean needed.
+    if (!orderId) {
       this.hidePaymentLoader();
-      this.toastService.error(orderData.message || 'Failed to initiate secure payment.');
+      this.toastService.error(orderData.message || 'Failed to initiate secure payment. Please try again.');
       return;
     }
 
@@ -1284,7 +1271,7 @@ export class BillingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!amount || amount <= 0) {
+    if (!amountInPaise || amountInPaise <= 0) {
       this.hidePaymentLoader();
       this.toastService.error('Payment amount is invalid. Please refresh and try again.');
       return;
@@ -1301,10 +1288,10 @@ export class BillingComponent implements OnInit, OnDestroy {
 
     const options = {
       key,
-      amount: amount > 0 && amount < 1000000 ? Math.round(amount * 100) : amount,
+      amount: amountInPaise,   // already in paise from backend — no ×100 here
       currency: orderData.currency || 'INR',
       name: 'HRNexus Premium',
-      description: 'Plan Upgrade/Purchase',
+      description: `${orderData.plan?.name || 'Plan'} Upgrade`,
       image: this.getBrandLogoUrl(),
       order_id: orderId,
       handler: (response: any) => {
@@ -1332,32 +1319,33 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   confirmPayment(response: any, orderData: any) {
     this.showPaymentLoader(92);
-    const confirmPayload = {
-      paymentRecordId: orderData.paymentRecordId,
-      orderId: response.razorpay_order_id,
-      paymentStatus: 'success',
-      paymentRzrId: response.razorpay_payment_id,
-      nouser: this.targetUsers,
-      duration: this.durationInputValue,
-      durationType: 'Months',
-      action: this.planContext.mode
+    // response from Razorpay modal: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+    // orderData.paymentId = our DB payment row ID (from createUpgradeIntent response)
+    const verifyPayload = {
+      paymentId: orderData.paymentId,
+      gateway: 'razorpay' as const,
+      providerPaymentId: response.razorpay_payment_id,
+      signature: response.razorpay_signature,
+      status: 'success' as const,
     };
 
-    this.subscriptionService.legacyConfirm(confirmPayload).subscribe({
-      next: (res) => {
+    this.subscriptionService.verifyPayment(verifyPayload).subscribe({
+      next: () => {
         this.setPaymentLoaderProgress(100);
+        this.subscriptionService.clearCache();   // force fresh status on next visit
         setTimeout(() => {
           this.hidePaymentLoader();
           this.currentStep = 'PAYMENT_SUCCESS';
-          this.toastService.success('Payment successful!');
+          this.toastService.success('Payment successful! Your plan has been activated.');
         }, 350);
       },
-      error: (err) => {
+      error: () => {
         this.hidePaymentLoader();
-        this.toastService.error('Payment confirmation failed. Please contact support.');
+        this.toastService.error('Payment confirmation failed. Your payment may have been captured — please contact support with your payment ID.');
       }
     });
   }
+
 
   continueToBilling() {
     this.currentStep = 'BILLING_DETAILS';

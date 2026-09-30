@@ -283,22 +283,26 @@ export class SubscriptionService {
     return this.statusCache$;
   }
 
+  /** POST /api/billing/upgrade-intent — creates a real Razorpay order server-side */
   createUpgradeIntent(payload: { planId: number; billingCycle: 'monthly' | 'yearly'; gateway: 'razorpay' | 'stripe' }) {
     return this.http.post<any>(`${this.apiUrl}/upgrade-intent`, payload).pipe(
-      map((res) => this.unwrap<any>(res)),
-      catchError((err) => {
-        return of({ success: true, intentId: 'intent_demo_' + Date.now(), amount: 999, currency: 'INR' });
-      })
+      map((res) => this.unwrap<any>(res))
+      // Errors propagate to caller — component handles toast + loader cleanup
     );
   }
 
+  /** POST /api/billing/verify-payment — HMAC-SHA256 signature verified server-side before activation */
   verifyPayment(payload: { paymentId: number; gateway: 'razorpay' | 'stripe'; providerPaymentId?: string; signature?: string; status: 'success' | 'failed' }) {
     return this.http.post<any>(`${this.apiUrl}/verify-payment`, payload).pipe(
-      map((res) => this.unwrap<any>(res)),
-      catchError(() => of({ success: true, message: 'Payment verified successfully.' }))
+      map((res) => this.unwrap<any>(res))
+      // Errors propagate to caller — component shows failure toast
     );
   }
 
+  /**
+   * @deprecated Use getPlans() + createUpgradeIntent() instead.
+   * Kept temporarily for backward-compatibility only; do not call in new code.
+   */
   getLegacyContext(): Observable<LegacyBillingContext> {
     return this.http.get<any>(`${this.apiUrl}/legacy/context`).pipe(
       map((res) => {
@@ -315,6 +319,10 @@ export class SubscriptionService {
     );
   }
 
+  /**
+   * @deprecated Use createUpgradeIntent() instead.
+   * Kept temporarily for backward-compatibility only; do not call in new code.
+   */
   legacyPurchase(payload: {
     nouser: number;
     selectedAddons: Array<{ name: string; status: boolean }>;
@@ -336,6 +344,10 @@ export class SubscriptionService {
     return this.http.post<any>(`${this.apiUrl}/legacy/purchase`, payload).pipe(map((res) => this.unwrap<any>(res)));
   }
 
+  /**
+   * @deprecated Use verifyPayment() instead.
+   * Kept temporarily for backward-compatibility only; do not call in new code.
+   */
   legacyConfirm(payload: {
     paymentRecordId: number;
     orderId: string;
