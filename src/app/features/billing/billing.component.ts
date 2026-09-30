@@ -1010,13 +1010,39 @@ export class BillingComponent implements OnInit, OnDestroy {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : this.addonFallbackPrice(name);
   }
 
+  private isSupportedAddon(name: string): boolean {
+    const key = this.addonKey(name);
+    const validKeys = new Set([
+      'attendance',
+      'attendancetracking',
+      'employeetracking',
+      'payroll',
+      'payrollmanagement',
+      'timesheet',
+      'timesheets',
+      'timesheetmanagement',
+      'visitmanagement',
+      'visitormanagement',
+      'trackvisits',
+      'leaveandtimeoff',
+      'facerecognition',
+      'geofence',
+      'geofencing',
+      'shiftplanner',
+      'expenses',
+      'expensetracking',
+      'expense',
+    ]);
+    return validKeys.has(key);
+  }
+
   private normalizeAddonCatalog(catalog: Array<{ name: string; price: string; status: string }>) {
     const seen = new Set<string>();
     return catalog
-      .filter((addon) => String(addon?.name || '').trim())
+      .filter((addon) => String(addon?.name || '').trim() && this.isSupportedAddon(addon.name))
       .map((addon) => {
         const label = String(addon.name || '').replace(/\s+/g, ' ').trim();
-        const key = label.toLowerCase();
+        const key = this.addonKey(label);
         const isInstalled = this.addonStatusEnabled(addon.status);
         return {
           label,

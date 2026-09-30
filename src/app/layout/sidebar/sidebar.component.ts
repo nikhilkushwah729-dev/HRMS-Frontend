@@ -348,24 +348,24 @@ export class SidebarComponent implements OnInit {
   private user$ = this.store.select(selectUser);
   readonly selfServiceLinks = computed(() =>
     ['dashboard', 'self-service'].flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
     ),
   );
   readonly peopleLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: true }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: false }),
   );
   readonly attendanceLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: true }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: false }),
   );
   readonly leaveLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: true }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: false }),
   );
   readonly payrollLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: true }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: false }),
   );
   readonly systemLinks = computed(() =>
     ['settings', 'addons', 'visitormanagement', 'organization', 'kiosk-management', 'roles-permissions'].flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
     ),
   );
   readonly compactNavLinks = computed(() =>
