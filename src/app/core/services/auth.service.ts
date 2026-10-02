@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { tap, map, catchError } from 'rxjs/operators';
 import { Store } from '@ngrx/store';
-import { logout as logoutAction } from '../state/auth/auth.actions';
+
 import { User, AuthResponse } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 import { AuditLogService, AuditAction, AuditModule } from './audit-log.service';
@@ -640,7 +640,6 @@ export class AuthService {
     }
 
     clearAuthStorage() {
-        this.store.dispatch(logoutAction());
         if (typeof window !== 'undefined') {
             localStorage.clear();
             sessionStorage.clear();

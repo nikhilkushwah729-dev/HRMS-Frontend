@@ -1834,14 +1834,10 @@ export class TopbarComponent implements OnInit {
     if (this.loggingOut()) return;
     this.loggingOut.set(true);
     this.showDropdown = false;
-    const token = this.authService.getStoredToken();
-    this.authService.clearAuthStorage();
+    // Dispatch the action — auth.effects.ts handles clearStorage, navigate, and API call
     this.store.dispatch(AuthActions.logout());
-    this.router.navigateByUrl('/auth/login', { replaceUrl: true });
-    this.authService.logout(token).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => this.loggingOut.set(false),
-      error: () => this.loggingOut.set(false)
-    });
+    // Reset flag after short delay (effect handles the actual work)
+    setTimeout(() => this.loggingOut.set(false), 1500);
   }
 
   handleSidebarToggle(): void {
