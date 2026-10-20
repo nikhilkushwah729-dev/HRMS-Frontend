@@ -227,11 +227,11 @@ import { LanguageService } from '../../core/services/language.service';
                   [routerLink]="routePath(link.route)"
                   [queryParams]="routeQueryParams(link.route)"
                   class="flex h-11 w-11 items-center justify-center rounded-md transition-all duration-300"
-                  [class.bg-emerald-600]="isRouteActive(link.route)"
-                  [class.text-white]="isRouteActive(link.route)"
-                  [class.shadow-md]="isRouteActive(link.route)"
-                  [class.bg-slate-50]="!isRouteActive(link.route)"
-                  [class.text-slate-500]="!isRouteActive(link.route)"
+                  [class.bg-emerald-600]="isLinkActive(link)"
+                  [class.text-white]="isLinkActive(link)"
+                  [class.shadow-md]="isLinkActive(link)"
+                  [class.bg-slate-50]="!isLinkActive(link)"
+                  [class.text-slate-500]="!isLinkActive(link)"
                   [attr.title]="link.label"
                   (click)="closeOnMobile()"
                 >
@@ -284,31 +284,31 @@ import { LanguageService } from '../../core/services/language.service';
         <a
           [routerLink]="routePath(link.route)"
           [queryParams]="routeQueryParams(link.route)"
-          (click)="onNavLinkClick(activeSectionKey())"
+          (click)="onNavLinkClick(link.sectionId || activeSectionKey())"
           class="group relative flex items-center gap-2.5 rounded-md px-3 py-2 transition-all duration-200 hover:bg-slate-100/70"
-          [class.bg-emerald-50]="isRouteActive(link.route)"
-          [class.text-emerald-950]="isRouteActive(link.route)"
-          [class.font-black]="isRouteActive(link.route)"
-          [class.text-slate-600]="!isRouteActive(link.route)"
-          [class.font-bold]="!isRouteActive(link.route)"
+          [class.bg-emerald-50]="isLinkActive(link)"
+          [class.text-emerald-950]="isLinkActive(link)"
+          [class.font-black]="isLinkActive(link)"
+          [class.text-slate-600]="!isLinkActive(link)"
+          [class.font-bold]="!isLinkActive(link)"
         >
           <span
             class="relative z-10 flex h-7 w-7 items-center justify-center rounded-md transition-all duration-200 group-hover:scale-105"
-            [class.bg-emerald-600]="isRouteActive(link.route)"
-            [class.text-white]="isRouteActive(link.route)"
-            [class.shadow-xs]="isRouteActive(link.route)"
-            [class.bg-slate-100]="!isRouteActive(link.route)"
-            [class.text-slate-500]="!isRouteActive(link.route)"
+            [class.bg-emerald-600]="isLinkActive(link)"
+            [class.text-white]="isLinkActive(link)"
+            [class.shadow-xs]="isLinkActive(link)"
+            [class.bg-slate-100]="!isLinkActive(link)"
+            [class.text-slate-500]="!isLinkActive(link)"
             [innerHTML]="resolveIcon(link.icon)"
           ></span>
           <span
             class="relative z-10 truncate text-[13px] tracking-tight"
-            [class.text-slate-900]="!isRouteActive(link.route)"
-            [class.text-emerald-950]="isRouteActive(link.route)"
-            [class.font-extrabold]="isRouteActive(link.route)"
+            [class.text-slate-900]="!isLinkActive(link)"
+            [class.text-emerald-950]="isLinkActive(link)"
+            [class.font-extrabold]="isLinkActive(link)"
           >{{ link.label }}</span>
           
-          @if (isRouteActive(link.route)) {
+          @if (isLinkActive(link)) {
             <div class="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-emerald-600"></div>
           }
         </a>
@@ -340,6 +340,7 @@ export class SidebarComponent implements OnInit {
   orgLogo = signal<string>('');
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   hasOrgLogo = computed(() => Boolean(this.orgLogo().trim()));
+  currentRouteUrl = signal<string>(this.router.url || '/');
   private expandedSection = signal<string>('main');
   private isDesktopViewport = signal(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
   public isUserLoading = signal(true);
@@ -363,11 +364,21 @@ export class SidebarComponent implements OnInit {
   readonly payrollLinks = computed(() =>
     this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: false }),
   );
-  readonly systemLinks = computed(() =>
-    ['settings', 'addons', 'visitormanagement', 'organization', 'kiosk-management', 'roles-permissions'].flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
-    ),
+  readonly isSuperAdmin = computed(() =>
+    this.permissionService.isSuperAdminUser(this.currentUser())
   );
+
+  readonly systemLinks = computed(() => {
+    const sectionIds = ['settings', 'addons', 'visitormanagement'];
+    if (this.isSuperAdmin()) {
+      sectionIds.push('organization');
+    }
+    sectionIds.push('kiosk-management', 'roles-permissions');
+
+    return sectionIds.flatMap((id) =>
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
+    );
+  });
   readonly compactNavLinks = computed(() =>
     this.mergeUniqueLinks(
       this.selfServiceLinks(),
@@ -400,9 +411,11 @@ export class SidebarComponent implements OnInit {
       error: () => this.subscriptionStatus.set(null),
     });
 
+    this.currentRouteUrl.set(this.router.url || '/');
     this.syncExpandedSectionWithRoute();
     this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
       if (event instanceof NavigationEnd) {
+        this.currentRouteUrl.set(event.urlAfterRedirects || event.url);
         this.syncExpandedSectionWithRoute();
       }
     });
@@ -487,17 +500,21 @@ export class SidebarComponent implements OnInit {
   }
 
   private sectionForCurrentRoute(): string {
-    const path = this.routePath(this.router.url || '/dashboard');
-    if (path.startsWith('/self-service/requests') || path.startsWith('/admin/approvals')) return 'main';
-    if (path.startsWith('/self-service/leave') || path.startsWith('/leave') || path.startsWith('/leaves')) return 'leave';
-    if (path.startsWith('/self-service/payroll') || path.startsWith('/self-service/payslip') || path.startsWith('/payroll')) return 'payroll';
+    const path = this.routePath(this.currentRouteUrl() || '/dashboard');
+    if (path.startsWith('/self-service') || path.startsWith('/dashboard') || path.startsWith('/my-team') || path.startsWith('/profile') || path.startsWith('/approval-center')) return 'main';
     if (path.startsWith('/employees')) return 'employees';
-    if (path.startsWith('/attendance') || path.startsWith('/face-registration') || path.startsWith('/admin/attendance') || path.startsWith('/hr/attendance')) return 'attendance';
-    if (path.startsWith('/settings') || path.startsWith('/admin') || path.startsWith('/add-ons') || path.startsWith('/visit-management') || path.startsWith('/reports')) return 'security';
+    if (path.startsWith('/attendance') || path.startsWith('/face-registration') || path.startsWith('/visit-management')) return 'attendance';
+    if (path.startsWith('/leave')) return 'leave';
+    if (path.startsWith('/payroll')) return 'payroll';
+    if (path.startsWith('/settings') || path.startsWith('/admin') || path.startsWith('/add-ons') || path.startsWith('/reports') || path.startsWith('/platform')) return 'security';
     return 'main';
   }
 
   toggleSection(section: string) {
+    if (this.expandedSection() === section) {
+      // Keep section open if user clicks it again
+      return;
+    }
     this.expandOnly(section);
   }
 
@@ -558,28 +575,32 @@ export class SidebarComponent implements OnInit {
   }
 
   onNavLinkClick(section: string) {
-    this.expandOnly(section);
+    if (section) {
+      this.expandOnly(section);
+    }
     this.closeOnMobile();
   }
 
   routePath(route: string): string {
-    return route.split('?')[0] || route;
+    return (route || '').split('?')[0] || route;
   }
 
   routeQueryParams(route: string): Record<string, string> | null {
-    const query = route.split('?')[1];
+    const query = (route || '').split('?')[1];
     if (!query) return null;
     const params: Record<string, string> = {};
     new URLSearchParams(query).forEach((value, key) => params[key] = value);
     return params;
   }
 
-  isRouteActive(route: string): boolean {
-    return this.activeRouteSignature() === this.routeSignature(route);
-  }
+  /**
+   * Identifies the single best-matching link ID for the current route.
+   * GUARANTEES that at most 1 item in the entire sidebar is ever active.
+   */
+  readonly activeLinkId = computed<string>(() => {
+    const currentUrl = this.currentRouteUrl();
 
-  private activeRouteSignature(): string {
-    const links = this.mergeUniqueLinks(
+    const allLinks = this.mergeUniqueLinks(
       this.selfServiceLinks(),
       this.peopleLinks(),
       this.attendanceLinks(),
@@ -588,56 +609,67 @@ export class SidebarComponent implements OnInit {
       this.systemLinks(),
     );
 
-    const ranked = links
-      .map((link) => ({ route: link.route, score: this.routeMatchScore(link.route) }))
-      .filter((item) => item.score >= 0)
-      .sort((a, b) => b.score - a.score);
+    let bestLinkId = '';
+    let highestScore = -1;
 
-    return ranked[0]?.route ? this.routeSignature(ranked[0].route) : '';
-  }
-
-  private routeSignature(route: string): string {
-    const path = this.normalizeRoutePath(this.routePath(route));
-    const query = this.routeQueryParams(route) ?? {};
-    const sortedQuery = Object.keys(query)
-      .sort((left, right) => left.localeCompare(right))
-      .map((key) => `${key}=${query[key] ?? ''}`)
-      .join('&');
-    return sortedQuery ? `${path}?${sortedQuery}` : path;
-  }
-
-  private routeMatchScore(route: string): number {
-    const currentUrl = this.normalizeRoutePath(this.router.url || '/');
-    const targetUrl = this.normalizeRoutePath(this.routePath(route));
-    const currentQuery = this.routeQueryParams(this.router.url || '/') ?? {};
-    const targetQuery = this.routeQueryParams(route) ?? {};
-
-    // 1. Check query parameters match if specified
-    const targetQueryKeys = Object.keys(targetQuery);
-    const queryMatched = targetQueryKeys.every(
-      (key) => currentQuery[key] === targetQuery[key],
-    );
-
-    if (!queryMatched) {
-      return -1;
+    for (const link of allLinks) {
+      const score = this.linkMatchScore(link, currentUrl);
+      if (score > highestScore) {
+        highestScore = score;
+        bestLinkId = link.id;
+      }
     }
 
-    // 2. Exact URL match (Highest Priority)
-    if (currentUrl === targetUrl) {
-      return 10000 + targetUrl.length * 10 + targetQueryKeys.length * 5;
+    return bestLinkId;
+  });
+
+  isLinkActive(link: WorkspaceModuleView): boolean {
+    return Boolean(link && link.id && this.activeLinkId() === link.id);
+  }
+
+  isRouteActive(route: string): boolean {
+    const currentUrl = this.currentRouteUrl();
+    return this.normalizeRoutePath(this.routePath(currentUrl)) === this.normalizeRoutePath(this.routePath(route));
+  }
+
+  private linkMatchScore(link: WorkspaceModuleView, fullCurrentUrl: string): number {
+    const [currentPath, currentQueryString] = (fullCurrentUrl || '/').split('?');
+    const [targetPath, targetQueryString] = (link.route || '').split('?');
+
+    const normCurrentPath = this.normalizeRoutePath(currentPath);
+    const normTargetPath = this.normalizeRoutePath(targetPath);
+
+    const currentParams = this.routeQueryParams(fullCurrentUrl) ?? {};
+    const targetParams = this.routeQueryParams(link.route) ?? {};
+
+    // 1. Query parameter validation
+    let queryBonus = 0;
+    const targetKeys = Object.keys(targetParams);
+    if (targetKeys.length > 0) {
+      const allMatch = targetKeys.every((k: string) => currentParams[k] === targetParams[k]);
+      if (!allMatch) {
+        return -1;
+      }
+      queryBonus = targetKeys.length * 50;
     }
 
-    // 3. Root dashboard aliases
-    if (targetUrl === '/dashboard' || targetUrl === '/self-service' || targetUrl === '') {
-      if (currentUrl === '' || currentUrl === '/' || currentUrl === '/dashboard' || currentUrl === '/self-service') {
-        return 500;
+    // 2. Exact Path Match (Highest Priority)
+    if (normCurrentPath === normTargetPath) {
+      return 10000 + normTargetPath.length * 10 + queryBonus;
+    }
+
+    // 3. Dashboard root aliases
+    if (normTargetPath === '/dashboard' || normTargetPath === '/self-service') {
+      if (normCurrentPath === '/' || normCurrentPath === '' || normCurrentPath === '/dashboard' || normCurrentPath === '/self-service') {
+        return 5000;
       }
       return -1;
     }
 
-    // 4. Sub-route prefix match
-    if (targetUrl !== '/' && currentUrl.startsWith(`${targetUrl}/`)) {
-      return targetUrl.length * 10 + targetQueryKeys.length;
+    // 4. Sub-route prefix match (e.g. /employees/add or /employees/123 matching /employees)
+    // Only if targetPath is not root '/'
+    if (normTargetPath !== '/' && normCurrentPath.startsWith(`${normTargetPath}/`)) {
+      return 1000 + normTargetPath.length * 10 + queryBonus;
     }
 
     return -1;

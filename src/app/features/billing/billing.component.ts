@@ -55,6 +55,79 @@ type CheckoutStep =
     </div>
   </div>
 
+  <!-- ===================== TRIAL EXPIRED PAYWALL ===================== -->
+  <div *ngIf="isTrialExpiredPaywall"
+    class="fixed inset-0 z-[9998] flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 overflow-y-auto">
+
+    <!-- Ambient glow -->
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+      <div class="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-rose-600/10 blur-3xl"></div>
+      <div class="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-indigo-600/10 blur-3xl"></div>
+    </div>
+
+    <div class="relative w-full max-w-lg text-center">
+      <!-- Lock Icon -->
+      <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-rose-500/10 ring-1 ring-rose-500/20">
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-rose-400">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+
+      <!-- Badge -->
+      <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-rose-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-rose-400"></span>
+        Free Trial Expired
+      </div>
+
+      <h1 class="mb-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
+        Your trial has ended
+      </h1>
+      <p class="mb-8 text-base leading-relaxed text-slate-400">
+        Your <span class="font-semibold text-white">0 days remaining</span> free trial has expired.
+        Upgrade to a paid plan to continue using HRNexus and keep your data safe.
+      </p>
+
+      <!-- Feature highlights -->
+      <div class="mb-8 grid grid-cols-3 gap-3 text-left">
+        <div class="rounded-xl border border-white/5 bg-white/5 p-4">
+          <div class="mb-2 text-emerald-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-white">Employees</p>
+          <p class="text-[11px] text-slate-500">Manage your team</p>
+        </div>
+        <div class="rounded-xl border border-white/5 bg-white/5 p-4">
+          <div class="mb-2 text-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-white">Payroll</p>
+          <p class="text-[11px] text-slate-500">Automate salaries</p>
+        </div>
+        <div class="rounded-xl border border-white/5 bg-white/5 p-4">
+          <div class="mb-2 text-amber-400">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <p class="text-xs font-semibold text-white">Attendance</p>
+          <p class="text-[11px] text-slate-500">Track & reports</p>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button
+        (click)="isTrialExpiredPaywall = false"
+        class="group relative inline-flex w-full items-center justify-center overflow-hidden rounded-2xl bg-emerald-500 px-8 py-4 text-base font-bold text-white shadow-xl shadow-emerald-500/20 transition-all hover:bg-emerald-400 hover:scale-[1.02] active:scale-[0.98]"
+      >
+        <span>Choose a Plan &amp; Upgrade Now</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-2 transition-transform group-hover:translate-x-1"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </button>
+      <p class="mt-4 text-xs text-slate-600">
+        All your data is safe. Upgrading will restore full access instantly.
+      </p>
+    </div>
+  </div>
+  <!-- ================================================================= -->
+
   <!-- Main Wrapper -->
   <div class="flex h-screen flex-col overflow-hidden" [ngClass]="{ 'overflow-hidden': isRedirecting }">
 
@@ -689,6 +762,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   // States
   isAuthenticating = false;
   isSessionExpired = false;
+  isTrialExpiredPaywall = false;
   isRedirecting = false;
   showUserDropdown = false;
   showLogoutModal = false;
@@ -758,6 +832,9 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.subscribe(params => {
       if (params.get('step') === 'success') {
         this.currentStep = 'PAYMENT_SUCCESS';
+      }
+      if (params.get('reason') === 'trial_expired') {
+        this.isTrialExpiredPaywall = true;
       }
     });
   }
@@ -1333,6 +1410,8 @@ export class BillingComponent implements OnInit, OnDestroy {
       next: () => {
         this.setPaymentLoaderProgress(100);
         this.subscriptionService.clearCache();   // force fresh status on next visit
+        this.subscriptionService.getStatus().subscribe();
+        this.isTrialExpiredPaywall = false;
         setTimeout(() => {
           this.hidePaymentLoader();
           this.currentStep = 'PAYMENT_SUCCESS';

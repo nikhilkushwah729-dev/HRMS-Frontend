@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { MainLayoutComponent } from './layout/main-layout/main-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/guards/permission.guard';
+import { subscriptionGuard } from './core/guards/subscription.guard';
+import { superAdminGuard } from './core/guards/super-admin.guard';
 
 export const routes: Routes = [
   {
@@ -42,8 +44,8 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
-    canActivate: [authGuard],
-    canActivateChild: [permissionGuard],
+    canActivate: [authGuard, subscriptionGuard],
+    canActivateChild: [permissionGuard, subscriptionGuard],
     children: [
       {
         path: '',
@@ -484,6 +486,7 @@ export const routes: Routes = [
       },
       {
         path: 'platform',
+        canActivate: [superAdminGuard],
         loadComponent: () =>
           import('./features/platform/platform-control.component').then(
             (m) => m.PlatformControlComponent,

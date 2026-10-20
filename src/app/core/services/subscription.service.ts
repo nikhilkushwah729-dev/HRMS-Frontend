@@ -227,11 +227,43 @@ export class SubscriptionService {
   readonly bannerVisible = computed(() => {
     const status = this.statusSignal();
     if (!status || !status.organization) return false;
+    const daysLeft = status.trialDaysRemaining;
     return Boolean(
       status.organization.isTrialActive ||
+      (daysLeft !== null && daysLeft !== undefined && daysLeft <= 0) ||
       ['grace', 'expired'].includes(status.organization.subscriptionStatus)
     );
   });
+
+  /** True when trial is over AND no paid subscription is active — blocks app usage */
+  readonly isAccessBlocked = computed(() => {
+    const status = this.statusSignal();
+    if (!status || !status.organization) return false;
+
+    // If user has an active paid subscription (not trial), they have full access
+    const hasPaidActivePlan = status.currentSubscription?.status === 'active' &&
+                              status.plan &&
+                              !status.plan.isTrialPlan &&
+                              !status.organization.isTrialActive;
+    if (hasPaidActivePlan) {
+      return false;
+    }
+
+    const orgStatus = status.organization.subscriptionStatus;
+    const daysLeft = status.trialDaysRemaining;
+    const isReadOnly = Boolean(status.organization.readOnlyMode);
+
+    // Trial has expired if days remaining is 0 or less
+    const trialDaysExpired = daysLeft !== null && daysLeft !== undefined && daysLeft <= 0;
+    const statusExpired = ['expired', 'grace', 'cancelled', 'unpaid'].includes(orgStatus || '') || isReadOnly;
+
+    return trialDaysExpired || statusExpired;
+  });
+
+  /** Days remaining on trial, or null if not on trial */
+  readonly trialDaysLeft = computed(() =>
+    this.statusSignal()?.trialDaysRemaining ?? null
+  );
 
   private unwrap<T>(res: any): T {
     return (res?.data ?? res) as T;

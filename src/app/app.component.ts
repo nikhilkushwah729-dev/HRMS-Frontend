@@ -50,20 +50,34 @@ export class AppComponent implements OnInit {
   routeLoading = signal(false);
   subscriptionStatus = signal<SubscriptionStatusPayload | null>(null);
   isAuthRoute = computed(() => this.currentUrl().startsWith('/auth'));
+  isBillingRoute = computed(() => this.currentUrl().startsWith('/billing'));
+
   trialBannerMessage = computed(() => {
     this.languageService.currentLanguage();
     const status = this.subscriptionStatus();
     if (!status) return '';
-    if (status.organization.isTrialActive) {
-      const days = Math.max(0, status.trialDaysRemaining ?? 0);
+
+    const days = status.trialDaysRemaining ?? null;
+    const isTrial = Boolean(status.organization?.isTrialActive);
+    const isReadOnly = Boolean(status.organization?.readOnlyMode);
+    const orgStatus = status.organization?.subscriptionStatus;
+
+    if (days !== null && days <= 0) {
+      return 'Free trial expired. 0 days remaining. Workspace locked until plan is upgraded.';
+    }
+
+    if (isTrial) {
+      const remainingDays = Math.max(0, days ?? 0);
       return this.languageService.t('app.freeTrialActive', {
-        days,
-        suffix: days === 1 ? '' : 's',
+        days: remainingDays,
+        suffix: remainingDays === 1 ? '' : 's',
       });
     }
-    if (status.organization.readOnlyMode) {
+
+    if (isReadOnly || orgStatus === 'expired' || orgStatus === 'grace') {
       return this.languageService.t('app.subscriptionExpired');
     }
+
     return '';
   });
   
@@ -73,7 +87,12 @@ export class AppComponent implements OnInit {
     this.subscriptionService.getStatus()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (status) => this.subscriptionStatus.set(status),
+        next: (status) => {
+          this.subscriptionStatus.set(status);
+          if (this.subscriptionService.isAccessBlocked() && !this.isAuthRoute() && !this.isBillingRoute()) {
+            this.router.navigate(['/billing'], { queryParams: { reason: 'trial_expired' } });
+          }
+        },
         error: () => this.subscriptionStatus.set(null),
       });
   }

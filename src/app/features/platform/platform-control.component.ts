@@ -10,6 +10,8 @@ import {
   PlatformOverview,
   PlatformService,
 } from '../../core/services/platform.service';
+import { AuthService } from '../../core/services/auth.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 type PlatformView = 'organizations' | 'modules' | 'subscriptions' | 'analytics';
 
@@ -485,9 +487,12 @@ type PlatformView = 'organizations' | 'modules' | 'subscriptions' | 'analytics';
 export class PlatformControlComponent implements OnInit {
   private readonly platformService = inject(PlatformService);
   private readonly toastService = inject(ToastService);
+  private readonly authService = inject(AuthService);
+  private readonly permissionService = inject(PermissionService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
+  isSuperAdmin = signal(false);
   overview = signal<PlatformOverview | null>(null);
   currentView = signal<PlatformView>('organizations');
   searchQuery = signal<string>('');
@@ -565,6 +570,14 @@ export class PlatformControlComponent implements OnInit {
   ]);
 
   ngOnInit(): void {
+    const user = this.authService.getStoredUser();
+    if (!this.permissionService.isSuperAdminUser(user)) {
+      this.toastService.error('Access restricted. Only Super Admin can access the Platform Control Plane.');
+      this.router.navigateByUrl('/dashboard');
+      return;
+    }
+    this.isSuperAdmin.set(true);
+
     this.route.queryParamMap.subscribe((params) => {
       const view = params.get('view');
       if (this.isPlatformView(view)) {

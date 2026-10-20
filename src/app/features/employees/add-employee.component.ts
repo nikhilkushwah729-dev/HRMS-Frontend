@@ -35,84 +35,70 @@ import { FormsModule } from '@angular/forms';
   ],
   template: `
     <div class="mx-auto max-w-6xl space-y-5 px-1 py-2 sm:space-y-6">
+      <!-- Page Header -->
       <section
         class="overflow-hidden rounded-md border border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(15,23,42,0.08),_transparent_38%),linear-gradient(135deg,#ffffff_0%,#f8fafc_55%,#eefbf5_100%)] shadow-sm"
       >
-        <div
-          class="grid gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-8"
-        >
-          <div class="min-w-0 space-y-5">
-            <div
-              class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
-            >
-              <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-              {{ t('employee.peopleOperations') }}
-            </div>
-            <div>
-              <h1
-                class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl"
+        <div class="px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+          <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <!-- Left: Title -->
+            <div class="min-w-0 flex-1 space-y-3">
+              <div
+                class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500"
               >
-                {{ t('employee.addNew') }}
-              </h1>
-              <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                {{ t('employee.subtitle') }}
-              </p>
-            </div>
-          </div>
-
-          <div
-            class="rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:p-5"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p
-                  class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-                >
-                  {{ t('employee.generatedCode') }}
-                </p>
-                <p class="mt-2 break-words text-2xl font-black text-slate-900">
-                  {{ employeeForm.get('employeeCode')?.value || t('common.pending') }}
-                </p>
-                <p class="mt-2 text-sm text-slate-600">
-                  {{ t('employee.organizationPrefix', { prefix: orgPrefix() }) }}
-                </p>
-                <p class="mt-1 text-xs text-slate-500">
-                  {{ t('employee.prefixHint') }}
+                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                {{ t('employee.peopleOperations') }}
+              </div>
+              <div>
+                <h1 class="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                  {{ t('employee.addNew') }}
+                </h1>
+                <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  {{ t('employee.subtitle') }}
                 </p>
               </div>
+            </div>
 
-              <div class="relative shrink-0">
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    (click)="openAiResumeModal()"
-                    class="inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm transition hover:brightness-110"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-                    <span>AI Resume Fill</span>
-                  </button>
-                  <button
-                    type="button"
-                    (click)="toggleOnboardingMenu()"
-                    class="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50"
-                  >
-                    <span>{{ t('common.onboarding') }}</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2.5"
-                    >
-                      <path d="m6 9 6 6 6-6" />
-                    </svg>
-                  </button>
-                </div>
+            <!-- Right: Employee Code Card -->
+            <div class="shrink-0 rounded-md border border-slate-200 bg-white/90 p-4 shadow-sm sm:w-64 lg:w-72">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                {{ t('employee.generatedCode') }}
+              </p>
+              <p class="mt-2 break-all text-xl font-black text-slate-900">
+                {{ employeeForm.get('employeeCode')?.value || t('common.pending') }}
+              </p>
+              <p class="mt-1.5 text-xs text-slate-600">
+                {{ t('employee.organizationPrefix', { prefix: orgPrefix() }) }}
+              </p>
+              <p class="mt-0.5 text-[11px] text-slate-400">
+                {{ t('employee.prefixHint') }}
+              </p>
+
+              <!-- Action Buttons -->
+              <div class="relative mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  (click)="openAiResumeModal()"
+                  class="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm transition hover:brightness-110 whitespace-nowrap"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                  </svg>
+                  <span>AI Resume Fill</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="toggleOnboardingMenu()"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-slate-700 transition hover:bg-slate-50 whitespace-nowrap"
+                >
+                  <span>{{ t('common.onboarding') }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
 
                 @if (showOnboardingMenu()) {
-                  <div class="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
+                  <div class="absolute left-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">
                     <button
                       type="button"
                       class="flex w-full items-center justify-between bg-slate-900 px-4 py-3 text-left text-sm font-semibold text-white"
@@ -136,17 +122,12 @@ import { FormsModule } from '@angular/forms';
         </div>
       </section>
 
-      <form
-        [formGroup]="employeeForm"
-        (ngSubmit)="onSubmit()"
-        class="space-y-6"
-      >
+      <form [formGroup]="employeeForm" (ngSubmit)="onSubmit()" class="space-y-6">
         <div class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr] lg:gap-6">
+          <!-- Core Profile Section -->
           <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
-              <p
-                class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              >
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 {{ t('employee.coreProfile') }}
               </p>
               <h2 class="mt-2 text-2xl font-black text-slate-900">
@@ -155,18 +136,21 @@ import { FormsModule } from '@angular/forms';
             </div>
 
             <!-- Photo Upload Dropzone -->
-            <div class="mb-5 rounded-md border border-dashed border-slate-300 p-4 text-center bg-slate-50/50 hover:bg-slate-50 transition-colors">
+            <div class="mb-5 rounded-md border border-dashed border-slate-300 bg-slate-50/50 p-4 text-center transition-colors hover:bg-slate-50">
               <div class="flex flex-col items-center justify-center gap-3">
                 @if (avatarPreview()) {
                   <div class="relative">
-                    <img [src]="avatarPreview()" alt="Avatar Preview" class="h-20 w-20 rounded-full object-cover border-2 border-emerald-500 shadow-md">
-                    <button type="button" (click)="removePhoto()" class="absolute -top-1 -right-1 rounded-full bg-rose-500 text-white p-1 shadow-sm hover:bg-rose-600 transition">
+                    <img [src]="avatarPreview()" alt="Avatar Preview" class="h-20 w-20 rounded-full border-2 border-emerald-500 object-cover shadow-md">
+                    <button type="button" (click)="removePhoto()" class="absolute -right-1 -top-1 rounded-full bg-rose-500 p-1 text-white shadow-sm transition hover:bg-rose-600">
                       <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
                     </button>
                   </div>
                 } @else {
                   <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
                   </div>
                 }
                 <div>
@@ -174,59 +158,27 @@ import { FormsModule } from '@angular/forms';
                     <span>{{ avatarPreview() ? 'Change Photo' : 'Upload Profile Photo' }}</span>
                     <input type="file" accept="image/*" (change)="onPhotoSelected($event)" class="hidden">
                   </label>
-                  <p class="text-[11px] text-slate-400 mt-0.5">PNG, JPG up to 5MB</p>
+                  <p class="mt-0.5 text-[11px] text-slate-400">PNG, JPG up to 5MB</p>
                 </div>
               </div>
             </div>
 
             <div class="grid gap-5 md:grid-cols-2">
               <div class="flex flex-col gap-2">
-                <label
-                  class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >{{ t('employee.firstName') }}</label
-                >
-                <input
-                  type="text"
-                  formControlName="firstName"
-                  class="app-field"
-                  placeholder="John"
-                />
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.firstName') }}</label>
+                <input type="text" formControlName="firstName" class="app-field" placeholder="John" />
               </div>
               <div class="flex flex-col gap-2">
-                <label
-                  class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >{{ t('employee.lastName') }}</label
-                >
-                <input
-                  type="text"
-                  formControlName="lastName"
-                  class="app-field"
-                  placeholder="Doe"
-                />
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.lastName') }}</label>
+                <input type="text" formControlName="lastName" class="app-field" placeholder="Doe" />
               </div>
               <div class="flex flex-col gap-2 md:col-span-2">
-                <label
-                  class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >{{ t('employee.emailAddress') }}</label
-                >
-                <input
-                  type="email"
-                  formControlName="email"
-                  class="app-field"
-                  placeholder="john.doe@company.com"
-                />
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.emailAddress') }}</label>
+                <input type="email" formControlName="email" class="app-field" placeholder="john.doe@company.com" />
               </div>
               <div class="flex flex-col gap-2 md:col-span-2">
-                <label
-                  class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >{{ t('employee.password') }}</label
-                >
-                <input
-                  type="password"
-                  formControlName="password"
-                  class="app-field"
-                  placeholder="Create a secure password"
-                />
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.password') }}</label>
+                <input type="password" formControlName="password" class="app-field" placeholder="Create a secure password" />
               </div>
               <div class="md:col-span-2">
                 <app-ui-phone-input
@@ -237,40 +189,20 @@ import { FormsModule } from '@angular/forms';
                 ></app-ui-phone-input>
               </div>
               <div class="flex flex-col gap-2 md:col-span-2">
-                <label
-                  class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                  >{{ t('employee.employeeCode') }}</label
-                >
+                <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.employeeCode') }}</label>
                 <div class="relative">
-                  <input
-                    type="text"
-                    formControlName="employeeCode"
-                    class="app-field pr-12"
-                    placeholder="EMP-001"
-                  />
+                  <input type="text" formControlName="employeeCode" class="app-field pr-12" placeholder="EMP-001" />
                   <button
                     type="button"
                     (click)="onRefreshCode()"
                     class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                     title="Generate New Code"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path
-                        d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
-                      />
-                      <path d="M21 3v5h-5" />
-                      <path
-                        d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"
-                      />
-                      <path d="M8 16H3v5" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M8 16H3v5"/>
                     </svg>
                   </button>
                 </div>
@@ -278,11 +210,10 @@ import { FormsModule } from '@angular/forms';
             </div>
           </section>
 
+          <!-- Role & Status Section -->
           <section class="app-surface-card p-5 sm:p-6">
             <div class="mb-6">
-              <p
-                class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-              >
+              <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
                 {{ t('employee.teamPlacement') }}
               </p>
               <h2 class="mt-2 text-2xl font-black text-slate-900">
@@ -291,52 +222,45 @@ import { FormsModule } from '@angular/forms';
             </div>
 
             <div class="grid gap-5">
-              <div class="flex flex-col gap-2">
-                <app-ui-select-advanced
-                  formControlName="departmentId"
-                  [label]="t('employee.department')"
-                  [placeholder]="t('employee.selectDepartment')"
-                  [options]="departmentOptions()"
-                  searchPlaceholder="Search departments..."
-                ></app-ui-select-advanced>
-              </div>
-              <div class="flex flex-col gap-2">
-                <app-ui-select-advanced
-                  formControlName="designationId"
-                  [label]="t('employee.designation')"
-                  [placeholder]="t('employee.selectDesignation')"
-                  [options]="designationOptions()"
-                  searchPlaceholder="Search designations..."
-                ></app-ui-select-advanced>
-              </div>
-              <div class="flex flex-col gap-2">
-                <app-ui-select-advanced
-                  formControlName="roleId"
-                  [label]="t('employee.role')"
-                  [placeholder]="t('employee.selectRole')"
-                  [options]="roleOptions"
-                ></app-ui-select-advanced>
-              </div>
-              <div class="flex flex-col gap-2">
-                <app-ui-select-advanced
-                  formControlName="shiftId"
-                  label="Work Shift Timing"
-                  placeholder="Select shift timing"
-                  [options]="shiftOptions"
-                ></app-ui-select-advanced>
-              </div>
-              <div class="flex flex-col gap-2">
-                <app-ui-select-advanced
-                  formControlName="status"
-                  [label]="t('employee.status')"
-                  [placeholder]="t('employee.selectStatus')"
-                  [options]="statusOptions"
-                ></app-ui-select-advanced>
-              </div>
+              <app-ui-select-advanced
+                formControlName="departmentId"
+                [label]="t('employee.department')"
+                [placeholder]="t('employee.selectDepartment')"
+                [options]="departmentOptions()"
+                searchPlaceholder="Search departments..."
+              ></app-ui-select-advanced>
+
+              <app-ui-select-advanced
+                formControlName="designationId"
+                [label]="t('employee.designation')"
+                [placeholder]="t('employee.selectDesignation')"
+                [options]="designationOptions()"
+                searchPlaceholder="Search designations..."
+              ></app-ui-select-advanced>
+
+              <app-ui-select-advanced
+                formControlName="roleId"
+                [label]="t('employee.role')"
+                [placeholder]="t('employee.selectRole')"
+                [options]="roleOptions"
+              ></app-ui-select-advanced>
+
+              <app-ui-select-advanced
+                formControlName="shiftId"
+                label="Work Shift Timing"
+                placeholder="Select shift timing"
+                [options]="shiftOptions"
+              ></app-ui-select-advanced>
+
+              <app-ui-select-advanced
+                formControlName="status"
+                [label]="t('employee.status')"
+                [placeholder]="t('employee.selectStatus')"
+                [options]="statusOptions"
+              ></app-ui-select-advanced>
+
               <div class="rounded-md border border-slate-200 bg-slate-50 p-5">
-                <p
-                  class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
-                >
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                   {{ t('employee.onboardingNote') }}
                 </p>
                 <p class="mt-3 text-sm leading-7 text-slate-600">
@@ -347,11 +271,10 @@ import { FormsModule } from '@angular/forms';
           </section>
         </div>
 
+        <!-- Employment Details Section -->
         <section class="app-surface-card p-5 sm:p-6">
           <div class="mb-6">
-            <p
-              class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500"
-            >
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
               {{ t('employee.employmentDetails') }}
             </p>
             <h2 class="mt-2 text-2xl font-black text-slate-900">
@@ -361,17 +284,11 @@ import { FormsModule } from '@angular/forms';
 
           <div class="grid gap-5 md:grid-cols-2">
             <div class="flex flex-col gap-2">
-              <label
-                class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                >{{ t('employee.joinDate') }}</label
-              >
+              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.joinDate') }}</label>
               <input type="date" formControlName="joinDate" class="app-field" />
             </div>
             <div class="flex flex-col gap-2">
-              <label
-                class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500"
-                >{{ t('employee.emergencyContact') }}</label
-              >
+              <label class="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">{{ t('employee.emergencyContact') }}</label>
               <input
                 type="text"
                 formControlName="emergencyContact"
@@ -390,9 +307,8 @@ import { FormsModule } from '@angular/forms';
           </div>
         </section>
 
-        <div
-          class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end"
-        >
+        <!-- Form Actions -->
+        <div class="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-end">
           <button
             type="button"
             (click)="goBack()"
@@ -413,13 +329,15 @@ import { FormsModule } from '@angular/forms';
       <!-- AI Resume Parser Modal -->
       @if (showAiResumeModal()) {
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+          <div class="w-full max-w-lg space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
               <div class="flex items-center gap-2 text-purple-700">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
-                <h3 class="font-bold text-slate-900 text-lg">AI Smart Resume Data Auto-Fill</h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                </svg>
+                <h3 class="text-lg font-bold text-slate-900">AI Smart Resume Data Auto-Fill</h3>
               </div>
-              <button (click)="closeAiResumeModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+              <button (click)="closeAiResumeModal()" class="text-slate-400 hover:text-slate-600 transition">✕</button>
             </div>
             <p class="text-xs text-slate-600">Paste raw resume or profile text below. Antigravity AI will automatically extract and pre-fill candidate details into the form!</p>
             <textarea
@@ -429,8 +347,12 @@ import { FormsModule } from '@angular/forms';
               placeholder="e.g. John Doe, Senior Software Engineer. Email: john@example.com, Phone: +91 9876543210..."
             ></textarea>
             <div class="flex justify-end gap-3 pt-2">
-              <button (click)="closeAiResumeModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-              <button [disabled]="parsingAiResume || !aiResumeRawText.trim()" (click)="parseAiResume()" class="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50">
+              <button (click)="closeAiResumeModal()" class="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+              <button
+                [disabled]="parsingAiResume || !aiResumeRawText.trim()"
+                (click)="parseAiResume()"
+                class="rounded-lg bg-purple-600 px-5 py-2 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
+              >
                 {{ parsingAiResume ? 'Extracting Data...' : 'Auto-Fill Form' }}
               </button>
             </div>
