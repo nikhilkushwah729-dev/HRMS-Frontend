@@ -801,6 +801,7 @@ export class BillingComponent implements OnInit, OnDestroy {
   ];
 
   addOns: any[] = [];
+  availablePaidPlans: any[] = [];
   billingDetails = {
     email: '',
     contactPerson: '',
@@ -982,6 +983,7 @@ export class BillingComponent implements OnInit, OnDestroy {
 
         // Build add-on catalog from plans (non-trial plans only)
         const paidPlans: any[] = Array.isArray(plans) ? plans.filter((p: any) => !p.isTrialPlan) : [];
+        this.availablePaidPlans = paidPlans;
         if (paidPlans.length > 0) {
           // Use the most feature-rich plan to derive available addons
           const topPlan = paidPlans[paidPlans.length - 1];
@@ -1281,10 +1283,12 @@ export class BillingComponent implements OnInit, OnDestroy {
     // Determine billing cycle from user-selected duration
     const billingCycle: 'monthly' | 'yearly' = this.durationInputValue >= 12 ? 'yearly' : 'monthly';
 
-    // planId 2 = Basic, 3 = Pro, 4 = Enterprise (from backend DEFAULT_PLANS)
-    // For now default to Basic (id=2); expose plan picker when multi-plan UI is added
+    // Determine plan to upgrade to from dynamically fetched plans catalog
+    const chosenPlan = this.availablePaidPlans.find((p) => p.slug === 'basic') || this.availablePaidPlans[0];
+    const planId = chosenPlan ? Number(chosenPlan.id) : 1747805;
+
     const upgradePayload = {
-      planId: 2,
+      planId,
       billingCycle,
       gateway: 'razorpay' as const,
     };
