@@ -253,8 +253,8 @@ import { AuthService } from '../../core/services/auth.service';
                 </div>
               </div>
               <div class="max-w-sm space-y-2">
-                <p class="text-xl font-black text-slate-900 tracking-tight">{{ t('common.noMembersFound') }}</p>
-                <p class="text-sm font-medium text-slate-400 leading-relaxed">{{ t('common.noMembersFoundDescription') }}</p>
+                <p class="text-xl font-black text-slate-900 tracking-tight">{{ t('common.noMembersFound') || 'No members found' }}</p>
+                <p class="text-sm font-medium text-slate-400 leading-relaxed">{{ t('common.noMembersFoundDescription') || 'We could not find any employees matching your current filters or search query.' }}</p>
               </div>
               <button
                 class="inline-flex items-center gap-2.5 px-6 py-3 rounded-md border border-slate-200 bg-white text-xs font-black uppercase tracking-widest text-slate-700 hover:bg-slate-50 transition-all hover:shadow-lg active:scale-95"
@@ -744,7 +744,12 @@ export class EmployeeListComponent implements OnInit {
 
   t(key: string, params?: Record<string, string | number | null | undefined>): string {
     this.languageService.currentLanguage();
-    return this.languageService.t(key, params);
+    const result = this.languageService.t(key, params);
+    if (result === key) {
+      if (key === 'common.noMembersFound') return 'No members found';
+      if (key === 'common.noMembersFoundDescription') return 'We could not find any employees matching your current filters or search query.';
+    }
+    return result;
   }
 
   canManageEmployees(): boolean {

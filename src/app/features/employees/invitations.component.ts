@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, DestroyRef, signal } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
 import {
   EmployeeService,
   EmployeeInvitation,
@@ -500,6 +501,7 @@ export class InvitationsComponent implements OnInit {
   private liveRefreshService = inject(LiveRefreshService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
 
   invitations: EmployeeInvitation[] = [];
   roles: Role[] = [];
@@ -648,18 +650,27 @@ export class InvitationsComponent implements OnInit {
         email,
         roleId: this.inviteData.roleId,
       })
+      .pipe(
+        finalize(() => {
+          this.sending = false;
+          this.cdr.detectChanges();
+        })
+      )
       .subscribe({
         next: () => {
           this.toastService.success('Invitation sent successfully');
-          this.sending = false;
           this.closeModal();
           this.loadInvitations();
         },
         error: (err) => {
-          this.toastService.error(
-            err.error?.message || 'Failed to send invitation',
-          );
-          this.sending = false;
+          const errorMsg =
+            err?.error?.message ||
+            err?.error?.errors?.[0]?.message ||
+            err?.message ||
+            'Failed to send invitation';
+          this.toastService.error(errorMsg);
+          this.closeModal();
+          this.loadInvitations();
         },
       });
   }

@@ -1,4 +1,4 @@
-﻿import { Injectable, signal } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { AUTH_TRANSLATIONS } from '../i18n/auth-translations';
 import { HINDI_TRANSLATION_OVERRIDES } from '../i18n/hindi-overrides';
 import { TranslationDictionary } from '../i18n/translation-types';
@@ -19,6 +19,8 @@ const BASE_TRANSLATIONS: Record<AppLanguageCode, TranslationDictionary> = {
     'common.search': 'Search',
     'common.searchAnything': 'Search anything...',
     'common.noMatchingResults': 'No matching results',
+    'common.noMembersFound': 'No members found',
+    'common.noMembersFoundDescription': 'We could not find any employees matching your current filters or search query.',
     'common.tryEmployeeName': 'Try employee name, project, or module name',
     'common.workspace': 'Workspace',
     'common.loading': 'Loading',
@@ -377,6 +379,8 @@ const BASE_TRANSLATIONS: Record<AppLanguageCode, TranslationDictionary> = {
     'common.search': 'Search',
     'common.searchAnything': 'Kuch bhi search karein...',
     'common.noMatchingResults': 'Koi matching result nahi mila',
+    'common.noMembersFound': 'Koi sadasya nahi mila',
+    'common.noMembersFoundDescription': 'Aapke filter ya search se match karta koi employee nahi mila.',
     'common.tryEmployeeName': 'Employee name, project, ya module name try karein',
     'common.workspace': 'Workspace',
     'common.loading': 'Loading',
@@ -735,6 +739,8 @@ const BASE_TRANSLATIONS: Record<AppLanguageCode, TranslationDictionary> = {
     'common.search': 'Ø¨Ø­Ø«',
     'common.searchAnything': 'Ø§Ø¨Ø­Ø« Ø¹Ù† Ø£ÙŠ Ø´ÙŠØ¡...',
     'common.noMatchingResults': 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø©',
+    'common.noMembersFound': 'لم يتم العثور على أي موظف',
+    'common.noMembersFoundDescription': 'تعذر العثور على موظفين يطابقون عوامل التصفية الحالية أو عبارة البحث.',
     'common.tryEmployeeName': 'Ø¬Ø±Ù‘Ø¨ Ø§Ø³Ù… Ø§Ù„Ù…ÙˆØ¸Ù Ø£Ùˆ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹ Ø£Ùˆ Ø§Ø³Ù… Ø§Ù„ÙˆØ­Ø¯Ø©',
     'common.workspace': 'Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ø¹Ù…Ù„',
     'common.loading': 'Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ù…ÙŠÙ„',
@@ -997,6 +1003,9 @@ const SHARED_UI_TRANSLATIONS: Record<AppLanguageCode, TranslationDictionary> = {
     'common.directoryHealthDescription':
       'Active team members currently available in the workforce directory.',
     'common.noEmployeesToExport': 'No employees available to export',
+    'common.noMembersFound': 'No members found',
+    'common.noMembersFoundDescription':
+      'We could not find any employees matching your current filters or search query.',
     'common.employeeExportDownloaded': 'Employee export downloaded',
     'common.recordUnavailable': 'This record is not available right now.',
     'common.deleteEmployee': 'Delete Employee',

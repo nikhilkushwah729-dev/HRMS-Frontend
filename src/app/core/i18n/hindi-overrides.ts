@@ -4,6 +4,8 @@ export const HINDI_TRANSLATION_OVERRIDES: TranslationDictionary = normalizeTrans
   'common.search': 'खोजें',
   'common.searchAnything': 'कुछ भी खोजें...',
   'common.noMatchingResults': 'कोई मिलती-जुलती जानकारी नहीं मिली',
+  'common.noMembersFound': 'कोई सदस्य नहीं मिला',
+  'common.noMembersFoundDescription': 'वर्तमान फ़िल्टर या खोज से मेल खाता कोई कर्मचारी नहीं मिला।',
   'common.tryEmployeeName': 'कर्मचारी नाम, प्रोजेक्ट या मॉड्यूल नाम खोजें',
   'common.workspace': 'कार्यस्थल',
   'common.loading': 'लोड हो रहा है',
