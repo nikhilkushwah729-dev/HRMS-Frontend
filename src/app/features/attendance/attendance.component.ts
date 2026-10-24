@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   OnInit,
   OnDestroy,
@@ -105,7 +105,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               <p class="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-500">Day Health</p>
               <p class="mt-2 text-base font-black text-cyan-800">{{ attendanceHealthLabel() }}</p>
               <p class="mt-1 text-xs text-cyan-700/80">
-                {{ formatHours(todayAttendance()?.total_work_hours || 0) }} logged so far
+                {{ formatHours(currentWorkHours()) }} logged so far
               </p>
             </div>
           </div>
@@ -237,7 +237,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                 </div>
                 <div class="rounded-[22px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
                   <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Work Hours</p>
-                  <p class="mt-1 break-words text-xl font-black sm:text-2xl">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</p>
+                  <p class="mt-1 break-words text-xl font-black sm:text-2xl">{{ formatHours(currentWorkHours()) }}</p>
                 </div>
               </div>
             </div>
@@ -342,7 +342,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                 </div>
                 <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
                   <span class="text-sm font-semibold text-slate-500">Working hours</span>
-                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ formatHours(todayAttendance()?.total_work_hours || 0) }}</span>
+                  <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ formatHours(currentWorkHours()) }}</span>
                 </div>
               </div>
             </div>
@@ -1786,6 +1786,26 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   clockInTime = signal<string>('--:--');
   isOnBreak = signal<boolean>(false);
   selectedShiftId = signal<number | null>(null);
+
+  currentWorkHours = computed(() => {
+    const today = this.todayAttendance();
+    if (!today?.check_in) return 0;
+    if (today.is_clocked_out) {
+      return Number(today.total_work_hours || 0);
+    }
+    const checkInMs = new Date(today.check_in).getTime();
+    if (isNaN(checkInMs)) return Number(today.total_work_hours || 0);
+
+    // Read currentTime so this computed property ticks in real-time every second
+    this.currentTime();
+
+    const nowMs = Date.now();
+    const breakMs = Number(today.break_time_minutes || 0) * 60 * 1000;
+    const elapsedMs = Math.max(0, nowMs - checkInMs - breakMs);
+    const hours = elapsedMs / (1000 * 60 * 60);
+    return parseFloat(hours.toFixed(2));
+  });
+
   statsPeriod = signal<'week' | 'month' | 'year'>('month');
   historyStatusFilter = signal<'all' | AttendanceRecord['status']>('all');
 
@@ -4366,7 +4386,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   attendanceProgress(): number {
-    const hours = this.todayAttendance()?.total_work_hours ?? 0;
+    const hours = this.currentWorkHours();
     const targetHours = 8;
     return Math.max(0, Math.min(100, Math.round((hours / targetHours) * 100)));
   }

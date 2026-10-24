@@ -57,10 +57,27 @@ export class RegularizationService {
     }
 
     /**
-     * Get list of regularization requests
+     * Get list of regularization requests with optional filters
      */
-    getRegularizations(): Observable<RegularizationRequest[]> {
-        return this.http.get<any>(`${this.apiUrl}/regularizations`).pipe(
+    getRegularizations(filters?: {
+        status?: string;
+        type?: string;
+        startDate?: string;
+        endDate?: string;
+        self?: boolean;
+    }): Observable<RegularizationRequest[]> {
+        let url = `${this.apiUrl}/regularizations`;
+        const queryParts: string[] = [];
+        if (filters?.status) queryParts.push(`status=${encodeURIComponent(filters.status)}`);
+        if (filters?.type) queryParts.push(`type=${encodeURIComponent(filters.type)}`);
+        if (filters?.startDate) queryParts.push(`startDate=${encodeURIComponent(filters.startDate)}`);
+        if (filters?.endDate) queryParts.push(`endDate=${encodeURIComponent(filters.endDate)}`);
+        if (filters?.self) queryParts.push(`self=true`);
+        if (queryParts.length > 0) {
+            url += `?${queryParts.join('&')}`;
+        }
+
+        return this.http.get<any>(url).pipe(
             map(res => (res.data || []).map((item: any) => this.normalizeRegularization(item)))
         );
     }
@@ -75,7 +92,14 @@ export class RegularizationService {
         checkOut?: string;
         reason: string;
     }): Observable<RegularizationRequest> {
-        return this.http.post<any>(`${this.apiUrl}/regularizations`, data).pipe(
+        const payload = {
+            ...data,
+            date: data.regularizationDate,
+            check_in: data.checkIn,
+            check_out: data.checkOut,
+        };
+
+        return this.http.post<any>(`${this.apiUrl}/regularizations`, payload).pipe(
             map(res => this.normalizeRegularization(res.data)),
             tap((request) => {
                 this.auditLogService.logAction(
@@ -106,7 +130,14 @@ export class RegularizationService {
         checkOut?: string;
         reason?: string;
     }): Observable<RegularizationRequest> {
-        return this.http.put<any>(`${this.apiUrl}/regularizations/${id}`, data).pipe(
+        const payload = {
+            ...data,
+            date: data.regularizationDate,
+            check_in: data.checkIn,
+            check_out: data.checkOut,
+        };
+
+        return this.http.put<any>(`${this.apiUrl}/regularizations/${id}`, payload).pipe(
             map(res => this.normalizeRegularization(res.data)),
             tap((request) => {
                 this.auditLogService.logAction(
@@ -126,10 +157,14 @@ export class RegularizationService {
      * Approve or reject a regularization request (Admin)
      */
     processRegularization(id: number, action: 'approved' | 'rejected', rejectionNote?: string): Observable<RegularizationRequest> {
-        return this.http.put<any>(`${this.apiUrl}/regularizations/${id}/status`, {
+        const payload = {
             status: action,
-            rejectionNote
-        }).pipe(
+            rejectionNote: rejectionNote,
+            notes: rejectionNote,
+            reason: rejectionNote,
+        };
+
+        return this.http.put<any>(`${this.apiUrl}/regularizations/${id}/status`, payload).pipe(
             map(res => this.normalizeRegularization(res.data)),
             tap((request) => {
                 const auditAction = action === 'approved' ? AuditAction.APPROVE : AuditAction.REJECT;

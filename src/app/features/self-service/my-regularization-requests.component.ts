@@ -69,7 +69,7 @@ export class MyRegularizationRequestsComponent implements OnInit {
 
   readonly rows = computed(() =>
     [...this.items()]
-      .filter((item) => item.employeeId === this.currentEmployeeId)
+      .filter((item) => !this.currentEmployeeId || item.employeeId === this.currentEmployeeId)
       .filter((item) =>
         this.requestType() ? item.type === this.requestType() : true,
       )
@@ -87,7 +87,7 @@ export class MyRegularizationRequestsComponent implements OnInit {
     this.ctaRoute.set(data['ctaRoute'] || '/self-service/attendance');
     this.requestType.set(data['requestType'] || '');
 
-    this.regularizationService.getRegularizations().subscribe({
+    this.regularizationService.getRegularizations({ self: true }).subscribe({
       next: (data) => this.items.set(data),
       error: () => this.items.set([]),
     });
