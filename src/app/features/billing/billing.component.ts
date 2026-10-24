@@ -361,14 +361,73 @@ type CheckoutStep =
                   </div>
                 </div>
 
-                <div class="mt-8">
-                  <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
+                <!-- Active Plan Co-Term vs Plan Extension Switcher -->
+                <div *ngIf="hasActivePlan" class="mt-5 rounded-2xl border border-emerald-200/90 bg-emerald-50/70 p-4">
+                  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white">
+                          Active Plan
+                        </span>
+                        <span class="text-xs font-semibold text-emerald-950">Ends {{ getFormattedEndDate() }} ({{ getRemainingDaysDisplay() }})</span>
+                      </div>
+                      <p class="text-xs text-slate-600 mt-1">
+                        Aapka plan already active hai. Add-on lene par duration increase nahi hogi aur base plan fee ₹0 rahegi.
+                      </p>
+                    </div>
+                    <div class="flex items-center gap-1.5 p-1 rounded-xl bg-white/90 border border-emerald-200 shrink-0">
+                      <button type="button" (click)="setPurchaseMode('addon_only')"
+                        [class]="purchaseMode === 'addon_only' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                        class="rounded-lg px-3 py-1.5 text-xs transition-all">
+                        Add-on Only (Co-term)
+                      </button>
+                      <button type="button" (click)="setPurchaseMode('renew_plan')"
+                        [class]="purchaseMode === 'renew_plan' ? 'bg-emerald-600 text-white font-bold shadow-sm' : 'text-slate-600 hover:text-slate-900 font-medium'"
+                        class="rounded-lg px-3 py-1.5 text-xs transition-all">
+                        Extend Plan (+Renew)
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Plan Duration: Standard Extension Options -->
+                <div class="mt-8" *ngIf="purchaseMode === 'renew_plan' || !hasActivePlan">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
+                    <span *ngIf="hasActivePlan" class="text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md font-medium border border-amber-200">
+                      Extends end date beyond {{ getFormattedEndDate() }}
+                    </span>
+                  </div>
                   <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <button *ngFor="let option of getDurationOptions()" (click)="selectDurationOption(option.months)"
                       [class]="durationInputValue === option.months ? 'border-emerald-500 bg-emerald-50/80 text-emerald-700 shadow-[0_18px_32px_-24px_rgba(16,185,129,0.6)]' : 'border-gray-200/80 bg-white text-gray-600'"
                       class="rounded-[24px] border p-4 text-center transition-all hover:-translate-y-0.5 hover:border-emerald-200">
                       <p class="text-lg font-bold">{{ option.label }}</p>
                       <p class="text-xs opacity-70">{{ option.months }} Months</p>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Plan Duration: Co-termed with Active Subscription (No Time Increase) -->
+                <div class="mt-8" *ngIf="purchaseMode === 'addon_only' && hasActivePlan">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Plan Duration</h3>
+                    <span class="text-xs text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-md font-bold">
+                      Co-termed (Locked)
+                    </span>
+                  </div>
+                  <div class="mt-3 rounded-[24px] border border-emerald-200 bg-gradient-to-r from-emerald-50/80 to-teal-50/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <p class="text-base font-extrabold text-emerald-950">Locked to Active Subscription Period</p>
+                      <p class="text-xs text-slate-600 mt-1">
+                        Add-ons will run until <strong>{{ getFormattedEndDate() }}</strong> ({{ getRemainingDaysDisplay() }}).
+                      </p>
+                      <p class="text-[11px] text-emerald-700 font-semibold mt-1">
+                        ✓ Base plan fee is ₹0 (Already active) &nbsp;&bull;&nbsp; ✓ Expiry date will NOT increase
+                      </p>
+                    </div>
+                    <button type="button" (click)="setPurchaseMode('renew_plan')" class="text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-white border border-emerald-300 rounded-xl px-3.5 py-2 shadow-sm transition-all hover:bg-emerald-50 shrink-0">
+                      Want to extend plan instead? &rarr;
                     </button>
                   </div>
                 </div>
@@ -424,8 +483,15 @@ type CheckoutStep =
                         <h4 class="text-lg font-bold text-gray-900 group-hover:text-emerald-600 transition-colors">{{ addon.label }}</h4>
                         <span *ngIf="addon.isInstalled" class="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-700 ring-1 ring-emerald-200">Active</span>
                         <span *ngIf="addon.isLocked" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-600 ring-1 ring-slate-200">Locked</span>
+                        <span *ngIf="addon.isNewlyAdded" class="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700 ring-1 ring-blue-200">Selected</span>
                       </div>
                       <p class="text-sm text-gray-500">{{ addon.description }}</p>
+                      <p *ngIf="!addon.isInstalled" class="text-xs text-emerald-600 font-semibold mt-1">
+                        {{ getCurrencySymbol() }}{{ addon.price }}/yr
+                        <span *ngIf="hasActivePlan && purchaseMode === 'addon_only'" class="text-slate-500 font-normal">
+                          &bull; Synchronized until {{ getFormattedEndDate() }}
+                        </span>
+                      </p>
                     </div>
                     <button (click)="toggleAddOn(addon)" [disabled]="addon.isLocked"
                       [title]="addon.isLocked ? 'This add-on is already active and cannot be removed from this purchase.' : (addon.selected ? 'Remove add-on' : 'Add add-on')"
@@ -454,8 +520,19 @@ type CheckoutStep =
                   </div>
                   <div class="mt-4 space-y-4">
                     <div class="flex justify-between text-sm">
-                      <span class="text-slate-300">Users ({{ targetUsers }})</span>
-                      <span class="font-bold text-white">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</span>
+                      <span class="text-slate-300">Base Plan ({{ targetUsers }} seats)</span>
+                      <span class="font-bold text-white">
+                        <ng-container *ngIf="purchaseMode === 'addon_only' && hasActivePlan">
+                          <span class="text-emerald-400 font-bold">Included (₹0.00)</span>
+                        </ng-container>
+                        <ng-container *ngIf="purchaseMode !== 'addon_only' || !hasActivePlan">
+                          {{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}
+                        </ng-container>
+                      </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                      <span class="text-slate-300">Target Expiry Date</span>
+                      <span class="font-bold text-white">{{ planEndDate || getFormattedEndDate() }}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                       <span class="text-slate-300">Duration</span>
@@ -465,8 +542,18 @@ type CheckoutStep =
                       <p class="text-[10px] font-bold text-slate-400 uppercase mb-2">Add-ons</p>
                       <div *ngFor="let addon of addOns">
                         <div *ngIf="addon.selected" class="flex justify-between text-sm mb-1">
-                          <span class="text-slate-300 italic text-xs">{{ addon.label }}</span>
-                          <span class="font-medium text-white text-xs">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</span>
+                          <span class="text-slate-300 italic text-xs">
+                            {{ addon.label }}
+                            <span *ngIf="addon.isInstalled" class="text-emerald-400 not-italic ml-1">(Active)</span>
+                          </span>
+                          <span class="font-medium text-white text-xs">
+                            <ng-container *ngIf="addon.isInstalled && purchaseMode === 'addon_only'">
+                              <span class="text-emerald-400">Included</span>
+                            </ng-container>
+                            <ng-container *ngIf="!addon.isInstalled || purchaseMode !== 'addon_only'">
+                              {{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}
+                            </ng-container>
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -617,7 +704,7 @@ type CheckoutStep =
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-50">
-                    <tr class="text-sm">
+                    <tr class="text-sm" *ngIf="purchaseMode !== 'addon_only' || planAmount > 0">
                       <td class="py-6">
                         <p class="font-bold text-gray-900">Premium Plan ({{ durationLabel }})</p>
                         <p class="text-xs text-gray-500">Access for {{ targetUsers }} users until {{ planEndDate }}</p>
@@ -626,14 +713,25 @@ type CheckoutStep =
                       <td class="py-6 text-right text-gray-900">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</td>
                       <td class="py-6 text-right text-gray-900 font-bold">{{ getCurrencySymbol() }}{{ planAmount | number:'1.2-2' }}</td>
                     </tr>
-                    <tr *ngFor="let addon of addOns">
-                      <td *ngIf="addon.selected" class="py-6">
-                        <p class="font-bold text-gray-900">{{ addon.label }} Add-on</p>
-                        <p class="text-xs text-gray-500">{{ addon.description }}</p>
+                    <tr class="text-sm" *ngIf="purchaseMode === 'addon_only' && planAmount === 0">
+                      <td class="py-6">
+                        <p class="font-bold text-gray-900">Base Plan (Active Subscription)</p>
+                        <p class="text-xs text-gray-500">Current subscription for {{ targetUsers }} users active until {{ planEndDate || getFormattedEndDate() }}</p>
                       </td>
-                      <td *ngIf="addon.selected" class="py-6 text-center text-gray-900 font-medium">1</td>
-                      <td *ngIf="addon.selected" class="py-6 text-right text-gray-900">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
-                      <td *ngIf="addon.selected" class="py-6 text-right text-gray-900 font-bold">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
+                      <td class="py-6 text-center text-gray-900 font-medium">1</td>
+                      <td class="py-6 text-right text-emerald-600 font-medium">Included</td>
+                      <td class="py-6 text-right text-emerald-600 font-bold">{{ getCurrencySymbol() }}0.00</td>
+                    </tr>
+                    <tr *ngFor="let addon of addOns">
+                      <ng-container *ngIf="addon.selected && (addon.calculatedAmount > 0 || !addon.isInstalled)">
+                        <td class="py-6">
+                          <p class="font-bold text-gray-900">{{ addon.label }} Add-on</p>
+                          <p class="text-xs text-gray-500">{{ addon.description }}</p>
+                        </td>
+                        <td class="py-6 text-center text-gray-900 font-medium">1</td>
+                        <td class="py-6 text-right text-gray-900">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
+                        <td class="py-6 text-right text-gray-900 font-bold">{{ getCurrencySymbol() }}{{ addon.calculatedAmount | number:'1.2-2' }}</td>
+                      </ng-container>
                     </tr>
                   </tbody>
                 </table>
@@ -895,6 +993,25 @@ export class BillingComponent implements OnInit, OnDestroy {
   grandTotal = 0;
   durationLabel = '12 Months';
   planEndDate = '';
+  purchaseMode: 'addon_only' | 'renew_plan' = 'addon_only';
+  userManuallyChoseRenew = false;
+
+  get hasActivePlan(): boolean {
+    return !this.planContext.isPlanExpired && this.getDaysRemaining() > 0;
+  }
+
+  getDaysRemaining(): number {
+    if (this.planContext.isPlanExpired || !this.planContext.expiryDate) return 0;
+    const now = new Date();
+    const diff = this.planContext.expiryDate.getTime() - now.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
+
+  setPurchaseMode(mode: 'addon_only' | 'renew_plan') {
+    this.purchaseMode = mode;
+    this.userManuallyChoseRenew = mode === 'renew_plan';
+    this.calculatePricing();
+  }
 
   ngOnInit() {
     this.loadInitialData();
@@ -1089,6 +1206,7 @@ export class BillingComponent implements OnInit, OnDestroy {
           const price = Number(apiItem?.price) > 0 ? Number(apiItem.price) : catalogItem.price;
 
           return {
+            id: apiItem?.id,
             label: catalogItem.name,
             description: catalogItem.description,
             price: price,
@@ -1098,12 +1216,19 @@ export class BillingComponent implements OnInit, OnDestroy {
             isNewlyAdded: Boolean(shouldSelect && !isInstalled),
             calculatedAmount: 0,
             key: catalogItem.key,
+            slug: catalogItem.slug,
           };
         });
 
         // Detect INR from status (org country not in status payload; default to INR for India-first app)
         this.isINR = true;
         this.planContext.mode = statusPayload?.currentSubscription ? 'Upgrade' : 'Buy';
+
+        if (this.hasActivePlan && !this.userManuallyChoseRenew) {
+          this.purchaseMode = 'addon_only';
+        } else if (!this.hasActivePlan) {
+          this.purchaseMode = 'renew_plan';
+        }
 
         this.calculatePricing();
       },
@@ -1119,14 +1244,48 @@ export class BillingComponent implements OnInit, OnDestroy {
     const basePricePerUserPerMonth = this.isINR ? 50 : 2; 
     const months = this.durationInputValue;
     const userCount = this.targetUsers;
+    const remainingDays = this.getDaysRemaining();
+    const remainingMonths = Math.max(1, Math.round(remainingDays / 30.4));
     
+    // Mode 1: Active Subscription Co-Term (Zero Base Fee, No Date Extension)
+    if (this.hasActivePlan && this.purchaseMode === 'addon_only') {
+      this.planAmount = 0; // Base plan is already paid for 361 days
+      this.durationLabel = `${remainingDays} Days (Active Plan)`;
+      // Keep exact existing end date - do NOT add months!
+      this.planEndDate = this.getFormattedEndDate();
+
+      let addonSum = 0;
+      this.addOns.forEach(a => {
+        if (a.selected) {
+          if (a.isInstalled) {
+            // Already active module is included for ₹0
+            a.calculatedAmount = 0;
+          } else {
+            // Newly selected add-on is priced for the remaining period of the active plan
+            a.calculatedAmount = Math.round(a.price * (remainingMonths / 12));
+            addonSum += a.calculatedAmount;
+          }
+        } else {
+          a.calculatedAmount = 0;
+        }
+      });
+
+      this.subTotal = addonSum;
+      this.tax = this.isINR ? this.subTotal * 0.18 : 0;
+      this.grandTotal = this.subTotal + this.tax;
+      return;
+    }
+
+    // Mode 2: Standard Plan Renewal / Extension
     this.planAmount = basePricePerUserPerMonth * userCount * months;
     
     let addonSum = 0;
     this.addOns.forEach(a => {
       if (a.selected) {
-        a.calculatedAmount = a.price * userCount * (months / 12);
+        a.calculatedAmount = a.price * (months / 12);
         addonSum += a.calculatedAmount;
+      } else {
+        a.calculatedAmount = 0;
       }
     });
 
@@ -1135,7 +1294,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.grandTotal = this.subTotal + this.tax;
     this.durationLabel = months + ' Month' + (months > 1 ? 's' : '');
     
-    // Calculate Plan End Date
+    // Calculate Plan End Date with extension
     const start = this.planContext.expiryDate && this.planContext.expiryDate > new Date() 
       ? new Date(this.planContext.expiryDate) 
       : new Date();
@@ -1252,6 +1411,8 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   selectDurationOption(months: number) {
+    this.purchaseMode = 'renew_plan';
+    this.userManuallyChoseRenew = true;
     this.durationInputValue = months;
     this.onDurationChange();
   }
@@ -1295,6 +1456,9 @@ export class BillingComponent implements OnInit, OnDestroy {
     }
     addon.selected = !addon.selected;
     addon.isNewlyAdded = addon.selected && !addon.isInstalled;
+    if (this.hasActivePlan && !this.userManuallyChoseRenew) {
+      this.purchaseMode = 'addon_only';
+    }
     this.calculatePricing();
   }
 
@@ -1338,7 +1502,10 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   getPlanStatusMessage() {
     if (this.planContext.isPlanExpired) return 'Your workspace is currently inactive. Renew now to restore all HR services.';
-    return 'Scale your workspace by adding more users or premium modules.';
+    if (this.hasActivePlan && this.purchaseMode === 'addon_only') {
+      return `Your workspace plan is active until ${this.getFormattedEndDate()} (${this.getRemainingDaysDisplay()}). Add-ons will run co-termed with zero additional base plan fees.`;
+    }
+    return 'Scale your workspace by adding more users, extending duration, or activating premium modules.';
   }
 
   getPlanActionButtonText() {
@@ -1515,6 +1682,14 @@ export class BillingComponent implements OnInit, OnDestroy {
 
     this.subscriptionService.verifyPayment(verifyPayload).subscribe({
       next: () => {
+        // Automatically activate any newly selected add-ons post-payment
+        const newlyAdded = this.addOns.filter(a => a.selected && !a.isInstalled && a.id);
+        if (newlyAdded.length > 0) {
+          forkJoin(newlyAdded.map(a => this.organizationService.toggleAddon(a.id, true))).subscribe({
+            error: (err) => console.warn('Failed to toggle addons post-payment', err)
+          });
+        }
+
         this.setPaymentLoaderProgress(100);
         this.subscriptionService.clearCache();   // force fresh status on next visit
         this.subscriptionService.getStatus().subscribe();
@@ -1522,7 +1697,7 @@ export class BillingComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           this.hidePaymentLoader();
           this.currentStep = 'PAYMENT_SUCCESS';
-          this.toastService.success('Payment successful! Your plan has been activated.');
+          this.toastService.success('Payment successful! Your plan and add-ons have been activated.');
         }, 350);
       },
       error: () => {
