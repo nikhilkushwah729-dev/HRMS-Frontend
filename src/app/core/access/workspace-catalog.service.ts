@@ -21,22 +21,35 @@ export class WorkspaceCatalogService {
     if (!section) return [];
 
     const accessUser = this.accessContext.buildAccessUser(user);
-    const includeLocked = options?.includeLocked ?? false;
+    const includeLocked = options?.includeLocked ?? true;
 
     return section.items
       .map((item) => {
         const evaluation = this.accessControl.evaluateModuleAccess(accessUser, item);
+        const isAccessible = evaluation.allowed;
+        const isLocked = !evaluation.allowed;
+
+        let lockReason: string | null = null;
+        if (isLocked) {
+          if (evaluation.lockedByAddon || evaluation.blockedBy?.includes('addon')) {
+            lockReason = item.lockedDescription ?? `${item.label} module is an add-on not active for your organization.`;
+          } else if (evaluation.blockedBy?.includes('permission')) {
+            lockReason = `Access Restricted: You do not have permission for ${item.label}.`;
+          } else if (evaluation.blockedBy?.includes('role')) {
+            lockReason = `Role Restricted: Your role cannot access ${item.label}.`;
+          } else {
+            lockReason = `${item.label} is currently locked.`;
+          }
+        }
 
         return {
           ...item,
           sectionId: section.id,
           sectionLabel: section.label,
           sectionDescription: section.description,
-          isAccessible: evaluation.allowed,
-          isLocked: evaluation.lockedByAddon,
-          lockReason: evaluation.lockedByAddon
-            ? item.lockedDescription ?? `${item.label} is not enabled for this organization yet.`
-            : null,
+          isAccessible,
+          isLocked,
+          lockReason,
         };
       })
       .filter((item) => item.isAccessible || (includeLocked && item.isLocked));

@@ -26,10 +26,6 @@ export class AccessContextService {
   }
 
   private hasAddon(slug: string, aliases: string[] = []): boolean {
-    const activeModules = this.organizationService.activeModules();
-    if (!activeModules.length) {
-      return true;
-    }
     return [slug, ...aliases].some((candidate) => this.organizationService.isModuleEnabled(candidate));
   }
 
@@ -99,15 +95,18 @@ export class AccessContextService {
         'search.projects': this.permissionService.hasPermission(user, 'search.projects'),
       },
       addons: {
-        attendance: this.hasAddon('attendance') || this.canAccessRoute(user, '/attendance'),
-        leave: this.hasAddon('leave', ['leaves']) || this.canAccessRoute(user, '/leaves'),
-        payroll: this.hasAddon('payroll') || this.canAccessRoute(user, '/payroll'),
-        visitorManagement: this.hasAddon('visitorManagement', ['visitor-management', 'visit-management']) || this.canAccessRoute(user, '/visit-management'),
-        projects: this.hasAddon('projects') || this.canAccessRoute(user, '/projects'),
-        expenses: this.hasAddon('expenses') || this.canAccessRoute(user, '/expenses'),
-        timesheets: this.hasAddon('timesheets') || this.canAccessRoute(user, '/timesheets'),
-        reports: this.hasAddon('reports') || this.canAccessRoute(user, '/reports'),
-        settings: this.hasAddon('settings') || this.canAccessRoute(user, '/settings') || this.canAccessRoute(user, '/admin/settings'),
+        attendance: this.hasAddon('attendance'),
+        leave: this.hasAddon('leave', ['leaves']),
+        payroll: this.hasAddon('payroll'),
+        visitorManagement: this.hasAddon('visitormanagement', ['visitor-management', 'visit-management', 'trackvisits']),
+        projects: this.hasAddon('projects'),
+        expenses: this.hasAddon('expenses'),
+        timesheets: this.hasAddon('timesheets'),
+        reports: this.hasAddon('reports'),
+        settings: this.hasAddon('settings'),
+        faceRecognition: this.hasAddon('facerecognition', ['face_recognition', 'face-recognition', 'face', 'faceid']),
+        geofence: this.hasAddon('geofence', ['geo-fence', 'geofencing']),
+        shiftPlanner: this.hasAddon('shiftplanner', ['shift_planner', 'shift']),
       },
       tabs: {
         selfService: true,

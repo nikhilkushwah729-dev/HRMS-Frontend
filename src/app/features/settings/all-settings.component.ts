@@ -9,6 +9,7 @@ import { OrganizationService } from '../../core/services/organization.service';
 import { AttendanceService } from '../../core/services/attendance.service';
 import { EmployeeService } from '../../core/services/employee.service';
 import { LeaveService } from '../../core/services/leave.service';
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-all-settings',
@@ -96,15 +97,28 @@ import { LeaveService } from '../../core/services/leave.service';
               @if (isSearchOpen() && searchResults().length > 0) {
                 <div class="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-2xl">
                   @for (result of searchResults(); track result.route) {
-                    <a [routerLink]="result.route" class="group flex items-center justify-between rounded-lg px-4 py-3 hover:bg-slate-50">
-                      <div class="min-w-0">
-                        <p class="truncate text-sm font-bold text-slate-900">{{ formatLabel(result.label) }}</p>
-                        <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ result.category }}</p>
-                      </div>
-                      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm transition group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                      </div>
-                    </a>
+                    @if (result.isLocked) {
+                      <button type="button" (click)="openLockedSetting(result)" class="group flex w-full items-center justify-between rounded-lg px-4 py-3 hover:bg-slate-50 text-left">
+                        <div class="min-w-0">
+                          <div class="flex items-center gap-1.5">
+                            <p class="truncate text-sm font-bold text-slate-500">{{ formatLabel(result.label) }}</p>
+                            <span class="text-xs">🔒</span>
+                          </div>
+                          <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{{ result.category }}</p>
+                        </div>
+                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-600 border border-amber-200 text-xs">🔒</span>
+                      </button>
+                    } @else {
+                      <a [routerLink]="result.route" class="group flex items-center justify-between rounded-lg px-4 py-3 hover:bg-slate-50">
+                        <div class="min-w-0">
+                          <p class="truncate text-sm font-bold text-slate-900">{{ formatLabel(result.label) }}</p>
+                          <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ result.category }}</p>
+                        </div>
+                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-100 shadow-sm transition group-hover:border-indigo-200 group-hover:bg-indigo-50 group-hover:text-indigo-600">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                        </div>
+                      </a>
+                    }
                   }
                 </div>
               }
@@ -128,13 +142,26 @@ import { LeaveService } from '../../core/services/leave.service';
             <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Pinned Modules</p>
             <div class="mt-4 grid gap-2">
               @for (route of featuredSettings(); track route.route) {
-                <a [routerLink]="route.route" class="group flex items-center justify-between rounded-xl border border-transparent bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-bold text-slate-900 group-hover:text-indigo-600">{{ formatLabel(route.label) }}</p>
-                    <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ route.category }}</p>
-                  </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-indigo-500"><path d="m9 18 6-6-6-6"/></svg>
-                </a>
+                @if (route.isLocked) {
+                  <button type="button" (click)="openLockedSetting(route)" class="group flex w-full items-center justify-between rounded-xl border border-slate-200/60 bg-white px-4 py-3 shadow-sm transition-all hover:bg-slate-50 text-left">
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1.5">
+                        <p class="truncate text-sm font-bold text-slate-500">{{ formatLabel(route.label) }}</p>
+                        <span class="text-xs">🔒</span>
+                      </div>
+                      <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">{{ route.category }}</p>
+                    </div>
+                    <span class="flex h-6 w-6 items-center justify-center rounded-md bg-amber-50 text-amber-600 border border-amber-200 text-xs">🔒</span>
+                  </button>
+                } @else {
+                  <a [routerLink]="route.route" class="group flex items-center justify-between rounded-xl border border-transparent bg-white px-4 py-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-bold text-slate-900 group-hover:text-indigo-600">{{ formatLabel(route.label) }}</p>
+                      <p class="mt-0.5 truncate text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">{{ route.category }}</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-indigo-500"><path d="m9 18 6-6-6-6"/></svg>
+                  </a>
+                }
               }
             </div>
           </div>
@@ -175,15 +202,30 @@ import { LeaveService } from '../../core/services/leave.service';
                   <div class="grid gap-2 xl:grid-cols-2">
                     @for (route of structuredSettings()[category].routes; track route.route) {
                       @if (route.per) {
-                        <a [routerLink]="route.route" class="group/item flex flex-col justify-center rounded-xl border border-transparent bg-slate-100/50 px-4 py-4 transition hover:border-slate-200 hover:bg-white hover:shadow-sm">
-                          <div class="flex items-start gap-3">
-                            <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-300 transition group-hover/item:scale-125 group-hover/item:bg-indigo-500"></div>
-                            <div class="min-w-0">
-                              <p class="truncate text-sm font-bold text-slate-900 transition group-hover/item:text-indigo-600">{{ formatLabel(route.label) }}</p>
-                              <p class="mt-1 truncate text-[11px] font-medium tracking-wide text-slate-500">{{ route.path }}</p>
+                        @if (route.isLocked) {
+                          <button type="button" (click)="openLockedSetting(route)" class="group/item flex flex-col justify-center rounded-xl border border-slate-200/70 bg-slate-100/60 px-4 py-4 text-left transition hover:bg-slate-200/60 cursor-pointer">
+                            <div class="flex items-start justify-between gap-3">
+                              <div class="flex items-start gap-3 min-w-0">
+                                <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-400"></div>
+                                <div class="min-w-0">
+                                  <p class="truncate text-sm font-bold text-slate-500">{{ formatLabel(route.label) }}</p>
+                                  <p class="mt-1 truncate text-[11px] font-medium tracking-wide text-slate-400">{{ route.path }}</p>
+                                </div>
+                              </div>
+                              <span class="flex h-5 w-5 items-center justify-center rounded-md bg-amber-100 text-amber-700 text-xs shrink-0" [attr.title]="route.lockReason || 'Locked'">🔒</span>
                             </div>
-                          </div>
-                        </a>
+                          </button>
+                        } @else {
+                          <a [routerLink]="route.route" class="group/item flex flex-col justify-center rounded-xl border border-transparent bg-slate-100/50 px-4 py-4 transition hover:border-slate-200 hover:bg-white hover:shadow-sm">
+                            <div class="flex items-start gap-3">
+                              <div class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-slate-300 transition group-hover/item:scale-125 group-hover/item:bg-indigo-500"></div>
+                              <div class="min-w-0">
+                                <p class="truncate text-sm font-bold text-slate-900 transition group-hover/item:text-indigo-600">{{ formatLabel(route.label) }}</p>
+                                <p class="mt-1 truncate text-[11px] font-medium tracking-wide text-slate-500">{{ route.path }}</p>
+                              </div>
+                            </div>
+                          </a>
+                        }
                       }
                     }
                   </div>
@@ -255,20 +297,38 @@ export class AllSettingsComponent implements OnInit, OnDestroy {
   
   private permissionService = inject(PermissionService);
   private authService = inject(AuthService);
+  private toastService = inject(ToastService);
 
   ngOnInit() {
-    this.structuredSettings.set(getSettingMenu(this.permissionService, this.authService));
-    
-    // Flatten routes for search
-    const settings = this.structuredSettings();
-    const flat: SettingRoute[] = [];
-    Object.keys(settings).forEach(key => {
-      flat.push(...settings[key].routes.filter(r => r.per));
-    });
-    this.allFlatRoutes = flat;
+    this.rebuildSettings();
     this.loadSummary();
 
     document.addEventListener('click', this.handleDocumentClick);
+  }
+
+  rebuildSettings() {
+    this.structuredSettings.set(
+      getSettingMenu(this.permissionService, this.authService, this.organizationService)
+    );
+
+    // Flatten routes for search
+    const settings = this.structuredSettings();
+    const flat: SettingRoute[] = [];
+    Object.keys(settings).forEach((key) => {
+      flat.push(...settings[key].routes.filter((r) => r.per));
+    });
+    this.allFlatRoutes = flat;
+  }
+
+  openLockedSetting(route: SettingRoute): void {
+    const reason = route.lockReason || `${route.label} is currently locked.`;
+    this.toastService.warning(`🔒 ${reason}`);
+
+    const user = this.authService.getStoredUser();
+    const isAdmin = this.permissionService.isAdminUser(user);
+    if (isAdmin && route.addon) {
+      this.router.navigate(['/billing']);
+    }
   }
 
   private loadSummary() {
@@ -283,8 +343,12 @@ export class AllSettingsComponent implements OnInit, OnDestroy {
     });
 
     this.organizationService.getAddons().subscribe({
-      next: (addons) =>
-        this.activeAddonCount.set(addons.filter((addon) => addon?.isActive).length),
+      next: (addons) => {
+        this.activeAddonCount.set(
+          addons.filter((addon) => addon?.isActive).length
+        );
+        this.rebuildSettings();
+      },
       error: () => this.activeAddonCount.set(0),
     });
 

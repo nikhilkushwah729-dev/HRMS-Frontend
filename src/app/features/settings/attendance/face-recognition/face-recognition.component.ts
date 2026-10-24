@@ -10,6 +10,7 @@ import {
 } from '../../../../core/services/face-recognition.service';
 import { ToastService } from '../../../../core/services/toast.service';
 import { LanguageService } from '../../../../core/services/language.service';
+import { OrganizationService } from '../../../../core/services/organization.service';
 
 interface FaceData {
   id: number;
@@ -182,6 +183,7 @@ export class FaceRecognitionComponent implements OnInit {
   private router = inject(Router);
   private datePipe = inject(DatePipe);
   private languageService = inject(LanguageService);
+  private orgService = inject(OrganizationService);
 
   data = signal<FaceData[]>([]);
   searchQuery = signal('');
@@ -213,6 +215,11 @@ export class FaceRecognitionComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (!this.orgService.isModuleEnabled('facerecognition')) {
+      this.toastService.warning('🔒 Face Recognition is deactivated for your organization.');
+      this.router.navigate(['/dashboard']);
+      return;
+    }
     this.loadDirectory();
   }
 

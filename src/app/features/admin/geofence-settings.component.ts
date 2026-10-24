@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { OrganizationService } from '../../core/services/organization.service';
 import { AttendanceService, GeoFenceZone, GeoFenceSettings } from '../../core/services/attendance.service';
 import { ToastService } from '../../core/services/toast.service';
 
@@ -218,6 +220,8 @@ import { ToastService } from '../../core/services/toast.service';
 export class GeofenceSettingsComponent implements OnInit {
   private attendanceService = inject(AttendanceService);
   private toastService = inject(ToastService);
+  private orgService = inject(OrganizationService);
+  private router = inject(Router);
 
   settings = signal<GeoFenceSettings | null>(null);
   zones = signal<GeoFenceZone[]>([]);
@@ -232,6 +236,11 @@ export class GeofenceSettingsComponent implements OnInit {
   };
 
   ngOnInit() {
+    if (!this.orgService.isModuleEnabled('geofence')) {
+      this.toastService.warning('🔒 Geo-Fence is deactivated for your organization.');
+      this.router.navigate(['/dashboard']);
+      return;
+    }
     this.loadSettings();
   }
 

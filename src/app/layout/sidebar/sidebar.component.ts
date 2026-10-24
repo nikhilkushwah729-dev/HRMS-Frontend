@@ -271,14 +271,18 @@ import { LanguageService } from '../../core/services/language.service';
     <ng-template #navItem let-link>
       @if (link.isLocked) {
         <button
+          type="button"
           (click)="openLockedModule(link)"
-          class="flex w-full items-center justify-between gap-3 px-3 py-2 rounded-md bg-transparent text-slate-400 grayscale opacity-60 cursor-not-allowed"
+          class="flex w-full items-center justify-between gap-3 px-3 py-2 rounded-md bg-transparent text-slate-400 hover:bg-slate-50 transition-colors cursor-pointer group"
+          [attr.title]="link.lockReason || (link.label + ' (Locked)')"
         >
           <div class="flex items-center gap-2.5 min-w-0">
-            <span [innerHTML]="resolveIcon(link.icon)"></span>
-            <span class="truncate text-xs font-bold tracking-tight">{{ link.label }}</span>
+            <span class="opacity-60 group-hover:opacity-100 transition-opacity" [innerHTML]="resolveIcon(link.icon)"></span>
+            <span class="truncate text-xs font-semibold text-slate-500 group-hover:text-slate-800 transition-colors">{{ link.label }}</span>
           </div>
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="flex items-center justify-center h-5 w-5 rounded-md bg-amber-50 text-amber-600 border border-amber-200/90 shadow-2xs shrink-0" title="Locked - Permission or Add-on required">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
         </button>
       } @else {
         <a
@@ -349,20 +353,20 @@ export class SidebarComponent implements OnInit {
   private user$ = this.store.select(selectUser);
   readonly selfServiceLinks = computed(() =>
     ['dashboard', 'self-service'].flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
     ),
   );
   readonly peopleLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: false }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: true }),
   );
   readonly attendanceLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: false }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: true }),
   );
   readonly leaveLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: false }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: true }),
   );
   readonly payrollLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: false }),
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: true }),
   );
   readonly isSuperAdmin = computed(() =>
     this.permissionService.isSuperAdminUser(this.currentUser())
@@ -376,7 +380,7 @@ export class SidebarComponent implements OnInit {
     sectionIds.push('kiosk-management', 'roles-permissions');
 
     return sectionIds.flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: false }),
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
     );
   });
   readonly compactNavLinks = computed(() =>
@@ -406,6 +410,7 @@ export class SidebarComponent implements OnInit {
       this.setOrganizationBranding(org);
       this.isOrgLoading.set(false);
     });
+    this.orgService.getAddons().pipe(takeUntilDestroyed(this.destroyRef)).subscribe();
     this.subscriptionService.getStatus().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (status) => this.subscriptionStatus.set(status),
       error: () => this.subscriptionStatus.set(null),
@@ -711,8 +716,18 @@ export class SidebarComponent implements OnInit {
 
   openLockedModule(link: WorkspaceModuleView): void {
     this.closeOnMobile();
-    this.toastService.info(link.lockReason ?? `${link.label} is locked.`);
-    this.router.navigateByUrl('/billing');
+    const reason = link.lockReason ?? `${link.label} is locked.`;
+    this.toastService.warning(`🔒 ${reason}`);
+
+    const user = this.authService.getStoredUser();
+    const isAdmin = this.permissionService.isAdminUser(user);
+    const isAddonLock = link.lockReason?.toLowerCase().includes('add-on') ||
+      link.lockReason?.toLowerCase().includes('not active') ||
+      link.lockReason?.toLowerCase().includes('deactivated');
+
+    if (isAdmin && isAddonLock) {
+      this.router.navigateByUrl('/billing');
+    }
   }
 
   mainSectionLabel(): string { return 'Portal'; }

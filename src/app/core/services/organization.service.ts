@@ -101,7 +101,20 @@ export class OrganizationService {
     isModuleEnabled(slug: string): boolean {
         const normalized = this.normalizeModuleSlug(slug);
         if (!normalized) return true;
-        return this._activeModules().some((item) => item === normalized);
+
+        // Core workspace features that are always enabled for any organization
+        const coreModules = ['dashboard', 'selfservice', 'employees', 'profile'];
+        if (coreModules.includes(normalized)) return true;
+
+        const currentActive = this._activeModules();
+        if (currentActive.length === 0) {
+            // Before add-ons load, allow core attendance and leave as base defaults, but lock specialized add-ons
+            const specializedAddons = ['facerecognition', 'geofence', 'shiftplanner', 'trackvisits', 'visitormanagement'];
+            if (specializedAddons.includes(normalized)) return false;
+            return true;
+        }
+
+        return currentActive.some((item) => item === normalized);
     }
 
     private normalizeModuleSlug(value: unknown): string {
@@ -122,9 +135,10 @@ export class OrganizationService {
             leaves_management: 'leave',
             payroll: 'payroll',
             payroll_management: 'payroll',
-            visitormanagement: 'visitorManagement',
-            visitor_management: 'visitorManagement',
-            visit_management: 'visitorManagement',
+            visitormanagement: 'visitormanagement',
+            visitor_management: 'visitormanagement',
+            visit_management: 'visitormanagement',
+            trackvisits: 'visitormanagement',
             projects: 'projects',
             project: 'projects',
             project_management: 'projects',
@@ -140,6 +154,7 @@ export class OrganizationService {
             settings: 'settings',
             geofence: 'geofence',
             geo_fence: 'geofence',
+            geofencing: 'geofence',
             regularization: 'regularization',
             documents: 'documents',
             document: 'documents',
@@ -147,7 +162,13 @@ export class OrganizationService {
             role: 'roles',
             audit: 'audit',
             audit_logs: 'audit',
-            face_recognition: 'face-recognition',
+            facerecognition: 'facerecognition',
+            face_recognition: 'facerecognition',
+            face: 'facerecognition',
+            faceid: 'facerecognition',
+            shiftplanner: 'shiftplanner',
+            shift_planner: 'shiftplanner',
+            shift: 'shiftplanner',
         };
 
         return aliases[normalized] ?? normalized;
@@ -633,12 +654,22 @@ export class OrganizationService {
                 if (addons.length === 0) return this.getAvailableAddons();
                 const activeSlugs = addons
                     .filter((a: any) => a.isActive || a.is_active || a.status === 'active')
-                    .map((a: any) => a.slug || a.name?.toLowerCase());
+                    .map((a: any) => this.normalizeModuleSlug(a.slug || a.name?.toLowerCase()));
+
+                this._activeModules.set(activeSlugs);
 
                 return this.getAvailableAddons().map((item: any) => ({
                     ...item,
-                    is_active: activeSlugs.length === 0 ? true : activeSlugs.includes(item.slug)
+                    is_active: activeSlugs.includes(this.normalizeModuleSlug(item.slug))
                 }));
+            }),
+            tap(addons => {
+                const activeSlugs = addons
+                    .filter((a: any) => a.is_active)
+                    .map((a: any) => this.normalizeModuleSlug(a.slug || a.name?.toLowerCase()));
+                if (activeSlugs.length > 0) {
+                    this._activeModules.set(activeSlugs);
+                }
             }),
             catchError(() => of(this.getAvailableAddons())),
             shareReplay(1)

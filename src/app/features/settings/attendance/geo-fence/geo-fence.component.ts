@@ -13,6 +13,7 @@ import {
 import { ToastService } from '../../../../core/services/toast.service';
 import { LanguageService } from '../../../../core/services/language.service';
 import { EmployeeService } from '../../../../core/services/employee.service';
+import { OrganizationService } from '../../../../core/services/organization.service';
 import { User } from '../../../../core/models/auth.model';
 import { CustomButtonComponent } from '../../../../core/components/button/custom-button.component';
 import { GeofenceMapComponent, GeofenceMapInitialValue } from './geofence-map.component';
@@ -485,6 +486,7 @@ export class GeoFenceComponent implements OnInit {
   private employeeService = inject(EmployeeService);
   private geofenceMapService = inject(GeofenceMapService);
   private router = inject(Router);
+  private orgService = inject(OrganizationService);
 
   zones = signal<GeoFenceZone[]>([]);
   employees = signal<User[]>([]);
@@ -582,6 +584,11 @@ export class GeoFenceComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!this.orgService.isModuleEnabled('geofence')) {
+      this.toastService.warning('🔒 Geo-Fence is deactivated for your organization.');
+      this.router.navigate(['/dashboard']);
+      return;
+    }
     this.loadZones();
     this.loadSettings();
     this.loadDashboard();
