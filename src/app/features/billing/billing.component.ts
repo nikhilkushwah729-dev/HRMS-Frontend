@@ -6,6 +6,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
 import { AuthService } from '../../core/services/auth.service';
+import { OrganizationService } from '../../core/services/organization.service';
 import {
   SubscriptionStatusPayload,
   SubscriptionService,
@@ -753,11 +754,78 @@ type CheckoutStep =
 })
 export class BillingComponent implements OnInit, OnDestroy {
   private readonly subscriptionService = inject(SubscriptionService);
+  private readonly organizationService = inject(OrganizationService);
   private readonly toastService = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly languageService = inject(LanguageService);
   private readonly authService = inject(AuthService);
+
+  private readonly defaultAddonCatalog = [
+    {
+      name: 'Face Recognition',
+      slug: 'face-recognition',
+      key: 'facerecognition',
+      description: 'Employee authentication with AI face recognition for attendance and identity verification.',
+      price: 600,
+    },
+    {
+      name: 'Geo-Fence Attendance',
+      slug: 'geofence',
+      key: 'geofence',
+      description: 'Configure geo-fence boundaries and location-based attendance compliance.',
+      price: 350,
+    },
+    {
+      name: 'Employee GPS Tracking',
+      slug: 'employee-tracking',
+      key: 'employeetracking',
+      description: 'Track employee location from mobile or desktop and monitor live field attendance.',
+      price: 400,
+    },
+    {
+      name: 'Shift & Roster Planner',
+      slug: 'shift-planner',
+      key: 'shiftplanner',
+      description: 'Plan shifts, rotational rosters, and employee scheduling from the attendance workflow.',
+      price: 300,
+    },
+    {
+      name: 'Client Visit Tracking',
+      slug: 'track-visit',
+      key: 'trackvisits',
+      description: 'Track visit schedules, travel distance, and client visit activity for field teams.',
+      price: 500,
+    },
+    {
+      name: 'Payroll & Compliance',
+      slug: 'payroll',
+      key: 'payroll',
+      description: 'Automate salary processing, statutory deductions, tax forms, and payslip generation.',
+      price: 500,
+    },
+    {
+      name: 'Leave & Time Off',
+      slug: 'leave',
+      key: 'leaveandtimeoff',
+      description: 'Manage annual leave, sick leave, compensatory off, and approval workflows.',
+      price: 300,
+    },
+    {
+      name: 'Timesheets & Project Hours',
+      slug: 'timesheet',
+      key: 'timesheet',
+      description: 'Track billable hours, project milestones, and client task timesheets.',
+      price: 350,
+    },
+    {
+      name: 'Expense Management',
+      slug: 'expense',
+      key: 'expense',
+      description: 'Employee expense claims, receipt attachments, and reimbursement approvals.',
+      price: 300,
+    },
+  ];
 
   // States
   isAuthenticating = false;
@@ -932,6 +1000,14 @@ export class BillingComponent implements OnInit, OnDestroy {
           console.error('Plans fetch failed', err);
           return of([] as any[]);
         })
+      ),
+      addons: this.organizationService.getAddons().pipe(
+        take(1),
+        timeout(8000),
+        catchError(err => {
+          console.error('Addons fetch failed', err);
+          return of([] as any[]);
+        })
       )
     }).pipe(
       finalize(() => {
@@ -939,7 +1015,7 @@ export class BillingComponent implements OnInit, OnDestroy {
         clearTimeout(safetyTimeout);
       })
     ).subscribe({
-      next: ({ status, plans }) => {
+      next: ({ status, plans, addons }) => {
         const statusPayload = (status as any)?.data === undefined ? status as SubscriptionStatusPayload | null : (status as any).data as SubscriptionStatusPayload | null;
         const statusError = (status as any)?.error;
 
@@ -981,22 +1057,49 @@ export class BillingComponent implements OnInit, OnDestroy {
           this.billingDetails.companyName = statusPayload.organization.companyName || this.billingDetails.companyName;
         }
 
-        // Build add-on catalog from plans (non-trial plans only)
+        // Build add-on catalog
         const paidPlans: any[] = Array.isArray(plans) ? plans.filter((p: any) => !p.isTrialPlan) : [];
         this.availablePaidPlans = paidPlans;
-        if (paidPlans.length > 0) {
-          // Use the most feature-rich plan to derive available addons
-          const topPlan = paidPlans[paidPlans.length - 1];
-          this.addOns = this.normalizeAddonCatalog(
-            (topPlan.limits || [])
-              .filter((l: any) => l.key?.startsWith('module.') && l.key !== 'module.ESS')
-              .map((l: any) => ({
-                name: l.label || l.key.replace('module.', ''),
-                price: '0',   // backend plans don't carry per-addon prices; pricing is plan-based
-                status: l.enabled ? 'Active' : 'Inactive',
-              }))
+        const topPlan = paidPlans.length > 0 ? paidPlans[paidPlans.length - 1] : null;
+
+        const apiAddonsList = Array.isArray(addons) ? addons : [];
+        const apiAddonMap = new Map<string, any>();
+        apiAddonsList.forEach((a: any) => {
+          const k1 = this.addonKey(a?.slug || '');
+          const k2 = this.addonKey(a?.name || '');
+          if (k1) apiAddonMap.set(k1, a);
+          if (k2) apiAddonMap.set(k2, a);
+        });
+
+        const planLimitKeys = new Set(
+          (topPlan?.limits || [])
+            .filter((l: any) => l.enabled && l.key?.startsWith('module.'))
+            .map((l: any) => this.addonKey(l.label || l.key.replace('module.', '')))
+        );
+
+        const requestedParam = this.route.snapshot.queryParamMap.get('addon') || this.route.snapshot.queryParamMap.get('focus') || '';
+        const requestedAddonKey = this.addonKey(requestedParam);
+
+        this.addOns = this.defaultAddonCatalog.map((catalogItem) => {
+          const apiItem = apiAddonMap.get(catalogItem.key) || apiAddonMap.get(this.addonKey(catalogItem.slug));
+          const isInstalled = Boolean(apiItem?.isActive || planLimitKeys.has(catalogItem.key));
+          const shouldSelect = isInstalled || Boolean(
+            requestedAddonKey && (catalogItem.key === requestedAddonKey || this.addonKey(catalogItem.slug) === requestedAddonKey)
           );
-        }
+          const price = Number(apiItem?.price) > 0 ? Number(apiItem.price) : catalogItem.price;
+
+          return {
+            label: catalogItem.name,
+            description: catalogItem.description,
+            price: price,
+            selected: Boolean(shouldSelect),
+            isInstalled: isInstalled,
+            isLocked: isInstalled,
+            isNewlyAdded: Boolean(shouldSelect && !isInstalled),
+            calculatedAmount: 0,
+            key: catalogItem.key,
+          };
+        });
 
         // Detect INR from status (org country not in status payload; default to INR for India-first app)
         this.isINR = true;
