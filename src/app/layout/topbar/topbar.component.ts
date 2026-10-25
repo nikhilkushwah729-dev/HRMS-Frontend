@@ -462,7 +462,7 @@ type TopNavItem = {
             <div (click)="toggleProfileDropdown($event)" class="flex items-center gap-2 rounded-md cursor-pointer border border-slate-200 bg-slate-50/70 p-1 pr-2 hover:border-slate-300 hover:bg-white hover:shadow-sm transition-all group">
               <div class="w-8 h-8 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] group-hover:scale-105 transition-transform ring-2 ring-white">
                 @if (user.avatar) {
-                  <img [src]="user.avatar" class="h-full w-full object-cover" alt="Profile photo">
+                  <img [src]="user.avatar" (error)="user.avatar = null" class="h-full w-full object-cover" alt="Profile photo">
                 } @else {
                   <span>{{ userInitial() }}</span>
                 }
@@ -480,7 +480,7 @@ type TopNavItem = {
               <div class="px-3 py-3 border-b border-slate-100/80 mb-1 flex items-center gap-3 bg-slate-50/50 rounded-md">
                 <div class="w-10 h-10 overflow-hidden bg-gradient-to-br from-indigo-500 to-teal-500 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-inner ring-2 ring-white">
                   @if (user.avatar) {
-                    <img [src]="user.avatar" class="h-full w-full object-cover">
+                    <img [src]="user.avatar" (error)="user.avatar = null" class="h-full w-full object-cover" alt="Profile photo">
                   } @else {
                     <span>{{ userInitial() }}</span>
                   }
