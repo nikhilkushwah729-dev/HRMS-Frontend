@@ -12,13 +12,14 @@ import {
 } from '../../core/services/platform.service';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
+import { PlatformPlansManagerComponent } from './components/platform-plans-manager.component';
 
-type PlatformView = 'organizations' | 'modules' | 'subscriptions' | 'analytics';
+type PlatformView = 'organizations' | 'plans' | 'modules' | 'subscriptions' | 'analytics';
 
 @Component({
   selector: 'app-platform-control',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PlatformPlansManagerComponent],
   template: `
     <div class="mx-auto flex max-w-7xl flex-col gap-6 pb-10">
       <!-- Super Admin Hero Header -->
@@ -165,6 +166,11 @@ type PlatformView = 'organizations' | 'modules' | 'subscriptions' | 'analytics';
         </section>
       }
 
+      <!-- PLANS & PRICING TAB -->
+      @if (currentView() === 'plans') {
+        <app-platform-plans-manager />
+      }
+
       <!-- MODULES TAB -->
       @if (currentView() === 'modules') {
         <section class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -198,6 +204,9 @@ type PlatformView = 'organizations' | 'modules' | 'subscriptions' | 'analytics';
             </div>
           }
         </section>
+        <div class="mt-6">
+          <app-platform-plans-manager />
+        </div>
       }
 
       <!-- ANALYTICS TAB -->
@@ -526,7 +535,8 @@ export class PlatformControlComponent implements OnInit {
 
   tabs: Array<{ id: PlatformView; label: string }> = [
     { id: 'organizations', label: 'Organizations' },
-    { id: 'modules', label: 'Modules' },
+    { id: 'plans', label: 'Plans & Pricing' },
+    { id: 'modules', label: 'Tenant Modules' },
     { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'analytics', label: 'Analytics' },
   ];
@@ -618,7 +628,7 @@ export class PlatformControlComponent implements OnInit {
   }
 
   private isPlatformView(view: string | null): view is PlatformView {
-    return view === 'organizations' || view === 'modules' || view === 'subscriptions' || view === 'analytics';
+    return view === 'organizations' || view === 'plans' || view === 'modules' || view === 'subscriptions' || view === 'analytics';
   }
 
   // MODAL HANDLERS

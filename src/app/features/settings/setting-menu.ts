@@ -29,11 +29,12 @@ export const getSettingMenu = (
   orgService?: OrganizationService
 ): Record<string, SettingCategory> => {
   const user = authService.getStoredUser();
-  const hasAccess = permissionService.canManageSettings(user);
+  const isSuper = permissionService.isSuperAdminUser(user);
+  const hasAccess = isSuper || permissionService.canManageSettings(user);
 
-  const isGeofenceActive = orgService ? orgService.isModuleEnabled('geofence') : false;
-  const isFaceActive = orgService ? orgService.isModuleEnabled('facerecognition') : false;
-  const isVisitActive = orgService ? orgService.isModuleEnabled('visitormanagement') : false;
+  const isGeofenceActive = isSuper || (orgService ? orgService.isModuleEnabled('geofence') : false);
+  const isFaceActive = isSuper || (orgService ? orgService.isModuleEnabled('facerecognition') : false);
+  const isVisitActive = isSuper || (orgService ? orgService.isModuleEnabled('visitormanagement') : false);
 
   return {
     attendance: {

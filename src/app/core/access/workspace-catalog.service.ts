@@ -23,11 +23,13 @@ export class WorkspaceCatalogService {
     const accessUser = this.accessContext.buildAccessUser(user);
     const includeLocked = options?.includeLocked ?? true;
 
+    const isSuper = this.accessControl.isSuperAdmin(accessUser);
+
     return section.items
       .map((item) => {
         const evaluation = this.accessControl.evaluateModuleAccess(accessUser, item);
-        const isAccessible = evaluation.allowed;
-        const isLocked = !evaluation.allowed;
+        const isAccessible = isSuper || evaluation.allowed;
+        const isLocked = isSuper ? false : !evaluation.allowed;
 
         let lockReason: string | null = null;
         if (isLocked) {

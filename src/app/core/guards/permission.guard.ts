@@ -22,6 +22,7 @@ interface AddonRequirement {
 }
 
 const SPECIALIZED_ADDON_ROUTES: AddonRequirement[] = [
+  // Advanced Attendance Features (Strictly require Attendance Core)
   { prefix: '/settings/attendance/face-recognition', addon: 'facerecognition', name: 'Face Recognition' },
   { prefix: '/face-registration', addon: 'facerecognition', name: 'Face Recognition' },
   { prefix: '/admin/kiosks/face-profiles', addon: 'facerecognition', name: 'Face Recognition' },
@@ -29,6 +30,16 @@ const SPECIALIZED_ADDON_ROUTES: AddonRequirement[] = [
   { prefix: '/admin/attendance/geofence', addon: 'geofence', name: 'Geo-Fence' },
   { prefix: '/admin/geofence', addon: 'geofence', name: 'Geo-Fence' },
   { prefix: '/settings/attendance/geo-fence', addon: 'geofence', name: 'Geo-Fence' },
+  // Attendance Core Routes
+  { prefix: '/attendance', addon: 'attendance', name: 'Attendance' },
+  { prefix: '/admin/attendance', addon: 'attendance', name: 'Attendance' },
+  { prefix: '/self-service/attendance', addon: 'attendance', name: 'Attendance' },
+  { prefix: '/self-service/attendance-qr', addon: 'attendance', name: 'Attendance' },
+  // Leave Management Routes
+  { prefix: '/leave', addon: 'leave', name: 'Leave' },
+  { prefix: '/leaves', addon: 'leave', name: 'Leave' },
+  { prefix: '/self-service/leave', addon: 'leave', name: 'Leave' },
+  // Visitor Management
   { prefix: '/visit-management', addon: 'visitormanagement', name: 'Visitor Management' },
   { prefix: '/visit-management-settings', addon: 'visitormanagement', name: 'Visitor Management' },
 ];
@@ -69,6 +80,11 @@ export const permissionGuard: CanActivateChildFn = (route, state) => {
   const targetRoute = state.url || '/';
   const normalizedTarget = normalizeRoute(targetRoute);
 
+  // Super admin / founder has full access to all routes
+  if (permissionService.isSuperAdminUser(user)) {
+    return true;
+  }
+
   // Never redirect /dashboard back to itself on an access miss.
   if (normalizedTarget === '/dashboard') {
     return true;
@@ -77,6 +93,13 @@ export const permissionGuard: CanActivateChildFn = (route, state) => {
   // 1. Strict Add-on Pre-check for specialized feature routes
   for (const req of SPECIALIZED_ADDON_ROUTES) {
     if (normalizedTarget === req.prefix || normalizedTarget.startsWith(`${req.prefix}/`)) {
+      // Check attendance prerequisite if this is an advanced attendance feature
+      const isAttendanceDependent = ['facerecognition', 'geofence', 'shiftplanner'].includes(req.addon);
+      if (isAttendanceDependent && !orgService.isModuleEnabled('attendance')) {
+        toastService.warning(`🔒 ${req.name} requires an active Attendance Core subscription.`);
+        return router.createUrlTree(['/dashboard']);
+      }
+
       if (!orgService.isModuleEnabled(req.addon)) {
         toastService.warning(`🔒 ${req.name} module is currently deactivated for your organization.`);
         return router.createUrlTree(['/dashboard']);

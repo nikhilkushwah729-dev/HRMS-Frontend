@@ -53,6 +53,21 @@ export class AccessControlService {
     return Array.isArray(input) ? input.filter(Boolean) : [input].filter(Boolean);
   }
 
+  isSuperAdmin(user: AccessUser | null | undefined): boolean {
+    if (!user) return false;
+    if (user.role === 'super_admin' || user.roleScope === 'global') return true;
+    if ((user as any).isSuperAdmin || (user as any).is_super_admin) return true;
+    const roleId = Number((user as any).roleId ?? (user as any).role_id ?? 0);
+    if (roleId === 1) return true;
+    const roleStr = String(user.role || '').toLowerCase().replace(/[_-]/g, ' ');
+    return (
+      roleStr.includes('super admin') ||
+      roleStr.includes('superadmin') ||
+      roleStr === 'founder' ||
+      roleStr === 'owner'
+    );
+  }
+
   private satisfiesRole(
     user: AccessUser | null | undefined,
     roles?: string | string[],
@@ -170,6 +185,15 @@ export class AccessControlService {
         discoverable: false,
         lockedByAddon: false,
         blockedBy: ['permission'],
+      };
+    }
+
+    if (this.isSuperAdmin(user)) {
+      return {
+        allowed: true,
+        discoverable: true,
+        lockedByAddon: false,
+        blockedBy: [],
       };
     }
 

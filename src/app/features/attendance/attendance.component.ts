@@ -252,7 +252,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               </p>
             </div>
             <span class="break-words rounded-full px-2.5 py-1.5 text-[11px] font-bold self-start shadow-sm sm:px-3 sm:text-xs" [ngClass]="todayAttendance()?.is_clocked_in ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'">
-              {{ todayAttendance()?.is_clocked_in ? 'Ready For Check Out' : 'Ready For Check In' }}
+              {{ todayAttendance()?.is_clocked_in ? 'Ready For Time Out' : 'Ready For Time In' }}
             </span>
           </div>
 
@@ -329,11 +329,11 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Today snapshot</p>
               <div class="mt-4 space-y-3">
                 <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Check in</span>
+                  <span class="text-sm font-semibold text-slate-500">Time In</span>
                   <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
                 </div>
                 <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
-                  <span class="text-sm font-semibold text-slate-500">Check out</span>
+                  <span class="text-sm font-semibold text-slate-500">Time Out</span>
                   <span class="min-w-0 break-words text-right text-sm font-black text-slate-900">{{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
                 </div>
                 <div class="flex min-w-0 items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3">
@@ -641,8 +641,8 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               ></div>
             </div>
             <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
-              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Clock in {{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
-              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Clock out {{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
+              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Time In {{ todayAttendance()?.check_in ? (todayAttendance()?.check_in | date:'shortTime') : '--:--' }}</span>
+              <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Time Out {{ todayAttendance()?.check_out ? (todayAttendance()?.check_out | date:'shortTime') : '--:--' }}</span>
               <span class="break-words rounded-full bg-white px-2.5 py-1 text-[11px] border border-slate-200 sm:px-3 sm:text-xs">Break {{ todayAttendance()?.break_time_minutes || 0 }}m</span>
             </div>
           </div>
@@ -1522,7 +1522,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               <div class="mt-3 grid gap-3 sm:grid-cols-2">
                 <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
                   <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Action</p>
-                  <p class="mt-1 text-sm font-black text-slate-900">{{ primaryAttendanceAction() === 'out' ? 'Check Out' : 'Check In' }}</p>
+                  <p class="mt-1 text-sm font-black text-slate-900">{{ primaryAttendanceAction() === 'out' ? 'Time Out' : 'Time In' }}</p>
                 </div>
                 <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
                   <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Status</p>
@@ -2480,7 +2480,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     const checkIn = attendance?.check_in;
     const shiftStart = attendance?.shift?.start_time;
 
-    if (!checkIn) return 'Awaiting Check In';
+    if (!checkIn) return 'Awaiting Time In';
     if (!shiftStart) return attendance?.is_clocked_in ? 'On Time Window' : 'Completed';
 
     return this.minutesDifferenceFromShift(checkIn, shiftStart) > 0
@@ -2493,11 +2493,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     const checkOut = attendance?.check_out;
     const shiftEnd = attendance?.shift?.end_time;
 
-    if (!checkOut) return attendance?.is_clocked_in ? 'Pending Check Out' : 'No Check Out';
+    if (!checkOut) return attendance?.is_clocked_in ? 'Pending Time Out' : 'No Time Out';
     if (!shiftEnd) return 'Completed';
 
     return this.minutesDifferenceFromShift(checkOut, shiftEnd) < 0
-      ? 'Early Check Out'
+      ? 'Early Time Out'
       : 'Normal Exit';
   }
 
@@ -3032,7 +3032,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.faceConfirmationReady.set(true);
         this.stopFaceAutoScan();
         this.faceScanStatus.set(
-          `Selfie captured successfully. Review and confirm to ${this.pendingPunchAction() === 'out' ? 'check out' : 'check in'}.`,
+          `Selfie captured successfully. Review and confirm to ${this.pendingPunchAction() === 'out' ? 'time out' : 'time in'}.`,
         );
       } else {
         this.faceScanStatus.set(
@@ -3190,6 +3190,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           this.capturedPhotoData.set(frame);
           payload.selfieUrl = frame;
         }
+        this.stopFaceAutoScan();
+        this.stopCamera();
         await new Promise((r) => setTimeout(r, 250));
       } catch (err: any) {
         const message =
@@ -3212,6 +3214,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.capturedPhotoData.set(frame);
         payload.selfieUrl = frame;
       }
+      this.stopFaceAutoScan();
+      this.stopCamera();
       await new Promise((r) => setTimeout(r, 500));
     } else if (this.checkInMode() === 'biometric') {
       const biometricRef = await this.prepareBiometricRef();
@@ -3235,8 +3239,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there';
         this.toastService.success(
           action === 'in'
-            ? 'Clocked in successfully!'
-            : 'Clocked out successfully!',
+            ? 'Time In recorded successfully!'
+            : 'Time Out recorded successfully!',
         );
         this.faceRecognitionService.speakAttendanceSuccess(displayName);
         this.playSuccessTone();
@@ -3393,7 +3397,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   punchModalPrimaryLabel(): string {
-    const verb = this.pendingPunchAction() === 'out' ? 'Check Out' : 'Check In';
+    const verb = this.pendingPunchAction() === 'out' ? 'Time Out' : 'Time In';
     if (this.checkInMode() === 'face') {
       return this.faceConfirmationReady()
         ? `Confirm ${verb}`
@@ -3440,13 +3444,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
     if (this.checkInMode() === 'biometric' && this.canUseBiometricMode()) {
       return this.primaryAttendanceAction() === 'out'
-        ? 'Verify Biometric For Check Out'
-        : 'Verify Biometric For Check In';
+        ? 'Verify Biometric For Time Out'
+        : 'Verify Biometric For Time In';
     }
 
     return this.primaryAttendanceAction() === 'out'
-      ? 'Mark Attendance For Check Out'
-      : 'Mark Attendance For Check In';
+      ? 'Mark Attendance (Time Out)'
+      : 'Mark Attendance (Time In)';
   }
 
   selectedModeLabel(): string {

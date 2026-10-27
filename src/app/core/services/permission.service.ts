@@ -921,7 +921,7 @@ export class PermissionService {
 
   private normalizeRoleName(value: string | null | undefined): string {
     if (!value) return '';
-    return value.trim().toLowerCase().replace(/\s+/g, ' ');
+    return value.trim().toLowerCase().replace(/[_-]/g, ' ').replace(/\s+/g, ' ');
   }
 
   getNormalizedRoleName(user: User | null | undefined): string {
@@ -1218,8 +1218,20 @@ export class PermissionService {
   }
 
   isSuperAdminUser(user: User | null | undefined): boolean {
+    if (!user) return false;
+    if ((user as any).isSuperAdmin || (user as any).is_super_admin) return true;
+    const roleId = Number((user as any).roleId ?? (user as any).role_id ?? (user as any).role?.id ?? 0);
+    if (roleId === 1) return true;
+    const scope = String((user as any)?.accessScope || (user as any)?.roleScope || '').toLowerCase();
+    if (scope === 'global') return true;
+
     const roleName = this.getNormalizedRoleName(user);
-    return roleName.includes('super admin');
+    return (
+      roleName.includes('super admin') ||
+      roleName.includes('superadmin') ||
+      roleName === 'founder' ||
+      roleName === 'owner'
+    );
   }
 
   isAdminUser(user: User | null | undefined): boolean {

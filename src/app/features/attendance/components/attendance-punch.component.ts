@@ -238,7 +238,7 @@ import { Router } from '@angular/router';
       >
         <p class="text-xs font-black uppercase tracking-[0.18em] text-emerald-600">Attendance Completed</p>
         <p class="mt-1 text-sm font-bold text-emerald-900">
-          Today's check-in and check-out are already recorded.
+          Today's Time In and Time Out are already recorded.
         </p>
         <p class="mt-1 text-xs text-emerald-700">
           You cannot mark attendance again for the same day from this screen.
@@ -512,10 +512,10 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   primaryActionLabel(): string {
     if (this.hasCompletedPunch()) return 'SHIFT COMPLETED';
     if (this.cameraFallbackMode()) {
-      return this.status() === 'out' ? 'CLOCK IN NOW' : 'CLOCK OUT NOW';
+      return this.status() === 'out' ? 'TIME IN NOW' : 'TIME OUT NOW';
     }
     if (!this.faceRegistered()) return 'REGISTER FACE FIRST';
-    return this.status() === 'out' ? 'AUTO FACE CHECK IN' : 'AUTO FACE CHECK OUT';
+    return this.status() === 'out' ? 'AUTO FACE TIME IN' : 'AUTO FACE TIME OUT';
   }
 
   instructionMessage(): string {
@@ -660,6 +660,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
     this.capturedImage.set(imageData);
     this.isProcessing.set(true);
+    this.stopCamera();
 
     const employeeId = Number(this.currentUser?.employeeId ?? this.currentUser?.id ?? 0);
     const orgId = Number(this.currentUser?.orgId ?? this.currentUser?.organizationId ?? 0);
@@ -723,7 +724,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   }
 
   private handleSuccessfulPunch(isClockingIn: boolean) {
-    this.toastService.success(`Successfully clocked ${isClockingIn ? 'in' : 'out'}!`);
+    this.toastService.success(`Successfully recorded ${isClockingIn ? 'Time In' : 'Time Out'}!`);
     this.successFlash.set(true);
     this.status.set(isClockingIn ? 'in' : 'out');
     if (!isClockingIn) {
@@ -732,8 +733,8 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     this.punchSuccess.emit();
     this.faceStatusMessage.set(
       isClockingIn
-        ? 'Attendance marked. You are now clocked in.'
-        : 'Attendance marked. You are now clocked out.',
+        ? 'Attendance marked. Your Time In has been recorded.'
+        : 'Attendance marked. Your Time Out has been recorded.',
     );
     setTimeout(() => this.successFlash.set(false), 1400);
     setTimeout(() => this.retake(), 3000);
@@ -743,7 +744,10 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     this.capturedImage.set(null);
     this.successFlash.set(false);
     this.singleFaceStableFrames = 0;
-    if (!this.cameraFallbackMode() && this.faceRegistered() && this.isCameraReady()) {
+    if (!this.hasCompletedPunch()) {
+      void this.initCamera();
+    }
+    if (!this.cameraFallbackMode() && this.faceRegistered()) {
       this.autoPunchTriggered = false;
       this.faceStatusMessage.set('Looking for exactly one face...');
     }

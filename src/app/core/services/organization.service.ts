@@ -133,6 +133,8 @@ export class OrganizationService {
             leaves: 'leave',
             leave_management: 'leave',
             leaves_management: 'leave',
+            leaveandtimeoff: 'leave',
+            leave_and_time_off: 'leave',
             payroll: 'payroll',
             payroll_management: 'payroll',
             visitormanagement: 'visitormanagement',
@@ -632,10 +634,11 @@ export class OrganizationService {
 
     private getAvailableAddons(): any[] {
         return [
-            { id: 1, name: 'Attendance & Leave', slug: 'attendance', description: 'Manage attendance, shifts, leaves and overtime.', is_active: true },
-            { id: 2, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms.', is_active: true },
-            { id: 3, name: 'Timesheets & Projects', slug: 'timesheets', description: 'Project tracking and log hours.', is_active: true },
-            { id: 4, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs.', is_active: true }
+            { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Web punch, daily attendance, shifts and regularizations.', is_active: true },
+            { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals.', is_active: true },
+            { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms.', is_active: true },
+            { id: 4, name: 'Timesheets & Projects', slug: 'timesheets', description: 'Project tracking and log hours.', is_active: true },
+            { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs.', is_active: true }
         ];
     }
 

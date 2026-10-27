@@ -319,15 +319,6 @@ export class AddOnsComponent implements OnInit {
       userPermission: 'module518_UserView',
     },
     {
-      id: 516,
-      name: 'Manage Clients',
-      slug: 'manage-clients',
-      description: 'Manage client masters and visit-related client data from inside the attendance workflow.',
-      route: '/visit-management',
-      permission: 'module516_view',
-      userPermission: 'module516_UserView',
-    },
-    {
       id: 517,
       name: 'Track Visit',
       slug: 'track-visit',
@@ -367,6 +358,20 @@ export class AddOnsComponent implements OnInit {
       route: '/attendance?view=geofence',
       permission: 'module318_view',
       userPermission: 'module318_UserView',
+    },
+    {
+      id: 7,
+      name: 'Timesheets',
+      slug: 'timesheet',
+      description: 'Track project hours, task timesheets, and billable time logs.',
+      route: '/timesheet',
+    },
+    {
+      id: 8,
+      name: 'Expense Management',
+      slug: 'expense',
+      description: 'Employee expense claims, receipt attachments, and reimbursement approvals.',
+      route: '/expenses',
     },
   ];
 
@@ -635,14 +640,23 @@ export class AddOnsComponent implements OnInit {
         spotlight: 'Enable shift planning when managers need roster control inside attendance.',
         guideLabel: 'See Shift Guide',
       },
-      'manage-clients': {
-        accent: 'border-amber-200 bg-amber-50/60',
-        iconBg: 'bg-amber-100',
-        iconColor: 'text-amber-600',
+      timesheet: {
+        accent: 'border-blue-200 bg-blue-50/60',
+        iconBg: 'bg-blue-100',
+        iconColor: 'text-blue-600',
         category: 'ops',
-        helper: 'Client visit masters',
-        spotlight: 'Use this when visit management needs client masters and assignment workflows.',
-        guideLabel: 'See Client Guide',
+        helper: 'Timesheet logging',
+        spotlight: 'Log project hours, billable task time, and review time logs.',
+        guideLabel: 'See Timesheet Guide',
+      },
+      expense: {
+        accent: 'border-teal-200 bg-teal-50/60',
+        iconBg: 'bg-teal-100',
+        iconColor: 'text-teal-600',
+        category: 'ops',
+        helper: 'Expense claims',
+        spotlight: 'Employee reimbursement requests, receipt uploads, and approvals.',
+        guideLabel: 'See Expense Guide',
       },
       'track-visit': {
         accent: 'border-amber-200 bg-amber-50/60',
