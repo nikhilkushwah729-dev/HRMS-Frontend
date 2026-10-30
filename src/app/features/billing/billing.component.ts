@@ -239,22 +239,32 @@ type CheckoutStep =
     </div>
 
     <!-- REDIRECT LOADER OVERLAY -->
-    <div *ngIf="isRedirecting" class="fixed inset-0 z-[10000] flex items-center justify-center bg-white/95 backdrop-blur-xl px-4">
-      <div class="w-full max-w-2xl text-center">
-        <div class="relative mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-          <div class="absolute inset-0 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin"></div>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="relative h-10 w-10" fill="none" stroke="currentColor" stroke-width="2">
+    <div *ngIf="isRedirecting" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/80 backdrop-blur-md px-4">
+      <div class="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl border border-slate-100">
+        <div class="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <div class="absolute inset-0 rounded-full border-4 border-emerald-100 border-t-emerald-600 animate-spin"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="relative h-9 w-9" fill="none" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
         </div>
-        <h2 class="text-3xl font-bold text-gray-900">Processing Your Payment</h2>
-        <p class="mt-2 text-lg text-gray-600">Please wait while we securely connect to Razorpay...</p>
-        <div class="mx-auto mt-8 h-2 w-full max-w-md overflow-hidden rounded-full bg-gray-100">
-          <div class="h-full rounded-full bg-emerald-500 transition-all duration-500" [style.width.%]="progress"></div>
+        <h2 class="text-2xl font-bold text-gray-900 tracking-tight">{{ loaderTitle }}</h2>
+        <p class="mt-2 text-sm text-gray-600 leading-relaxed">{{ loaderSubtitle }}</p>
+
+        <div class="mt-6">
+          <div class="flex items-center justify-between text-xs font-semibold text-slate-500 mb-2">
+            <span>Progress</span>
+            <span class="font-bold text-emerald-600">{{ progress }}%</span>
+          </div>
+          <div class="h-3 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 ring-1 ring-slate-200">
+            <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 transition-all duration-300 shadow-sm" [style.width.%]="progress"></div>
+          </div>
         </div>
-        <div class="mt-10 flex flex-col items-center gap-3">
-          <span class="text-sm text-gray-500">Secure payment via</span>
-          <span class="text-sm font-bold text-slate-700">Razorpay</span>
+
+        <div class="mt-8 flex items-center justify-center gap-2 text-xs font-medium text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span>256-bit Encrypted via Razorpay</span>
         </div>
       </div>
     </div>
@@ -574,8 +584,25 @@ type CheckoutStep =
                       </div>
                     </div>
                   </div>
+
+                  <!-- Test Mode Credentials Guide for Razorpay -->
+                  <div class="mt-4 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3 text-left text-xs text-amber-200">
+                    <div class="flex items-center gap-1.5 font-bold text-amber-300 mb-1">
+                      <span class="inline-flex h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
+                      <span>Razorpay Test Mode Helper</span>
+                    </div>
+                    <div class="space-y-1 text-[11px] text-slate-300">
+                      <div>
+                        <span class="font-semibold text-white">📱 UPI:</span> Select UPI &gt; Enter ID: <code class="rounded bg-black/40 px-1 py-0.5 text-amber-300 font-mono font-bold">success&#64;razorpay</code> or select QR and click "Simulate Success".
+                      </div>
+                      <div>
+                        <span class="font-semibold text-white">💳 Card:</span> Use test card <code class="rounded bg-black/40 px-1 py-0.5 text-amber-300 font-mono font-bold">4111 1111 1111 1111</code>, Exp: <code class="rounded bg-black/40 px-1 py-0.5 text-amber-300 font-mono">12/30</code>, CVV: <code class="rounded bg-black/40 px-1 py-0.5 text-amber-300 font-mono">123</code> (Real bank cards cause "invalid token" in test mode).
+                      </div>
+                    </div>
+                  </div>
+
                   <button (click)="reviewPay()" [disabled]="grandTotal <= 0 || isSubmitting"
-                    class="mt-6 w-full rounded-[24px] bg-white py-4 text-lg font-bold text-slate-950 transition-all hover:bg-slate-100 hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
+                    class="mt-4 w-full rounded-[24px] bg-white py-4 text-lg font-bold text-slate-950 transition-all hover:bg-slate-100 hover:shadow-xl active:scale-[0.98] disabled:opacity-30">
                     {{ getPlanActionButtonText() }}
                   </button>
                   <div class="mt-4 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
@@ -939,6 +966,8 @@ export class BillingComponent implements OnInit, OnDestroy {
   legacyBillingConfigured = true;
   currentStep: CheckoutStep = 'PLAN_SELECTION';
   progress = 0;
+  loaderTitle = 'Processing Your Payment';
+  loaderSubtitle = 'Please wait while we securely connect to Razorpay...';
   appName = '';
   private paymentLoaderTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -1029,28 +1058,35 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.clearPaymentLoaderTimer();
   }
 
-  private showPaymentLoader(startProgress = 8) {
+  private showPaymentLoader(
+    startProgress = 12,
+    title = 'Processing Your Payment',
+    subtitle = 'Please wait while we securely connect to Razorpay...'
+  ) {
     this.clearPaymentLoaderTimer();
     this.isRedirecting = true;
-    this.progress = Math.max(this.progress || 0, startProgress);
+    this.loaderTitle = title;
+    this.loaderSubtitle = subtitle;
+    this.progress = Math.max(8, startProgress);
 
     this.paymentLoaderTimer = setInterval(() => {
-      if (this.progress < 45) {
-        this.progress += 4;
-      } else if (this.progress < 75) {
+      if (this.progress < 40) {
+        this.progress += 3;
+      } else if (this.progress < 70) {
         this.progress += 2;
-      } else if (this.progress < 90) {
-        this.progress += 0.75;
+      } else if (this.progress < 85) {
+        this.progress += 1.2;
+      } else if (this.progress < 98) {
+        this.progress += 0.4;
       }
-
-      if (this.progress < 90) {
-        this.progress = Math.min(90, Math.round(this.progress * 100) / 100);
-      }
-    }, 350);
+      this.progress = Math.min(98, Math.round(this.progress * 10) / 10);
+    }, 150);
   }
 
-  private setPaymentLoaderProgress(value: number) {
-    this.progress = Math.max(0, Math.min(100, value));
+  private setPaymentLoaderProgress(value: number, title?: string, subtitle?: string) {
+    if (title) this.loaderTitle = title;
+    if (subtitle) this.loaderSubtitle = subtitle;
+    this.progress = Math.max(0, Math.min(100, Math.round(value * 10) / 10));
   }
 
   private hidePaymentLoader() {
@@ -1314,8 +1350,8 @@ export class BillingComponent implements OnInit, OnDestroy {
   private addonFallbackPrice(name: string): number {
     const key = this.addonKey(name);
     const prices: Record<string, number> = {
-      attendance: 400,
-      attendancetracking: 400,
+      attendance: 300,
+      attendancetracking: 300,
       employeetracking: 400,
       payroll: 500,
       payrollmanagement: 500,
@@ -1323,17 +1359,17 @@ export class BillingComponent implements OnInit, OnDestroy {
       projecttaskmanagement: 300,
       expenses: 300,
       expensetracking: 300,
-      timesheet: 200,
-      timesheets: 200,
-      timesheetmanagement: 200,
+      timesheet: 350,
+      timesheets: 350,
+      timesheetmanagement: 350,
       announcements: 100,
-      visitmanagement: 300,
-      visitormanagement: 300,
-      trackvisits: 300,
+      visitmanagement: 500,
+      visitormanagement: 500,
+      trackvisits: 500,
       leaveandtimeoff: 300,
-      facerecognition: 1000,
-      geofence: 200,
-      geofencing: 200,
+      facerecognition: 600,
+      geofence: 350,
+      geofencing: 350,
       shiftplanner: 300,
       manageclients: 300,
     };
@@ -1548,7 +1584,11 @@ export class BillingComponent implements OnInit, OnDestroy {
 
   reviewPay() {
     if (this.isSubmitting) return;
-    this.showPaymentLoader(8);
+    this.showPaymentLoader(
+      15,
+      'Initiating Checkout',
+      'Calculating order total and preparing your secure transaction...'
+    );
 
     // Determine billing cycle from user-selected duration
     const billingCycle: 'monthly' | 'yearly' = this.durationInputValue >= 12 ? 'yearly' : 'monthly';
@@ -1577,7 +1617,7 @@ export class BillingComponent implements OnInit, OnDestroy {
     this.subscriptionService.createUpgradeIntent(upgradePayload).subscribe({
       next: (intent) => {
         this.preOrderData = intent;
-        this.setPaymentLoaderProgress(55);
+        this.setPaymentLoaderProgress(50, 'Gateway Connected', 'Preparing secure checkout interface...');
         setTimeout(() => void this.openRazorpay(intent), 250);
       },
       error: (err) => {
@@ -1613,14 +1653,12 @@ export class BillingComponent implements OnInit, OnDestroy {
   }
 
   async openRazorpay(orderData: any) {
-    // New backend response shape (createUpgradeIntent):
+    // Backend response shape (createUpgradeIntent):
     // { paymentId, orderId: "order_XXXXXXXXXX", amount (INR), amountInPaise, publishableKey, currency, plan }
-    // Legacy shape had: { status: true, razorpayKey, Rzr_orderId, paymentAmount }
     const amountInPaise = Number(orderData.amountInPaise ?? (orderData.amount > 10000 ? orderData.amount : Math.round((orderData.amount ?? orderData.paymentAmount ?? 0) * 100)));
     const key = String(orderData.publishableKey || orderData.razorpayKey || '').trim();
     const orderId = String(orderData.orderId || orderData.Rzr_orderId || '').trim();
 
-    // New flow: orderId present + key present = ready. No status boolean needed.
     if (!orderId) {
       this.hidePaymentLoader();
       this.toastService.error(orderData.message || 'Failed to initiate secure payment. Please try again.');
@@ -1639,50 +1677,77 @@ export class BillingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.setPaymentLoaderProgress(70);
+    this.setPaymentLoaderProgress(75, 'Initializing Razorpay', 'Loading checkout components...');
     const loaded = await this.loadRazorpayScript();
     if (!loaded || typeof Razorpay === 'undefined') {
       this.hidePaymentLoader();
       this.toastService.error('Payment gateway could not be loaded. Please check your connection and try again.');
       return;
     }
-    this.setPaymentLoaderProgress(85);
+    this.setPaymentLoaderProgress(90, 'Opening Checkout Window', 'Launching payment options...');
+
+    const cleanPhone = (this.userInfo.contact || this.billingDetails.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    const cleanEmail = (this.userInfo.email || this.billingDetails.email || '').trim() || 'admin@hrnexus.com';
+    const cleanName = (this.userInfo.name || this.billingDetails.companyName || 'Workspace Admin').trim();
 
     const options = {
       key,
       amount: amountInPaise,   // already in paise from backend — no ×100 here
       currency: orderData.currency || 'INR',
       name: 'HRNexus Premium',
-      description: `${orderData.plan?.name || 'Plan'} Upgrade`,
+      description: `${orderData.plan?.name || 'Subscription'} Upgrade`,
       image: this.getBrandLogoUrl(),
       order_id: orderId,
       handler: (response: any) => {
-        this.showPaymentLoader(92);
+        this.showPaymentLoader(
+          85,
+          'Verifying Payment',
+          'Validating signature and activating your plan & add-ons...'
+        );
         this.confirmPayment(response, orderData);
       },
       prefill: {
-        name: this.userInfo.name,
-        email: this.userInfo.email,
-        contact: this.userInfo.contact || this.billingDetails.phone
+        name: cleanName,
+        email: cleanEmail,
+        contact: cleanPhone.length === 10 ? cleanPhone : '9876543210'
       },
       theme: { color: '#059669' },
       modal: {
+        backdropclose: false,
+        escape: true,
+        handleback: true,
+        confirm_close: true,
         ondismiss: () => {
           this.hidePaymentLoader();
-          this.toastService.warning('Payment cancelled');
+          this.toastService.warning('Payment was cancelled or closed');
         }
+      },
+      retry: {
+        enabled: true,
+        max_count: 3
       }
     };
 
     const rzp = new Razorpay(options);
+    if (typeof rzp.on === 'function') {
+      rzp.on('payment.failed', (failResp: any) => {
+        this.hidePaymentLoader();
+        const reason = failResp?.error?.description || failResp?.error?.reason || 'Payment failed';
+        this.toastService.error(`Payment failed: ${reason}`);
+      });
+    }
+
     rzp.open();
-    setTimeout(() => this.hidePaymentLoader(), 300);
+    setTimeout(() => this.hidePaymentLoader(), 400);
   }
 
   confirmPayment(response: any, orderData: any) {
-    this.showPaymentLoader(92);
-    // response from Razorpay modal: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
-    // orderData.paymentId = our DB payment row ID (from createUpgradeIntent response)
+    this.showPaymentLoader(
+      85,
+      'Activating Subscription',
+      'Payment verified! Activating purchased plan and add-ons in database...'
+    );
+
     const verifyPayload = {
       paymentId: orderData.paymentId,
       gateway: 'razorpay' as const,
@@ -1701,7 +1766,7 @@ export class BillingComponent implements OnInit, OnDestroy {
           });
         }
 
-        this.setPaymentLoaderProgress(100);
+        this.setPaymentLoaderProgress(100, 'Activation Complete!', 'Your subscription and add-ons are now active.');
         this.subscriptionService.clearCache();   // force fresh status on next visit
         this.organizationService.clearAddonsCache(); // Clear addons cache
         this.organizationService.getAddons(true).subscribe(); // Reload active addons immediately
@@ -1711,7 +1776,7 @@ export class BillingComponent implements OnInit, OnDestroy {
           this.hidePaymentLoader();
           this.currentStep = 'PAYMENT_SUCCESS';
           this.toastService.success('Payment successful! Your plan and add-ons have been activated.');
-        }, 350);
+        }, 450);
       },
       error: () => {
         this.hidePaymentLoader();
