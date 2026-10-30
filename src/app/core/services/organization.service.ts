@@ -109,7 +109,7 @@ export class OrganizationService {
         const currentActive = this._activeModules();
         if (currentActive.length === 0) {
             // Before add-ons load, allow core attendance and leave as base defaults, but lock specialized add-ons
-            const specializedAddons = ['facerecognition', 'geofence', 'shiftplanner', 'trackvisits', 'visitormanagement'];
+            const specializedAddons = ['facerecognition', 'geofence', 'shiftplanner', 'trackvisits', 'visitormanagement', 'employeetracking'];
             if (specializedAddons.includes(normalized)) return false;
             return true;
         }
@@ -171,6 +171,9 @@ export class OrganizationService {
             shiftplanner: 'shiftplanner',
             shift_planner: 'shiftplanner',
             shift: 'shiftplanner',
+            employeetracking: 'employeetracking',
+            employee_tracking: 'employeetracking',
+            gps_tracking: 'employeetracking',
         };
 
         return aliases[normalized] ?? normalized;
@@ -346,7 +349,7 @@ export class OrganizationService {
         this.holidaysCacheAt = 0;
     }
 
-    private clearAddonsCache(): void {
+    public clearAddonsCache(): void {
         this.addonsCache$ = undefined;
         this.addonsCacheAt = 0;
     }
@@ -634,11 +637,16 @@ export class OrganizationService {
 
     private getAvailableAddons(): any[] {
         return [
-            { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Web punch, daily attendance, shifts and regularizations.', is_active: true },
-            { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals.', is_active: true },
-            { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms.', is_active: true },
-            { id: 4, name: 'Timesheets & Projects', slug: 'timesheets', description: 'Project tracking and log hours.', is_active: true },
-            { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs.', is_active: true }
+            { id: 1, name: 'Attendance Management', slug: 'attendance', description: 'Web punch, daily attendance, shifts and regularizations.', price: 300, is_active: true },
+            { id: 2, name: 'Leave Management', slug: 'leaves', description: 'Leave requests, types, balances and approvals.', price: 300, is_active: true },
+            { id: 3, name: 'Payroll & Compliance', slug: 'payroll', description: 'Salary processing and tax forms.', price: 500, is_active: false },
+            { id: 4, name: 'Timesheets & Projects', slug: 'timesheets', description: 'Project tracking and log hours.', price: 350, is_active: false },
+            { id: 5, name: 'Visit Management', slug: 'visits', description: 'Client visits and visitor logs.', price: 500, is_active: false },
+            { id: 6, name: 'Face Recognition', slug: 'facerecognition', description: 'Employee authentication with AI face recognition.', price: 600, is_active: false },
+            { id: 7, name: 'Geo-Fence Attendance', slug: 'geofence', description: 'Configure geo-fence boundaries and location-based attendance compliance.', price: 350, is_active: false },
+            { id: 8, name: 'Employee GPS Tracking', slug: 'employeetracking', description: 'Track employee location from mobile or desktop and monitor live field attendance.', price: 400, is_active: false },
+            { id: 9, name: 'Shift & Roster Planner', slug: 'shiftplanner', description: 'Plan shifts, rotational rosters, and employee scheduling.', price: 300, is_active: false },
+            { id: 10, name: 'Expense Management', slug: 'expense', description: 'Employee expense claims, receipt attachments, and reimbursement approvals.', price: 300, is_active: false },
         ];
     }
 
@@ -653,25 +661,55 @@ export class OrganizationService {
                 if (res && (res.message === 'Row not found' || res.error === 'Row not found')) {
                     return this.getAvailableAddons();
                 }
-                const addons = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
-                if (addons.length === 0) return this.getAvailableAddons();
-                const activeSlugs = addons
-                    .filter((a: any) => a.isActive || a.is_active || a.status === 'active')
-                    .map((a: any) => this.normalizeModuleSlug(a.slug || a.name?.toLowerCase()));
+                const rawAddons = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+                const fallbackAddons = this.getAvailableAddons();
 
-                this._activeModules.set(activeSlugs);
+                if (rawAddons.length === 0) {
+                    const fallbackActives = fallbackAddons
+                        .filter(a => a.is_active)
+                        .map(a => this.normalizeModuleSlug(a.slug));
+                    this._activeModules.set(fallbackActives);
+                    return fallbackAddons;
+                }
 
-                return this.getAvailableAddons().map((item: any) => ({
-                    ...item,
-                    is_active: activeSlugs.includes(this.normalizeModuleSlug(item.slug))
-                }));
+                // Map backend addons directly to retain database IDs, prices, and status
+                const activeSlugs = new Set<string>();
+                const mapped = rawAddons.map((item: any) => {
+                    const isAct = Boolean(item.isActive ?? item.is_active ?? (item.status === 'active') ?? (item.status === 1));
+                    const rawSlug = String(item.slug || '').toLowerCase().trim();
+                    const normSlug = this.normalizeModuleSlug(item.slug || item.name);
+
+                    if (isAct) {
+                        if (rawSlug) activeSlugs.add(rawSlug);
+                        if (normSlug) activeSlugs.add(normSlug);
+                    }
+
+                    return {
+                        id: Number(item.id ?? 0),
+                        name: item.name ?? item.title ?? 'Add-on',
+                        slug: item.slug ?? normSlug,
+                        description: item.description || `Manage ${item.name || normSlug} module`,
+                        price: Number(item.price ?? 0),
+                        isActive: isAct,
+                        is_active: isAct,
+                    };
+                });
+
+                this._activeModules.set(Array.from(activeSlugs));
+                return mapped;
             }),
             tap(addons => {
-                const activeSlugs = addons
-                    .filter((a: any) => a.is_active)
-                    .map((a: any) => this.normalizeModuleSlug(a.slug || a.name?.toLowerCase()));
-                if (activeSlugs.length > 0) {
-                    this._activeModules.set(activeSlugs);
+                const activeSlugs = new Set<string>();
+                addons.forEach((a: any) => {
+                    if (a.is_active || a.isActive) {
+                        const raw = String(a.slug || '').toLowerCase().trim();
+                        const norm = this.normalizeModuleSlug(a.slug || a.name);
+                        if (raw) activeSlugs.add(raw);
+                        if (norm) activeSlugs.add(norm);
+                    }
+                });
+                if (activeSlugs.size > 0) {
+                    this._activeModules.set(Array.from(activeSlugs));
                 }
             }),
             catchError(() => of(this.getAvailableAddons())),

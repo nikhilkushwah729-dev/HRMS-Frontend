@@ -316,7 +316,17 @@ export class SubscriptionService {
   }
 
   /** POST /api/billing/upgrade-intent — creates a real Razorpay order server-side */
-  createUpgradeIntent(payload: { planId: number; billingCycle: 'monthly' | 'yearly'; gateway: 'razorpay' | 'stripe' }) {
+  createUpgradeIntent(payload: {
+    planId: number;
+    billingCycle: 'monthly' | 'yearly';
+    gateway: 'razorpay' | 'stripe';
+    amount?: number;
+    purchaseMode?: string;
+    addons?: string[];
+    addonIds?: number[];
+    seats?: number;
+    durationMonths?: number;
+  }) {
     return this.http.post<any>(`${this.apiUrl}/upgrade-intent`, payload).pipe(
       map((res) => this.unwrap<any>(res))
       // Errors propagate to caller — component handles toast + loader cleanup

@@ -1557,10 +1557,21 @@ export class BillingComponent implements OnInit, OnDestroy {
     const chosenPlan = this.availablePaidPlans.find((p) => p.slug === 'basic') || this.availablePaidPlans[0];
     const planId = chosenPlan ? Number(chosenPlan.id) : 1747805;
 
+    // Collect all selected add-on slugs and IDs
+    const selectedAddons = this.addOns.filter(a => a.selected);
+    const selectedAddonSlugs = selectedAddons.map(a => a.slug || a.key || a.label?.toLowerCase());
+    const selectedAddonIds = selectedAddons.map(a => Number(a.id)).filter(id => !isNaN(id) && id > 0);
+
     const upgradePayload = {
       planId,
       billingCycle,
       gateway: 'razorpay' as const,
+      amount: Math.max(1, Math.round(this.grandTotal)),
+      purchaseMode: this.purchaseMode,
+      addons: selectedAddonSlugs,
+      addonIds: selectedAddonIds,
+      seats: this.targetUsers,
+      durationMonths: this.durationInputValue,
     };
 
     this.subscriptionService.createUpgradeIntent(upgradePayload).subscribe({
@@ -1682,7 +1693,7 @@ export class BillingComponent implements OnInit, OnDestroy {
 
     this.subscriptionService.verifyPayment(verifyPayload).subscribe({
       next: () => {
-        // Automatically activate any newly selected add-ons post-payment
+        // Automatically activate any newly selected add-ons post-payment as client-side backup
         const newlyAdded = this.addOns.filter(a => a.selected && !a.isInstalled && a.id);
         if (newlyAdded.length > 0) {
           forkJoin(newlyAdded.map(a => this.organizationService.toggleAddon(a.id, true))).subscribe({
@@ -1692,6 +1703,8 @@ export class BillingComponent implements OnInit, OnDestroy {
 
         this.setPaymentLoaderProgress(100);
         this.subscriptionService.clearCache();   // force fresh status on next visit
+        this.organizationService.clearAddonsCache(); // Clear addons cache
+        this.organizationService.getAddons(true).subscribe(); // Reload active addons immediately
         this.subscriptionService.getStatus().subscribe();
         this.isTrialExpiredPaywall = false;
         setTimeout(() => {
