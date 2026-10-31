@@ -1780,6 +1780,8 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   pendingPunchAction = signal<'in' | 'out' | null>(null);
   showManualModal = signal<boolean>(false);
   submitting = signal<boolean>(false);
+  isFaceRegistered = signal<boolean | null>(null);
+  checkingFaceRegistration = signal<boolean>(false);
 
   // Real-time state
   currentTime = signal<string>('');
@@ -2055,6 +2057,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     });
     void this.detectBiometricSupport();
     void this.faceRecognitionService.primeFaceEngine();
+    void this.checkFaceRegistrationStatus();
     this.organizationService.getAddons().subscribe({ error: () => {} });
     this.startClock();
     this.loadInitialData();
@@ -2576,16 +2579,52 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     return m === 'camera' || m === 'face';
   }
 
-  onPunchAction(action: 'in' | 'out') {
-    this.openCameraModal(action);
+  async checkFaceRegistrationStatus(): Promise<boolean> {
+    const user = this.currentUser || this.authService.getStoredUser();
+    if (!user?.id) {
+      this.isFaceRegistered.set(false);
+      return false;
+    }
+
+    this.checkingFaceRegistration.set(true);
+    try {
+      const hasFace = await firstValueFrom(
+        this.faceRecognitionService.hasRegisteredFace(Number(user.id)),
+      );
+      this.isFaceRegistered.set(Boolean(hasFace));
+      return Boolean(hasFace);
+    } catch {
+      this.isFaceRegistered.set(false);
+      return false;
+    } finally {
+      this.checkingFaceRegistration.set(false);
+    }
   }
 
-  openPrimaryAttendanceModal() {
+  onPunchAction(action: 'in' | 'out') {
+    void this.openCameraModal(action);
+  }
+
+  async openPrimaryAttendanceModal() {
     if (this.todayAttendance()?.is_clocked_out || this.processing()) {
       return;
     }
 
     this.checkInMode.set('face');
+
+    let registered = this.isFaceRegistered();
+    if (registered !== true) {
+      registered = await this.checkFaceRegistrationStatus();
+    }
+
+    if (!registered) {
+      this.toastService.info('Please register your face first to mark attendance.');
+      void this.router.navigate(['/face-registration'], {
+        queryParams: { returnUrl: '/attendance' },
+      });
+      return;
+    }
+
     this.pendingPunchAction.set(this.primaryAttendanceAction());
     this.showCameraModal.set(true);
     this.cameraAvailability.set('idle');
@@ -2612,9 +2651,25 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     }, 80);
   }
 
-  openCameraModal(action: 'in' | 'out') {
+  async openCameraModal(action: 'in' | 'out') {
     if (this.processing()) {
       return;
+    }
+
+    const mode = this.checkInMode();
+    if (mode === 'face') {
+      let registered = this.isFaceRegistered();
+      if (registered !== true) {
+        registered = await this.checkFaceRegistrationStatus();
+      }
+
+      if (!registered) {
+        this.toastService.info('Please register your face first to mark attendance.');
+        void this.router.navigate(['/face-registration'], {
+          queryParams: { returnUrl: '/attendance' },
+        });
+        return;
+      }
     }
 
     this.pendingPunchAction.set(action);
@@ -2637,12 +2692,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       }
 
       this.preparePunchModal();
-      const mode = this.checkInMode();
-      if (mode === 'face') {
+      const currentMode = this.checkInMode();
+      if (currentMode === 'face') {
         void this.startCameraAfterModalRender('face');
         return;
       }
-      if (mode === 'camera' || mode === 'web') {
+      if (currentMode === 'camera' || currentMode === 'web') {
         void this.startCameraAfterModalRender('camera', true);
       }
     }, 120);
@@ -3440,6 +3495,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   primaryAttendanceButtonLabel(): string {
     if (this.todayAttendance()?.is_clocked_out) {
       return 'Attendance Already Marked';
+    }
+
+    if (this.isFaceRegistered() === false) {
+      return 'Register Face to Mark Attendance';
     }
 
     if (this.checkInMode() === 'biometric' && this.canUseBiometricMode()) {
