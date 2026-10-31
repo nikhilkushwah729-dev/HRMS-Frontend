@@ -278,7 +278,7 @@ import { User } from '../../core/models/auth.model';
             <!-- Camera Controls -->
             <div class="flex gap-3 mt-4">
               <button
-                *ngIf="!capturedImage()"
+                *ngIf="!capturedImage() && !isCameraReady()"
                 (click)="startCamera()"
                 [disabled]="isProcessing()"
                 class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-md font-bold hover:bg-slate-200 transition-all disabled:opacity-50"
@@ -298,6 +298,26 @@ import { User } from '../../core/models/auth.model';
                   <circle cx="12" cy="13" r="4" />
                 </svg>
                 Start Camera
+              </button>
+
+              <button
+                *ngIf="!capturedImage() && isCameraReady()"
+                (click)="stopCameraAndAutoScan()"
+                [disabled]="isProcessing()"
+                class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-md font-bold hover:bg-rose-100 transition-all disabled:opacity-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="6" y="6" width="12" height="12" rx="2" />
+                </svg>
+                Stop Camera
               </button>
 
               <button
@@ -848,7 +868,26 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
       this.mediaStream.getTracks().forEach((track) => track.stop());
       this.mediaStream = null;
     }
+    const video = this.videoElement?.nativeElement;
+    if (video) {
+      try {
+        video.pause();
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach((track) => track.stop());
+          video.srcObject = null;
+        }
+      } catch (e) {
+        console.error('Error stopping video stream in stopCamera:', e);
+      }
+    }
     this.isCameraReady.set(false);
+  }
+
+  stopCameraAndAutoScan() {
+    this.stopAutoScan();
+    this.stopCamera();
+    this.autoScanStatus.set('Camera stopped. Click Start Camera to resume.');
   }
 
   stopAutoScan() {
@@ -1022,9 +1061,9 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
         this.loadRegisteredEmployees();
 
         this.stopAutoScan();
+        this.stopCamera();
         setTimeout(() => {
           this.registrationSuccess.set(false);
-          this.retakeImage();
         }, 1400);
 
         const redirectTarget = this.returnUrl() || '/self-service/attendance';
@@ -1139,9 +1178,9 @@ export class FaceRegistrationComponent implements OnInit, OnDestroy {
 
             // Retake photo
             this.stopAutoScan();
+            this.stopCamera();
             setTimeout(() => {
               this.registrationSuccess.set(false);
-              this.retakeImage();
             }, 1400);
 
             if (this.returnUrl()) {

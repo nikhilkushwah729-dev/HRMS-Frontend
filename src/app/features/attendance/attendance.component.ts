@@ -1462,6 +1462,46 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                 </div>
               </div>
 
+              <div *ngIf="!attendanceSuccess() && !capturedPhotoData() && isCameraReady()" class="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  (click)="stopCameraAndAutoScan()"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
+                  </svg>
+                  Stop Camera Video
+                </button>
+              </div>
+
+              <div *ngIf="!attendanceSuccess() && !capturedPhotoData() && !isCameraReady() && cameraAvailability() !== 'checking'" class="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  (click)="retryPunchCamera()"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-700 transition hover:bg-teal-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Start Camera Video
+                </button>
+              </div>
+
+              <div *ngIf="!attendanceSuccess() && capturedPhotoData()" class="mt-3 flex justify-center">
+                <button
+                  type="button"
+                  (click)="restartFaceModalScan()"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  Retake Selfie
+                </button>
+              </div>
+
               <div *ngIf="checkInMode() === 'face' && !attendanceSuccess()" class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-center text-sm text-slate-600">
                 {{ faceScanStatus() || 'Look at the camera and turn slightly. Selfie detect will capture attendance automatically.' }}
               </div>
@@ -2951,10 +2991,29 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       this.cameraStream.getTracks().forEach((track) => track.stop());
       this.cameraStream = null;
     }
+    const video = this.videoElement?.nativeElement;
+    if (video) {
+      try {
+        video.pause();
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach((track) => track.stop());
+          video.srcObject = null;
+        }
+      } catch (e) {
+        console.error('Error stopping video stream in stopCamera:', e);
+      }
+    }
     this.isCameraReady.set(false);
     if (this.cameraAvailability() !== 'unavailable') {
       this.cameraAvailability.set('idle');
     }
+  }
+
+  stopCameraAndAutoScan() {
+    this.stopFaceAutoScan();
+    this.stopCamera();
+    this.faceScanStatus.set('Camera stopped. Tap Start Camera to resume.');
   }
 
   stopFaceAutoScan() {
@@ -3086,6 +3145,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         this.faceAutoTriggered = true;
         this.faceConfirmationReady.set(true);
         this.stopFaceAutoScan();
+        this.stopCamera();
         this.faceScanStatus.set(
           `Selfie captured successfully. Review and confirm to ${this.pendingPunchAction() === 'out' ? 'time out' : 'time in'}.`,
         );
