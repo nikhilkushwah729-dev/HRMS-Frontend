@@ -131,7 +131,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           >
             <button
               *ngIf="isSelfServiceWorkspace()"
-              (click)="setView('punch')"
+              (click)="handleMarkAttendanceClick()"
               [ngClass]="
                 currentView() === 'punch'
                   ? 'bg-teal-700 text-white shadow-sm'
@@ -224,15 +224,79 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           <div class="mb-5 rounded-[28px] border border-slate-900/10 bg-[radial-gradient(circle_at_top_right,_rgba(45,212,191,0.24),_transparent_28%),linear-gradient(135deg,#0f172a_0%,#111827_45%,#134e4a_100%)] px-5 py-5 text-white">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div class="min-w-0">
-                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Today Punch Desk</p>
-                <h3 class="mt-2 break-words text-xl font-black leading-tight sm:text-[2rem]">{{ nextAttendanceActionLabel() }}</h3>
-                <p class="mt-2 max-w-2xl break-words text-sm leading-6 text-white/75">
+                <div class="flex flex-wrap items-center gap-3">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-3xl font-black tracking-tight text-white sm:text-4xl drop-shadow-md">
+                      {{ currentTime() || '09:00:00 AM' }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-500/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-300">
+                      <span class="relative flex h-2 w-2">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                      </span>
+                      LIVE
+                    </span>
+                  </div>
+                  <span class="text-xs font-semibold text-slate-300 border-l border-white/20 pl-3">
+                    {{ todayFormattedDate() }}
+                  </span>
+                </div>
+
+                <h3 class="mt-3 break-words text-xl font-black leading-tight sm:text-[1.85rem] text-white">
+                  {{ nextAttendanceActionLabel() }}
+                </h3>
+                <p class="mt-1.5 max-w-2xl break-words text-sm leading-6 text-white/80">
                   {{ nextAttendanceActionDescription() }}
                 </p>
+
+                <!-- Shift & Face Badges -->
+                <div class="mt-3.5 flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
+                    <svg class="h-3.5 w-3.5 text-teal-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    {{ assignedShiftLabel() }}
+                  </span>
+
+                  <!-- Status Chip -->
+                  <span *ngIf="todayAttendance()?.is_clocked_in && !todayAttendance()?.is_clocked_out" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-400/40 bg-emerald-500/25 px-3 py-1.5 text-xs font-bold text-emerald-300">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Clocked In at {{ todayAttendance()?.check_in | date:'shortTime' }}
+                  </span>
+                  <span *ngIf="todayAttendance()?.is_clocked_out" class="inline-flex items-center gap-1.5 rounded-xl border border-sky-400/40 bg-sky-500/25 px-3 py-1.5 text-xs font-bold text-sky-200">
+                    ✓ Completed (Time Out {{ todayAttendance()?.check_out | date:'shortTime' }})
+                  </span>
+                  <span *ngIf="!todayAttendance()?.is_clocked_in" class="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/25 px-3 py-1.5 text-xs font-bold text-amber-200">
+                    ○ Ready For Time In
+                  </span>
+
+                  <!-- Face ID Chip -->
+                  <span *ngIf="isFaceRegistered()" class="inline-flex items-center gap-1.5 rounded-xl border border-teal-400/30 bg-teal-500/20 px-3 py-1.5 text-xs font-bold text-teal-300">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Face ID Verified
+                  </span>
+                  <button
+                    *ngIf="!isFaceRegistered()"
+                    type="button"
+                    (click)="goToFaceRegistration()"
+                    class="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/50 bg-amber-500/25 px-3 py-1.5 text-xs font-bold text-amber-200 transition hover:bg-amber-500/40 hover:text-white"
+                  >
+                    <svg class="h-3.5 w-3.5 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M12 9v4"></path>
+                      <path d="M12 17h.01"></path>
+                    </svg>
+                    Register Face ID (1-Click)
+                  </button>
+                </div>
               </div>
-              <div class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+
+              <!-- Progress & Work Hours Metrics -->
+              <div class="grid grid-cols-2 gap-3 text-sm shrink-0">
                 <div class="rounded-[22px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
-                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Progress</p>
+                  <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white/60">Shift Progress</p>
                   <p class="mt-1 break-words text-xl font-black sm:text-2xl">{{ attendanceProgress() }}%</p>
                 </div>
                 <div class="rounded-[22px] border border-white/10 bg-white/10 px-4 py-3 backdrop-blur-sm">
@@ -293,16 +357,19 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
           </div>
 
           <div class="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)]">
-            <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4">
+            <div class="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#ffffff_100%)] p-4 shadow-sm">
               <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Quick actions</p>
               <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   (click)="openPrimaryAttendanceModal()"
-                  [disabled]="processing()"
-                  class="rounded-2xl bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_100%)] px-4 py-3.5 text-sm font-black text-white shadow-[0_18px_30px_-20px_rgba(13,148,136,0.85)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
+                  [disabled]="processing() || todayAttendance()?.is_clocked_out"
+                  class="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl px-5 py-4 text-sm font-black text-white shadow-lg transition-all duration-300 hover:brightness-110 disabled:cursor-not-allowed disabled:bg-slate-300 sm:col-span-2"
+                  [ngClass]="todayAttendance()?.is_clocked_in ? 'bg-[linear-gradient(135deg,#e11d48_0%,#f43f5e_100%)] shadow-rose-900/30' : 'bg-[linear-gradient(135deg,#0f766e_0%,#0d9488_100%)] shadow-teal-900/30'"
                 >
-                  {{ primaryAttendanceButtonLabel() }}
+                  <svg *ngIf="!todayAttendance()?.is_clocked_in" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <svg *ngIf="todayAttendance()?.is_clocked_in" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  <span>{{ primaryAttendanceButtonLabel() }}</span>
                 </button>
                 <button
                   type="button"
@@ -314,14 +381,21 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                 </button>
                 <button
                   type="button"
-                  (click)="openManualRequest()"
-                  class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                  (click)="goToFaceRegistration()"
+                  class="rounded-2xl border border-teal-200 bg-teal-50/70 px-4 py-3 text-sm font-black text-teal-800 transition hover:bg-teal-100"
                 >
-                  Manual Request
+                  Face ID Setup
+                </button>
+                <button
+                  type="button"
+                  (click)="openManualRequest()"
+                  class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 sm:col-span-2"
+                >
+                  Manual Correction Request
                 </button>
               </div>
               <div class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500">
-                Use the primary action first. Break and manual request actions stay secondary to avoid accidental punches.
+                Mark attendance using face scan or registered biometric mode. Face ID Setup lets you enroll or update anytime.
               </div>
             </div>
 
@@ -2360,7 +2434,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     | 'shift-planner'
     | 'records' {
     if (this.isSelfServiceWorkspace()) {
-      return 'calendar';
+      return 'punch';
     }
 
     if (this.canAccessTrackingWorkspace()) {
@@ -2643,6 +2717,33 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
   onPunchAction(action: 'in' | 'out') {
     void this.openCameraModal(action);
+  }
+
+  handleMarkAttendanceClick(): void {
+    this.setView('punch');
+    void this.openPrimaryAttendanceModal();
+  }
+
+  todayFormattedDate(): string {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  assignedShiftLabel(): string {
+    const user = this.currentUser || this.authService.getStoredUser();
+    const shiftName = user?.shiftName || 'General Shift';
+    const shiftTiming = user?.shiftTiming || '09:00 AM - 06:00 PM';
+    return `${shiftName} • ${shiftTiming}`;
+  }
+
+  goToFaceRegistration(): void {
+    void this.router.navigate(['/face-registration'], {
+      queryParams: { returnUrl: '/attendance' },
+    });
   }
 
   async openPrimaryAttendanceModal() {
@@ -3260,6 +3361,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     if (this.checkInMode() === 'face') {
       try {
         const video = this.videoElement?.nativeElement;
+        const frame = this.capturedPhotoData() || this.captureFrame();
+        if (frame) {
+          this.capturedPhotoData.set(frame);
+          payload.selfieUrl = frame;
+        }
 
         const verification = video
           ? await firstValueFrom(
@@ -3268,6 +3374,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
                 orgId,
                 video,
                 action === 'in' ? 'check_in' : 'check_out',
+                frame || undefined,
               ),
             )
           : null;
@@ -3300,11 +3407,28 @@ export class AttendanceComponent implements OnInit, OnDestroy {
           return;
         }
 
-        const frame = this.capturedPhotoData() || this.captureFrame();
-        if (frame) {
-          this.capturedPhotoData.set(frame);
-          payload.selfieUrl = frame;
+        if (verification && verification.success) {
+          const displayName =
+            `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'there';
+          this.toastService.success(
+            action === 'in'
+              ? 'Time In recorded successfully via Face Recognition!'
+              : 'Time Out recorded successfully via Face Recognition!',
+          );
+          this.faceRecognitionService.speakAttendanceSuccess(displayName);
+          this.playSuccessTone();
+          this.stopFaceAutoScan();
+          this.stopCamera();
+          this.refreshData();
+          this.processing.set(false);
+          this.capturedPhotoData.set(null);
+          this.faceConfirmationReady.set(false);
+          this.faceScanStatus.set('Attendance captured successfully.');
+          this.attendanceSuccess.set(true);
+          setTimeout(() => this.closeCameraModal(), 1800);
+          return;
         }
+
         this.stopFaceAutoScan();
         this.stopCamera();
         await new Promise((r) => setTimeout(r, 250));

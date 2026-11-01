@@ -73,6 +73,7 @@ import { finalize } from 'rxjs';
               <th class="px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Check Out</th>
               <th class="px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Work Hours</th>
               <th class="px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Status</th>
+              <th class="px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Face Match</th>
               <th class="px-5 py-3.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Selfie / Image</th>
             </tr>
           </thead>
@@ -94,15 +95,16 @@ import { finalize } from 'rxjs';
                   <td class="px-5 py-4"><div class="h-3 w-16 rounded bg-slate-200"></div></td>
                   <td class="px-5 py-4"><div class="h-3 w-14 rounded bg-slate-200"></div></td>
                   <td class="px-5 py-4"><div class="h-5 w-18 rounded-full bg-slate-200"></div></td>
+                  <td class="px-5 py-4"><div class="h-5 w-12 rounded-full bg-slate-200"></div></td>
                   <td class="px-5 py-4"><div class="h-8 w-8 rounded-md bg-slate-200"></div></td>
                 </tr>
               }
             } @else if (paginatedRecords().length === 0) {
               <tr>
-                <td colspan="7" class="px-6 py-12 text-center">
+                <td colspan="8" class="px-6 py-12 text-center">
                   <div class="flex flex-col items-center justify-center gap-2">
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </div>
                     <p class="text-sm font-semibold text-slate-700">No attendance records found</p>
                     <p class="text-xs text-slate-400">Try adjusting your search query or filter options.</p>
@@ -148,6 +150,16 @@ import { finalize } from 'rxjs';
                       <span class="h-1.5 w-1.5 rounded-full bg-current"></span>
                       {{ record.status ? record.status.replace('_', ' ') : 'present' }}
                     </span>
+                  </td>
+                  <td class="px-5 py-3.5">
+                    @if (getFaceMatchScore(record)) {
+                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        {{ getFaceMatchScore(record) }}
+                      </span>
+                    } @else {
+                      <span class="text-[10px] text-slate-300 font-medium">--</span>
+                    }
                   </td>
                   <td class="px-5 py-3.5">
                     @if (getTimeInImage(record)) {
@@ -330,5 +342,15 @@ export class AttendanceDataTableComponent implements OnInit {
 
   getTimeInImage(record: AttendanceRecord): string | null {
     return record.check_in_photo || record.selfie_url || null;
+  }
+
+  getFaceMatchScore(record: AttendanceRecord): string | null {
+    if (record.face_match_percentage) {
+      return record.face_match_percentage;
+    }
+    if (record.biometric_ref && record.biometric_ref.includes('%')) {
+      return record.biometric_ref;
+    }
+    return null;
   }
 }

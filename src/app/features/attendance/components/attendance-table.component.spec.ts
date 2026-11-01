@@ -94,4 +94,25 @@ describe('AttendanceDataTableComponent (UI Rebuild Spec)', () => {
     expect(component.getStatusClass('half_day')).toContain('indigo');
     expect(component.getStatusClass('present')).toContain('emerald');
   });
+
+  it('should return face match percentage from face_match_percentage or biometric_ref', () => {
+    const recordWithMatch: AttendanceRecord = {
+      ...mockRecords[0],
+      face_match_percentage: '96%',
+    };
+    expect(component.getFaceMatchScore(recordWithMatch)).toBe('96%');
+
+    const recordWithBiometricRef: AttendanceRecord = {
+      ...mockRecords[0],
+      biometric_ref: '94%',
+    };
+    expect(component.getFaceMatchScore(recordWithBiometricRef)).toBe('94%');
+
+    const recordWithoutMatch: AttendanceRecord = {
+      ...mockRecords[0],
+      biometric_ref: undefined,
+      face_match_percentage: undefined,
+    };
+    expect(component.getFaceMatchScore(recordWithoutMatch)).toBeNull();
+  });
 });

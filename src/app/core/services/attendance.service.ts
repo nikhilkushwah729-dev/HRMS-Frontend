@@ -18,6 +18,8 @@ export interface AttendanceRecord {
     total_break_min?: number;
     status: 'present' | 'absent' | 'half_day' | 'late' | 'on_leave' | 'holiday' | 'weekend';
     selfie_url: string | null;
+    biometric_ref?: string | null;
+    face_match_percentage?: string | null;
     is_late: boolean;
     is_half_day: boolean;
     shift_id?: number;
@@ -391,6 +393,12 @@ export class AttendanceService {
                 raw?.checkOutPhoto ??
                 raw?.check_out_photo ??
                 null
+            ),
+            biometric_ref: raw?.biometricRef ?? raw?.biometric_ref ?? null,
+            face_match_percentage: raw?.faceMatchPercentage ?? raw?.face_match_percentage ?? (
+                typeof (raw?.biometricRef ?? raw?.biometric_ref) === 'string' && (raw?.biometricRef ?? raw?.biometric_ref).includes('%')
+                    ? (raw?.biometricRef ?? raw?.biometric_ref)
+                    : null
             ),
             is_late: Boolean(raw?.lateMinutes ?? raw?.isLate ?? raw?.status === 'late'),
             is_half_day: Boolean(raw?.isHalfDay ?? raw?.status === 'half_day'),

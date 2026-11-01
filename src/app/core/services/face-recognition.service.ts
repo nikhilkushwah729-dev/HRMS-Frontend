@@ -395,6 +395,23 @@ export class FaceRecognitionService {
     };
   }
 
+  captureFrameAsDataUrl(video: HTMLVideoElement): string | null {
+    try {
+      if (!video || !video.videoWidth || !video.videoHeight) {
+        return null;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    } catch {
+      return null;
+    }
+  }
+
   // ==================== FACE REGISTRATION ====================
 
   /**
@@ -413,6 +430,7 @@ export class FaceRecognitionService {
           employeeId,
           orgId,
           embedding,
+          imageUrl: imageData,
         }),
       ),
       finalize(() => this.isProcessing.set(false)),
@@ -423,8 +441,10 @@ export class FaceRecognitionService {
     employeeId: number,
     orgId: number,
     video: HTMLVideoElement,
+    previewImage?: string,
   ): Observable<any> {
     this.isProcessing.set(true);
+    const fallbackSnapshot = previewImage || this.captureFrameAsDataUrl(video);
 
     return from(this.captureEnrollmentTemplatesFromVideo(video)).pipe(
       switchMap((embeddings) =>
@@ -432,6 +452,7 @@ export class FaceRecognitionService {
           employeeId,
           orgId,
           embeddings,
+          imageUrl: fallbackSnapshot || undefined,
         }),
       ),
       finalize(() => this.isProcessing.set(false)),
@@ -468,6 +489,8 @@ export class FaceRecognitionService {
           orgId,
           embedding,
           action,
+          imageUrl: imageData,
+          selfieUrl: imageData,
         }),
       ),
       finalize(() => this.isProcessing.set(false)),
@@ -493,8 +516,10 @@ export class FaceRecognitionService {
     orgId: number,
     video: HTMLVideoElement,
     action: 'check_in' | 'check_out' = 'check_in',
+    capturedSnapshot?: string,
   ): Observable<FaceVerificationResult> {
     this.isProcessing.set(true);
+    const snapshot = capturedSnapshot || this.captureFrameAsDataUrl(video);
 
     return from(this.captureStableDescriptorFromVideo(video)).pipe(
       switchMap((embedding) =>
@@ -503,6 +528,8 @@ export class FaceRecognitionService {
           orgId,
           embedding,
           action,
+          imageUrl: snapshot || undefined,
+          selfieUrl: snapshot || undefined,
         }),
       ),
       finalize(() => this.isProcessing.set(false)),
