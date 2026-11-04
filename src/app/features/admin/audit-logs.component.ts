@@ -42,6 +42,7 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
   totalItems = this.auditLogService.totalItems;
   totalPages = this.auditLogService.totalPages;
   currentPage = this.auditLogService.currentPage;
+  statistics = this.auditLogService.statistics;
 
   expandedLogId = signal<number | null>(null);
   autoRefreshEnabled = signal<boolean>(false);
@@ -50,11 +51,6 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
   // Modal states
   showDetailsModal = signal<boolean>(false);
   selectedLog = signal<AuditLog | null>(null);
-
-  // Stats
-  todayCount = 0;
-  weekCount = 0;
-  uniqueUsers = 0;
 
   // Quick date filters
   quickDateFilters: QuickDateFilter[] = [
@@ -72,36 +68,46 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
   searchQuery = '';
   selectedModule = '';
   selectedAction = '';
+  selectedStatus = '';
   startDate = '';
   endDate = '';
   itemsPerPage = 50;
 
   moduleOptions: SelectOption[] = [
     { label: 'All Modules', value: '' },
-    { label: 'Authentication', value: 'auth' },
-    { label: 'Employees', value: 'employees' },
-    { label: 'Leaves', value: 'leaves' },
-    { label: 'Attendance', value: 'attendance' },
-    { label: 'Payroll', value: 'payroll' },
-    { label: 'Projects', value: 'projects' },
-    { label: 'Timesheets', value: 'timesheets' },
-    { label: 'Expenses', value: 'expenses' },
-    { label: 'Organization', value: 'organization' },
-    { label: 'Settings', value: 'settings' },
-    { label: 'Audit', value: 'audit' },
+    { label: 'Employee Management', value: 'EMPLOYEE' },
+    { label: 'Attendance Management', value: 'ATTENDANCE' },
+    { label: 'Leave Management', value: 'LEAVE' },
+    { label: 'Payroll Management', value: 'PAYROLL' },
+    { label: 'Timesheet Management', value: 'TIMESHEET' },
+    { label: 'User Management', value: 'USER' },
+    { label: 'Role & Permission', value: 'ROLE_PERMISSION' },
+    { label: 'Organization Settings', value: 'ORGANIZATION' },
+    { label: 'Subscription & Add-ons', value: 'SUBSCRIPTION' },
+    { label: 'Reports & Exports', value: 'REPORTS' },
+    { label: 'Authentication & Security', value: 'AUTH' },
   ];
 
   actionOptions: SelectOption[] = [
     { label: 'All Actions', value: '' },
-    { label: 'Create', value: 'CREATE' },
-    { label: 'Update', value: 'UPDATE' },
-    { label: 'Delete', value: 'DELETE' },
-    { label: 'Login', value: 'LOGIN' },
-    { label: 'Logout', value: 'LOGOUT' },
-    { label: 'Approve', value: 'APPROVE' },
-    { label: 'Reject', value: 'REJECT' },
-    { label: 'View', value: 'VIEW' },
-    { label: 'Export', value: 'EXPORT' },
+    { label: 'CREATE', value: 'CREATE' },
+    { label: 'UPDATE', value: 'UPDATE' },
+    { label: 'DELETE', value: 'DELETE' },
+    { label: 'LOGIN', value: 'LOGIN' },
+    { label: 'LOGOUT', value: 'LOGOUT' },
+    { label: 'APPROVE', value: 'APPROVE' },
+    { label: 'REJECT', value: 'REJECT' },
+    { label: 'EXPORT', value: 'EXPORT' },
+    { label: 'IMPORT', value: 'IMPORT' },
+    { label: 'ROLE_CHANGE', value: 'ROLE_CHANGE' },
+    { label: 'PERMISSION_CHANGE', value: 'PERMISSION_CHANGE' },
+    { label: 'STATUS_CHANGE', value: 'STATUS_CHANGE' },
+  ];
+
+  statusOptions: SelectOption[] = [
+    { label: 'All Statuses', value: '' },
+    { label: 'Success', value: 'success' },
+    { label: 'Failure', value: 'failure' },
   ];
 
   itemsPerPageOptions: SelectOption[] = [
@@ -109,66 +115,22 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     { label: '25', value: 25 },
     { label: '50', value: 50 },
     { label: '100', value: 100 },
-    { label: '250', value: 250 },
-    { label: '500', value: 500 },
-    { label: '1000', value: 1000 },
-    { label: 'All', value: 5000 },
   ];
-
-  // GeoJSON for Map
-  countriesGeoJson: any = null;
 
   ngOnInit() {
     this.refresh();
-    this.calculateStats();
-    this.loadGeoJson();
-  }
-
-  loadGeoJson() {
-    fetch('/geo_countries.json')
-      .then((res) => res.json())
-      .then((data) => (this.countriesGeoJson = data))
-      .catch((err) => console.error('Failed to load GeoJSON', err));
-  }
-
-  getSvgPath(feature: any): string {
-    if (!feature || !feature.geometry) return '';
-    const { type, coordinates } = feature.geometry;
-
-    if (type === 'Polygon') {
-      return this.ringToPath(coordinates[0]);
-    } else if (type === 'MultiPolygon') {
-      return coordinates.map((poly: any) => this.ringToPath(poly[0])).join(' ');
-    }
-    return '';
-  }
-
-  private ringToPath(ring: number[][]): string {
-    return (
-      ring
-        .map((point, i) => `${i === 0 ? 'M' : 'L'}${point[0]} ${-point[1]}`)
-        .join(' ') + 'Z'
-    );
   }
 
   ngOnDestroy() {
     this.auditLogService.disableAutoRefresh();
-    if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
   }
 
   @HostListener('window:keydown', ['$event'])
-  handleKeyboardEvent(event: KeyboardEvent) {
-    // Ctrl+R to refresh
-    if (event.ctrlKey && event.key === 'r') {
+  handleKeyDown(event: KeyboardEvent) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
       event.preventDefault();
-      this.refresh();
+      this.searchInput?.nativeElement.focus();
     }
-    // Ctrl+F to focus search
-    if (event.ctrlKey && event.key === 'f') {
-      event.preventDefault();
-      this.searchInput?.nativeElement?.focus();
-    }
-    // Escape to close modal
     if (event.key === 'Escape' && this.showDetailsModal()) {
       this.closeDetailsModal();
     }
@@ -181,18 +143,18 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
         this.selectedModule || undefined,
         this.itemsPerPage,
         1,
-        this.getCurrentFilter(),
+        this.getCurrentFilter()
       )
-      .subscribe(() => {
-        this.calculateStats();
-      });
+      .subscribe();
+    this.auditLogService.fetchStatistics().subscribe();
   }
 
   getCurrentFilter(): AuditLogFilter {
     return {
-      search: this.searchQuery || undefined,
+      search: this.searchQuery ? this.searchQuery.trim() : undefined,
       module: this.selectedModule || undefined,
       action: this.selectedAction || undefined,
+      status: this.selectedStatus || undefined,
       startDate: this.startDate || undefined,
       endDate: this.endDate || undefined,
     };
@@ -205,14 +167,12 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
         this.selectedModule || undefined,
         this.itemsPerPage,
         1,
-        this.getCurrentFilter(),
+        this.getCurrentFilter()
       )
-      .subscribe(() => {
-        this.calculateStats();
-      });
+      .subscribe();
+    this.auditLogService.fetchStatistics().subscribe();
   }
 
-  // Quick date filter methods
   applyQuickDate(value: string) {
     this.selectedQuickDate = value;
     const today = new Date();
@@ -248,7 +208,6 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     return date.toISOString().split('T')[0];
   }
 
-  // Debounced search
   onSearchInput(event: Event) {
     const value = (event.target as HTMLInputElement).value;
     if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
@@ -263,6 +222,7 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
       this.searchQuery ||
       this.selectedModule ||
       this.selectedAction ||
+      this.selectedStatus ||
       this.startDate ||
       this.endDate ||
       this.selectedQuickDate
@@ -273,24 +233,34 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     this.selectedModule = '';
     this.applyFilters();
   }
+
   clearActionFilter() {
     this.selectedAction = '';
     this.applyFilters();
   }
+
+  clearStatusFilter() {
+    this.selectedStatus = '';
+    this.applyFilters();
+  }
+
   clearDateFilter() {
     this.startDate = '';
     this.endDate = '';
     this.selectedQuickDate = '';
     this.applyFilters();
   }
+
   clearSearchFilter() {
     this.searchQuery = '';
     this.applyFilters();
   }
+
   clearAllFilters() {
     this.searchQuery = '';
     this.selectedModule = '';
     this.selectedAction = '';
+    this.selectedStatus = '';
     this.startDate = '';
     this.endDate = '';
     this.selectedQuickDate = '';
@@ -308,7 +278,7 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
           this.selectedModule || undefined,
           this.itemsPerPage,
           page,
-          this.getCurrentFilter(),
+          this.getCurrentFilter()
         )
         .subscribe();
     }
@@ -317,9 +287,9 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
   previousPage() {
     if (this.currentPage() > 1) this.goToPage(this.currentPage() - 1);
   }
+
   nextPage() {
-    if (this.currentPage() < this.totalPages())
-      this.goToPage(this.currentPage() + 1);
+    if (this.currentPage() < this.totalPages()) this.goToPage(this.currentPage() + 1);
   }
 
   toggleAutoRefresh() {
@@ -336,6 +306,7 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     if (this.searchQuery) count++;
     if (this.selectedModule) count++;
     if (this.selectedAction) count++;
+    if (this.selectedStatus) count++;
     if (this.startDate) count++;
     if (this.endDate) count++;
     if (this.selectedQuickDate) count++;
@@ -350,7 +321,6 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     this.expandedLogId.set(this.expandedLogId() === id ? null : id);
   }
 
-  // Modal methods
   openDetailsModal(event: Event, log: AuditLog) {
     event.stopPropagation();
     this.selectedLog.set(log);
@@ -362,43 +332,35 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
     this.selectedLog.set(null);
   }
 
-  exportSingleLog() {
-    const log = this.selectedLog();
-    if (!log) return;
-
-    const headers = ['Field', 'Value'];
-    const rows = [
-      ['ID', log.id.toString()],
-      ['Timestamp', log.createdAt],
-      ['Actor', log.employee?.firstName || 'System'],
-      ['Email', log.employee?.email || 'N/A'],
-      ['Action', log.action],
-      ['Module', log.module],
-      ['Entity Name', log.entityName || 'N/A'],
-      ['Entity ID', log.entityId || 'N/A'],
-      ['IP Address', log.ipAddress || 'N/A'],
-      ['User Agent', log.userAgent || 'N/A'],
-    ];
-
-    if (log.oldValues) {
-      rows.push(['Old Values', JSON.stringify(log.oldValues, null, 2)]);
+  parseJsonSafe(val: any): any {
+    if (!val) return null;
+    if (typeof val === 'object') return val;
+    try {
+      return JSON.parse(val);
+    } catch {
+      return val;
     }
-    if (log.newValues) {
-      rows.push(['New Values', JSON.stringify(log.newValues, null, 2)]);
-    }
-
-    const csv = [
-      headers.join(','),
-      ...rows.map((r) => `"${r[0]}","${r[1].replace(/"/g, '""')}"`),
-    ].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `audit-log-${log.id}-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
   }
 
-  // Get visible page numbers for pagination
+  getDiffKeys(oldVal: any, newVal: any): string[] {
+    const o = this.parseJsonSafe(oldVal) || {};
+    const n = this.parseJsonSafe(newVal) || {};
+    const keys = new Set([...Object.keys(o), ...Object.keys(n)]);
+    return Array.from(keys);
+  }
+
+  isFieldChanged(key: string, oldVal: any, newVal: any): boolean {
+    const o = this.parseJsonSafe(oldVal) || {};
+    const n = this.parseJsonSafe(newVal) || {};
+    return JSON.stringify(o[key]) !== JSON.stringify(n[key]);
+  }
+
+  formatFieldValue(val: any): string {
+    if (val === null || val === undefined) return 'null';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return String(val);
+  }
+
   getVisiblePages(): (number | string)[] {
     const total = this.totalPages();
     const current = this.currentPage();
@@ -420,96 +382,56 @@ export class AuditLogsComponent implements OnInit, OnDestroy {
   }
 
   formatModule(module: string): string {
-    const names: { [key: string]: string } = {
-      auth: 'Authentication',
-      employees: 'Employees',
-      leaves: 'Leaves',
+    const names: Record<string, string> = {
+      employee: 'Employee Management',
+      employees: 'Employee Management',
       attendance: 'Attendance',
+      leave: 'Leave Management',
+      leaves: 'Leave Management',
       payroll: 'Payroll',
-      projects: 'Projects',
-      timesheets: 'Timesheets',
-      expenses: 'Expenses',
-      organization: 'Organization',
-      settings: 'Settings',
+      timesheet: 'Timesheet',
+      timesheets: 'Timesheet',
+      user: 'User Management',
+      role_permission: 'Roles & Permissions',
+      organization: 'Organization Settings',
+      subscription: 'Subscription & Add-ons',
+      reports: 'Reports & Exports',
+      auth: 'Authentication & Security',
     };
     return names[module?.toLowerCase()] || module || '';
   }
 
   getActionClasses(action: string): string {
     const a = action?.toUpperCase();
-    if (a === 'CREATE' || a === 'LOGIN' || a === 'APPROVE' || a === 'REGISTER')
-      return 'bg-green-50 text-emerald-600 border-emerald-600/20';
-    if (a === 'UPDATE' || a === 'PASSWORD_CHANGE' || a === 'PASSWORD_RESET')
-      return 'bg-blue-50 text-blue-600 border-blue-600/20';
-    if (a === 'DELETE' || a === 'LOGIN_FAILED' || a === 'REJECT')
-      return 'bg-red-50 text-rose-600 border-rose-600/20';
-    if (a === 'LOGOUT' || a === 'FORGOT_PASSWORD')
-      return 'bg-amber-50 text-amber-600 border-amber-600/20';
-    return 'bg-slate-50 text-slate-600 border-slate-600/20';
+    if (a === 'CREATE' || a === 'APPROVE')
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (a === 'UPDATE' || a === 'STATUS_CHANGE')
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    if (a === 'DELETE' || a === 'REJECT')
+      return 'bg-rose-50 text-rose-700 border-rose-200';
+    if (a === 'LOGIN' || a === 'LOGOUT')
+      return 'bg-purple-50 text-purple-700 border-purple-200';
+    if (a === 'ROLE_CHANGE' || a === 'PERMISSION_CHANGE')
+      return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (a === 'EXPORT' || a === 'IMPORT')
+      return 'bg-cyan-50 text-cyan-700 border-cyan-200';
+    return 'bg-slate-50 text-slate-700 border-slate-200';
   }
 
   getActionIcon(action: string): string {
     const a = action?.toUpperCase();
-    if (a === 'CREATE' || a === 'REGISTER') return '➕';
-    if (a === 'UPDATE' || a === 'PASSWORD_CHANGE' || a === 'PASSWORD_RESET')
-      return '✏️';
+    if (a === 'CREATE') return '➕';
+    if (a === 'UPDATE') return '✏️';
     if (a === 'DELETE') return '🗑️';
     if (a === 'LOGIN') return '🔓';
-    if (a === 'LOGOUT' || a === 'LOGIN_FAILED') return '🔒';
+    if (a === 'LOGOUT') return '🔒';
     if (a === 'APPROVE') return '✅';
     if (a === 'REJECT') return '❌';
-    if (a === 'VIEW') return '👁️';
-    if (a === 'EXPORT' || a === 'DOWNLOAD') return '📤';
+    if (a === 'EXPORT') return '📤';
+    if (a === 'IMPORT') return '📥';
+    if (a === 'ROLE_CHANGE') return '👥';
+    if (a === 'PERMISSION_CHANGE') return '🛡️';
+    if (a === 'STATUS_CHANGE') return '🔄';
     return '📝';
-  }
-
-  getBrowserInfo(userAgent: string): string {
-    if (!userAgent) return 'Unknown';
-
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Edge')) return 'Edge';
-    if (userAgent.includes('MSIE') || userAgent.includes('Trident'))
-      return 'Internet Explorer';
-
-    return 'Other';
-  }
-
-  private calculateStats() {
-    const logs = this.logs();
-    if (!logs.length) {
-      this.todayCount = 0;
-      this.weekCount = 0;
-      this.uniqueUsers = 0;
-      return;
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const weekAgo = new Date(today);
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    const uniqueUserIds = new Set<number>();
-
-    logs.forEach((log) => {
-      const logDate = new Date(log.createdAt);
-      logDate.setHours(0, 0, 0, 0);
-
-      if (logDate.getTime() === today.getTime()) {
-        this.todayCount++;
-      }
-
-      if (logDate >= weekAgo) {
-        this.weekCount++;
-      }
-
-      if (log.employeeId) {
-        uniqueUserIds.add(log.employeeId);
-      }
-    });
-
-    this.uniqueUsers = uniqueUserIds.size;
   }
 }

@@ -149,17 +149,20 @@ export class AiAssistantDrawerComponent {
   userQuery = '';
 
   suggestedPrompts = [
-    'How do I request casual leave?',
-    'What is the geofence attendance rule?',
-    'How to claim meal expenses?',
-    'Show HR onboarding guidelines',
+    'Meri aaj ki attendance status',
+    'Remaining leave balances',
+    'Face registration status',
+    'Kiosk par punch kaise karein',
+    'Upcoming holidays list',
+    'Latest payslip & salary',
+    'Who is my manager',
   ];
 
   messages = signal<ChatMessage[]>([
     {
       id: '1',
       sender: 'ai',
-      text: 'Hello! I am your organization AI HR Assistant. How can I assist you today with leaves, attendance, or claims?',
+      text: 'Namaste! 🙏 I am your AI HR Assistant.\n\nAap mujhse attendance status, leave balance, Face ID registration, Kiosk punch guide, company holidays, ya salary slips ke baare me Hindi ya English me pooch sakte hain.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
