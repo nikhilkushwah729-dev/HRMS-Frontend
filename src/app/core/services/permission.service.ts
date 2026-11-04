@@ -240,10 +240,10 @@ export class PermissionService {
     5: [
       'dashboard.view',
       'profile.view',
-      'addons.view',
       'visitorManagement.view',
       'attendance.view',
       'leaves.view',
+      'payroll.view',
       'projects.view',
       'expenses.view',
       'timesheets.view',

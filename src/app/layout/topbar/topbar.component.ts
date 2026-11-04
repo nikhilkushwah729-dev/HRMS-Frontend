@@ -977,10 +977,12 @@ export class TopbarComponent implements OnInit {
     },
   ]);
   readonly selfServiceTabs = computed<ModuleTab[]>(() => {
+    const activeUser = this.currentUser() ?? this.authService.getStoredUser();
+    const isAdmin = this.permissionService.isAdminUser(activeUser);
     return ['dashboard', 'self-service', 'attendance', 'leave'].flatMap((sectionId) =>
       this.workspaceCatalog
-        .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
-          includeLocked: true,
+        .getSectionViews(activeUser, sectionId, {
+          includeLocked: isAdmin,
         })
         .map((module) => ({
           label: module.label,
@@ -993,10 +995,12 @@ export class TopbarComponent implements OnInit {
     );
   });
   readonly adminTabs = computed<ModuleTab[]>(() => {
+    const activeUser = this.currentUser() ?? this.authService.getStoredUser();
+    const isAdmin = this.permissionService.isAdminUser(activeUser);
     return ['employees', 'settings', 'addons', 'visitormanagement', 'organization', 'roles-permissions'].flatMap((sectionId) =>
       this.workspaceCatalog
-        .getSectionViews(this.currentUser() ?? this.authService.getStoredUser(), sectionId, {
-          includeLocked: true,
+        .getSectionViews(activeUser, sectionId, {
+          includeLocked: isAdmin,
         })
         .map((module) => ({
           label: module.label,

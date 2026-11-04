@@ -21,7 +21,7 @@ export class WorkspaceCatalogService {
     if (!section) return [];
 
     const accessUser = this.accessContext.buildAccessUser(user);
-    const includeLocked = options?.includeLocked ?? true;
+    const includeLocked = options?.includeLocked ?? false;
 
     const isSuper = this.accessControl.isSuperAdmin(accessUser);
 
@@ -52,9 +52,24 @@ export class WorkspaceCatalogService {
           isAccessible,
           isLocked,
           lockReason,
+          blockedBy: evaluation.blockedBy,
+          discoverable: evaluation.discoverable,
+          lockedByAddon: evaluation.lockedByAddon,
         };
       })
-      .filter((item) => item.isAccessible || (includeLocked && item.isLocked));
+      .filter((item) => {
+        // If it's accessible to the user, always show
+        if (item.isAccessible) return true;
+        // If locked items are not requested, hide
+        if (!includeLocked) return false;
+        // Strictly hide if the user lacks required permission or role
+        if (!item.discoverable || item.blockedBy?.includes('permission') || item.blockedBy?.includes('role')) {
+          return false;
+        }
+        // Only show locked items if locked by organization add-on and user is an admin
+        const isAdmin = isSuper || accessUser?.role === 'organization_admin' || accessUser?.role === 'admin' || accessUser?.role === 'hr_manager';
+        return Boolean(item.lockedByAddon && isAdmin);
+      });
   }
 
   getAllViews(

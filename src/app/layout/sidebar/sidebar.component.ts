@@ -351,25 +351,29 @@ export class SidebarComponent implements OnInit {
   public isOrgLoading = signal(true);
   private store = inject(Store);
   private user$ = this.store.select(selectUser);
-  readonly selfServiceLinks = computed(() =>
-    ['dashboard', 'self-service'].flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
-    ),
-  );
-  readonly peopleLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: true }),
-  );
-  readonly attendanceLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: true }),
-  );
-  readonly leaveLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: true }),
-  );
-  readonly payrollLinks = computed(() =>
-    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: true }),
+  readonly isAdmin = computed(() =>
+    this.permissionService.isAdminUser(this.currentUser())
   );
   readonly isSuperAdmin = computed(() =>
     this.permissionService.isSuperAdminUser(this.currentUser())
+  );
+
+  readonly selfServiceLinks = computed(() =>
+    ['dashboard', 'self-service'].flatMap((id) =>
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: this.isAdmin() }),
+    ),
+  );
+  readonly peopleLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'employees', { includeLocked: this.isAdmin() }),
+  );
+  readonly attendanceLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'attendance', { includeLocked: this.isAdmin() }),
+  );
+  readonly leaveLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'leave', { includeLocked: this.isAdmin() }),
+  );
+  readonly payrollLinks = computed(() =>
+    this.workspaceCatalog.getSectionViews(this.currentUser(), 'payroll', { includeLocked: this.isAdmin() }),
   );
 
   readonly systemLinks = computed(() => {
@@ -380,7 +384,7 @@ export class SidebarComponent implements OnInit {
     sectionIds.push('kiosk-management', 'roles-permissions');
 
     return sectionIds.flatMap((id) =>
-      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: true }),
+      this.workspaceCatalog.getSectionViews(this.currentUser(), id, { includeLocked: this.isAdmin() }),
     );
   });
   readonly compactNavLinks = computed(() =>
