@@ -331,10 +331,21 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               <div class="flex items-start justify-between gap-3">
                 <div class="flex h-11 w-11 items-center justify-center rounded-[18px]" [ngClass]="isModeSelected(mode.id) ? 'bg-teal-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-700'">
                   <ng-container [ngSwitch]="mode.id">
+                    <svg *ngSwitchCase="'web'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
                     <svg *ngSwitchCase="'camera'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
                       <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"></path>
                       <path d="M9.5 13a2.5 2.5 0 1 1 5 0"></path>
                       <path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"></path>
+                    </svg>
+                    <svg *ngSwitchCase="'face'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
+                      <path d="M7 3H5a2 2 0 0 0-2 2v2"></path>
+                      <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                      <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                      <path d="M3 17v2a2 2 0 0 0 2 2h2"></path>
+                      <path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"></path>
                     </svg>
                     <svg *ngSwitchCase="'biometric'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="shrink-0">
                       <path d="M12 3a4 4 0 0 0-4 4v2"></path>
@@ -1429,10 +1440,21 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                   <span class="flex items-center gap-2">
                     <span class="inline-flex h-8 w-8 items-center justify-center rounded-full" [ngClass]="isModeSelected(mode.id) ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'">
                       <ng-container [ngSwitch]="mode.id">
+                        <svg *ngSwitchCase="'web'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
                         <svg *ngSwitchCase="'camera'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"></path>
                           <path d="M9.5 13a2.5 2.5 0 1 1 5 0"></path>
                           <path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"></path>
+                        </svg>
+                        <svg *ngSwitchCase="'face'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M7 3H5a2 2 0 0 0-2 2v2"></path>
+                          <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                          <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                          <path d="M3 17v2a2 2 0 0 0 2 2h2"></path>
+                          <path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"></path>
                         </svg>
                         <svg *ngSwitchCase="'biometric'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M12 3a4 4 0 0 0-4 4v2"></path>
@@ -1451,17 +1473,35 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
                   </span>
                 </button>
               </div>
-              <p class="mt-3 text-xs text-slate-500">Choose selfie or biometric. Selfie mode already includes smart face detect, automatic capture, and no-camera fallback when needed.</p>
+              <p class="mt-3 text-xs text-slate-500">Choose Quick Punch, Selfie, Face ID, or Biometric. You can punch in using whichever mode works best on your device.</p>
             </div>
             </div>
 
             <div class="space-y-4">
             <div class="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
               <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                {{ checkInMode() === 'biometric' ? 'Biometric Verification' : 'Selfie' }}
+                {{ checkInMode() === 'biometric' ? 'Biometric Verification' : checkInMode() === 'web' ? 'Quick Web Punch' : 'Selfie' }}
               </p>
 
-              <ng-container *ngIf="checkInMode() !== 'biometric'; else biometricVerificationPanel">
+              <!-- Web Quick Punch View -->
+              <div *ngIf="checkInMode() === 'web'" class="mt-4 rounded-2xl border border-teal-200 bg-teal-50/70 p-5 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-600 text-white shadow-md shadow-teal-600/20">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                </div>
+                <h4 class="mt-3 text-base font-black text-slate-900">Standard Web Check-in</h4>
+                <p class="mt-1 text-xs text-slate-600 max-w-sm mx-auto">
+                  Instant attendance without camera requirement. Your shift schedule and location will be recorded with your punch.
+                </p>
+                <div *ngIf="attendanceSuccess()" class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center">
+                  <p class="text-sm font-black text-emerald-700">Attendance marked successfully!</p>
+                  <p class="mt-1 text-xs text-emerald-600">Updating dashboard...</p>
+                </div>
+              </div>
+
+              <ng-container *ngIf="checkInMode() !== 'biometric' && checkInMode() !== 'web'; else biometricVerificationPanel">
 
               <div *ngIf="cameraAvailability() === 'idle' && !attendanceSuccess()" class="mt-2 flex flex-col gap-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                 <p class="break-words">Selfie is optional. Allow camera permission if you want to attach a live capture.</p>
@@ -1671,7 +1711,7 @@ import { AttendancePunchComponent } from './components/attendance-punch.componen
               *ngIf="checkInMode() !== 'face'"
               type="button"
               (click)="submitCameraModalPunch()"
-              [disabled]="processing() || attendanceSuccess() || (cameraAvailability() === 'checking') || isPunchBlockedByLocation()"
+              [disabled]="processing() || attendanceSuccess() || (checkInMode() === 'camera' && cameraAvailability() === 'checking') || isPunchBlockedByLocation()"
               class="rounded-xl bg-teal-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
               {{ processing() ? 'Submitting Attendance...' : punchModalPrimaryLabel() }}
@@ -1987,24 +2027,27 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     icon: string;
   }[] = [
     {
+      id: 'web',
+      label: 'Quick Punch',
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    },
+    {
       id: 'camera',
       label: 'Selfie',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6H8l1.3-1.6A2 2 0 0 1 10.85 4h2.3a2 2 0 0 1 1.55.74L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><path d="M9.5 13a2.5 2.5 0 1 1 5 0"/><path d="M8.75 16a4.6 4.6 0 0 1 6.5 0"/></svg>',
     },
     {
       id: 'face',
-      label: 'Auto Detect',
+      label: 'Face ID',
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3H5a2 2 0 0 0-2 2v2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M3 17v2a2 2 0 0 0 2 2h2"/><path d="M8 12a4 4 0 1 0 8 0 4 4 0 1 0-8 0"/></svg>',
     },
     {
       id: 'biometric',
       label: 'Bio',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4v2"/><path d="M8 18a4 4 0 0 0 8 0v-2"/><path d="M6.2 10.5A6 6 0 0 1 12 6"/><path d="M17.8 10.5A6 6 0 0 0 12 6"/><path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"/><path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"/><path d="M10 12.5v5.5"/><path d="M14 11.5v6.5"/><path d="M12 10.5v8.5"/></svg>',
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a4 4 0 0 0-4 4v2"></path><path d="M8 18a4 4 0 0 0 8 0v-2"></path><path d="M6.2 10.5A6 6 0 0 1 12 6"></path><path d="M17.8 10.5A6 6 0 0 0 12 6"></path><path d="M5 13.5c.8-1.6 2.3-2.5 4-2.5"></path><path d="M19 13.5c-.8-1.6-2.3-2.5-4-2.5"></path><path d="M10 12.5v5.5"></path><path d="M14 11.5v6.5"></path><path d="M12 10.5v8.5"></path></svg>',
     },
   ];
-  visibleModes = computed(() =>
-    this.modes.filter((mode) => mode.id !== 'web' && mode.id !== 'face'),
-  );
+  visibleModes = computed(() => this.modes);
 
   weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -2157,12 +2200,11 @@ export class AttendanceComponent implements OnInit, OnDestroy {
 
       if (shouldOpenModal) {
         this.autoOpenPunchModalConsumed = true;
-        this.currentView.set('punch');
         setTimeout(() => {
           this.openPrimaryAttendanceModal();
           void this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: { openModal: null },
+            queryParams: { openModal: null, view: null },
             queryParamsHandling: 'merge',
             replaceUrl: true,
           });
@@ -2221,8 +2263,30 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       },
     });
 
+    this.attendanceService.getGeoFenceSettings().subscribe({
+      next: (settings) => {
+        const enabled = Boolean(settings?.geofence_enabled);
+        this.geofenceEnabled.set(enabled);
+        const user = this.currentUser || this.authService.getStoredUser();
+        const required = Boolean(
+          settings?.require_geofence_for_all ||
+          (user as any)?.requiresGeofence ||
+          (user as any)?.geofenceId
+        );
+        this.geofenceRequired.set(required);
+      },
+      error: () => {
+        this.geofenceEnabled.set(false);
+        this.geofenceRequired.set(false);
+      },
+    });
+
     this.loadDataForCurrentView();
     this.generateCalendar();
+  }
+
+  isGeofenceEnforced(): boolean {
+    return this.geofenceEnabled() && this.geofenceRequired();
   }
 
   private loadDataForCurrentView(): void {
@@ -2640,16 +2704,13 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   setMode(mode: 'web' | 'camera' | 'biometric' | 'face') {
     if (this.processing()) return;
 
-    const resolvedMode: 'web' | 'camera' | 'biometric' | 'face' =
-      mode === 'camera' ? 'face' : mode;
-
-    if (resolvedMode === 'biometric' && !this.canUseBiometricMode()) {
+    if (mode === 'biometric' && !this.canUseBiometricMode()) {
       this.toastService.error(this.biometricSupportMessage());
       this.checkInMode.set('camera');
       return;
     }
 
-    this.checkInMode.set(resolvedMode);
+    this.checkInMode.set(mode);
     this.capturedPhotoData.set(null);
     this.faceScanStatus.set('');
     this.faceScanAttempts.set(0);
@@ -2659,15 +2720,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     this.faceAutoTriggered = false;
 
     if (this.showCameraModal()) {
-      if (resolvedMode === 'face') {
+      if (mode === 'face') {
         void this.startCameraAfterModalRender('face');
         return;
       }
 
-      if (resolvedMode === 'web') {
-        this.cameraAvailability.set('idle');
-        this.stopCamera();
-        this.stopFaceAutoScan();
+      if (mode === 'camera') {
         void this.startCameraAfterModalRender('camera', true);
         return;
       }
@@ -2719,8 +2777,20 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     void this.openCameraModal(action);
   }
 
-  handleMarkAttendanceClick(): void {
-    this.setView('punch');
+  async handleMarkAttendanceClick(): Promise<void> {
+    let registered = this.isFaceRegistered();
+    if (registered !== true) {
+      registered = await this.checkFaceRegistrationStatus();
+    }
+
+    if (!registered) {
+      this.toastService.info('Please register your face first to mark attendance.');
+      void this.router.navigate(['/face-registration'], {
+        queryParams: { returnUrl: '/attendance' },
+      });
+      return;
+    }
+
     void this.openPrimaryAttendanceModal();
   }
 
@@ -2787,7 +2857,14 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       if (this.showCameraModal()) {
         this.preparePunchModal();
-        void this.startCameraAfterModalRender('face');
+        const currentMode = this.checkInMode();
+        if (currentMode === 'face') {
+          void this.startCameraAfterModalRender('face');
+        } else if (currentMode === 'camera') {
+          void this.startCameraAfterModalRender('camera', true);
+        } else {
+          this.cameraAvailability.set('idle');
+        }
       }
     }, 80);
   }
@@ -2838,7 +2915,7 @@ export class AttendanceComponent implements OnInit, OnDestroy {
         void this.startCameraAfterModalRender('face');
         return;
       }
-      if (currentMode === 'camera' || currentMode === 'web') {
+      if (currentMode === 'camera') {
         void this.startCameraAfterModalRender('camera', true);
       }
     }, 120);
@@ -3645,9 +3722,12 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     if (this.checkInMode() === 'biometric') {
       return `Verify Biometric & ${verb}`;
     }
+    if (this.checkInMode() === 'web') {
+      return `Confirm ${verb}`;
+    }
     return this.cameraAvailability() === 'ready'
       ? `Capture Selfie & ${verb}`
-      : `Continue ${verb}`;
+      : `Confirm ${verb}`;
   }
 
   punchLocationSummary(): string {
@@ -3662,14 +3742,18 @@ export class AttendanceComponent implements OnInit, OnDestroy {
       return true;
     }
 
-    if (this.locationStatus() === 'outside') {
-      return true;
+    if (this.isGeofenceEnforced()) {
+      if (this.locationStatus() === 'outside') {
+        return true;
+      }
+
+      return (
+        this.punchLocationAvailability() !== 'ready' ||
+        this.locationStatus() !== 'inside'
+      );
     }
 
-    return (
-      this.punchLocationAvailability() !== 'ready' ||
-      this.locationStatus() !== 'inside'
-    );
+    return false;
   }
 
   primaryAttendanceAction(): 'in' | 'out' {
@@ -3692,35 +3776,30 @@ export class AttendanceComponent implements OnInit, OnDestroy {
     }
 
     return this.primaryAttendanceAction() === 'out'
-      ? 'Mark Attendance (Time Out)'
-      : 'Mark Attendance (Time In)';
+      ? 'Record Time Out'
+      : 'Record Time In';
   }
 
   selectedModeLabel(): string {
-    if (this.checkInMode() === 'face') {
-      return 'Selfie';
-    }
-    return this.modes.find((mode) => mode.id === this.checkInMode())?.label || 'Selfie';
+    return this.modes.find((mode) => mode.id === this.checkInMode())?.label || 'Quick Punch';
   }
 
   isModeSelected(modeId: 'web' | 'camera' | 'face' | 'biometric'): boolean {
-    if (modeId === 'camera') {
-      return this.checkInMode() === 'camera' || this.checkInMode() === 'face';
-    }
-
     return this.checkInMode() === modeId;
   }
 
   modeCardDescription(modeId: 'web' | 'camera' | 'face' | 'biometric'): string {
     switch (modeId) {
+      case 'web':
+        return 'Instant web attendance without camera or biometric requirement. Shift time and location are recorded.';
       case 'camera':
-        return 'Use one selfie flow for face detect, automatic capture, and attendance submit. If camera is blocked, normal attendance can still continue.';
+        return 'Snap a quick photo with your device camera for verified visual proof with your punch.';
       case 'face':
-        return 'Use one selfie flow for face detect, automatic capture, and attendance submit.';
+        return 'Automatic face detection and verification. Requires a one-time face registration profile.';
       case 'biometric':
         return this.biometricStatusLabel();
       default:
-        return 'Continue with a normal browser attendance flow.';
+        return 'Standard attendance check-in flow.';
     }
   }
 
@@ -3773,6 +3852,10 @@ export class AttendanceComponent implements OnInit, OnDestroy {
   }
 
   private async ensurePunchWithinGeofence(): Promise<boolean> {
+    if (!this.isGeofenceEnforced()) {
+      return true;
+    }
+
     if (
       this.punchLocationAvailability() !== 'ready' ||
       this.locationStatus() === 'unknown'

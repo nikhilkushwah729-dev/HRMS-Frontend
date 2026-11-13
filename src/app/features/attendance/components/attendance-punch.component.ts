@@ -83,7 +83,7 @@ import { Router } from '@angular/router';
              </div>
           </div>
 
-          <div *ngIf="isCameraReady() && !capturedImage()" class="absolute left-4 right-4 top-4 z-10">
+          <div *ngIf="isCameraReady() && !capturedImage() && faceRegistered()" class="absolute left-4 right-4 top-4 z-10">
             <div class="rounded-md border border-white/15 bg-slate-950/65 px-4 py-3 text-white backdrop-blur-md">
               <p class="text-[10px] font-black uppercase tracking-[0.24em] text-white/60">Face Scan</p>
               <p class="mt-1 text-sm font-bold">{{ faceStatusMessage() }}</p>
@@ -119,25 +119,21 @@ import { Router } from '@angular/router';
             </div>
           </div>
 
-          <!-- Face Not Registered Alert Overlay -->
-          <div *ngIf="isCameraReady() && !faceRegistered() && !cameraFallbackMode()" class="absolute inset-0 z-20 bg-slate-950/88 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white">
-            <div class="h-16 w-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mb-3 text-amber-400 animate-pulse">
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
+          <!-- Face Not Registered Subtle Notice (Non-blocking) -->
+          <div *ngIf="isCameraReady() && !faceRegistered() && !cameraFallbackMode()" class="absolute top-14 left-4 right-4 z-10">
+            <div class="rounded-md border border-amber-300/40 bg-amber-950/70 px-3.5 py-2.5 text-white backdrop-blur-md flex items-center justify-between gap-2 shadow-lg">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="inline-block h-2 w-2 rounded-full bg-amber-400 shrink-0"></span>
+                <p class="text-xs font-semibold text-amber-200 truncate">Face ID not enrolled. Manual selfie punch is active.</p>
+              </div>
+              <button
+                type="button"
+                (click)="openFaceRegistration()"
+                class="px-2.5 py-1 text-[11px] font-bold uppercase bg-amber-500 hover:bg-amber-400 text-slate-900 rounded shrink-0 transition-colors"
+              >
+                Enroll Face
+              </button>
             </div>
-            <h3 class="text-xl font-black tracking-tight text-white mb-2">Face Registration Required</h3>
-            <p class="text-xs text-slate-300 max-w-sm mb-5 leading-relaxed">
-              Your face profile is not registered yet. Please register your face once so the system can recognize you and mark your check-in automatically.
-            </p>
-            <button
-              type="button"
-              (click)="openFaceRegistration()"
-              class="px-6 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black text-sm rounded-md shadow-xl shadow-teal-500/25 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <span>REGISTER YOUR FACE NOW</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
           </div>
 
           <!-- Processing Overlay -->
@@ -158,25 +154,25 @@ import { Router } from '@angular/router';
         <!-- Camera Controls -->
         <div class="mt-4 flex flex-col gap-3 sm:flex-row">
           <button
-            *ngIf="!faceRegistered() && !cameraFallbackMode()"
-            type="button"
-            (click)="openFaceRegistration()"
-            class="flex-1 py-3.5 bg-white text-slate-800 rounded-md font-black text-base border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            REGISTER FACE FIRST
-          </button>
-
-          <button
-            *ngIf="!capturedImage() && (faceRegistered() || cameraFallbackMode())"
+            *ngIf="!capturedImage()"
             (click)="captureAndPunch()"
             [disabled]="isPrimaryActionDisabled()"
             class="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-cyan-700 text-white rounded-md font-black text-base shadow-lg shadow-teal-500/20 hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:translate-y-0 flex items-center justify-center gap-2"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-               <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+               <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
                <circle cx="12" cy="13" r="3" />
             </svg>
             {{ primaryActionLabel() }}
+          </button>
+
+          <button
+            *ngIf="!faceRegistered() && !cameraFallbackMode()"
+            type="button"
+            (click)="openFaceRegistration()"
+            class="py-3.5 px-4 bg-white text-slate-700 rounded-md font-black text-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            Setup Face ID
           </button>
 
           <button
@@ -292,6 +288,9 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   multiFaceDetected = signal<boolean>(false);
   faceRegistered = signal<boolean>(false);
   successFlash = signal<boolean>(false);
+  geofenceEnabled = signal<boolean>(false);
+  geofenceRequired = signal<boolean>(false);
+  isGeofenceEnforced = computed(() => this.geofenceEnabled() && this.geofenceRequired());
   currentTime = '';
   
   private mediaStream: MediaStream | null = null;
@@ -305,8 +304,29 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.startClock();
     this.checkStatus();
+    this.loadGeofenceSettings();
     void this.initializeFaceFlow();
     this.initLocation();
+  }
+
+  private loadGeofenceSettings() {
+    this.attendanceService.getGeoFenceSettings().subscribe({
+      next: (settings) => {
+        if (settings) {
+          this.geofenceEnabled.set(Boolean(settings.geofence_enabled));
+          const user = this.currentUser || this.authService.getStoredUser();
+          const required = Boolean(
+            settings.require_geofence_for_all ||
+              (user as any)?.attendance_settings?.geofence_required,
+          );
+          this.geofenceRequired.set(required);
+        }
+      },
+      error: () => {
+        this.geofenceEnabled.set(false);
+        this.geofenceRequired.set(false);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -337,6 +357,11 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   private async initializeFaceFlow() {
     await this.checkFaceRegistration();
+    if (!this.faceRegistered()) {
+      this.toastService.info('Please register your face first to mark attendance.');
+      this.openFaceRegistration();
+      return;
+    }
     await this.initCamera();
   }
 
@@ -391,8 +416,13 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   }
 
   private stopCamera() {
+    this.faceRecognitionService.stopCamera();
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
+      this.mediaStream = null;
+    }
+    if (this.videoElement?.nativeElement) {
+      this.videoElement.nativeElement.srcObject = null;
     }
   }
 
@@ -470,8 +500,8 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   private initLocation() {
     if (!navigator.geolocation) {
-      this.locationStatus.set('error');
-      this.geofenceMessage.set('Geolocation is not supported by your browser.');
+      this.locationStatus.set(this.isGeofenceEnforced() ? 'error' : 'success');
+      this.geofenceMessage.set(this.isGeofenceEnforced() ? 'Geolocation is not supported by your browser.' : 'Location optional');
       return;
     }
 
@@ -490,20 +520,20 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
               this.locationStatus.set('success');
               this.geofenceMessage.set(res.zone?.name ? `Inside Zone: ${res.zone.name}` : 'Location Authorized');
             } else {
-              this.locationStatus.set('outside_geofence');
-              this.geofenceMessage.set('Outside authorized geofence');
+              this.locationStatus.set(this.isGeofenceEnforced() ? 'outside_geofence' : 'success');
+              this.geofenceMessage.set(this.isGeofenceEnforced() ? 'Outside authorized geofence' : 'Location recorded (Geofence optional)');
             }
           },
           error: () => {
             this.currentLocation.set({ lat, lng });
-            this.locationStatus.set('error');
-            this.geofenceMessage.set('Geofence could not be verified');
+            this.locationStatus.set(this.isGeofenceEnforced() ? 'error' : 'success');
+            this.geofenceMessage.set(this.isGeofenceEnforced() ? 'Geofence could not be verified' : 'Location recorded');
           }
         });
       },
-      (error) => {
-        this.locationStatus.set('error');
-        this.geofenceMessage.set('Could not access location');
+      () => {
+        this.locationStatus.set(this.isGeofenceEnforced() ? 'error' : 'success');
+        this.geofenceMessage.set(this.isGeofenceEnforced() ? 'Could not access location' : 'Location optional');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -514,7 +544,9 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     if (this.cameraFallbackMode()) {
       return this.status() === 'out' ? 'TIME IN NOW' : 'TIME OUT NOW';
     }
-    if (!this.faceRegistered()) return 'REGISTER FACE FIRST';
+    if (!this.faceRegistered()) {
+      return this.status() === 'out' ? 'PUNCH TIME IN (SELFIE)' : 'PUNCH TIME OUT (SELFIE)';
+    }
     return this.status() === 'out' ? 'AUTO FACE TIME IN' : 'AUTO FACE TIME OUT';
   }
 
@@ -522,17 +554,17 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     if (this.hasCompletedPunch()) {
       return 'Your attendance for today is already completed. No further punch is required.';
     }
-    if (this.locationStatus() === 'outside_geofence') {
+    if (this.isGeofenceEnforced() && this.locationStatus() === 'outside_geofence') {
       return 'You are outside the assigned geofence. Attendance cannot be marked from this location.';
     }
-    if (this.locationStatus() === 'error') {
+    if (this.isGeofenceEnforced() && this.locationStatus() === 'error') {
       return 'Location could not be verified. Allow location access and move within your geofence.';
     }
     if (this.cameraFallbackMode()) {
-      return 'Camera is unavailable. Attendance can continue only after location is verified within the geofence.';
+      return 'Camera is unavailable. Using location-based web punch.';
     }
     if (!this.faceRegistered()) {
-      return 'Your face is not registered yet. Complete face registration first, then mark attendance.';
+      return 'Face profile not enrolled for auto-scan. You can record punch with selfie photo.';
     }
     if (this.multiFaceDetected()) {
       return 'Multiple faces detected. Keep only one face inside the frame.';
@@ -541,7 +573,11 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
   }
 
   isPrimaryActionDisabled(): boolean {
-    if (this.isProcessing() || this.locationStatus() === 'loading' || this.locationStatus() === 'outside_geofence' || this.locationStatus() === 'error' || this.hasCompletedPunch()) {
+    if (this.isProcessing() || this.hasCompletedPunch()) {
+      return true;
+    }
+
+    if (this.isGeofenceEnforced() && (this.locationStatus() === 'loading' || this.locationStatus() === 'outside_geofence' || this.locationStatus() === 'error')) {
       return true;
     }
 
@@ -550,7 +586,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
     }
 
     if (!this.faceRegistered()) {
-      return false;
+      return !this.isCameraReady();
     }
 
     return !this.isCameraReady();
@@ -593,7 +629,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   overlayGuideMessage(): string {
     if (this.multiFaceDetected()) return 'Keep only one face visible';
-    if (!this.faceRegistered()) return 'Registration required';
+    if (!this.faceRegistered()) return 'Manual selfie punch active';
     if (this.cameraFallbackMode()) return 'Camera fallback active';
     if (this.scanProgress() >= 100) return 'Capture in progress';
     return 'Center face and hold still';
@@ -601,7 +637,7 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
   openFaceRegistration() {
     void this.router.navigate(['/face-registration'], {
-      queryParams: { returnUrl: '/self-service/attendance?view=punch&openModal=1' },
+      queryParams: { returnUrl: '/self-service?openPunch=1' },
     });
   }
 
@@ -616,45 +652,45 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
       this.toastService.info('Attendance for today is already completed.');
       return;
     }
-    if (this.locationStatus() === 'outside_geofence') {
+    if (!this.faceRegistered()) {
+      this.toastService.info('Please register your face first to mark attendance.');
+      this.openFaceRegistration();
+      return;
+    }
+    if (this.isGeofenceEnforced() && this.locationStatus() === 'outside_geofence') {
       this.toastService.error('Outside Geofence. Attendance cannot be marked.');
       return;
     }
-    if (this.locationStatus() === 'error' || this.locationStatus() === 'loading') {
+    if (this.isGeofenceEnforced() && (this.locationStatus() === 'error' || this.locationStatus() === 'loading')) {
       this.toastService.error('Location could not be verified. Please allow location and move within your geofence.');
       return;
     }
 
-    if (!this.cameraFallbackMode() && !this.faceRegistered()) {
-      void this.router.navigate(['/face-registration'], {
-        queryParams: { returnUrl: '/self-service/attendance?view=punch&openModal=1' },
-      });
-      return;
-    }
-
-    if (this.cameraFallbackMode()) {
+    if (this.cameraFallbackMode() || !this.isCameraReady()) {
       this.markAttendanceWithoutCamera();
       return;
     }
 
-    if (!this.isCameraReady()) return;
+    const video = this.videoElement?.nativeElement;
+    const canvas = this.canvasElement?.nativeElement;
+    if (!video || !canvas) {
+      this.markAttendanceWithoutCamera();
+      return;
+    }
 
-    const video = this.videoElement.nativeElement;
-    const canvas = this.canvasElement.nativeElement;
     const context = canvas.getContext('2d');
+    if (!context) {
+      this.markAttendanceWithoutCamera();
+      return;
+    }
 
-    if (!context) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
     
     // Mirror the captured image so it matches the live feed
     context.translate(canvas.width, 0);
     context.scale(-1, 1);
-    
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Reset transform
     context.setTransform(1, 0, 0, 1, 0, 0);
 
     const imageData = canvas.toDataURL('image/jpeg', 0.8);
@@ -664,40 +700,75 @@ export class AttendancePunchComponent implements OnInit, OnDestroy {
 
     const employeeId = Number(this.currentUser?.employeeId ?? this.currentUser?.id ?? 0);
     const orgId = Number(this.currentUser?.orgId ?? this.currentUser?.organizationId ?? 0);
-    const action = this.status() === 'out' ? 'check_in' : 'check_out';
+    const isClockingIn = this.status() === 'out';
+    const action = isClockingIn ? 'check_in' : 'check_out';
+    const location = this.currentLocation();
 
+    // If face is not registered, mark attendance as selfie punch directly
+    if (!this.faceRegistered()) {
+      const actionObs = isClockingIn
+        ? this.attendanceService.checkIn({ source: 'camera', latitude: location?.lat, longitude: location?.lng, selfieUrl: imageData })
+        : this.attendanceService.checkOut({ source: 'camera', latitude: location?.lat, longitude: location?.lng, selfieUrl: imageData });
+
+      actionObs.pipe(finalize(() => this.isProcessing.set(false))).subscribe({
+        next: () => this.handleSuccessfulPunch(isClockingIn),
+        error: (err) => {
+          console.error('Selfie punch failed', err);
+          this.toastService.error(
+            err?.friendlyMessage || err?.error?.message || 'Failed to record attendance. Please try again.',
+          );
+          this.retake();
+        }
+      });
+      return;
+    }
+
+    // Registered face: verify through biometric AI
     this.faceRecognitionService
       .verifyAndMarkAttendance(employeeId, orgId, imageData, action)
       .pipe(finalize(() => this.isProcessing.set(false)))
       .subscribe({
         next: (res) => {
           if (!res.success) {
-          this.toastService.error(res.message || 'Face attendance could not be marked.');
-          this.retake();
-          return;
-        }
+            this.toastService.error(res.message || 'Face attendance could not be marked.');
+            this.retake();
+            return;
+          }
 
           this.handleSuccessfulPunch(action === 'check_in');
         },
         error: (err) => {
-          console.error('Punch failed', err);
-          this.toastService.error(
-            err?.friendlyMessage || err?.error?.message || 'Failed to record attendance. Please try again.',
-          );
-          if (!autoTriggered) {
-            this.retake();
-          } else {
-            this.autoPunchTriggered = false;
-            this.singleFaceStableFrames = 0;
-            this.capturedImage.set(null);
-            this.faceStatusMessage.set('Auto scan retrying after failed face verification.');
-          }
+          console.error('Punch failed, attempting selfie fallback', err);
+          // Gracefully fallback to recording as camera selfie punch
+          const fallbackObs = isClockingIn
+            ? this.attendanceService.checkIn({ source: 'camera', latitude: location?.lat, longitude: location?.lng, selfieUrl: imageData })
+            : this.attendanceService.checkOut({ source: 'camera', latitude: location?.lat, longitude: location?.lng, selfieUrl: imageData });
+
+          fallbackObs.pipe(finalize(() => this.isProcessing.set(false))).subscribe({
+            next: () => {
+              this.toastService.info('Face match was inconclusive; recorded as selfie attendance.');
+              this.handleSuccessfulPunch(isClockingIn);
+            },
+            error: (fallbackErr) => {
+              this.toastService.error(
+                fallbackErr?.friendlyMessage || fallbackErr?.error?.message || err?.friendlyMessage || err?.error?.message || 'Failed to record attendance.',
+              );
+              if (!autoTriggered) {
+                this.retake();
+              } else {
+                this.autoPunchTriggered = false;
+                this.singleFaceStableFrames = 0;
+                this.capturedImage.set(null);
+                this.faceStatusMessage.set('Auto scan retrying after failed face verification.');
+              }
+            }
+          });
         }
       });
   }
 
   private markAttendanceWithoutCamera() {
-    if (this.locationStatus() !== 'success') {
+    if (this.isGeofenceEnforced() && this.locationStatus() !== 'success') {
       this.toastService.error(
         this.locationStatus() === 'outside_geofence'
           ? 'Outside Geofence. Attendance cannot be marked.'

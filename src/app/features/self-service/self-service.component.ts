@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 
 // Widgets
 import { EssGreetingComponent } from './ess-dashboard/widgets/ess-greeting.component';
@@ -14,6 +15,7 @@ import { EssCalendarComponent, CalendarDay } from './ess-dashboard/widgets/ess-c
 import { EssLeaveBalanceComponent } from './ess-dashboard/widgets/ess-leave-balance.component';
 import { EssHolidaysComponent } from './ess-dashboard/widgets/ess-holidays.component';
 import { EssRequestsLedgerComponent } from './ess-dashboard/widgets/ess-requests-ledger.component';
+import { AttendancePunchComponent } from '../attendance/components/attendance-punch.component';
 
 // Services
 import { AuthService } from '../../core/services/auth.service';
@@ -29,6 +31,7 @@ import { NotificationService } from '../../core/services/notification.service';
 import { LiveRefreshService, LiveRefreshTrigger } from '../../core/services/live-refresh.service';
 import { ToastService } from '../../core/services/toast.service';
 import { LanguageService } from '../../core/services/language.service';
+import { FaceRecognitionService } from '../../core/services/face-recognition.service';
 
 // Models
 import { User } from '../../core/models/auth.model';
@@ -104,7 +107,8 @@ interface HolidayCalendarItem {
     EssCalendarComponent,
     EssLeaveBalanceComponent,
     EssHolidaysComponent,
-    EssRequestsLedgerComponent
+    EssRequestsLedgerComponent,
+    AttendancePunchComponent
   ],
   template: `
     <div class="ess-clean-panel min-h-full w-full">
@@ -192,6 +196,37 @@ interface HolidayCalendarItem {
               </app-ess-requests-ledger>
           </div>
         </div>
+
+        <!-- Attendance Punch Camera Modal -->
+        <div
+          *ngIf="showPunchModal()"
+          class="fixed inset-0 z-[10001] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-sm"
+        >
+          <div class="fixed inset-0" (click)="closePunchModal()"></div>
+          <div class="relative z-[10002] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+              <div>
+                <h3 class="text-lg font-black text-slate-900">Mark Attendance</h3>
+                <p class="text-xs font-semibold text-slate-500">Live camera face scan & smart verification</p>
+              </div>
+              <button
+                type="button"
+                (click)="closePunchModal()"
+                class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
+            </div>
+            <div class="p-5 max-h-[85vh] overflow-y-auto">
+              <app-attendance-punch
+                (punchSuccess)="onPunchSuccess()"
+              ></app-attendance-punch>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -269,8 +304,11 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
   private toastService = inject(ToastService);
   private languageService = inject(LanguageService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private faceRecognitionService = inject(FaceRecognitionService);
   private destroyRef = inject(DestroyRef);
 
+  showPunchModal = signal<boolean>(false);
   currentUser = signal<User | null>(null);
   currentTime = signal<string>(new Date().toLocaleTimeString(this.languageService.currentLanguage().locale, { hour: '2-digit', minute: '2-digit' }));
   todayStatus = signal<TodayAttendance | null>(null);
@@ -490,6 +528,17 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
     this.loadOccasions();
     this.notificationService.loadNotifications();
 
+    const openPunch = this.route.snapshot.queryParamMap.get('openPunch');
+    if (openPunch === '1') {
+      void this.openAttendanceModal();
+      void this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { openPunch: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    }
+
     this.liveRefreshService.createStream(120000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((trigger) => {
@@ -506,10 +555,48 @@ export class SelfServiceComponent implements OnInit, OnDestroy {
     this.leaveInsightChart?.destroy();
   }
 
-  openAttendanceModal() {
-    void this.router.navigate(['/self-service/attendance'], {
-      queryParams: { view: 'punch', openModal: 1 },
-    });
+  async openAttendanceModal() {
+    const user = this.currentUser() || this.authService.getStoredUser();
+    const employeeId = Number(user?.employeeId ?? user?.id ?? 0);
+
+    if (!employeeId) {
+      this.toastService.error('User information not found.');
+      return;
+    }
+
+    try {
+      const isRegistered = await firstValueFrom(
+        this.faceRecognitionService.hasRegisteredFace(employeeId)
+      );
+
+      if (!isRegistered) {
+        this.toastService.info('Please register your face first to mark attendance.');
+        void this.router.navigate(['/face-registration'], {
+          queryParams: { returnUrl: '/self-service?openPunch=1' },
+        });
+        return;
+      }
+
+      this.showPunchModal.set(true);
+    } catch (err) {
+      console.error('Error verifying face registration status', err);
+      this.toastService.info('Please register your face first to mark attendance.');
+      void this.router.navigate(['/face-registration'], {
+        queryParams: { returnUrl: '/self-service?openPunch=1' },
+      });
+    }
+  }
+
+  closePunchModal() {
+    this.showPunchModal.set(false);
+  }
+
+  onPunchSuccess() {
+    setTimeout(() => {
+      this.showPunchModal.set(false);
+      this.loadData();
+      this.loadCalendarMonth();
+    }, 1200);
   }
 
   loadOccasions() {
