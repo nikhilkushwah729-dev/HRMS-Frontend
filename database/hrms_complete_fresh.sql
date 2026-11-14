@@ -281,10 +281,14 @@ CREATE TABLE `shifts` (
 
 -- Employee Shifts
 CREATE TABLE `employee_shifts` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `employee_id` int(10) UNSIGNED NOT NULL,
   `shift_id` int(10) UNSIGNED NOT NULL,
+  `effective_from` date DEFAULT NULL,
+  `effective_to` date DEFAULT NULL,
   `assigned_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`employee_id`,`shift_id`),
+  PRIMARY KEY (`id`),
+  KEY `employee_id` (`employee_id`),
   KEY `shift_id` (`shift_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
